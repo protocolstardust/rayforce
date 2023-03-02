@@ -5,6 +5,7 @@
 #include "../core/format.h"
 #include "../core/monad.h"
 #include "../core/alloc.h"
+#include "parse.h"
 
 #define LINE_SIZE 2048
 
@@ -12,29 +13,28 @@ int main()
 {
     a0_init();
 
-    int run;
-    char line[LINE_SIZE];
+    int run = 1;
+    char *line = (char *)a0_alloc(LINE_SIZE);
     char *ptr;
+    g0 value;
+    Result res;
 
-    run = 1;
     while (run)
     {
+
         printf(">");
-
         ptr = fgets(line, LINE_SIZE, stdin);
+        UNUSED(ptr);
+        value = parse("REPL", line);
 
-        printf("%s %p", line, ptr);
-
-        g0 value = til(123);
-        // g0 value = new_scalar_i64(9223372036854775807);
-        str buffer;
-        Result res = g0_fmt(&buffer, value);
+        res = g0_fmt(&line, value);
         if (res == Ok)
         {
-            printf("%s\n", buffer);
+            printf("%s\n", line);
         }
-        result_fmt(&buffer, res);
-        printf("Result: %s\n", buffer);
+
+        result_fmt(&line, res);
+        printf("Result: %s\n", line);
 
         g0_free(value);
     }
