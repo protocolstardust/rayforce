@@ -10,16 +10,18 @@
 // Global allocator reference
 a0 GLOBAL_A0 = NULL;
 
-extern void *a0_alloc(int size)
+extern void *a0_malloc(int size)
 {
     int i, order;
-    i8 *block;
+    str block;
     void *buddy;
 
     // calculate minimal order for this size
     i = 0;
     while (BLOCK_SIZE(i) < size + 1) // one more byte for storing order
         i++;
+
+    printf("a0_malloc(%d) block_size: %d\n", size, BLOCK_SIZE(i));
 
     order = i = (i < MIN_ORDER) ? MIN_ORDER : i;
 
@@ -44,7 +46,7 @@ extern void *a0_alloc(int size)
     }
 
     // store order in previous byte
-    *((i8 *)(block - 1)) = order;
+    *((str)(block - 1)) = order;
     return block;
 }
 
@@ -55,7 +57,7 @@ extern void a0_free(void *block)
     void **p;
 
     // fetch order in previous byte
-    i = *((i8 *)(((i8 *)block) - 1));
+    i = *((str)(((str)block) - 1));
 
     for (;; i++)
     {
@@ -83,6 +85,10 @@ extern void a0_free(void *block)
 
 extern void a0_init()
 {
+    printf("a0_init:\n\
+    -- PAGE_SIZE: %d\n\
+    -- POOL_SIZE: %d\n",
+           PAGE_SIZE, POOL_SIZE);
     a0 alloc;
 
     alloc = (a0)mmap(NULL, sizeof(struct A0),

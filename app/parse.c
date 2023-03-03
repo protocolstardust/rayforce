@@ -8,7 +8,7 @@ parser_t new_parser(str filename, lexer_t lexer)
 {
     parser_t parser;
 
-    parser = (parser_t)a0_alloc(sizeof(struct Parser));
+    parser = (parser_t)a0_malloc(sizeof(struct Parser));
     parser->filename = filename;
     parser->lexer = lexer;
     return parser;

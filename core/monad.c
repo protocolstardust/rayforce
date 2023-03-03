@@ -5,7 +5,7 @@ g0 til(i64 count)
 {
     i64 *vec;
 
-    vec = (i64 *)a0_alloc(count * sizeof(i64));
+    vec = (i64 *)a0_malloc(count * sizeof(i64));
     for (i64 i = 0; i < count; i++)
     {
         vec[i] = i;

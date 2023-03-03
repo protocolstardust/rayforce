@@ -14,7 +14,7 @@ int main()
     a0_init();
 
     int run = 1;
-    char *line = (char *)a0_alloc(LINE_SIZE);
+    char *line = (char *)a0_malloc(LINE_SIZE);
     char *ptr;
     g0 value;
     Result res;

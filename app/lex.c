@@ -6,7 +6,7 @@ lexer_t new_lexer(str source)
 {
     lexer_t lexer;
 
-    lexer = (lexer_t)a0_alloc(sizeof(struct Lexer));
+    lexer = (lexer_t)a0_malloc(sizeof(struct Lexer));
     lexer->source = source;
     lexer->line = 1;
 
