@@ -4,32 +4,32 @@
 #include <string.h>
 #include "alloc.h"
 
-#define MAX_I64_WIDTH 20
-#define MAX_ROW_WIDTH MAX_I64_WIDTH * 2
+#define MAX_i64_t_WIDTH 20
+#define MAX_ROW_WIDTH MAX_i64_t_WIDTH * 2
 
-Result nil_fmt(str *buffer)
+result_t nil_fmt(str_t *buffer)
 {
-    *buffer = (str)a0_malloc(4);
+    *buffer = (str_t)storm_malloc(4);
     strncpy(*buffer, "nil", 4);
     return Ok;
 }
 
-Result scalar_i64_fmt(str *buffer, g0 value)
+result_t scalar_i64_fmt(str_t *buffer, value_t value)
 {
-    *buffer = (str)a0_malloc(MAX_I64_WIDTH);
-    if (snprintf(*buffer, MAX_I64_WIDTH, "%lld", value->i64_value) < 0)
+    *buffer = (str_t)storm_malloc(MAX_i64_t_WIDTH);
+    if (snprintf(*buffer, MAX_i64_t_WIDTH, "%lld", value->i64_t_value) < 0)
     {
         return FormatError;
     }
     return Ok;
 }
 
-Result vector_i64_fmt(str *buffer, g0 value)
+result_t vector_i64_fmt(str_t *buffer, value_t value)
 {
-    str buf;
-    i64 count, remains, len;
+    str_t buf;
+    i64_t count, remains, len;
 
-    *buffer = (str)a0_malloc(MAX_ROW_WIDTH + 4);
+    *buffer = (str_t)storm_malloc(MAX_ROW_WIDTH + 4);
     buf = *buffer;
     strncpy(buf, "[", 2);
     buf += 1;
@@ -38,10 +38,10 @@ Result vector_i64_fmt(str *buffer, g0 value)
     remains = MAX_ROW_WIDTH;
     len = 0;
 
-    for (i64 i = 0; i < count; i++)
+    for (i64_t i = 0; i < count; i++)
     {
         remains = MAX_ROW_WIDTH - (buf - (*buffer));
-        len = snprintf(buf, remains, "%lld, ", ((i64 *)value->list_value.ptr)[i]);
+        len = snprintf(buf, remains, "%lld, ", ((i64_t *)value->list_value.ptr)[i]);
         if (len < 0)
         {
             return FormatError;
@@ -57,7 +57,7 @@ Result vector_i64_fmt(str *buffer, g0 value)
     remains = MAX_ROW_WIDTH - (buf - (*buffer));
     if (value->list_value.len > 0 && remains > 0)
     {
-        len = snprintf(buf, remains, "%lld", ((i64 *)value->list_value.ptr)[count]);
+        len = snprintf(buf, remains, "%lld", ((i64_t *)value->list_value.ptr)[count]);
         if (len < 0)
         {
             return FormatError;
@@ -82,15 +82,15 @@ Result vector_i64_fmt(str *buffer, g0 value)
     return Ok;
 }
 
-extern Result g0_fmt(str *buffer, g0 value)
+extern result_t value_fmt(str_t *buffer, value_t value)
 {
     switch (value->type)
     {
-    case -TYPE_I64:
+    case -TYPE_i64:
     {
         return scalar_i64_fmt(buffer, value);
     }
-    case TYPE_I64:
+    case TYPE_i64:
     {
         return vector_i64_fmt(buffer, value);
     }
@@ -101,31 +101,31 @@ extern Result g0_fmt(str *buffer, g0 value)
     }
 }
 
-extern void result_fmt(str *buffer, Result result)
+extern nil_t result_fmt(str_t *buffer, result_t result_t)
 {
-    switch (result)
+    switch (result_t)
     {
     case Ok:
     {
-        *buffer = (str)a0_malloc(3);
+        *buffer = (str_t)storm_malloc(3);
         strncpy(*buffer, "Ok", 3);
         break;
     }
     case FormatError:
     {
-        *buffer = (str)a0_malloc(12);
+        *buffer = (str_t)storm_malloc(12);
         strncpy(*buffer, "FormatError", 12);
         break;
     }
     case InvalidType:
     {
-        *buffer = (str)a0_malloc(12);
+        *buffer = (str_t)storm_malloc(12);
         strncpy(*buffer, "InvalidType", 12);
         break;
     }
     default:
     {
-        *buffer = (str)a0_malloc(10);
+        *buffer = (str_t)storm_malloc(10);
         strncpy(*buffer, "Unknown", 10);
         break;
     }

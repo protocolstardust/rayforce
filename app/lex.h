@@ -22,13 +22,13 @@ enum Token
     BangEqual, // !=
 };
 
-typedef struct Lexer
+typedef struct lexer_t
 {
-    str source;
-    i64 line;
-    i64 column;
+    str_t source;
+    i64_t line;
+    i64_t column;
 } __attribute__((aligned(16))) * lexer_t;
 
-lexer_t new_lexer(str source);
+lexer_t new_lexer(str_t source);
 
 #endif

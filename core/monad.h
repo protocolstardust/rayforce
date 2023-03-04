@@ -4,6 +4,6 @@
 #include "storm.h"
 
 // Monadic functions
-g0 til(i64 count);
+value_t til(i64_t count);
 
 #endif

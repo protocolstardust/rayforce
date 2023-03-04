@@ -16,8 +16,8 @@ extern "C"
 
 // Type constants
 #define TYPE_S0 0
-#define TYPE_I8 1
-#define TYPE_I64 2
+#define TYPE_i8 1
+#define TYPE_i64 2
 #define TYPE_F64 3
 #define TYPE_ERR 127
 
@@ -27,39 +27,40 @@ extern "C"
         InitError,
         FormatError,
         InvalidType
-    } Result;
+    } result_t;
 
-    typedef char i8;
-    typedef char *str;
-    typedef long long i64;
+    typedef char i8_t;
+    typedef char *str_t;
+    typedef long long i64_t;
     typedef double f64;
+    typedef void nil_t;
 
     // Generic type
-    typedef struct s0
+    typedef struct value_t
     {
-        i8 type;
+        i8_t type;
 
         union
         {
-            i8 i8_value;
-            i64 i64_value;
+            i8_t i8_t_value;
+            i64_t i64_t_value;
             f64 f64_value;
             struct
             {
-                i64 len;
+                i64_t len;
                 void *ptr;
             } list_value;
         };
-    } __attribute__((aligned(16))) * g0;
+    } __attribute__((aligned(16))) * value_t;
 
-    CASSERT(sizeof(struct s0) == 32, storm_h)
+    CASSERT(sizeof(struct value_t) == 32, storm_h)
 
     // Constructors
-    extern g0 new_scalar_i64(i64 value);
-    extern g0 new_vector_i64(i64 *ptr, i64 len);
+    extern value_t new_scalar_i64(i64_t value);
+    extern value_t new_vector_i64(i64_t *ptr, i64_t len);
 
     // Destructor
-    extern void g0_free(g0 value);
+    extern nil_t value_free(value_t value);
 
     // Accessors
 

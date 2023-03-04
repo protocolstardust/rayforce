@@ -1,12 +1,12 @@
 #include "storm.h"
 #include "alloc.h"
 
-g0 til(i64 count)
+value_t til(i64_t count)
 {
-    i64 *vec;
+    i64_t *vec;
 
-    vec = (i64 *)a0_malloc(count * sizeof(i64));
-    for (i64 i = 0; i < count; i++)
+    vec = (i64_t *)storm_malloc(count * sizeof(i64_t));
+    for (i64_t i = 0; i < count; i++)
     {
         vec[i] = i;
     }

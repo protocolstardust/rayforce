@@ -3,7 +3,7 @@
 
 #include "storm.h"
 
-extern void result_fmt(str *buffer, Result error);
-extern Result g0_fmt(str *buffer, g0 value);
+extern nil_t result_fmt(str_t *buffer, result_t error);
+extern result_t value_fmt(str_t *buffer, value_t value);
 
 #endif

@@ -4,29 +4,25 @@
 #include "storm.h"
 
 #define PAGE_SIZE 4096
-
 #define MIN_ORDER 2
 #define MAX_ORDER 10
+#define MIN_ALLOC ((i64_t)1 << MIN_ORDER)
+#define MAX_ALLOC ((i64_t)1 << MAX_ORDER)
+#define POOL_SIZE (MAX_ALLOC * 2)
+#define BUCKET_COUNT (MAX_ORDER - MIN_ORDER + 1)
 
-#define POOL_SIZE (PAGE_SIZE * (1 << MAX_ORDER))
-#define BLOCK_SIZE(i) (1 << (i))
-
-#define POOL_BASE ((i64)GLOBAL_A0->pool)
-#define MEM_OFFSET(b) ((i64)b - POOL_BASE)
-#define BUDDY_OF(b, i) ((void *)((MEM_OFFSET(b) ^ (1 << (i))) + POOL_BASE))
-
-typedef struct A0
+typedef struct alloc_t
 {
-    void *freelist[MAX_ORDER + 2];
-    i8 pool[POOL_SIZE];
-} __attribute__((aligned(PAGE_SIZE))) * a0;
+    nil_t *freelist[BUCKET_COUNT];
+    i8_t pool[POOL_SIZE];
+} __attribute__((aligned(PAGE_SIZE))) * alloc_t;
 
-CASSERT(sizeof(struct A0) % PAGE_SIZE == 0, alloc_h)
+CASSERT(sizeof(struct alloc_t) % PAGE_SIZE == 0, alloc_h)
 
-extern void *a0_malloc(int size);
-extern void a0_free(void *block);
+extern nil_t *storm_malloc(int size);
+extern nil_t storm_free(void *block);
 
-extern void a0_init();
-extern void a0_deinit();
+extern nil_t storm_alloc_init();
+extern nil_t storm_alloc_deinit();
 
 #endif

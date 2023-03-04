@@ -11,13 +11,13 @@
 
 int main()
 {
-    a0_init();
+    storm_alloc_init();
 
     int run = 1;
-    char *line = (char *)a0_malloc(LINE_SIZE);
+    char *line = (char *)storm_malloc(LINE_SIZE);
     char *ptr;
-    g0 value;
-    Result res;
+    value_t value;
+    result_t res;
 
     while (run)
     {
@@ -27,19 +27,19 @@ int main()
         UNUSED(ptr);
         value = parse("REPL", line);
 
-        res = g0_fmt(&line, value);
+        res = value_fmt(&line, value);
         if (res == Ok)
         {
             printf("%s\n", line);
         }
 
         result_fmt(&line, res);
-        printf("Result: %s\n", line);
+        printf("result_t: %s\n", line);
 
-        g0_free(value);
+        value_free(value);
     }
 
-    a0_deinit();
+    storm_alloc_deinit();
 
     return 0;
 }

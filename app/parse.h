@@ -4,11 +4,11 @@
 #include "../core/storm.h"
 #include "lex.h"
 
-extern g0 parse(str filename, str input);
+extern value_t parse(str_t filename, str_t input);
 
-typedef struct Parser
+typedef struct parser_t
 {
-    str filename;
+    str_t filename;
     lexer_t lexer;
 } __attribute__((aligned(16))) * parser_t;
 

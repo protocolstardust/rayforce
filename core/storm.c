@@ -3,34 +3,34 @@
 #include <stdio.h>
 #include "alloc.h"
 
-extern g0 new_scalar_i64(i64 value)
+extern value_t new_scalar_i64(i64_t value)
 {
-    g0 scalar;
+    value_t scalar;
 
-    scalar = a0_malloc(sizeof(struct s0));
-    scalar->type = -TYPE_I64;
-    scalar->i64_value = value;
+    scalar = storm_malloc(sizeof(struct value_t));
+    scalar->type = -TYPE_i64;
+    scalar->i64_t_value = value;
     return scalar;
 }
 
-extern g0 new_vector_i64(i64 *ptr, i64 len)
+extern value_t new_vector_i64(i64_t *ptr, i64_t len)
 {
-    g0 vector;
+    value_t vector;
 
-    vector = a0_malloc(sizeof(struct s0));
-    vector->type = TYPE_I64;
+    vector = storm_malloc(sizeof(struct value_t));
+    vector->type = TYPE_i64;
     vector->list_value.ptr = ptr;
     vector->list_value.len = len;
     return vector;
 }
 
-extern void g0_free(g0 value)
+extern nil_t value_free(value_t value)
 {
     switch (value->type)
     {
-    case TYPE_I64:
+    case TYPE_i64:
     {
-        a0_free(value->list_value.ptr);
+        storm_free(value->list_value.ptr);
         break;
     }
     default:
@@ -39,5 +39,5 @@ extern void g0_free(g0 value)
         break;
     }
     }
-    a0_free(value);
+    storm_free(value);
 }
