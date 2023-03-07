@@ -6,6 +6,7 @@
 
 #define MAX_i64_t_WIDTH 20
 #define MAX_ROW_WIDTH MAX_i64_t_WIDTH * 2
+#define F64_PRECISION 4
 
 extern str_t str_fmt(str_t fmt, ...)
 {
@@ -49,7 +50,7 @@ str_t vector_i64_fmt(value_t value)
         if (len < 0)
         {
             storm_free(str);
-            return ERR_FORMAT;
+            return NULL;
         }
 
         if (remains < len)
@@ -68,7 +69,7 @@ str_t vector_i64_fmt(value_t value)
         if (len < 0)
         {
             storm_free(str);
-            return ERR_FORMAT;
+            return NULL;
         }
         if (remains < len)
             buf = str + MAX_ROW_WIDTH - 1;
@@ -111,13 +112,15 @@ extern str_t value_fmt(value_t value)
 {
     switch (value->type)
     {
-    case -TYPE_i64:
+    case -TYPE_I64:
         return str_fmt("%lld", value->i64_t_value);
-    case TYPE_i64:
+    case -TYPE_F64:
+        return str_fmt("%.*f", F64_PRECISION, value->f64_value);
+    case TYPE_I64:
         return vector_i64_fmt(value);
     case TYPE_ERR:
         return error_fmt(value);
     default:
-        return TYPE_ERR;
+        return NULL;
     }
 }

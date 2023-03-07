@@ -16,8 +16,8 @@ extern "C"
 
 // Type constants
 #define TYPE_S0 0
-#define TYPE_i8 1
-#define TYPE_i64 2
+#define TYPE_I8 1
+#define TYPE_I64 2
 #define TYPE_F64 3
 #define TYPE_ERR 127
 
@@ -37,7 +37,7 @@ extern "C"
     typedef unsigned int u32_t;
     typedef long long i64_t;
     typedef unsigned long long u64_t;
-    typedef double f64;
+    typedef double f64_t;
     typedef void nil_t;
 
     typedef struct error_t
@@ -61,7 +61,7 @@ extern "C"
         {
             i8_t i8_t_value;
             i64_t i64_t_value;
-            f64 f64_value;
+            f64_t f64_value;
             vector_t list_value;
             error_t error_value;
         };
@@ -71,7 +71,10 @@ extern "C"
 
     // Constructors
     extern value_t new_scalar_i64(i64_t value);
+    extern value_t new_scalar_f64(f64_t value);
     extern value_t new_vector_i64(i64_t *ptr, i64_t len);
+    extern value_t new_vector_f64(f64_t *ptr, i64_t len);
+    extern value_t new_vector_str(str_t *ptr, i64_t len);
 
     // Error
     extern value_t new_error(i8_t code, str_t message);

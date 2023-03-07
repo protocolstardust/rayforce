@@ -19,8 +19,18 @@ extern value_t new_scalar_i64(i64_t value)
     value_t scalar;
 
     scalar = storm_malloc(sizeof(struct value_t));
-    scalar->type = -TYPE_i64;
+    scalar->type = -TYPE_I64;
     scalar->i64_t_value = value;
+    return scalar;
+}
+
+extern value_t new_scalar_f64(f64_t value)
+{
+    value_t scalar;
+
+    scalar = storm_malloc(sizeof(struct value_t));
+    scalar->type = -TYPE_F64;
+    scalar->f64_value = value;
     return scalar;
 }
 
@@ -29,7 +39,18 @@ extern value_t new_vector_i64(i64_t *ptr, i64_t len)
     value_t vector;
 
     vector = storm_malloc(sizeof(struct value_t));
-    vector->type = TYPE_i64;
+    vector->type = TYPE_I64;
+    vector->list_value.ptr = ptr;
+    vector->list_value.len = len;
+    return vector;
+}
+
+extern value_t new_vector_f64(f64_t *ptr, i64_t len)
+{
+    value_t vector;
+
+    vector = storm_malloc(sizeof(struct value_t));
+    vector->type = TYPE_F64;
     vector->list_value.ptr = ptr;
     vector->list_value.len = len;
     return vector;
@@ -39,7 +60,7 @@ extern nil_t value_free(value_t value)
 {
     switch (value->type)
     {
-    case TYPE_i64:
+    case TYPE_I64:
     {
         storm_free(value->list_value.ptr);
         break;
