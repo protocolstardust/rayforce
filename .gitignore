@@ -4,3 +4,4 @@ stormdb
 *.a
 *.gch
 stormdb.S
+gmon.out

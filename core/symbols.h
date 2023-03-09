@@ -2,24 +2,15 @@
 #define SYMBOLS_H
 
 #include "storm.h"
-
-#define CELLS_SIZE 4096
-
-typedef struct cell_t
-{
-    i64_t key;
-    str_t str;
-    struct cell_t *next;
-} cell_t;
+#include "hash.h"
 
 typedef struct symbols_t
 {
-    i64_t size;
-    cell_t cells[CELLS_SIZE];
-    cell_t *keys[CELLS_SIZE];
+    hash_table_t *str_to_id;
+    hash_table_t *id_to_str;
 } symbols_t;
 
-i64_t symbols_insert(symbols_t *symbols, str_t str);
+i64_t symbols_intern(symbols_t *symbols, str_t str);
 str_t symbols_get(symbols_t *symbols, i64_t key);
 
 symbols_t *symbols_create();

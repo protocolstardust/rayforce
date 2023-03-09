@@ -12,12 +12,12 @@
 // Global allocator reference
 alloc_t GLOBAL_A0 = NULL;
 
-extern null_t *storm_malloc(int size)
+extern null_t *storm_malloc(i32_t size)
 {
     return malloc(size);
 }
 
-extern null_t storm_free(void *block)
+extern null_t storm_free(null_t *block)
 {
     free(block);
 }
