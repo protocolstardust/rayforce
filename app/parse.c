@@ -93,7 +93,10 @@ value_t parse_vector(parser_t *parser)
         token = advance(parser);
 
         if (is_error(&token))
+        {
+            storm_free(vec);
             return token;
+        }
 
         // extend vec if needed
         if (len == cap)
@@ -183,6 +186,52 @@ value_t parse_vector(parser_t *parser)
     };
 }
 
+value_t parse_list(parser_t *parser)
+{
+    i64_t cap = 8;
+    u32_t len = 0;
+    str_t *current = &parser->current;
+    value_t *vec = (value_t *)storm_malloc(cap * sizeof(value_t));
+    value_t token;
+
+    (*current)++; // skip '('
+
+    while (!at_eof(**current) && (**current) != ')')
+    {
+        token = advance(parser);
+
+        if (is_error(&token))
+        {
+            storm_free(vec);
+            return token;
+        }
+
+        // extend vec if needed
+        if (len == cap)
+        {
+            cap *= 2;
+            vec = storm_realloc(vec, cap * sizeof(value_t));
+        }
+
+        vec[len++] = token;
+
+        if ((**current) != ',')
+            break;
+
+        (*current)++;
+    }
+
+    if ((**current) != ')')
+    {
+        storm_free(vec);
+        return error(ERR_PARSE, "Expected ')'");
+    }
+
+    (*current)++;
+
+    return list(vec, len);
+}
+
 value_t parse_symbol(parser_t *parser)
 {
     str_t pos = parser->current;
@@ -229,13 +278,16 @@ value_t advance(parser_t *parser)
     str_t *current = &parser->current;
 
     if (at_eof(**current))
-        return s0(NULL, 0);
+        return null();
 
     while (is_whitespace(**current))
         (*current)++;
 
     if ((**current) == '[')
         return parse_vector(parser);
+
+    if ((**current) == '(')
+        return parse_list(parser);
 
     if ((**current) == '-' || is_digit(**current))
         return parse_number(parser);
@@ -246,7 +298,7 @@ value_t advance(parser_t *parser)
     if ((**current) == '"')
         return parse_string(parser);
 
-    return s0(NULL, 0);
+    return null();
 }
 
 value_t parse_program(parser_t *parser)

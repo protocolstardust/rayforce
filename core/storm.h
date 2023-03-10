@@ -15,7 +15,7 @@ extern "C"
 #define UNUSED(x) (void)(x)
 
 // Type constants
-#define TYPE_S0 0
+#define TYPE_LIST 0
 #define TYPE_I8 1
 #define TYPE_I64 2
 #define TYPE_F64 3
@@ -50,7 +50,7 @@ extern "C"
 
     typedef struct vector_t
     {
-        i64_t len;
+        u64_t len;
         void *ptr;
     } vector_t;
 
@@ -64,7 +64,7 @@ extern "C"
             i8_t i8;
             i64_t i64;
             f64_t f64;
-            vector_t s0;
+            vector_t list;
             error_t error;
         };
     } __attribute__((aligned(16))) value_t;
@@ -79,7 +79,8 @@ extern "C"
     extern value_t string(str_t ptr, i64_t len);
     extern value_t symbol(str_t ptr, i64_t len);
     extern value_t xsymbol(i64_t *ptr, i64_t len);
-    extern value_t s0(value_t *ptr, i64_t len);
+    extern value_t list(value_t *ptr, i64_t len);
+    extern value_t null();
 
     // Error
     extern value_t error(i8_t code, str_t message);

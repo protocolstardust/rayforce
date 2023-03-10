@@ -9,6 +9,8 @@
 #define MAX_ROW_WIDTH MAX_i64_t_WIDTH * 2
 #define F64_PRECISION 4
 
+const str_t PADDING = "                                                                                     ";
+
 extern str_t str_fmt(u32_t lim, str_t fmt, ...)
 {
     i32_t n, size = lim > 0 ? lim : MAX_ROW_WIDTH;
@@ -31,30 +33,34 @@ extern str_t str_fmt(u32_t lim, str_t fmt, ...)
     return p;
 }
 
-str_t vector_fmt(value_t *value)
+str_t vector_fmt(u32_t pad, u32_t lim, u8_t del, value_t *value)
 {
+    if (lim < 4)
+        return NULL;
+
     str_t str, buf;
     i64_t count, remains, len;
     i8_t v_type = value->type;
+    u8_t slim = lim - 4;
 
-    str = buf = (str_t)storm_malloc(MAX_ROW_WIDTH + 4);
+    str = buf = (str_t)storm_malloc(lim);
     strncpy(buf, "[", 2);
     buf += 1;
 
-    count = value->s0.len < 1 ? 0 : value->s0.len - 1;
-    remains = MAX_ROW_WIDTH;
+    count = value->list.len < 1 ? 0 : value->list.len - 1;
+    remains = slim;
     len = 0;
 
     for (i64_t i = 0; i < count; i++)
     {
-        remains = MAX_ROW_WIDTH - (buf - str);
+        remains = slim - (buf - str);
 
         if (v_type == TYPE_I64)
-            len = snprintf(buf, remains, "%lld, ", ((i64_t *)value->s0.ptr)[i]);
+            len = snprintf(buf, remains, "%*.*s%lld,%c", pad, pad, PADDING, ((i64_t *)value->list.ptr)[i], del);
         else if (v_type == TYPE_F64)
-            len = snprintf(buf, remains, "%.*f, ", F64_PRECISION, ((f64_t *)value->s0.ptr)[i]);
+            len = snprintf(buf, remains, "%*.*s%.*f,%c", pad, pad, PADDING, F64_PRECISION, ((f64_t *)value->list.ptr)[i], del);
         else if (v_type == TYPE_SYMBOL)
-            len = snprintf(buf, remains, "%s, ", symbols_get(((i64_t *)value->s0.ptr)[i]));
+            len = snprintf(buf, remains, "%*.*s%s,%c", pad, pad, PADDING, symbols_get(((i64_t *)value->list.ptr)[i]), del);
 
         if (len < 0)
         {
@@ -62,23 +68,23 @@ str_t vector_fmt(value_t *value)
             return NULL;
         }
 
-        if (remains < 3)
+        if (remains < 4)
         {
-            buf = str + MAX_ROW_WIDTH - 2;
+            buf = str + slim;
             break;
         }
         buf += len;
     }
 
-    remains = MAX_ROW_WIDTH - (buf - str);
-    if (value->s0.len > 0 && remains > 3)
+    remains = slim - (buf - str);
+    if (value->list.len > 0 && remains > 4)
     {
         if (v_type == TYPE_I64)
-            len = snprintf(buf, remains, "%lld", ((i64_t *)value->s0.ptr)[count]);
+            len = snprintf(buf, remains, "%*.*s%lld", pad, pad, PADDING, ((i64_t *)value->list.ptr)[count]);
         else if (v_type == TYPE_F64)
-            len = snprintf(buf, remains, "%.*f", F64_PRECISION, ((f64_t *)value->s0.ptr)[count]);
+            len = snprintf(buf, remains, "%*.*s%.*f", pad, pad, PADDING, F64_PRECISION, ((f64_t *)value->list.ptr)[count]);
         else if (v_type == TYPE_SYMBOL)
-            len = snprintf(buf, remains, "%s", symbols_get(((i64_t *)value->s0.ptr)[count]));
+            len = snprintf(buf, remains, "%*.*s%s", pad, pad, PADDING, symbols_get(((i64_t *)value->list.ptr)[count]));
 
         if (len < 0)
         {
@@ -86,12 +92,12 @@ str_t vector_fmt(value_t *value)
             return NULL;
         }
         if (remains < len)
-            buf = str + MAX_ROW_WIDTH - 2;
+            buf = str + slim;
         else
             buf += len;
     }
 
-    if (remains < 3)
+    if (remains < 4)
         strncpy(buf, "..]", 4);
     else
         strncpy(buf, "]", 2);
@@ -99,7 +105,28 @@ str_t vector_fmt(value_t *value)
     return str;
 }
 
-str_t error_fmt(value_t *value)
+str_t list_fmt(u32_t pad, u32_t lim, u8_t del, value_t *value)
+{
+    if (value->list.ptr == NULL)
+        return str_fmt(0, "null");
+
+    str_t s, str, buf;
+
+    str = buf = (str_t)storm_malloc(MAX_ROW_WIDTH + 4 + 16024);
+    strncpy(buf, "(", 2);
+    buf += 1;
+
+    for (u64_t i = 0; i < value->list.len; i++)
+    {
+        s = value_fmt(((value_t *)value->list.ptr) + i);
+        buf += snprintf(buf, MAX_ROW_WIDTH, "%s, %c", s, del);
+    }
+
+    strncpy(buf, ")", 2);
+    return str;
+}
+
+str_t error_fmt(u32_t pad, u32_t lim, u8_t del, value_t *value)
 {
     str_t code;
 
@@ -123,8 +150,8 @@ extern str_t value_fmt(value_t *value)
 {
     switch (value->type)
     {
-    case TYPE_S0:
-        return str_fmt(0, "null");
+    case TYPE_LIST:
+        return list_fmt(0, 0, '\n', value);
     case -TYPE_I64:
         return str_fmt(0, "%lld", value->i64);
     case -TYPE_F64:
@@ -132,15 +159,15 @@ extern str_t value_fmt(value_t *value)
     case -TYPE_SYMBOL:
         return str_fmt(0, "%s", symbols_get(value->i64));
     case TYPE_I64:
-        return vector_fmt(value);
+        return vector_fmt(0, MAX_ROW_WIDTH, ' ', value);
     case TYPE_F64:
-        return vector_fmt(value);
+        return vector_fmt(0, MAX_ROW_WIDTH, ' ', value);
     case TYPE_SYMBOL:
-        return vector_fmt(value);
+        return vector_fmt(0, MAX_ROW_WIDTH, ' ', value);
     case TYPE_STRING:
-        return str_fmt(value->s0.len, "\"%s\"", value->s0.ptr);
+        return str_fmt(value->list.len, "\"%s\"", value->list.ptr);
     case TYPE_ERROR:
-        return error_fmt(value);
+        return error_fmt(0, 0, ' ', value);
     default:
         return str_fmt(0, "null");
     }

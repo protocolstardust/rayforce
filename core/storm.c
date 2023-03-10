@@ -6,7 +6,7 @@
 
 extern i8_t is_null(value_t *value)
 {
-    return value->type == TYPE_S0 && value->s0.ptr == NULL;
+    return value->type == TYPE_LIST && value->list.ptr == NULL;
 }
 
 extern i8_t is_error(value_t *value)
@@ -51,7 +51,7 @@ extern value_t xi64(i64_t *ptr, i64_t len)
 {
     value_t vector = {
         .type = TYPE_I64,
-        .s0 = {
+        .list = {
             .ptr = ptr,
             .len = len,
         },
@@ -64,7 +64,7 @@ extern value_t xf64(f64_t *ptr, i64_t len)
 {
     value_t vector = {
         .type = TYPE_F64,
-        .s0 = {
+        .list = {
             .ptr = ptr,
             .len = len,
         },
@@ -89,7 +89,7 @@ extern value_t string(str_t ptr, i64_t len)
 {
     value_t list = {
         .type = TYPE_STRING,
-        .s0 = {
+        .list = {
             .ptr = ptr,
             .len = len,
         },
@@ -102,7 +102,7 @@ extern value_t xsymbol(i64_t *ptr, i64_t len)
 {
     value_t vector = {
         .type = TYPE_SYMBOL,
-        .s0 = {
+        .list = {
             .ptr = ptr,
             .len = len,
         },
@@ -111,13 +111,26 @@ extern value_t xsymbol(i64_t *ptr, i64_t len)
     return vector;
 }
 
-extern value_t s0(value_t *ptr, i64_t len)
+extern value_t list(value_t *ptr, i64_t len)
 {
     value_t list = {
-        .type = TYPE_S0,
-        .s0 = {
+        .type = TYPE_LIST,
+        .list = {
             .ptr = ptr,
             .len = len,
+        },
+    };
+
+    return list;
+}
+
+extern value_t null()
+{
+    value_t list = {
+        .type = TYPE_LIST,
+        .list = {
+            .ptr = NULL,
+            .len = 0,
         },
     };
 
@@ -130,12 +143,12 @@ extern null_t value_free(value_t *value)
     {
     case TYPE_I64:
     {
-        storm_free(value->s0.ptr);
+        storm_free(value->list.ptr);
         break;
     }
     case TYPE_F64:
     {
-        storm_free(value->s0.ptr);
+        storm_free(value->list.ptr);
         break;
     }
     default:

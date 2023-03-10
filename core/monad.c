@@ -19,8 +19,8 @@ value_t storm_add(value_t *a, value_t *b)
     i64_t a_len, b_len, sum = 0;
     i64_t *a_vec;
 
-    a_len = a->s0.len;
-    a_vec = a->s0.ptr;
+    a_len = a->list.len;
+    a_vec = a->list.ptr;
 
     sum = b->i64;
 
