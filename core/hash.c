@@ -7,9 +7,6 @@
 #include "storm.h"
 #include "alloc.h"
 
-#define likely(x) __builtin_expect((x), 1)
-#define unlikely(x) __builtin_expect((x), 0)
-
 hash_table_t *ht_create(u64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
 {
     hash_table_t *table = (hash_table_t *)storm_malloc(sizeof(hash_table_t));
@@ -42,6 +39,10 @@ null_t ht_free(hash_table_t *table)
     }
 }
 
+/*
+ * Inserts new node or returns existing node.
+ * Does not update existing node.
+ */
 null_t *ht_insert(hash_table_t *table, null_t *key, null_t *val)
 {
     // Table's size is always a power of 2
@@ -68,6 +69,9 @@ null_t *ht_insert(hash_table_t *table, null_t *key, null_t *val)
     return val;
 }
 
+/*
+ * Does the same as ht_insert, but uses a function to set the value of the bucket.
+ */
 null_t *ht_insert_with(hash_table_t *table, null_t *key, null_t *val, null_t *(*func)(null_t *key, null_t *val, bucket_t *bucket))
 {
     // Table's size is always a power of 2
@@ -92,6 +96,10 @@ null_t *ht_insert_with(hash_table_t *table, null_t *key, null_t *val, null_t *(*
     return func(key, val, *bucket);
 }
 
+/*
+ * Returns the value of the node with the given key.
+ * Returns NULL if the key does not exist.
+ */
 null_t *ht_get(hash_table_t *table, null_t *key)
 {
     u64_t index = table->hasher(key) & (table->cap - 1);
