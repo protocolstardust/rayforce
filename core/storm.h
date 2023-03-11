@@ -95,15 +95,15 @@ extern "C"
     CASSERT(sizeof(struct value_t) == 32, storm_h)
 
     // Constructors
-    extern value_t i64(i64_t value);
-    extern value_t f64(f64_t value);
-    extern value_t xi64(i64_t *ptr, i64_t len);
-    extern value_t xf64(f64_t *ptr, i64_t len);
-    extern value_t string(str_t ptr, i64_t len);
-    extern value_t symbol(str_t ptr, i64_t len);
-    extern value_t xsymbol(i64_t *ptr, i64_t len);
-    extern value_t list(value_t *ptr, i64_t len);
-    extern value_t null();
+    extern value_t i64(i64_t value);               // i64 scalar
+    extern value_t f64(f64_t value);               // f64 scalar
+    extern value_t xi64(i64_t *ptr, i64_t len);    // i64 vector
+    extern value_t xf64(f64_t *ptr, i64_t len);    // f64 vector
+    extern value_t string(str_t ptr, i64_t len);   // string
+    extern value_t symbol(str_t ptr, i64_t len);   // symbol
+    extern value_t xsymbol(i64_t *ptr, i64_t len); // symbol vector
+    extern value_t list(value_t *ptr, i64_t len);  // list
+    extern value_t null();                         // null (as null list)
 
     // Error
     extern value_t error(i8_t code, str_t message);

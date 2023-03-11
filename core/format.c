@@ -28,8 +28,8 @@
 #include "storm.h"
 #include "alloc.h"
 
-#define MAX_i64_t_WIDTH 20
-#define MAX_ROW_WIDTH MAX_i64_t_WIDTH * 2
+#define MAX_I64_WIDTH 20
+#define MAX_ROW_WIDTH MAX_I64_WIDTH * 2
 #define F64_PRECISION 4
 
 const str_t PADDING = "                                                                                                   ";
@@ -54,7 +54,13 @@ extern str_t str_fmt(u32_t lim, str_t fmt, ...)
         n = vsnprintf(p, size, fmt, args);
         va_end(args);
 
-        if (n > -1 && n < size)
+        if (n < 0)
+        {
+            storm_free(p);
+            return NULL;
+        }
+
+        if (lim != 0 || n < size)
             break;
 
         size *= 2;
@@ -215,7 +221,7 @@ extern str_t value_fmt(value_t *value)
     case TYPE_SYMBOL:
         return vector_fmt(0, MAX_ROW_WIDTH, value);
     case TYPE_STRING:
-        return str_fmt(value->list.len, "\"%s\"", value->list.ptr);
+        return str_fmt(value->list.len + 2, "\"%s\"", value->list.ptr);
     case TYPE_ERROR:
         return error_fmt(0, 0, value);
     default:

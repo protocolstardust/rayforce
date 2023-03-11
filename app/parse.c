@@ -22,13 +22,13 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 #include "parse.h"
 #include "../core/storm.h"
 #include "../core/alloc.h"
 #include "../core/format.h"
-#include <stdlib.h>
-#include <errno.h>
-#include <limits.h>
 
 u8_t is_whitespace(u8_t c)
 {
@@ -288,7 +288,7 @@ value_t parse_string(parser_t *parser)
             break;
     }
 
-    len = pos - parser->current - 2;
+    len = pos - parser->current;
     new_str = string_clone(string_create(parser->current + 1, len));
     res = string(new_str, len);
     parser->current = pos + 1;
