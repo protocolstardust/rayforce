@@ -70,32 +70,6 @@ extern value_t f64(f64_t value)
     return scalar;
 }
 
-extern value_t xi64(i64_t *ptr, i64_t len)
-{
-    value_t vector = {
-        .type = TYPE_I64,
-        .list = {
-            .ptr = ptr,
-            .len = len,
-        },
-    };
-
-    return vector;
-}
-
-extern value_t xf64(f64_t *ptr, i64_t len)
-{
-    value_t vector = {
-        .type = TYPE_F64,
-        .list = {
-            .ptr = ptr,
-            .len = len,
-        },
-    };
-
-    return vector;
-}
-
 extern value_t symbol(str_t ptr, i64_t len)
 {
     string_t string = string_create(ptr, len);
@@ -106,32 +80,6 @@ extern value_t symbol(str_t ptr, i64_t len)
     };
 
     return list;
-}
-
-extern value_t string(str_t ptr, i64_t len)
-{
-    value_t list = {
-        .type = TYPE_STRING,
-        .list = {
-            .ptr = ptr,
-            .len = len,
-        },
-    };
-
-    return list;
-}
-
-extern value_t xsymbol(i64_t *ptr, i64_t len)
-{
-    value_t vector = {
-        .type = TYPE_SYMBOL,
-        .list = {
-            .ptr = ptr,
-            .len = len,
-        },
-    };
-
-    return vector;
 }
 
 extern value_t list(value_t *ptr, i64_t len)

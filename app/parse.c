@@ -29,6 +29,7 @@
 #include "../core/bitspire.h"
 #include "../core/alloc.h"
 #include "../core/format.h"
+#include "../core/string.h"
 
 u8_t is_whitespace(u8_t c)
 {
@@ -96,18 +97,8 @@ value_t parse_number(parser_t *parser)
 value_t parse_vector(parser_t *parser)
 {
     i64_t cap = 8;
-    i64_t *vec = (i64_t *)bitspire_malloc(cap * sizeof(i64_t));
-    i64_t len = 0;
     str_t *current = &parser->current;
-    value_t token;
-    /*
-     *type of vector:
-     * 0 = initial
-     * 1 = i64
-     * 2 = f64
-     * 3 = symbol
-     */
-    u8_t type = 0;
+    value_t token, vec = vector_i64(0);
 
     (*current)++; // skip '['
 
@@ -117,143 +108,112 @@ value_t parse_vector(parser_t *parser)
 
         if (is_error(&token))
         {
-            bitspire_free(vec);
+            value_free(&vec);
             return token;
-        }
-
-        // extend vec if needed
-        if (len == cap)
-        {
-            cap *= 2;
-            vec = bitspire_realloc(vec, cap * sizeof(i64_t));
         }
 
         if (token.type == -TYPE_I64)
         {
-            if (type < 2)
-            {
-                vec[len++] = token.i64;
-                type = 1;
-            }
-            else if (type == 2)
-                ((f64_t *)vec)[len++] = (f64_t)token.i64;
-
+            if (vec.type == TYPE_I64)
+                vector_i64_push(&vec, token.i64);
+            else if (vec.type == TYPE_F64)
+                vector_f64_push(&vec, (f64_t)token.i64);
             else
             {
-                bitspire_free(vec);
+                value_free(&vec);
                 return error(ERR_PARSE, "Invalid token in vector");
             }
         }
         else if (token.type == -TYPE_F64)
         {
-            if (type == 2)
-                ((f64_t *)vec)[len++] = token.f64;
-            else if (type < 2)
+            if (vec.type == TYPE_F64)
+                vector_f64_push(&vec, token.f64);
+            else if (vec.type == TYPE_I64)
             {
-                for (i64_t i = 0; i < len; i++)
-                    ((f64_t *)vec)[i] = (f64_t)vec[i];
 
-                ((f64_t *)vec)[len++] = token.f64;
+                for (i64_t i = 0; i < vec.list.len; i++)
+                    as_vector_f64(&vec)[i] = (f64_t)as_vector_i64(&vec)[i];
 
-                type = 2;
+                vector_f64_push(&vec, token.f64);
+                vec.type = TYPE_F64;
             }
             else
             {
-                bitspire_free(vec);
+                value_free(&vec);
                 return error(ERR_PARSE, "Invalid token in vector");
             }
         }
         else if (token.type == -TYPE_SYMBOL)
         {
-            if (type == 0 || type == 3)
+            if (vec.type == TYPE_SYMBOL || (vec.list.len == 0))
             {
-                vec[len++] = token.i64;
-                type = 3;
+                vector_i64_push(&vec, token.i64);
+                vec.type = TYPE_SYMBOL;
             }
             else
             {
-                bitspire_free(vec);
+                value_free(&vec);
                 return error(ERR_PARSE, "Invalid token in vector");
             }
         }
         else
         {
-            bitspire_free(vec);
+            value_free(&vec);
             return error(ERR_PARSE, "Invalid token in vector");
         }
-
-        if ((**current) != ',')
-            break;
-
-        (*current)++;
     }
 
     if ((**current) != ']')
     {
-        bitspire_free(vec);
+        value_free(&vec);
         return error(ERR_PARSE, "Expected ']'");
     }
 
     (*current)++;
 
-    switch (type)
-    {
-    case 1:
-        return xi64(vec, len);
-    case 2:
-        return xf64((f64_t *)vec, len);
-    case 3:
-        return xsymbol(vec, len);
-    default:
-        return error(ERR_PARSE, "Invalid vector");
-    };
+    return vec;
 }
 
-value_t parse_list(parser_t *parser)
-{
-    i64_t cap = 8;
-    u32_t len = 0;
-    str_t *current = &parser->current;
-    value_t *vec = (value_t *)bitspire_malloc(cap * sizeof(value_t));
-    value_t token;
+// value_t parse_list(parser_t *parser)
+// {
+//     i64_t cap = 8;
+//     u32_t len = 0;
+//     str_t *current = &parser->current;
+//     value_t *vec = (value_t *)bitspire_malloc(cap * sizeof(value_t));
+//     value_t token;
 
-    (*current)++; // skip '('
+//     (*current)++; // skip '('
 
-    while (!at_eof(**current) && (**current) != ')')
-    {
-        token = advance(parser);
+//     while (!at_eof(**current) && (**current) != ')')
+//     {
+//         token = advance(parser);
 
-        if (is_error(&token))
-        {
-            bitspire_free(vec);
-            return token;
-        }
+//         if (is_error(&token))
+//         {
+//             bitspire_free(vec);
+//             return token;
+//         }
 
-        // extend vec if needed
-        if (len == cap)
-        {
-            cap *= 2;
-            vec = bitspire_realloc(vec, cap * sizeof(value_t));
-        }
+//         // extend vec if needed
+//         if (len == cap)
+//         {
+//             cap *= 2;
+//             vec = bitspire_realloc(vec, cap * sizeof(value_t));
+//         }
 
-        vec[len++] = token;
+//         vec[len++] = token;
+//     }
 
-        if ((**current) != ',')
-            break;
+//     if ((**current) != ')')
+//     {
+//         bitspire_free(vec);
+//         return error(ERR_PARSE, "Expected ')'");
+//     }
 
-        (*current)++;
-    }
+//     (*current)++;
 
-    if ((**current) != ')')
-    {
-        bitspire_free(vec);
-        return error(ERR_PARSE, "Expected ')'");
-    }
-
-    (*current)++;
-
-    return list(vec, len);
-}
+//     return list(vec, len);
+// }
 
 value_t parse_symbol(parser_t *parser)
 {
@@ -277,7 +237,7 @@ value_t parse_string(parser_t *parser)
     parser->current++; // skip '"'
     str_t pos = parser->current, new_str;
     u32_t len;
-    value_t res;
+    value_t res = string(0);
 
     while (!at_eof(*pos))
     {
@@ -294,12 +254,53 @@ value_t parse_string(parser_t *parser)
         return error(ERR_PARSE, "Expected '\"'");
 
     len = pos - parser->current;
-    new_str = string_clone(string_create(parser->current, len));
-    res = string(new_str, len);
+    // new_str = string_clone(string_create(parser->current, len));
+    // res = string(new_str, len);
     parser->current = pos + 1;
 
     return res;
 }
+
+// value_t parse_dict(parser_t *parser)
+// {
+//     i64_t cap = 8;
+//     u32_t len = 0;
+//     str_t *current = &parser->current;
+//     value_t *vec = (value_t *)bitspire_malloc(cap * sizeof(value_t));
+//     value_t token;
+
+//     (*current)++; // skip '{'
+
+//     while (!at_eof(**current) && (**current) != '}')
+//     {
+//         token = advance(parser);
+
+//         if (is_error(&token))
+//         {
+//             bitspire_free(vec);
+//             return token;
+//         }
+
+//         // extend vec if needed
+//         if (len == cap)
+//         {
+//             cap *= 2;
+//             vec = bitspire_realloc(vec, cap * sizeof(value_t));
+//         }
+
+//         vec[len++] = token;
+//     }
+
+//     if ((**current) != '}')
+//     {
+//         bitspire_free(vec);
+//         return error(ERR_PARSE, "Expected '}'");
+//     }
+
+//     (*current)++;
+
+//     return dict(vec, len);
+// }
 
 value_t advance(parser_t *parser)
 {
@@ -314,17 +315,17 @@ value_t advance(parser_t *parser)
     if ((**current) == '[')
         return parse_vector(parser);
 
-    if ((**current) == '(')
-        return parse_list(parser);
+    // if ((**current) == '(')
+    //     return parse_list(parser);
 
     if ((**current) == '-' || is_digit(**current))
         return parse_number(parser);
 
-    if (is_alpha(**current))
-        return parse_symbol(parser);
+    // if (is_alpha(**current))
+    //     return parse_symbol(parser);
 
-    if ((**current) == '"')
-        return parse_string(parser);
+    // if ((**current) == '"')
+    //     return parse_string(parser);
 
     return null();
 }

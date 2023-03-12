@@ -1,7 +1,7 @@
-bitspiredb
+bitspire
 *.o
 .vscode/
 *.a
 *.gch
-bitspiredb.S
+bitspire.S
 gmon.out

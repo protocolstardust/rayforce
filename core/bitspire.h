@@ -24,10 +24,10 @@
 #ifndef BITSPIRE_H
 #define BITSPIRE_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+// #ifdef __cplusplus
+// extern "C"
+// {
+// #endif
 
 // A compile time assertion check
 #define CASSERT(predicate, file) _impl_CASSERT_LINE(predicate, __LINE__, file)
@@ -44,6 +44,8 @@ extern "C"
 #define TYPE_F64 3
 #define TYPE_STRING 4
 #define TYPE_SYMBOL 5
+#define TYPE_TABLE 98
+#define TYPE_DICT 99
 #define TYPE_ERROR 127
 
 // Result constants
@@ -53,70 +55,86 @@ extern "C"
 #define ERR_FORMAT 3
 #define ERR_INVALID_TYPE 4
 
-    typedef char i8_t;
-    typedef unsigned char u8_t;
-    typedef char *str_t;
-    typedef short i16_t;
-    typedef unsigned short u16_t;
-    typedef int i32_t;
-    typedef unsigned int u32_t;
-    typedef long long i64_t;
-    typedef unsigned long long u64_t;
-    typedef double f64_t;
-    typedef void null_t;
+typedef char i8_t;
+typedef unsigned char u8_t;
+typedef char *str_t;
+typedef short i16_t;
+typedef unsigned short u16_t;
+typedef int i32_t;
+typedef unsigned int u32_t;
+typedef long long i64_t;
+typedef unsigned long long u64_t;
+typedef double f64_t;
+typedef void null_t;
 
-    typedef struct error_t
+typedef struct error_t
+{
+    i8_t code;
+    str_t message;
+} error_t;
+
+typedef struct vector_t
+{
+    u64_t len;
+    null_t *ptr;
+} vector_t;
+
+// Generic type
+typedef struct value_t
+{
+    i8_t type;
+
+    union
     {
-        i8_t code;
-        str_t message;
-    } error_t;
+        i8_t i8;
+        i64_t i64;
+        f64_t f64;
+        vector_t list;
+        error_t error;
+    };
+} __attribute__((aligned(16))) value_t;
 
-    typedef struct vector_t
-    {
-        u64_t len;
-        null_t *ptr;
-    } vector_t;
+CASSERT(sizeof(struct value_t) == 32, bitspire_h)
 
-    // Generic type
-    typedef struct value_t
-    {
-        i8_t type;
+// Constructors
+extern value_t i64(i64_t value);                               // i64 scalar
+extern value_t f64(f64_t value);                               // f64 scalar
+extern value_t symbol(str_t ptr, i64_t len);                   // symbol
+extern value_t vector(i8_t type, u8_t size_of_val, i64_t len); // vector of type
 
-        union
-        {
-            i8_t i8;
-            i64_t i64;
-            f64_t f64;
-            vector_t list;
-            error_t error;
-        };
-    } __attribute__((aligned(16))) value_t;
+#define vector_i64(len) (vector(TYPE_I64, sizeof(i64_t), len))       // i64 vector
+#define vector_f64(len) (vector(TYPE_F64, sizeof(f64_t), len))       // f64 vector
+#define vector_symbol(len) (vector(TYPE_SYMBOL, sizeof(i64_t), len)) // symbol vector
+#define string(len) (vector(TYPE_STRING, sizeof(u8_t), len))         // string
 
-    CASSERT(sizeof(struct value_t) == 32, bitspire_h)
+extern value_t list(value_t *ptr, i64_t len); // list
+extern value_t null();                        // null (as null list)
+extern value_t table(value_t *ptr);           // table (accepts list of two vectors)
+extern value_t dict(value_t *ptr);            // dict (accepts list of two vectors)
 
-    // Constructors
-    extern value_t i64(i64_t value);               // i64 scalar
-    extern value_t f64(f64_t value);               // f64 scalar
-    extern value_t xi64(i64_t *ptr, i64_t len);    // i64 vector
-    extern value_t xf64(f64_t *ptr, i64_t len);    // f64 vector
-    extern value_t string(str_t ptr, i64_t len);   // string
-    extern value_t symbol(str_t ptr, i64_t len);   // symbol
-    extern value_t xsymbol(i64_t *ptr, i64_t len); // symbol vector
-    extern value_t list(value_t *ptr, i64_t len);  // list
-    extern value_t null();                         // null (as null list)
+// Error
+extern value_t error(i8_t code, str_t message);
 
-    // Error
-    extern value_t error(i8_t code, str_t message);
+// Destructor
+extern null_t value_free(value_t *value);
 
-    // Destructor
-    extern null_t value_free(value_t *value);
+// Accessors
+#define as_vector_i64(value) ((i64_t *)(value)->list.ptr)
+#define as_vector_f64(value) ((f64_t *)(value)->list.ptr)
+#define as_vector_symbol(value) ((i64_t *)(value)->list.ptr)
 
-    // Accessors
-    extern i8_t is_null(value_t *value);
-    extern i8_t is_error(value_t *value);
+// Checkers
+extern i8_t is_null(value_t *value);
+extern i8_t is_error(value_t *value);
 
-#ifdef __cplusplus
-}
-#endif
+// Mutators
+extern null_t vector_i64_push(value_t *vector, i64_t value);
+extern i64_t vector_i64_pop(value_t *vector);
+extern null_t vector_f64_push(value_t *vector, f64_t value);
+extern f64_t vector_f64_pop(value_t *vector);
+
+// #ifdef __cplusplus
+// }
+// #endif
 
 #endif

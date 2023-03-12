@@ -25,35 +25,35 @@
 #include "alloc.h"
 #include "vm.h"
 
-value_t til(i64_t count)
-{
-    i64_t *vec;
+// value_t til(i64_t count)
+// {
+//     i64_t *vec;
 
-    vec = (i64_t *)bitspire_malloc(count * sizeof(i64_t));
-    for (i64_t i = 0; i < count; i++)
-    {
-        vec[i] = i;
-    }
-    return xi64(vec, count);
-}
+//     vec = (i64_t *)bitspire_malloc(count * sizeof(i64_t));
+//     for (i64_t i = 0; i < count; i++)
+//     {
+//         vec[i] = i;
+//     }
+//     return vector_i64(vec, count);
+// }
 
-value_t bitspire_add(value_t *a, value_t *b)
-{
-    i64_t a_len, b_len, sum = 0;
-    i64_t *a_vec;
+// value_t bitspire_add(value_t *a, value_t *b)
+// {
+//     i64_t a_len, b_len, sum = 0;
+//     i64_t *a_vec;
 
-    a_len = a->list.len;
-    a_vec = a->list.ptr;
+//     a_len = a->list.len;
+//     a_vec = a->list.ptr;
 
-    sum = b->i64;
+//     sum = b->i64;
 
-    for (i64_t i = 0; i < a_len; i++)
-    {
-        sum += a_vec[i];
-    }
+//     for (i64_t i = 0; i < a_len; i++)
+//     {
+//         sum += a_vec[i];
+//     }
 
-    return i64(sum);
-}
+//     return i64(sum);
+// }
 
 u8_t *compile(value_t *value)
 {

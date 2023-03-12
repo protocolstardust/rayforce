@@ -101,11 +101,11 @@ str_t vector_fmt(u32_t pad, u32_t lim, value_t *value)
         remains = slim - (buf - str);
 
         if (v_type == TYPE_I64)
-            len = snprintf(buf, remains, "%lld, ", ((i64_t *)value->list.ptr)[i]);
+            len = snprintf(buf, remains, "%lld ", ((i64_t *)value->list.ptr)[i]);
         else if (v_type == TYPE_F64)
-            len = snprintf(buf, remains, "%.*f, ", F64_PRECISION, ((f64_t *)value->list.ptr)[i]);
+            len = snprintf(buf, remains, "%.*f ", F64_PRECISION, ((f64_t *)value->list.ptr)[i]);
         else if (v_type == TYPE_SYMBOL)
-            len = snprintf(buf, remains, "%s, ", symbols_get(((i64_t *)value->list.ptr)[i]));
+            len = snprintf(buf, remains, "%s ", symbols_get(((i64_t *)value->list.ptr)[i]));
 
         if (len < 0)
         {
@@ -176,7 +176,7 @@ str_t list_fmt(u32_t pad, u32_t lim, value_t *value)
     for (u64_t i = 0; i < value->list.len; i++)
     {
         s = value_fmt(((value_t *)value->list.ptr) + i);
-        buf += snprintf(buf, MAX_ROW_WIDTH, "  %s,\n", s);
+        buf += snprintf(buf, MAX_ROW_WIDTH, "  %s\n", s);
     }
 
     strncpy(buf, ")", 2);
