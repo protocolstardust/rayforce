@@ -22,7 +22,7 @@
  */
 
 #include <stdio.h>
-#include "storm.h"
+#include "bitspire.h"
 #include "format.h"
 #include "alloc.h"
 #include "string.h"
@@ -166,12 +166,12 @@ extern null_t value_free(value_t *value)
     {
     case TYPE_I64:
     {
-        storm_free(value->list.ptr);
+        bitspire_free(value->list.ptr);
         break;
     }
     case TYPE_F64:
     {
-        storm_free(value->list.ptr);
+        bitspire_free(value->list.ptr);
         break;
     }
     default:

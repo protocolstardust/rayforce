@@ -24,7 +24,7 @@
 #ifndef VM_H
 #define VM_H
 
-#include "storm.h"
+#include "bitspire.h"
 
 #define VM_STACK_SIZE 4096
 

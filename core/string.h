@@ -24,7 +24,7 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include "storm.h"
+#include "bitspire.h"
 
 /*
  * String type containing length and pointer to string.

@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <limits.h>
 #include "parse.h"
-#include "../core/storm.h"
+#include "../core/bitspire.h"
 #include "../core/alloc.h"
 #include "../core/format.h"
 
@@ -96,7 +96,7 @@ value_t parse_number(parser_t *parser)
 value_t parse_vector(parser_t *parser)
 {
     i64_t cap = 8;
-    i64_t *vec = (i64_t *)storm_malloc(cap * sizeof(i64_t));
+    i64_t *vec = (i64_t *)bitspire_malloc(cap * sizeof(i64_t));
     i64_t len = 0;
     str_t *current = &parser->current;
     value_t token;
@@ -117,7 +117,7 @@ value_t parse_vector(parser_t *parser)
 
         if (is_error(&token))
         {
-            storm_free(vec);
+            bitspire_free(vec);
             return token;
         }
 
@@ -125,7 +125,7 @@ value_t parse_vector(parser_t *parser)
         if (len == cap)
         {
             cap *= 2;
-            vec = storm_realloc(vec, cap * sizeof(i64_t));
+            vec = bitspire_realloc(vec, cap * sizeof(i64_t));
         }
 
         if (token.type == -TYPE_I64)
@@ -140,7 +140,7 @@ value_t parse_vector(parser_t *parser)
 
             else
             {
-                storm_free(vec);
+                bitspire_free(vec);
                 return error(ERR_PARSE, "Invalid token in vector");
             }
         }
@@ -159,7 +159,7 @@ value_t parse_vector(parser_t *parser)
             }
             else
             {
-                storm_free(vec);
+                bitspire_free(vec);
                 return error(ERR_PARSE, "Invalid token in vector");
             }
         }
@@ -172,13 +172,13 @@ value_t parse_vector(parser_t *parser)
             }
             else
             {
-                storm_free(vec);
+                bitspire_free(vec);
                 return error(ERR_PARSE, "Invalid token in vector");
             }
         }
         else
         {
-            storm_free(vec);
+            bitspire_free(vec);
             return error(ERR_PARSE, "Invalid token in vector");
         }
 
@@ -190,7 +190,7 @@ value_t parse_vector(parser_t *parser)
 
     if ((**current) != ']')
     {
-        storm_free(vec);
+        bitspire_free(vec);
         return error(ERR_PARSE, "Expected ']'");
     }
 
@@ -214,7 +214,7 @@ value_t parse_list(parser_t *parser)
     i64_t cap = 8;
     u32_t len = 0;
     str_t *current = &parser->current;
-    value_t *vec = (value_t *)storm_malloc(cap * sizeof(value_t));
+    value_t *vec = (value_t *)bitspire_malloc(cap * sizeof(value_t));
     value_t token;
 
     (*current)++; // skip '('
@@ -225,7 +225,7 @@ value_t parse_list(parser_t *parser)
 
         if (is_error(&token))
         {
-            storm_free(vec);
+            bitspire_free(vec);
             return token;
         }
 
@@ -233,7 +233,7 @@ value_t parse_list(parser_t *parser)
         if (len == cap)
         {
             cap *= 2;
-            vec = storm_realloc(vec, cap * sizeof(value_t));
+            vec = bitspire_realloc(vec, cap * sizeof(value_t));
         }
 
         vec[len++] = token;
@@ -246,7 +246,7 @@ value_t parse_list(parser_t *parser)
 
     if ((**current) != ')')
     {
-        storm_free(vec);
+        bitspire_free(vec);
         return error(ERR_PARSE, "Expected ')'");
     }
 

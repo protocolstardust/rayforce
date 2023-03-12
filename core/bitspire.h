@@ -21,8 +21,8 @@
  *   SOFTWARE.
  */
 
-#ifndef STORM_H
-#define STORM_H
+#ifndef BITSPIRE_H
+#define BITSPIRE_H
 
 #ifdef __cplusplus
 extern "C"
@@ -92,7 +92,7 @@ extern "C"
         };
     } __attribute__((aligned(16))) value_t;
 
-    CASSERT(sizeof(struct value_t) == 32, storm_h)
+    CASSERT(sizeof(struct value_t) == 32, bitspire_h)
 
     // Constructors
     extern value_t i64(i64_t value);               // i64 scalar

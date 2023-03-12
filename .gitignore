@@ -1,7 +1,7 @@
-stormdb
+bitspiredb
 *.o
 .vscode/
 *.a
 *.gch
-stormdb.S
+bitspiredb.S
 gmon.out

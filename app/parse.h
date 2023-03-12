@@ -24,7 +24,7 @@
 #ifndef PARSE_H
 #define PARSE_H
 
-#include "../core/storm.h"
+#include "../core/bitspire.h"
 
 typedef struct parser_t
 {

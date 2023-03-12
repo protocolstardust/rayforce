@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "symbols.h"
-#include "storm.h"
+#include "bitspire.h"
 #include "alloc.h"
 
 /*
@@ -118,7 +118,7 @@ null_t *str_dup(null_t *key, null_t *val, bucket_t *bucket)
 
 symbols_t *symbols_create()
 {
-    symbols_t *symbols = (symbols_t *)storm_malloc(sizeof(symbols_t));
+    symbols_t *symbols = (symbols_t *)bitspire_malloc(sizeof(symbols_t));
 
     pool_node_t *node = pool_node_create();
     symbols->pool_node_0 = node;
