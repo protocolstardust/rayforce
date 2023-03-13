@@ -127,10 +127,60 @@ value_t parse_number(parser_t *parser)
     return num;
 }
 
+value_t parse_string(parser_t *parser)
+{
+    parser->current++; // skip '"'
+    str_t pos = parser->current, new_str;
+    u32_t len;
+    value_t res;
+
+    while (!at_eof(*pos))
+    {
+
+        if (*(pos - 1) == '\\' && *pos == '"')
+            pos++;
+        else if (*pos == '"')
+            break;
+
+        pos++;
+    }
+
+    if ((*pos) != '"')
+        return error(ERR_PARSE, "Expected '\"'");
+
+    len = pos - parser->current;
+    res = string(len);
+    strncpy(as_string(&res), parser->current, len);
+    parser->current = pos + 1;
+
+    return res;
+}
+
+value_t parse_symbol(parser_t *parser)
+{
+    str_t pos = parser->current;
+    value_t res, s;
+    i64_t id;
+
+    // Skip first char and proceed until the end of the symbol
+    do
+    {
+        pos++;
+    } while (is_alphanum(*pos));
+
+    s = str(parser->current, pos - parser->current);
+    id = symbols_intern(&s);
+    res = i64(id);
+    res.type = -TYPE_SYMBOL;
+    parser->current = pos;
+
+    return res;
+}
+
 value_t parse_vector(parser_t *parser)
 {
     str_t *current = &parser->current;
-    value_t token, vec, lst = list(0);
+    value_t token, vec = vector_i64(0);
 
     (*current)++; // skip '['
     token = advance(parser);
@@ -139,23 +189,62 @@ value_t parse_vector(parser_t *parser)
     {
         if (is_error(&token))
         {
-            value_free(&lst);
+            value_free(&vec);
             return token;
         }
 
-        if (at_eof(**current))
+        if (token.type == -TYPE_I64)
         {
-            value_free(&lst);
-            return error(ERR_PARSE, "Expected ']'");
+            if (vec.type == TYPE_I64)
+                vector_i64_push(&vec, token.i64);
+            else if (vec.type == TYPE_F64)
+                vector_f64_push(&vec, (f64_t)token.i64);
+            else
+            {
+                value_free(&vec);
+                return error(ERR_PARSE, "Invalid token in vector");
+            }
         }
+        else if (token.type == -TYPE_F64)
+        {
+            if (vec.type == TYPE_F64)
+                vector_f64_push(&vec, token.f64);
+            else if (vec.type == TYPE_I64)
+            {
 
-        list_push(&lst, token);
+                for (i64_t i = 0; i < vec.list.len; i++)
+                    as_vector_f64(&vec)[i] = (f64_t)as_vector_i64(&vec)[i];
+
+                vector_f64_push(&vec, token.f64);
+                vec.type = TYPE_F64;
+            }
+            else
+            {
+                value_free(&vec);
+                return error(ERR_PARSE, "Invalid token in vector");
+            }
+        }
+        else if (token.type == -TYPE_SYMBOL)
+        {
+            if (vec.type == TYPE_SYMBOL || (vec.list.len == 0))
+            {
+                vector_i64_push(&vec, token.i64);
+                vec.type = TYPE_SYMBOL;
+            }
+            else
+            {
+                value_free(&vec);
+                return error(ERR_PARSE, "Invalid token in vector");
+            }
+        }
+        else
+        {
+            value_free(&vec);
+            return error(ERR_PARSE, "Invalid token in vector");
+        }
 
         token = advance(parser);
     }
-
-    vec = list_flatten(&lst);
-    value_free(&lst);
 
     return vec;
 }
@@ -189,56 +278,6 @@ value_t parse_list(parser_t *parser)
     }
 
     return lst;
-}
-
-value_t parse_symbol(parser_t *parser)
-{
-    str_t pos = parser->current;
-    value_t res, s;
-    i64_t id;
-
-    // Skip first char and proceed until the end of the symbol
-    do
-    {
-        pos++;
-    } while (is_alphanum(*pos));
-
-    s = str(parser->current, pos - parser->current);
-    id = symbols_intern(&s);
-    res = i64(id);
-    res.type = -TYPE_SYMBOL;
-    parser->current = pos;
-
-    return res;
-}
-
-value_t parse_string(parser_t *parser)
-{
-    parser->current++; // skip '"'
-    str_t pos = parser->current, new_str;
-    u32_t len;
-    value_t res;
-
-    while (!at_eof(*pos))
-    {
-
-        if (*(pos - 1) == '\\' && *pos == '"')
-            pos++;
-        else if (*pos == '"')
-            break;
-
-        pos++;
-    }
-
-    if ((*pos) != '"')
-        return error(ERR_PARSE, "Expected '\"'");
-
-    len = pos - parser->current;
-    res = string(len);
-    strncpy(as_string(&res), parser->current, len);
-    parser->current = pos + 1;
-
-    return res;
 }
 
 value_t parse_dict(parser_t *parser)

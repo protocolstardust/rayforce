@@ -31,8 +31,11 @@
  * This allows to avoid storing capacity in vector
  */
 #define CAPACITY_FACTOR 8
+
 #define alignup(x, a) (((x) + (a)-1) & ~((a)-1))
+
 #define capacity(x) (alignup(x, CAPACITY_FACTOR))
+
 #define push(vector, type, value)                                                                    \
     i64_t len = (vector)->list.len;                                                                  \
     i64_t cap = capacity(len);                                                                       \
@@ -44,21 +47,23 @@
 
 #define pop(vector, type) ((type *)((vector)->list.ptr))[(vector)->list.len--]
 
-#define list_i64_flatten(list, vec)            \
-    value_t *member;                           \
-    vec = vector_i64(0);                       \
-                                               \
-    for (u64_t i = 0; i < list->list.len; i++) \
-    {                                          \
-        member = &as_list(list)[i];            \
-                                               \
-        if (member->type != type)              \
-        {                                      \
-            value_free(&vec);                  \
-            return value_clone(list);          \
-        }                                      \
-                                               \
-        vector_i64_push(&vec, member->i64);    \
+#define flatten(list, vec, fpush, mem)             \
+    {                                              \
+        value_t *member;                           \
+        vec = vector_##mem(0);                     \
+                                                   \
+        for (u64_t i = 0; i < list->list.len; i++) \
+        {                                          \
+            member = &as_list(list)[i];            \
+                                                   \
+            if (member->type != type)              \
+            {                                      \
+                value_free(&vec);                  \
+                return value_clone(list);          \
+            }                                      \
+                                                   \
+            fpush(&vec, member->mem);              \
+        }                                          \
     }
 
 extern value_t vector(i8_t type, u8_t size_of_val, i64_t len)
@@ -121,7 +126,17 @@ extern value_t list_flatten(value_t *list)
         return value_clone(list);
 
     value_t vec;
-    list_i64_flatten(list, vec);
+    switch (type)
+    {
+    case -TYPE_I64:
+        flatten(list, vec, vector_i64_push, i64);
+        break;
+    case -TYPE_F64:
+        flatten(list, vec, vector_f64_push, f64);
+        break;
+    default:
+        return value_clone(list);
+    }
 
     return vec;
 }
