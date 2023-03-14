@@ -21,12 +21,13 @@
  *   SOFTWARE.
  */
 
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include "format.h"
 #include "rayforce.h"
 #include "alloc.h"
+#include "util.h"
 
 #define MAX_I64_WIDTH 20
 #define MAX_ROW_WIDTH MAX_I64_WIDTH * 2
@@ -34,13 +35,6 @@
 #define F64_PRECISION 4
 
 const str_t PADDING = "                                                                                                   ";
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 extern str_t value_fmt_ind(u32_t indent, u32_t limit, value_t *value);
 
@@ -88,11 +82,11 @@ str_t vector_fmt(u32_t limit, value_t *value)
 
     // Print '[' with the first element
     if (v_type == TYPE_I64)
-        len = snprintf(buf, remains, "[%lld ", ((i64_t *)value->list.ptr)[0]);
+        len = snprintf(buf, remains, "[%lld ", as_vector_i64(value)[0]);
     else if (v_type == TYPE_F64)
-        len = snprintf(buf, remains, "[%.*f ", F64_PRECISION, ((f64_t *)value->list.ptr)[0]);
+        len = snprintf(buf, remains, "[%.*f ", F64_PRECISION, as_vector_f64(value)[0]);
     else if (v_type == TYPE_SYMBOL)
-        len = snprintf(buf, remains, "[%s ", symbols_get(((i64_t *)value->list.ptr)[0]));
+        len = snprintf(buf, remains, "[%s ", symbols_get(as_vector_symbol(value)[0]));
 
     if (len < 0)
     {
@@ -106,11 +100,11 @@ str_t vector_fmt(u32_t limit, value_t *value)
     for (i64_t i = 1; i < value->list.len; i++)
     {
         if (v_type == TYPE_I64)
-            len = snprintf(buf, remains, "%lld ", ((i64_t *)value->list.ptr)[i]);
+            len = snprintf(buf, remains, "%lld ", as_vector_i64(value)[i]);
         else if (v_type == TYPE_F64)
-            len = snprintf(buf, remains, "%.*f ", F64_PRECISION, ((f64_t *)value->list.ptr)[i]);
+            len = snprintf(buf, remains, "%.*f ", F64_PRECISION, as_vector_f64(value)[i]);
         else if (v_type == TYPE_SYMBOL)
-            len = snprintf(buf, remains, "%s ", symbols_get(((i64_t *)value->list.ptr)[i]));
+            len = snprintf(buf, remains, "%s ", symbols_get(as_vector_symbol(value)[i]));
 
         if (len < 0)
         {
@@ -191,8 +185,39 @@ str_t dict_fmt(u32_t indent, u32_t limit, value_t *value)
 
     for (u64_t i = 0; i < keys->list.len; i++)
     {
-        k = value_fmt_ind(indent, limit - indent, ((value_t *)keys->list.ptr) + i);
-        v = value_fmt_ind(indent, limit - indent, ((value_t *)vals->list.ptr) + i);
+        // Dispatch keys type
+        switch (keys->type)
+        {
+        case TYPE_I64:
+            k = str_fmt(limit, "%lld", as_vector_i64(keys)[i]);
+            break;
+        case TYPE_F64:
+            k = str_fmt(limit, "%.*f", F64_PRECISION, as_vector_f64(keys)[i]);
+            break;
+        case TYPE_SYMBOL:
+            k = str_fmt(limit, "%s", symbols_get(as_vector_symbol(keys)[i]));
+            break;
+        default:
+            k = value_fmt_ind(indent, limit - indent, &as_list(keys)[i]);
+            break;
+        }
+        // Dispatch values type
+        switch (vals->type)
+        {
+        case TYPE_I64:
+            v = str_fmt(limit, "%lld", as_vector_i64(vals)[i]);
+            break;
+        case TYPE_F64:
+            v = str_fmt(limit, "%.*f", F64_PRECISION, as_vector_f64(vals)[i]);
+            break;
+        case TYPE_SYMBOL:
+            v = str_fmt(limit, "%s", symbols_get(as_vector_symbol(vals)[i]));
+            break;
+        default:
+            v = value_fmt_ind(indent, limit - indent, &as_list(vals)[i]);
+            break;
+        }
+
         str = str_fmt(0, "%s\n%*.*s%s: %s", str, indent, indent, PADDING, k, v);
     }
 

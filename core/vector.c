@@ -134,6 +134,11 @@ extern value_t list_flatten(value_t *list)
     case -TYPE_F64:
         flatten(list, vec, vector_f64_push, f64);
         break;
+    case -TYPE_SYMBOL:
+        flatten(list, vec, vector_i64_push, i64);
+        if (vec.type == TYPE_I64)
+            vec.type = TYPE_SYMBOL;
+        break;
     default:
         return value_clone(list);
     }
