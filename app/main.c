@@ -47,15 +47,35 @@
 #define MAGENTA "\033[1;35m"
 #define CYAN "\033[1;36m"
 #define WHITE "\033[1;37m"
+#define BLACK "\033[1;30m"
+#define GRAY "\033[1;38;5;8m"
+#define ORANGE "\033[1;38;5;202m"
+#define PURPLE "\033[1;38;5;141m"
+#define TEAL "\033[1;38;5;45m"
+#define AQUA "\033[1;38;5;37m"
+#define SALAD "\033[1;38;5;118m"
+#define DARK_CYAN "\033[1;38;5;30m"
 #define BOLD "\033[1m"
 #define RESET "\033[0m"
 
 #define PROMPT "> "
+#define VERSION "0.0.1"
+#define LOGO "\n\
+▒█▀▀█ █▀▀█ █░░█ ▒█▀▀▀ █▀▀█ █▀▀█ █▀▀ █▀▀ | Version: %s\n\ 
+▒█▄▄▀ █▄▄█ █▄▄█ ▒█▀▀▀ █░░█ █▄▄▀ █░░ █▀▀ | Documentation: https://github.com/singaraiona/rayforce\n\ 
+▒█░▒█ ▀░░▀ ▄▄▄█ ▒█░░░ ▀▀▀▀ ▀░▀▀ ▀▀▀ ▀▀▀ | Official: https://github.com/singaraiona/rayforce\n\n"
 
 null_t usage()
 {
     printf("%s%s%s", BOLD, YELLOW, "Usage: rayforce [-f] [file...]\n");
     exit(EXIT_FAILURE);
+}
+
+null_t print_logo()
+{
+    str_t logo = str_fmt(0, LOGO, VERSION);
+    printf("%s%s%s", DARK_CYAN, logo, RESET);
+    rayforce_free(logo);
 }
 
 value_t parse_cmdline(i32_t argc, str_t argv[])
@@ -133,9 +153,10 @@ null_t load_file(str_t filename)
 i32_t main(i32_t argc, str_t argv[])
 {
     rayforce_alloc_init();
+    print_logo();
 
     value_t args = parse_cmdline(argc, argv);
-    load_file("test.ray");
+    // load_file("test.ray");
 
     str_t filename = NULL;
     i8_t run = 1;

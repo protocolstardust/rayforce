@@ -78,11 +78,11 @@ typedef struct error_t
     str_t message;
 } error_t;
 
-typedef struct vector_t
+typedef struct list_t
 {
     u64_t len;
     null_t *ptr;
-} vector_t;
+} list_t;
 
 // Generic type
 typedef struct value_t
@@ -94,7 +94,7 @@ typedef struct value_t
         i8_t i8;
         i64_t i64;
         f64_t f64;
-        vector_t list;
+        list_t list;
         error_t error;
     };
 } __attribute__((aligned(16))) value_t;
