@@ -61,8 +61,8 @@
 #define PROMPT "> "
 #define VERSION "0.0.1"
 #define LOGO "\n\
-▒█▀▀█ █▀▀█ █░░█ ▒█▀▀▀ █▀▀█ █▀▀█ █▀▀ █▀▀ | Version: %s\n\ 
-▒█▄▄▀ █▄▄█ █▄▄█ ▒█▀▀▀ █░░█ █▄▄▀ █░░ █▀▀ | Documentation: https://github.com/singaraiona/rayforce\n\ 
+▒█▀▀█ █▀▀█ █░░█ ▒█▀▀▀ █▀▀█ █▀▀█ █▀▀ █▀▀ | Version: %s\n\
+▒█▄▄▀ █▄▄█ █▄▄█ ▒█▀▀▀ █░░█ █▄▄▀ █░░ █▀▀ | Documentation: https://github.com/singaraiona/rayforce\n\
 ▒█░▒█ ▀░░▀ ▄▄▄█ ▒█░░░ ▀▀▀▀ ▀░▀▀ ▀▀▀ ▀▀▀ | Official: https://github.com/singaraiona/rayforce\n\n"
 
 null_t usage()
@@ -80,7 +80,7 @@ null_t print_logo()
 
 value_t parse_cmdline(i32_t argc, str_t argv[])
 {
-    u64_t opt, len;
+    i32_t opt, len;
     value_t keys = list(0), vals = list(0);
 
     for (opt = 1; opt < argc && argv[opt][0] == '-'; opt++)
@@ -90,7 +90,7 @@ value_t parse_cmdline(i32_t argc, str_t argv[])
         case 'f':
             opt++;
 
-            if (argv[opt] == '\0')
+            if (argv[opt] == NULL)
                 usage();
 
             list_push(&keys, symbol("file"));
@@ -122,7 +122,7 @@ null_t load_file(str_t filename)
     if (fd == -1)
     { // error handling if file does not exist
         printf("Error opening the file.\n");
-        return NULL;
+        return;
     }
 
     fstat(fd, &st); // get the size of the file
@@ -132,7 +132,7 @@ null_t load_file(str_t filename)
     if (file == MAP_FAILED)
     { // error handling if memory-mapping fails
         printf("Error mapping the file.\n");
-        return NULL;
+        return;
     }
 
     value = parse(filename, file);

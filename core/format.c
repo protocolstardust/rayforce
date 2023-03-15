@@ -114,7 +114,7 @@ str_t vector_fmt(u32_t limit, value_t *value)
         return str_fmt(3, "[]");
 
     str_t str, buf;
-    i64_t len, remains = limit;
+    i64_t len = 0, remains = limit;
     i8_t v_type = value->type;
 
     str = buf = (str_t)rayforce_malloc(limit + FORMAT_TRAILER_SIZE);
