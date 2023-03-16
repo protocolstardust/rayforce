@@ -26,16 +26,20 @@
 #include "format.h"
 #include "alloc.h"
 #include "string.h"
+#include "vector.h"
 
 extern value_t error(i8_t code, str_t message)
 {
-    value_t error = {
-        .type = TYPE_ERROR,
-        .error = {
-            .code = code,
-            .message = message,
-        },
-    };
+    value_t keys = vector_symbol(2), vals = list(2), c, error;
+    c = str("code", 4);
+    as_vector_symbol(&keys)[0] = symbols_intern(&c);
+    c = str("message", 7);
+    as_vector_symbol(&keys)[1] = symbols_intern(&c);
+    as_list(&vals)[0] = i64(code);
+    as_list(&vals)[1] = str(message, strlen(message));
+
+    error = dict(keys, vals);
+    error.type = TYPE_ERROR;
 
     return error;
 }

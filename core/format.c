@@ -197,11 +197,6 @@ str_t list_fmt(u32_t indent, u32_t limit, value_t *value)
     return str;
 }
 
-str_t error_fmt(u32_t indent, u32_t limit, value_t *value)
-{
-    return str_fmt(0, "** [E%.3d] error: %s", value->error.code, value->error.message);
-}
-
 str_t string_fmt(u32_t indent, u32_t limit, value_t *value)
 {
     if (!limit)
@@ -359,6 +354,12 @@ str_t table_fmt(u32_t indent, u32_t limit, value_t *value)
     }
 
     return str;
+}
+
+str_t error_fmt(u32_t indent, u32_t limit, value_t *value)
+{
+    // return str_fmt(0, "** [E%.3d] error: %s", value->error.code, value->error.message);
+    return dict_fmt(indent, limit, value);
 }
 
 extern str_t value_fmt_ind(u32_t indent, u32_t limit, value_t *value)

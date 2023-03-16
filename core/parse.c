@@ -26,12 +26,12 @@
 #include <errno.h>
 #include <limits.h>
 #include "parse.h"
-#include "../core/rayforce.h"
-#include "../core/alloc.h"
-#include "../core/format.h"
-#include "../core/string.h"
-#include "../core/vector.h"
-#include "../core/util.h"
+#include "rayforce.h"
+#include "alloc.h"
+#include "format.h"
+#include "string.h"
+#include "vector.h"
+#include "util.h"
 
 #define TYPE_TOKEN 126
 

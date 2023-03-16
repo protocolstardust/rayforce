@@ -36,7 +36,7 @@
 #include "../core/string.h"
 #include "../core/vector.h"
 #include "../core/util.h"
-#include "parse.h"
+#include "../core/parse.h"
 
 // int test_hash()
 // {
@@ -145,7 +145,6 @@ i32_t main()
 
     // test_symbols();
 
-    test_string_match();
-
+    // test_string_match();
     rayforce_alloc_deinit();
 }

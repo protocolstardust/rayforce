@@ -72,30 +72,21 @@ typedef unsigned long long u64_t;
 typedef double f64_t;
 typedef void null_t;
 
-typedef struct error_t
-{
-    i8_t code;
-    str_t message;
-} error_t;
-
-typedef struct list_t
-{
-    u64_t len;
-    null_t *ptr;
-} list_t;
-
 // Generic type
 typedef struct value_t
 {
     i8_t type;
-
     union
     {
         i8_t i8;
         i64_t i64;
         f64_t f64;
-        list_t list;
-        error_t error;
+        struct list_t
+        {
+            u64_t len;
+            null_t *ptr;
+        } list;
+        struct value_t *error;
     };
 } __attribute__((aligned(16))) value_t;
 

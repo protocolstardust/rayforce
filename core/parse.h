@@ -26,6 +26,16 @@
 
 #include "../core/rayforce.h"
 
+// Points to a actual error position in a source code
+typedef struct label_t
+{
+    str_t name;
+    i64_t start_line;
+    i64_t start_col;
+    i64_t end_line;
+    i64_t end_col;
+} label_t;
+
 typedef struct parser_t
 {
     str_t filename;
