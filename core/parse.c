@@ -53,7 +53,7 @@ span_t span_start(parser_t *parser)
 null_t span_extend(parser_t *parser, span_t *span)
 {
     span->end_line = parser->line;
-    span->end_column = parser->column;
+    span->end_column = parser->column == 0 ? 0 : parser->column - 1;
 
     return;
 }
@@ -116,10 +116,11 @@ i8_t shift(parser_t *parser, i32_t num)
     return res;
 }
 
-rf_object_t to_token(i8_t c)
+rf_object_t to_token(parser_t *parser)
 {
-    rf_object_t tok = i64(c);
+    rf_object_t tok = i64(*parser->current);
     tok.type = TYPE_TOKEN;
+    tok.id = span_commit(parser, span_start(parser));
     return tok;
 }
 
@@ -169,7 +170,7 @@ rf_object_t parse_string(parser_t *parser)
     i32_t len;
     rf_object_t str, err;
 
-    while (!at_eof(*pos))
+    while (!at_eof(*pos) && *pos != '\n')
     {
 
         if (*(pos - 1) == '\\' && *pos == '"')
@@ -407,7 +408,7 @@ rf_object_t parse_dict(parser_t *parser)
         {
             object_free(&keys);
             object_free(&vals);
-            err = error(ERR_PARSE, "Expected object");
+            err = error(ERR_PARSE, "Expected object folowing ':'");
             err.id = span_commit(parser, span);
             return err;
         }
@@ -426,6 +427,7 @@ rf_object_t parse_dict(parser_t *parser)
 
 rf_object_t advance(parser_t *parser)
 {
+    rf_object_t tok;
 
     // Skip all whitespaces
     while (is_whitespace(*parser->current))
@@ -435,13 +437,14 @@ rf_object_t advance(parser_t *parser)
         {
             parser->line++;
             parser->column = 0;
+            parser->current++;
         }
-
-        shift(parser, 1);
+        else
+            shift(parser, 1);
     }
 
     if (at_eof(*parser->current))
-        return to_token(0);
+        return to_token(parser);
 
     if ((*parser->current) == '[')
         return parse_vector(parser);
@@ -462,7 +465,12 @@ rf_object_t advance(parser_t *parser)
         return parse_string(parser);
 
     if (at_term(*parser->current))
-        return to_token(shift(parser, 1));
+    {
+        tok = to_token(parser);
+        shift(parser, 1);
+
+        return tok;
+    }
 
     return error(ERR_PARSE, str_fmt(0, "Unexpected token: '%s'", parser->current));
 }
@@ -470,7 +478,7 @@ rf_object_t advance(parser_t *parser)
 rf_object_t parse_program(parser_t *parser)
 {
     str_t err_msg;
-    rf_object_t token, list = list(0);
+    rf_object_t token, list = list(0), err;
 
     while (!at_eof(*parser->current))
     {
@@ -485,7 +493,9 @@ rf_object_t parse_program(parser_t *parser)
         if (is_at_term(&token))
         {
             object_free(&list);
-            return error(ERR_PARSE, str_fmt(0, "There is no opening found for: '%c'", token.i64));
+            err = error(ERR_PARSE, str_fmt(0, "There is no opening found for: '%c'", token.i64));
+            err.id = token.id;
+            return err;
         }
 
         if (is_at(&token, '\0'))

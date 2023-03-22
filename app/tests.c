@@ -37,6 +37,7 @@
 #include "../core/vector.h"
 #include "../core/util.h"
 #include "../core/parse.h"
+#include "../core/runtime.h"
 
 // int test_hash()
 // {
@@ -166,15 +167,38 @@ null_t test_string_match()
 
     return;
 }
+typedef struct error_t
+{
+    char *file_path;
+    int error_code;
+    char *error_msg;
+    int start_line;
+    int end_line;
+    int start_column;
+    int end_column;
+} error_t;
 
+null_t test_span()
+{
+    error_t error;
+    error.file_path = "./core/rayforce.h";
+    error.error_code = 1;
+    error.error_msg = "An example error message";
+    error.start_line = 33;
+    error.end_line = 35;
+    error.start_column = 5;
+    error.end_column = 10;
+
+    pretty_print_error(&error);
+}
 i32_t main()
 {
-    rayforce_alloc_init();
+    runtime_init();
 
     // test_symbols();
 
-    test_find();
+    test_span();
 
     // test_string_match();
-    rayforce_alloc_deinit();
+    runtime_cleanup();
 }

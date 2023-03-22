@@ -78,6 +78,90 @@ null_t print_logo()
     rayforce_free(logo);
 }
 
+null_t print_error(rf_object_t *error, str_t filename, str_t source, u32_t len)
+{
+    u16_t line_number = 0, i;
+    str_t start = source;
+    str_t end = NULL;
+    span_t *span = debuginfo_get(runtime_get()->debuginfo, error->id);
+    str_t error_desc, lf = "";
+
+    switch (error->adt.code)
+    {
+    case ERR_PARSE:
+        error_desc = "parse";
+        break;
+    case ERR_TYPE:
+        error_desc = "type";
+        break;
+    case ERR_INDEX:
+        error_desc = "index";
+        break;
+    default:
+        error_desc = "unknown";
+    }
+
+    // printf("--\nstart_line: %d\nend_line: %d\nstart_column: %d\nend_column: %d\n",
+    //        span->start_line, span->end_line, span->start_column, span->end_column);
+
+    printf("%s** [E%.3d] error%s: %s\n %s-->%s %s:%d:%d\n    %s|%s\n", TOMATO, error->adt.code, RESET,
+           error_desc, CYAN, RESET, filename, span->end_line, span->end_column, CYAN, RESET);
+
+    while (1)
+    {
+        end = strchr(start, '\n');
+        if (end == NULL)
+        {
+            end = source + len;
+            lf = "\n";
+        }
+
+        size_t line_len = end - start + 1;
+
+        if (line_number >= span->start_line && line_number <= span->end_line)
+        {
+            printf("%.3d %s|%s %.*s", line_number, CYAN, RESET, line_len, start);
+
+            // Print the arrow or span for the error
+            if (span->start_line == span->end_line)
+            {
+                printf("%s    %s|%s ", lf, CYAN, RESET);
+                for (i = 0; i < span->start_column; i++)
+                    printf(" ");
+
+                for (i = span->start_column; i <= span->end_column; i++)
+                    printf("%s^%s", TOMATO, RESET);
+
+                printf(" %s%s%s\n", TOMATO, as_string(error), RESET);
+            }
+            else
+            {
+                if (line_number == span->start_line)
+                {
+                    printf("    %s|%s ", CYAN, RESET);
+                    for (i = 0; i < span->start_column; i++)
+                        printf(" ");
+
+                    printf("%s^%s\n", TOMATO, RESET);
+                }
+                else if (line_number == span->end_line)
+                {
+                    for (i = 0; i < span->end_column + 6; i++)
+                        printf(" ");
+
+                    printf("%s^ %s%s\n", TOMATO, as_string(error), RESET);
+                }
+            }
+        }
+
+        if (line_number > span->end_line)
+            break;
+
+        line_number++;
+        start = end + 1;
+    }
+}
+
 rf_object_t parse_cmdline(i32_t argc, str_t argv[])
 {
     i32_t opt, len;
@@ -138,8 +222,9 @@ null_t load_file(str_t filename)
     object = parse(filename, file);
     buf = object_fmt(&object);
 
+    // printf("%s%s%s\n", TOMATO, buf, RESET);
     if (is_error(&object))
-        printf("%s%s%s\n", TOMATO, buf, RESET);
+        print_error(&object, filename, file, st.st_size);
     else
         printf("%s\n", buf);
 
@@ -156,7 +241,7 @@ i32_t main(i32_t argc, str_t argv[])
     print_logo();
 
     rf_object_t args = parse_cmdline(argc, argv);
-    // load_file("test.ray");
+    load_file("/tmp/test.ray");
 
     str_t filename = NULL;
     i8_t run = 1;
@@ -172,18 +257,18 @@ i32_t main(i32_t argc, str_t argv[])
     {
         printf("%s%s%s", GREEN, PROMPT, RESET);
         ptr = fgets(line, LINE_SIZE, stdin);
-        UNUSED(ptr);
 
         object = parse("REPL", line);
 
-        str_t buf = object_fmt(&object);
-        if (buf == NULL)
-            continue;
-
         if (is_error(&object))
-            printf("%s%s%s\n", TOMATO, buf, RESET);
+            print_error(&object, "REPL", line, LINE_SIZE);
         else
+        {
+            str_t buf = object_fmt(&object);
+            if (buf == NULL)
+                continue;
             printf("%s\n", buf);
+        }
 
         code = compile(object);
         vm_exec(vm, code);
