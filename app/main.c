@@ -36,6 +36,7 @@
 #include "../core/vector.h"
 #include "../core/parse.h"
 #include "../core/runtime.h"
+#include "../core/cc.h"
 
 #define LINE_SIZE 2048
 
@@ -116,7 +117,7 @@ null_t print_error(rf_object_t *error, str_t filename, str_t source, u32_t len)
             lf = "\n";
         }
 
-        size_t line_len = end - start + 1;
+        u32_t line_len = end - start + 1;
 
         if (line_number >= span->start_line && line_number <= span->end_line)
         {
@@ -237,43 +238,45 @@ null_t load_file(str_t filename)
 
 i32_t main(i32_t argc, str_t argv[])
 {
+    rf_object_t args = parse_cmdline(argc, argv), parsed, executed;
+    i8_t run = 1;
+    str_t line = (str_t)rayforce_malloc(LINE_SIZE), ptr, filename = NULL;
+    vm_t *vm;
+    str_t code;
+
+    memset(line, 0, LINE_SIZE);
+
     runtime_init();
     print_logo();
 
-    rf_object_t args = parse_cmdline(argc, argv);
-    load_file("/tmp/test.ray");
-
-    str_t filename = NULL;
-    i8_t run = 1;
-    str_t line = (str_t)rayforce_malloc(LINE_SIZE), ptr;
-    memset(line, 0, LINE_SIZE);
-    rf_object_t object;
-    vm_t vm;
-    i8_t *code;
-
     vm = vm_create();
+
+    // load_file("/tmp/test.ray");
 
     while (run)
     {
         printf("%s%s%s", GREEN, PROMPT, RESET);
         ptr = fgets(line, LINE_SIZE, stdin);
 
-        object = parse("REPL", line);
+        parsed = parse("REPL", line);
 
-        if (is_error(&object))
-            print_error(&object, "REPL", line, LINE_SIZE);
-        else
+        if (is_error(&parsed))
         {
-            str_t buf = object_fmt(&object);
-            if (buf == NULL)
-                continue;
-            printf("%s\n", buf);
+            print_error(&parsed, "REPL", line, LINE_SIZE);
+            continue;
         }
 
-        code = compile(object);
-        vm_exec(vm, code);
+        code = cc_compile(parsed);
+        executed = vm_exec(vm, code);
 
-        object_free(&object);
+        if (is_error(&executed))
+            print_error(&executed, "REPL", line, LINE_SIZE);
+        else
+            printf("%s\n", object_fmt(&executed));
+
+        object_free(&executed);
+        // object_free(&parsed);
+        rayforce_free(code);
     }
 
     rayforce_free(line);

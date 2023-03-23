@@ -55,7 +55,7 @@
         ((type *)((vector)->adt.ptr))[(vector)->adt.len++] = value;                                    \
     }
 
-#define pop(vector, type) ((type *)((vector)->adt.ptr))[(vector)->adt.len--]
+#define pop(vector, type) ((type *)((vector)->adt.ptr))[--(vector)->adt.len]
 
 /*
  * Attemts to make vector from list if all elements are of the same type
@@ -163,6 +163,31 @@ extern i64_t vector_push(rf_object_t *vector, rf_object_t object)
     }
 
     return vector->adt.len;
+}
+
+extern rf_object_t vector_pop(rf_object_t *vector)
+{
+    if (vector->adt.len == 0)
+        return null();
+
+    i8_t type = vector->type;
+    rf_object_t obj;
+
+    switch (type)
+    {
+    case TYPE_I64:
+        return i64(vector_i64_pop(vector));
+    case TYPE_F64:
+        return f64(vector_f64_pop(vector));
+    case TYPE_SYMBOL:
+        obj = i64(vector_i64_pop(vector));
+        obj.type = -TYPE_SYMBOL;
+        return obj;
+    case TYPE_LIST:
+        return list_pop(vector);
+    default:
+        exit(1);
+    }
 }
 
 extern i64_t vector_i64_find(rf_object_t *vector, i64_t key)

@@ -31,8 +31,8 @@
 typedef enum vm_opcode_t
 {
     VM_HALT = 0, // Halt the VM
-    VM_PUSH,     // Push a object to the stack
-    VM_POP,      // Pop a object from the stack
+    VM_PUSH,     // Push an object to the stack
+    VM_POP,      // Pop an object from the stack
     VM_ADD,      // Add two objects from the stack
     VM_SUB,      // Subtract two objects from the stack
     VM_MUL,      // Multiply two objects from the stack
@@ -40,20 +40,19 @@ typedef enum vm_opcode_t
 
 typedef struct vm_t
 {
-    i32_t ip;    // Instruction pointer
-    i32_t sp;    // Stack pointer
-    i8_t halted; // Halt flag
-    i64_t regs[16];
-    struct rf_object_t stack[VM_STACK_SIZE];
-} *vm_t;
+    i32_t ip;             // Instruction pointer
+    i32_t sp;             // Stack pointer
+    i8_t halted;          // Halt flag
+    rf_object_t regs[16]; // Registers of objects
+    rf_object_t stack;    // List of objects
+} vm_t;
 
-vm_t vm_create();
-null_t vm_exec(vm_t vm, i8_t *code);
-null_t vm_free(vm_t vm);
+vm_t *vm_create();
+rf_object_t vm_exec(vm_t *vm, str_t code);
+null_t vm_free(vm_t *vm);
 
 // void vm_init(VM *vm, int *code, int code_size, int nglobals);
 // void vm_print_instr(i16_t *code, int ip);
 // void vm_print_stack(int *stack, int count);
-// void vm_print_data(int *globals, int count);
 
 #endif

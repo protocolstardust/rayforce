@@ -54,16 +54,3 @@
 
 //     return i64(sum);
 // }
-
-i8_t *compile(rf_object_t *object)
-{
-    i8_t *code;
-
-    UNUSED(object);
-
-    code = (i8_t *)rayforce_malloc(1024);
-
-    code[0] = VM_ADD;
-
-    return code;
-}

@@ -226,7 +226,7 @@ rf_object_t parse_symbol(parser_t *parser)
 rf_object_t parse_vector(parser_t *parser)
 {
     rf_object_t token, vec = vector_i64(0), err;
-    i32_t i, id;
+    i32_t i;
     span_t span = span_start(parser);
 
     shift(parser, 1); // skip '['
@@ -427,7 +427,7 @@ rf_object_t parse_dict(parser_t *parser)
 
 rf_object_t advance(parser_t *parser)
 {
-    rf_object_t tok;
+    rf_object_t tok, err;
 
     // Skip all whitespaces
     while (is_whitespace(*parser->current))
@@ -472,12 +472,13 @@ rf_object_t advance(parser_t *parser)
         return tok;
     }
 
-    return error(ERR_PARSE, str_fmt(0, "Unexpected token: '%s'", parser->current));
+    err = error(ERR_PARSE, str_fmt(0, "Unexpected token: '%c'", *parser->current));
+    err.id = span_commit(parser, span_start(parser));
+    return err;
 }
 
 rf_object_t parse_program(parser_t *parser)
 {
-    str_t err_msg;
     rf_object_t token, list = list(0), err;
 
     while (!at_eof(*parser->current))

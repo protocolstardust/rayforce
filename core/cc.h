@@ -21,59 +21,12 @@
  *   SOFTWARE.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include "vm.h"
+#ifndef CC_H
+#define CC_H
+
 #include "rayforce.h"
-#include "alloc.h"
-#include "format.h"
-#include "util.h"
 
-vm_t *vm_create()
-{
-    vm_t *vm;
+str_t cc_compile(rf_object_t object);
+str_t cc_code_fmt(str_t code);
 
-    vm = (vm_t *)rayforce_malloc(sizeof(struct vm_t));
-    memset(vm, 0, sizeof(struct vm_t));
-    vm->stack = list(0);
-    return vm;
-}
-
-rf_object_t vm_exec(vm_t *vm, str_t code)
-{
-    rf_object_t ob;
-    vm->ip = vm->sp = 0;
-
-    // The indices of labels in the dispatch_table are the relevant opcodes
-    static null_t *dispatch_table[] = {
-        &&vm_halt, &&vm_push, &&vm_pop};
-
-#define dispatch() goto *dispatch_table[code[vm->ip]]
-
-    dispatch();
-
-vm_halt:
-    vm->halted = 1;
-    ob = vector_pop(&vm->stack);
-    return ob;
-vm_push:
-    vm->ip++;
-    ob = *(rf_object_t *)(code + vm->ip);
-    vector_push(&vm->stack, ob);
-    vm->ip += sizeof(rf_object_t);
-    dispatch();
-vm_pop:
-    vm->ip++;
-    ob = vector_pop(&vm->stack);
-    dispatch();
-}
-
-null_t vm_free(vm_t *vm)
-{
-    rayforce_free(vm);
-}
-
-// str_t vm_code_fmt(i8_t *code)
-// {
-//     // TODO
-// }
+#endif
