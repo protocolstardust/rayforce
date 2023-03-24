@@ -47,6 +47,9 @@ vm_t *vm_create()
     return vm;
 }
 
+/*
+ * Dispatch using computed goto technique
+ */
 rf_object_t vm_exec(vm_t *vm, str_t code)
 {
     rf_object_t ob;
@@ -56,23 +59,23 @@ rf_object_t vm_exec(vm_t *vm, str_t code)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&vm_halt, &&vm_push, &&vm_pop};
+        &&op_halt, &&op_push, &&op_pop};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
     dispatch();
 
-vm_halt:
+op_halt:
     vm->halted = 1;
     ob = pop(vm);
     return ob;
-vm_push:
+op_push:
     vm->ip++;
     ob = *(rf_object_t *)(code + vm->ip);
     push(vm, ob);
     vm->ip += sizeof(rf_object_t);
     dispatch();
-vm_pop:
+op_pop:
     vm->ip++;
     ob = pop(vm);
     dispatch();

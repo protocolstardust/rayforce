@@ -50,9 +50,9 @@ str_t cc_compile(rf_object_t object)
     u32_t len = 2 * sizeof(rf_object_t), offset = 0;
     str_t code = (str_t)rayforce_malloc(len);
 
-    push_opcode(VM_PUSH);
+    push_opcode(OP_PUSH);
     push_object(object);
-    push_opcode(VM_HALT);
+    push_opcode(OP_HALT);
 
     return code;
 }
@@ -65,18 +65,18 @@ str_t cc_code_fmt(str_t code)
 
     p = strlen(s);
 
-    while (*ip != VM_HALT)
+    while (*ip != OP_HALT)
     {
         switch (*ip++)
         {
-        case VM_PUSH:
+        case OP_PUSH:
             p += str_fmt_into(0, p, &s, "%.4d: push %p\n", c++, ((rf_object_t *)(ip + 1)));
             ip += sizeof(rf_object_t);
             break;
-        case VM_POP:
+        case OP_POP:
             p += str_fmt_into(0, p, &s, "%.4d: pop\n", c++);
             break;
-        case VM_ADD:
+        case OP_ADD:
             p += str_fmt_into(0, p, &s, "%.4d: add\n", c++);
             break;
         default:

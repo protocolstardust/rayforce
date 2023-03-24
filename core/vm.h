@@ -31,21 +31,22 @@
 
 typedef enum vm_opcode_t
 {
-    VM_HALT = 0, // Halt the VM
-    VM_PUSH,     // Push an object to the stack
-    VM_POP,      // Pop an object from the stack
-    VM_ADD,      // Add two objects from the stack
-    VM_SUB,      // Subtract two objects from the stack
-    VM_MUL,      // Multiply two objects from the stack
+    OP_HALT = 0, // Halt the VM
+    OP_PUSH,     // Push an object to the stack
+    OP_POP,      // Pop an object from the stack
+    OP_ADD,      // Add two objects from the stack
+    OP_SUB,      // Subtract two objects from the stack
+    OP_MUL,      // Multiply two objects from the stack
 } vm_opcode_t;
 
 typedef struct vm_t
 {
-    i32_t ip;                       // Instruction pointer
-    i32_t sp;                       // Stack pointer
-    i8_t halted;                    // Halt flag
-    rf_object_t r0, r1, r2, r3, r4; // Registers of objects
-    rf_object_t *stack;             // Stack of objects
+    i32_t ip;    // Instruction pointer
+    i32_t sp;    // Stack pointer
+    i8_t halted; // Halt flag
+    rf_object_t r0, r1, r2, r3, r4,
+        r5, r6, r7, r8; // Registers of objects
+    rf_object_t *stack; // Stack of objects
 } vm_t;
 
 vm_t *vm_create();
