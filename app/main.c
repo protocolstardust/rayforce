@@ -218,7 +218,8 @@ null_t load_file(str_t filename)
     file = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0); // memory-map the file
 
     if (file == MAP_FAILED)
-    { // error handling if memory-mapping fails
+    {
+        // error handling if memory-mapping fails
         printf("Error mapping the file.\n");
         return;
     }

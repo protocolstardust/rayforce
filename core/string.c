@@ -33,7 +33,7 @@
  */
 extern rf_object_t string(i64_t len)
 {
-    str_t ptr = rayforce_malloc(len + 1);
+    str_t ptr = rayforce_malloc(len);
     ptr[len] = '\0';
 
     rf_object_t string = {

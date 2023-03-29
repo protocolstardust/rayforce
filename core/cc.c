@@ -31,12 +31,12 @@
 
 #define push_opcode(x)       \
     vector_reserve(code, 1); \
-    as_string(code)[offset++] = x;
+    as_string(code)[code->adt.len++] = x;
 
-#define push_object(x)                            \
-    vector_reserve(code, sizeof(rf_object_t));    \
-    *(rf_object_t *)(code->adt.ptr + offset) = x; \
-    offset += sizeof(rf_object_t);
+#define push_object(x)                                     \
+    vector_reserve(code, sizeof(rf_object_t));             \
+    *(rf_object_t *)(as_string(code) + code->adt.len) = x; \
+    code->adt.len += sizeof(rf_object_t);
 
 typedef struct dispatch_record_t
 {
@@ -73,7 +73,7 @@ static dispatch_record_t _DISPATCH_TABLE[DISPATCH_TABLE_SIZE][DISPATCH_RECORD_SI
 
 i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
 {
-    u32_t offset = 0, arity, i = 0, j = 0, match = 0;
+    u32_t arity, i = 0, j = 0, match = 0;
     rf_object_t *car, err;
     dispatch_record_t *rec;
     i8_t ret = TYPE_ERROR, arg_types[8];
@@ -85,9 +85,20 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
         push_object(*object);
         return -TYPE_I64;
 
+    case -TYPE_F64:
+        push_opcode(OP_PUSH);
+        push_object(*object);
+        return -TYPE_F64;
+
+    case -TYPE_SYMBOL:
+        push_opcode(OP_PUSH);
+        push_object(*object);
+        return -TYPE_SYMBOL;
+
     case TYPE_LIST:
         if (object->adt.len == 0)
         {
+            push_opcode(OP_PUSH);
             push_object(object_clone(object));
             return TYPE_LIST;
         }
@@ -112,10 +123,11 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
             return TYPE_ERROR;
         }
 
-        // compile arguments
-        for (j = 1; j < object->adt.len; j++)
+        // compile arguments from right to left
+        for (j = arity; j > 0; j--)
             arg_types[j - 1] = cc_compile_code(&as_list(object)[j], code);
 
+        // try to find matching function prototype
         while ((rec = &_DISPATCH_TABLE[arity][i++]))
         {
             if (i > DISPATCH_RECORD_SIZE)
@@ -123,9 +135,9 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
 
             if (rec->name != 0 && strcmp(symbols_get(car->i64), rec->name) == 0)
             {
-                for (j = 0; j < arity; j++)
+                for (j = arity; j > 0; j--)
                 {
-                    if (arg_types[j] != rec->args[j])
+                    if (arg_types[j - 1] != rec->args[j - 1])
                         break;
 
                     match++;
@@ -137,13 +149,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
                     continue;
                 }
 
-                for (j = 1; j < object->adt.len; j++)
-                {
-                    push_opcode(OP_PUSH);
-                    push_object(object_clone(&as_list(object)[j]));
-                    ret = rec->ret;
-                }
-
+                ret = rec->ret;
                 push_opcode(rec->opcode);
 
                 break;
@@ -160,19 +166,37 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
         }
 
         return ret;
+
+    default:
+        push_opcode(OP_PUSH);
+        push_object(object_clone(object));
+        return object->type;
     }
-
-    // push_opcode(OP_HALT);
-
-    return TYPE_ERROR;
 }
 
-rf_object_t cc_compile(rf_object_t *object)
+/*
+ * Compile entire program as a list
+ */
+rf_object_t cc_compile(rf_object_t *list)
 {
-    rf_object_t code = string(2 * sizeof(rf_object_t));
-    cc_compile_code(object, &code);
-    // debug("CODE: %s\n", cc_code_fmt(as_string(&code)));
-    return code;
+    if (list->type != TYPE_LIST)
+        return error(ERR_TYPE, "compile: expected list");
+
+    rf_object_t prg = string(0), *code;
+
+    for (u32_t i = 0; i < list->adt.len; i++)
+        cc_compile_code(&as_list(list)[i], &prg);
+
+    if (list->adt.len == 0)
+    {
+        code = &prg;
+        push_opcode(OP_PUSH);
+        push_object(null());
+    }
+
+    debug("CODE: %s\n", cc_code_fmt(as_string(&prg)));
+
+    return prg;
 }
 
 str_t cc_code_fmt(str_t code)
