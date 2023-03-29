@@ -71,19 +71,25 @@ static dispatch_record_t _DISPATCH_TABLE[DISPATCH_TABLE_SIZE][DISPATCH_RECORD_SI
 };
 // clang-format on
 
-i8_t cc_compile_code(rf_object_t *object, rf_object_t *code, u32_t len)
+i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
 {
     u32_t offset = 0, arity, i = 0, j = 0, match = 0;
     rf_object_t *car, err;
     dispatch_record_t *rec;
+    i8_t ret = TYPE_ERROR, arg_types[8];
 
     switch (object->type)
     {
+    case -TYPE_I64:
+        push_opcode(OP_PUSH);
+        push_object(*object);
+        return -TYPE_I64;
+
     case TYPE_LIST:
         if (object->adt.len == 0)
         {
             push_object(object_clone(object));
-            break;
+            return TYPE_LIST;
         }
 
         car = &as_list(object)[0];
@@ -106,6 +112,10 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code, u32_t len)
             return TYPE_ERROR;
         }
 
+        // compile arguments
+        for (j = 1; j < object->adt.len; j++)
+            arg_types[j - 1] = cc_compile_code(&as_list(object)[j], code);
+
         while ((rec = &_DISPATCH_TABLE[arity][i++]))
         {
             if (i > DISPATCH_RECORD_SIZE)
@@ -115,7 +125,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code, u32_t len)
             {
                 for (j = 0; j < arity; j++)
                 {
-                    if (as_list(object)[j + 1].type != rec->args[j])
+                    if (arg_types[j] != rec->args[j])
                         break;
 
                     match++;
@@ -131,6 +141,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code, u32_t len)
                 {
                     push_opcode(OP_PUSH);
                     push_object(object_clone(&as_list(object)[j]));
+                    ret = rec->ret;
                 }
 
                 push_opcode(rec->opcode);
@@ -145,19 +156,21 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code, u32_t len)
             err = error(ERR_LENGTH, "compile list: function proto or arity mismatch");
             err.id = object->id;
             push_object(err);
+            return TYPE_ERROR;
         }
+
+        return ret;
     }
 
     // push_opcode(OP_HALT);
 
-    return code;
+    return TYPE_ERROR;
 }
 
 rf_object_t cc_compile(rf_object_t *object)
 {
-    u32_t len = 2 * sizeof(rf_object_t);
-    rf_object_t code = string(len);
-    cc_compile_code(object, &code, len);
+    rf_object_t code = string(2 * sizeof(rf_object_t));
+    cc_compile_code(object, &code);
     // debug("CODE: %s\n", cc_code_fmt(as_string(&code)));
     return code;
 }
