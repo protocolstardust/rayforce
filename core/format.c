@@ -404,3 +404,32 @@ extern str_t object_fmt(rf_object_t *object)
     i32_t indent = 0, limit = MAX_ROW_WIDTH - FORMAT_TRAILER_SIZE;
     return object_fmt_ind(indent, limit, object);
 }
+
+extern str_t type_fmt(i8_t type)
+{
+    switch (type)
+    {
+    case -TYPE_I64:
+        return str_fmt(0, "i64");
+    case -TYPE_F64:
+        return str_fmt(0, "f64");
+    case -TYPE_SYMBOL:
+        return str_fmt(0, "s64");
+    case TYPE_I64:
+        return str_fmt(0, "i64[]");
+    case TYPE_F64:
+        return str_fmt(0, "f64[]");
+    case TYPE_SYMBOL:
+        return str_fmt(0, "s64[]");
+    case TYPE_STRING:
+        return str_fmt(0, "str");
+    case TYPE_LIST:
+        return str_fmt(0, "list");
+    case TYPE_DICT:
+        return str_fmt(0, "dict");
+    case TYPE_TABLE:
+        return str_fmt(0, "table");
+    default:
+        return str_fmt(0, "unknown");
+    }
+}

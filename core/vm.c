@@ -62,7 +62,7 @@ rf_object_t vm_exec(vm_t *vm, str_t code)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_push, &&op_pop, &&op_addi, &&op_addf, &&op_sumi, &&op_like};
+        &&op_halt, &&op_push, &&op_pop, &&op_addi, &&op_addf, &&op_sumi, &&op_like, &&op_type};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -108,6 +108,11 @@ op_like:
     x = pop(vm);
     y = pop(vm);
     push(vm, i64(string_match(as_string(&x), as_string(&y))));
+    dispatch();
+op_type:
+    vm->ip++;
+    x = pop(vm);
+    push(vm, symbol(type_fmt(x.type)));
     dispatch();
 }
 

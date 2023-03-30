@@ -62,14 +62,15 @@ static dispatch_record_t _DISPATCH_TABLE[DISPATCH_TABLE_SIZE][DISPATCH_RECORD_SI
     },
     // Unary
     {
-        {"-",    {-TYPE_I64}, -TYPE_I64,  OP_HALT},            
+        {"-",    {-TYPE_I64}, -TYPE_I64,    OP_HALT},            
+        {"type", {TYPE_ANY }, -TYPE_SYMBOL, OP_TYPE}
     },
     // Binary
     {
         {"+",    {-TYPE_I64,     -TYPE_I64}, -TYPE_I64,    OP_ADDI}, 
         {"+",    {-TYPE_F64,     -TYPE_F64}, -TYPE_F64,    OP_ADDF},
         {"sum",  {TYPE_I64,      -TYPE_I64},  TYPE_I64,    OP_SUMI},
-        {"like", {TYPE_STRING, TYPE_STRING},  TYPE_I64,    OP_LIKE}
+        {"like", {TYPE_STRING, TYPE_STRING}, -TYPE_I64,    OP_LIKE}
     },
     // Ternary
     {{0}},
@@ -151,7 +152,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
             {
                 for (j = arity; j > 0; j--)
                 {
-                    if (arg_types[j - 1] != rec->args[j - 1])
+                    if (rec->args[j - 1] != TYPE_ANY && arg_types[j - 1] != rec->args[j - 1])
                         break;
 
                     match++;
