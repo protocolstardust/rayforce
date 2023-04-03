@@ -85,7 +85,11 @@ typedef struct header_t
     i64_t len;
     i64_t rc;
     i64_t attrs;
-    i64_t pad;
+    union
+    {
+        i8_t code;
+        i64_t pad;
+    };
 } header_t;
 
 CASSERT(sizeof(struct header_t) == 32, vector_c)
@@ -132,7 +136,7 @@ extern rf_object_t error(i8_t code, str_t message);
 extern null_t object_free(rf_object_t *object);
 
 // Accessors
-#define as_string(object) ((str_t)(object)->adt + sizeof(header_t))
+#define as_string(object) ((str_t)((object)->adt + 1))
 #define as_vector_i64(object) ((i64_t *)(as_string(object)))
 #define as_vector_f64(object) ((f64_t *)(as_string(object)))
 #define as_vector_symbol(object) ((i64_t *)(as_string(object)))

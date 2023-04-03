@@ -36,6 +36,7 @@ extern rf_object_t string(i64_t len)
     rf_object_t string = vector(TYPE_STRING, 1, len + 1);
 
     as_string(&string)[len] = '\0';
+    string.adt->len = len;
     return string;
 }
 

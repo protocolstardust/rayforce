@@ -36,7 +36,7 @@ extern rf_object_t error(i8_t code, str_t message)
 {
     rf_object_t err = string_from_str(message, strlen(message));
     err.type = TYPE_ERROR;
-    // err.adt.code = code;
+    err.adt->code = code;
 
     return err;
 }

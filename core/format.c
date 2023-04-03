@@ -126,6 +126,7 @@ str_t f64_fmt(i32_t limit, f64_t val)
 }
 
 str_t vector_fmt(i32_t limit, rf_object_t *object)
+
 {
     if (!limit)
         return "";
@@ -377,7 +378,7 @@ str_t error_fmt(i32_t indent, i32_t limit, rf_object_t *error)
 {
     UNUSED(indent);
     UNUSED(limit);
-    // return str_fmt(0, "** [E%.3d] error: %s", error->adt.code, as_string(error));
+    return str_fmt(0, "** [E%.3d] error: %s", error->adt->code, as_string(error));
 }
 
 extern str_t object_fmt_ind(i32_t indent, i32_t limit, rf_object_t *object)

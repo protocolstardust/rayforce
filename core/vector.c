@@ -101,9 +101,14 @@
  */
 extern rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
 {
+    header_t *adt = rayforce_malloc(capacity(size_of_val * len + sizeof(header_t)));
+    adt->len = len;
+    adt->attrs = 0;
+    adt->rc = 1;
+
     rf_object_t v = {
         .type = type,
-        .adt = rayforce_malloc(capacity(size_of_val * len + sizeof(header_t))),
+        .adt = adt,
     };
 
     return v;
