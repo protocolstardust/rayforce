@@ -205,11 +205,13 @@ str_t list_fmt(i32_t indent, i32_t limit, rf_object_t *rf_object)
     for (i = 0; i < rf_object->adt->len; i++)
     {
         s = rf_object_fmt_ind(indent, limit - indent, ((rf_object_t *)as_string(rf_object)) + i);
+        if (s == NULL)
+            return NULL;
         offset += str_fmt_into(0, offset, &str, "\n%*.*s%s", indent, indent, PADDING, s);
         rf_free(s);
     }
 
-    str_fmt_into(0, offset, &str, "\n%*.*s)", indent - 2, indent - 2, PADDING);
+    // str_fmt_into(0, offset, &str, "\n%*.*s)", indent - 2, indent - 2, PADDING);
     return str;
 }
 
@@ -252,7 +254,7 @@ str_t dict_fmt(i32_t indent, i32_t limit, rf_object_t *rf_object)
             k = str_fmt(limit, "%s", symbols_get(as_vector_symbol(keys)[i]));
             break;
         default:
-            k = rf_object_fmt_ind(indent, limit - indent, &as_list(keys)[i]);
+            k = rf_object_fmt_indent(indent, limit - indent, &as_list(keys)[i]);
             break;
         }
         // Dispatch rf_objects type
@@ -268,7 +270,7 @@ str_t dict_fmt(i32_t indent, i32_t limit, rf_object_t *rf_object)
             v = str_fmt(limit, "%s", symbols_get(as_vector_symbol(vals)[i]));
             break;
         default:
-            v = rf_object_fmt_ind(indent, limit - indent, &as_list(vals)[i]);
+            v = rf_object_fmt_indent(indent, limit - indent, &as_list(vals)[i]);
             break;
         }
 
@@ -327,7 +329,7 @@ str_t table_fmt(i32_t indent, i32_t limit, rf_object_t *rf_object)
                 s = str_fmt(limit, "%s", symbols_get(as_vector_symbol(column)[j]));
                 break;
             default:
-                s = rf_object_fmt_ind(indent, limit - indent, &as_list(column)[j]);
+                s = rf_object_fmt_indent(indent, limit - indent, &as_list(column)[j]);
                 break;
             }
 
@@ -381,7 +383,7 @@ str_t error_fmt(i32_t indent, i32_t limit, rf_object_t *error)
     return str_fmt(0, "** [E%.3d] error: %s", error->adt->code, as_string(error));
 }
 
-extern str_t rf_object_fmt_ind(i32_t indent, i32_t limit, rf_object_t *rf_object)
+extern str_t rf_object_fmt_indent(i32_t indent, i32_t limit, rf_object_t *rf_object)
 {
     switch (rf_object->type)
     {
@@ -415,7 +417,11 @@ extern str_t rf_object_fmt_ind(i32_t indent, i32_t limit, rf_object_t *rf_object
 extern str_t rf_object_fmt(rf_object_t *rf_object)
 {
     i32_t indent = 0, limit = MAX_ROW_WIDTH - FORMAT_TRAILER_SIZE;
-    return rf_object_fmt_ind(indent, limit, rf_object);
+    str_t s = rf_object_fmt_indent(indent, limit, rf_object);
+    if (s == NULL)
+        panic("format: returns null");
+
+    return s;
 }
 
 extern str_t type_fmt(i8_t type)

@@ -37,6 +37,7 @@
     do                                       \
     {                                        \
         fprintf(stderr, fmt, ##__VA_ARGS__); \
+        fprintf(stderr, "\n");               \
         fflush(stderr);                      \
     } while (0)
 
@@ -46,10 +47,10 @@
 #define debug_assert(x) (null_t)0
 #endif
 
-#define panic(x)                                                 \
-    {                                                            \
-        fprintf(stderr, "Process panicked with message: %s", x); \
-        exit(1);                                                 \
+#define panic(x)                                                   \
+    {                                                              \
+        fprintf(stderr, "Process panicked with message: '%s'", x); \
+        exit(1);                                                   \
     }
 
 #define printbits_n(x, n)                                        \

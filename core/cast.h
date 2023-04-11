@@ -28,6 +28,8 @@
 #include "format.h"
 #include "runtime.h"
 #include "env.h"
+#include "util.h"
+
 /*
  * Casts the object to the specified type.
  * If the cast is not possible, returns an error object.

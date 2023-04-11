@@ -265,7 +265,7 @@ i32_t main(i32_t argc, str_t argv[])
             break;
 
         parsed = parse("REPL", line);
-        // printf("%s\n", rf_object_fmt(&parsed));
+        printf("%s\n", rf_object_fmt(&parsed));
 
         if (is_error(&parsed))
         {
