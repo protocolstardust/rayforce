@@ -32,7 +32,7 @@
 #define DIVF64(x, y) (x / y)
 #define MULI64(x, y) (((x | y) & NULL_I64) ? NULL_I64 : (x * y))
 #define MODI64(x, y) (((x | y) & NULL_I64) ? NULL_I64 : (x % y))
-
+#define MAXI64(x, y) (x > y ? x : y)
 /*
  * Aligns x to the nearest multiple of a
  */

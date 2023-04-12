@@ -47,6 +47,8 @@ static inline __attribute__((always_inline)) rf_object_t rf_cast(i8_t type, rf_o
     if (type == TYPE_STRING)
     {
         str_t s = rf_object_fmt(y);
+        if (s == NULL)
+            panic("rf_object_fmt() returned NULL");
         return string_from_str(s, strlen(s));
     }
 

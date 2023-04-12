@@ -224,8 +224,24 @@ i8_t cc_compile_special_forms(rf_object_t *rf_object, u32_t arity, rf_object_t *
 
         type = env_get_type_by_typename(&runtime_get()->env, as_list(rf_object)[1].i64);
 
-        cc_compile_fn(&as_list(rf_object)[1], code);
-        cc_compile_fn(&as_list(rf_object)[2], code);
+        if (type == TYPE_ANY)
+        {
+            rf_object_free(code);
+            err = error(ERR_TYPE, "'cast': unknown type");
+            err.id = as_list(rf_object)[1].id;
+            *code = err;
+            return TYPE_ERROR;
+        }
+
+        type = cc_compile_fn(&as_list(rf_object)[1], code);
+
+        if (type == TYPE_ERROR)
+            return type;
+
+        type = cc_compile_fn(&as_list(rf_object)[2], code);
+
+        if (type == TYPE_ERROR)
+            return type;
 
         push_opcode(code, OP_CAST);
         push_opcode(code, type);
