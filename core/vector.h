@@ -27,6 +27,7 @@
 #include "rayforce.h"
 #include "alloc.h"
 #include "ops.h"
+#include "util.h"
 
 /*
  * Each vector capacity is always factor of 8
@@ -45,14 +46,17 @@
  * t - type of element
  * n - number of elements
  */
-#define reserve(v, t, n)                                            \
-    {                                                               \
-        i64_t occup = (v)->adt->len * sizeof(t) + sizeof(header_t); \
-        i64_t cap = capacity(occup);                                \
-        i64_t req_cap = n * sizeof(t) + sizeof(header_t);           \
-        i64_t new_cap = capacity(cap + req_cap);                    \
-        if (cap < req_cap + occup)                                  \
-            (v)->adt = rf_realloc((v)->adt, new_cap);               \
+#define reserve(v, t, n)                                                                                                \
+    {                                                                                                                   \
+        i64_t occup = (v)->adt->len * sizeof(t) + sizeof(header_t);                                                     \
+        i64_t cap = capacity(occup);                                                                                    \
+        i64_t req_cap = n * sizeof(t);                                                                                  \
+        if (cap < req_cap + occup)                                                                                      \
+        {                                                                                                               \
+            i64_t new_cap = capacity(cap + req_cap);                                                                    \
+            /*debug("realloc: len %lld n %lld from %lld to %lld occup: %lld", (v)->adt->len, n, cap, new_cap, occup);*/ \
+            (v)->adt = rf_realloc((v)->adt, new_cap);                                                                   \
+        }                                                                                                               \
     }
 
 /*

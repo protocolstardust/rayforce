@@ -49,7 +49,13 @@ extern null_t rf_free(null_t *block)
 
 extern null_t *rf_realloc(null_t *ptr, i32_t size)
 {
+    // null_t *new_ptr = rf_malloc(size);
+    // memcpy(new_ptr, ptr, size);
+    // rf_free(ptr);
+    // return new_ptr;
+
     return realloc(ptr, size);
+    
 }
 
 extern alloc_t rf_alloc_init()

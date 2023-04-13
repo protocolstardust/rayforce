@@ -249,9 +249,7 @@ i32_t main(i32_t argc, str_t argv[])
     str_t line = (str_t)rf_malloc(LINE_SIZE), ptr; //, filename = NULL;
     vm_t *vm;
 
-    memset(line, 0, LINE_SIZE);
-
-    print_logo();
+    // print_logo();
 
     vm = vm_create();
 
