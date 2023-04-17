@@ -23,14 +23,14 @@
 
 #include "debuginfo.h"
 
-i64_t i64_hash(null_t *val)
+u32_t u32_hash(null_t *val)
 {
-    return (i64_t)val;
+    return (u32_t)val;
 }
 
-i32_t i64_cmp(null_t *a, null_t *b)
+u32_t u32_cmp(null_t *a, null_t *b)
 {
-    return !((i64_t)a == (i64_t)b);
+    return !((u32_t)a == (u32_t)b);
 }
 
 debuginfo_t debuginfo_create(str_t filename, str_t function)
@@ -38,7 +38,7 @@ debuginfo_t debuginfo_create(str_t filename, str_t function)
     debuginfo_t debuginfo = {
         .filename = filename,
         .function = function,
-        .spans = ht_create(&i64_hash, &i64_cmp),
+        .spans = ht_create(&u32_hash, &u32_cmp),
     };
 
     return debuginfo;
@@ -46,14 +46,20 @@ debuginfo_t debuginfo_create(str_t filename, str_t function)
 
 null_t debuginfo_insert(debuginfo_t *debuginfo, u32_t index, span_t span)
 {
-    // u32_t index = debuginfo->count;
-    // debuginfo->span[index] = span;
-    // debuginfo->count++;
-    // return index;
+    u64_t s;
+    memcpy(&s, &span, sizeof(span_t));
+    ht_insert(debuginfo->spans, (null_t *)index, (null_t *)s);
 }
 
 span_t debuginfo_get(debuginfo_t *debuginfo, u32_t index)
 {
-    // return debuginfo->span[index];
-    return (span_t){0};
+    u64_t *s = (u64_t *)ht_get(debuginfo->spans, (null_t *)index);
+
+    if (!s)
+        return (span_t){0};
+
+    span_t span;
+    memcpy(&span, &s, sizeof(span_t));
+
+    return span;
 }

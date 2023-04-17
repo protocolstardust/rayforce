@@ -552,9 +552,9 @@ rf_object_t parse_program(parser_t *parser)
 extern rf_object_t parse(str_t filename, str_t input)
 {
     rf_object_t prg;
-    debuginfo_t debuginfo = debuginfo_init(filename);
 
     parser_t parser = {
+        .debuginfo = debuginfo_create(filename, ""),
         .input = input,
         .current = input,
         .line = 0,
@@ -562,6 +562,11 @@ extern rf_object_t parse(str_t filename, str_t input)
     };
 
     prg = parse_program(&parser);
+
+    if (is_error(&prg))
+        prg.adt->span = debuginfo_get(&parser.debuginfo, prg.id);
+
+    // debuginfo_get(&parser.debuginfo, prg.id);
 
     return prg;
 }

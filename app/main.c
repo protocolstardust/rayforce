@@ -86,7 +86,7 @@ null_t print_error(rf_object_t *error, str_t filename, str_t source, u32_t len)
     str_t start = source;
     str_t end = NULL;
     str_t error_desc, lf = "";
-    span_t span = *(span_t *)(&error->adt->attrs);
+    span_t span = error->adt->span;
 
     switch (error->adt->code)
     {
