@@ -401,12 +401,12 @@ rf_object_t parse_dict(parser_t *parser)
             return token;
         }
 
-        if (at_eof(*parser->current))
+        if (at_eof(*parser->current) || is_at_term(&token))
         {
             rf_object_free(&keys);
             rf_object_free(&vals);
             err = error(ERR_PARSE, "Expected '}'");
-            err.id = span_commit(parser, span);
+            err.id = token.id;
             return err;
         }
 
@@ -414,6 +414,13 @@ rf_object_t parse_dict(parser_t *parser)
 
         span_extend(parser, &span);
         token = advance(parser);
+
+        if (is_error(&token))
+        {
+            rf_object_free(&keys);
+            rf_object_free(&vals);
+            return token;
+        }
 
         if (!is_at(&token, ':'))
         {
@@ -433,12 +440,12 @@ rf_object_t parse_dict(parser_t *parser)
             return token;
         }
 
-        if (at_eof(*parser->current))
+        if (at_eof(*parser->current) || is_at_term(&token))
         {
             rf_object_free(&keys);
             rf_object_free(&vals);
-            err = error(ERR_PARSE, "Expected rf_object folowing ':'");
-            err.id = span_commit(parser, span);
+            err = error(ERR_PARSE, "Expected value folowing ':'");
+            err.id = token.id;
             return err;
         }
 
