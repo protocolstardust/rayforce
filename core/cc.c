@@ -82,53 +82,6 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, i32_t args, u3
     return NULL;
 }
 
-i8_t cc_compile_op(rf_object_t *car, i32_t args, u32_t arity, rf_object_t *code, debuginfo_t *cc_debuginfo, debuginfo_t *rt_debuginfo)
-{
-    env_record_t *rec;
-    rf_object_t fn;
-    u32_t found_arity = arity;
-
-    rec = find_record(&runtime_get()->env.functions, car, args, &found_arity);
-
-    if (!rec)
-        return TYPE_ERROR;
-
-    // It is an instruction
-    if (rec->op < OP_INVALID)
-    {
-        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, rec->op);
-        return rec->ret;
-    }
-
-    // It is a function call
-    switch (found_arity)
-    {
-    case 0:
-        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL0);
-        break;
-    case 1:
-        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL1);
-        break;
-    case 2:
-        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL2);
-        break;
-    case 3:
-        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL3);
-        break;
-    case 4:
-        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL4);
-        break;
-    default:
-        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALLN);
-        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, arity);
-    }
-
-    fn = i64(rec->op);
-    fn.id = car->id;
-    push_rf_object(code, fn);
-    return rec->ret;
-}
-
 /*
  * Special forms are those that are not in a table of functions because of their special nature.
  * return TYPE_ERROR if there is an error
@@ -248,6 +201,53 @@ i8_t cc_compile_special_forms(rf_object_t *object, u32_t arity, rf_object_t *cod
     return TYPE_ANY;
 }
 
+i8_t cc_compile_call(rf_object_t *car, i32_t args, u32_t arity, rf_object_t *code, debuginfo_t *cc_debuginfo, debuginfo_t *rt_debuginfo)
+{
+    env_record_t *rec;
+    rf_object_t fn;
+    u32_t found_arity = arity;
+
+    rec = find_record(&runtime_get()->env.functions, car, args, &found_arity);
+
+    if (!rec)
+        return TYPE_ERROR;
+
+    // It is an instruction
+    if (rec->op < OP_INVALID)
+    {
+        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, rec->op);
+        return rec->ret;
+    }
+
+    // It is a function call
+    switch (found_arity)
+    {
+    case 0:
+        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL0);
+        break;
+    case 1:
+        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL1);
+        break;
+    case 2:
+        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL2);
+        break;
+    case 3:
+        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL3);
+        break;
+    case 4:
+        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALL4);
+        break;
+    default:
+        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, OP_CALLN);
+        push_opcode(cc_debuginfo, rt_debuginfo, car->id, code, arity);
+    }
+
+    fn = i64(rec->op);
+    fn.id = car->id;
+    push_rf_object(code, fn);
+    return rec->ret;
+}
+
 i8_t cc_compile_expr(rf_object_t *object, rf_object_t *code, debuginfo_t *cc_debuginfo, debuginfo_t *rt_debuginfo)
 {
     rf_object_t *car, err, *addr;
@@ -335,7 +335,7 @@ i8_t cc_compile_expr(rf_object_t *object, rf_object_t *code, debuginfo_t *cc_deb
                 args |= (u8_t)type << (MAX_ARITY - i) * 8;
         }
 
-        type = cc_compile_op(car, args, arity, code, cc_debuginfo, rt_debuginfo);
+        type = cc_compile_call(car, args, arity, code, cc_debuginfo, rt_debuginfo);
 
         if (type != TYPE_ERROR)
             return type;
