@@ -357,16 +357,16 @@ i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
 }
 
 /*
- * Compile top level expression
+ * Compile function
  */
-rf_object_t cc_compile(rf_object_t *body, debuginfo_t *debuginfo)
+rf_object_t cc_compile_function(str_t name, rf_object_t args, rf_object_t *body, debuginfo_t *debuginfo)
 {
     if (body->type != TYPE_LIST)
-        return error(ERR_TYPE, str_fmt(0, "compile '%s': expected list", debuginfo->filename));
+        return error(ERR_TYPE, str_fmt(0, "compile '%s': expected list", name));
 
     cc_t cc = {
         .debuginfo = debuginfo,
-        .function = function(null(), string(0), debuginfo_new(debuginfo->filename, "top-level")),
+        .function = function(args, string(0), debuginfo_new(debuginfo->filename, name)),
     };
 
     i32_t i;
@@ -393,6 +393,14 @@ rf_object_t cc_compile(rf_object_t *body, debuginfo_t *debuginfo)
     rf_object_free(&cc.function);
 
     return err;
+}
+
+/*
+ * Compile top level expression
+ */
+rf_object_t cc_compile(rf_object_t *body, debuginfo_t *debuginfo)
+{
+    return cc_compile_function("top-level", null(), body, debuginfo);
 }
 
 /*

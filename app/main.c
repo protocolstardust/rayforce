@@ -263,19 +263,19 @@ i32_t main(i32_t argc, str_t argv[])
         if ((ptr) == NULL)
             break;
 
-        parsed = parse(&parser, "REPL", line);
+        parsed = parse(&parser, "top-level", line);
         // printf("%s\n", rf_object_fmt(&parsed));
 
         if (is_error(&parsed))
         {
-            print_error(&parsed, "REPL", line, LINE_SIZE);
+            print_error(&parsed, "top-level", line, LINE_SIZE);
             continue;
         }
 
         compiled = cc_compile(&parsed, &parser.debuginfo);
         if (is_error(&compiled))
         {
-            print_error(&compiled, "REPL", line, LINE_SIZE);
+            print_error(&compiled, "top-level", line, LINE_SIZE);
             rf_object_free(&parsed);
             rf_object_free(&compiled);
             continue;
@@ -285,7 +285,7 @@ i32_t main(i32_t argc, str_t argv[])
         executed = vm_exec(vm, &compiled);
 
         if (is_error(&executed))
-            print_error(&executed, "REPL", line, LINE_SIZE);
+            print_error(&executed, "top-level", line, LINE_SIZE);
         else
             printf("%s\n", rf_object_fmt(&executed));
 
