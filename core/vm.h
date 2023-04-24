@@ -37,6 +37,7 @@ typedef enum vm_opcode_t
     OP_HALT = 0,  // Halt the VM
     OP_RET,       // Return from function
     OP_PUSH,      // Push an rf_object to the stack
+    OP_RESERVE,   // Reserve n elements on the stack
     OP_POP,       // Pop an rf_object from the stack
     OP_SWAPN,     // Pop n elements on the stack and push the first one back
     OP_ADDI,      // Add two i64 from the stack
@@ -77,7 +78,7 @@ typedef struct vm_t
     i32_t ip;           // Instruction pointer
     i32_t sp;           // Stack pointer
     i32_t bp;           // Base pointer (beginning on stack frame)
-    rf_object_t r[8];   // Registers of rf_objects
+    i8_t cmp;           // Comparison result
     i64_t timer;        // Timer for execution time
     rf_object_t *stack; // Stack of arguments
 } vm_t;

@@ -91,7 +91,7 @@ rf_object_t vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_swapn, &&op_addi, &&op_addf, &&op_subi, &&op_subf,
+        &&op_halt, &&op_ret, &&op_push, &&op_reserve, &&op_pop, &&op_swapn, &&op_addi, &&op_addf, &&op_subi, &&op_subf,
         &&op_muli, &&op_mulf, &&op_divi, &&op_divf, &&op_sumi, &&op_like, &&op_type,
         &&op_timer_set, &&op_timer_get, &&op_til, &&op_call0, &&op_call1, &&op_call2,
         &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_lset, &&op_gset, &&op_lload,
@@ -130,6 +130,11 @@ op_push:
     x1 = *(rf_object_t *)(code + vm->ip);
     stack_push(vm, x1);
     vm->ip += sizeof(rf_object_t);
+    dispatch();
+op_reserve:
+    vm->ip++;
+    l = code[vm->ip++];
+    vm->sp += l;
     dispatch();
 op_pop:
     vm->ip++;
@@ -306,7 +311,7 @@ op_calln:
 op_callf:
     /* Call stack of user function call looks as follows:
      * +-------------------+
-     * |       ...         | <- callee sp
+     * | ctx {ret, ip, sp} | <- bp
      * +-------------------+
      * |      localn       |
      * +-------------------+
@@ -316,15 +321,13 @@ op_callf:
      * +-------------------+
      * |      local1       |
      * +-------------------+
-     * | ctx {ret, ip, sp} | <- bp
-     * +-------------------+
      * |       argn        |
      * +-------------------+
      * |       ...         |
      * +-------------------+
      * |       arg2        |
      * +-------------------+
-     * |       arg1        | <- caller sp
+     * |       arg1        |
      * +-------------------+
      */
     b = vm->ip++;
@@ -340,10 +343,10 @@ op_callf:
     dispatch();
 op_lset:
     b = vm->ip++;
-    x2 = *(rf_object_t *)(code + vm->ip);
+    t = ((rf_object_t *)(code + vm->ip))->i64;
     vm->ip += sizeof(rf_object_t);
     x1 = stack_pop(vm);
-    env_set_variable(&runtime_get()->env, x2, rf_object_clone(&x1));
+    vm->stack[vm->bp + t] = x1;
     stack_push(vm, x1);
     dispatch();
 op_gset:

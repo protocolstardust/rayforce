@@ -95,7 +95,8 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, i32_t args, u3
 i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
 {
     i8_t type;
-    rf_object_t *car = &as_list(object)[0], *addr, *b, fun, err;
+    i64_t id;
+    rf_object_t *car = &as_list(object)[0], *addr, *b, fun, name, err;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
@@ -152,14 +153,54 @@ i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
         if (addr != NULL && type != addr->type)
         {
             rf_object_free(code);
-            err = error(ERR_TYPE, "variable type mismatch");
-            err.id = object->id;
+            err = error(ERR_TYPE, "'set': variable type mismatch");
+            err.id = as_list(object)[1].id;
             *code = err;
             return TYPE_ERROR;
         }
 
         push_opcode(cc, car->id, code, OP_GSET);
         push_rf_object(code, as_list(object)[1]);
+
+        return type;
+    }
+
+    if (car->i64 == symbol("let").i64)
+    {
+        if (arity != 2)
+        {
+            rf_object_free(code);
+            err = error(ERR_LENGTH, "'let' takes two arguments");
+            err.id = object->id;
+            *code = err;
+            return TYPE_ERROR;
+        }
+        if (as_list(object)[1].type != -TYPE_SYMBOL)
+        {
+            rf_object_free(code);
+            err = error(ERR_LENGTH, "'let' takes symbol as first argument");
+            err.id = object->id;
+            *code = err;
+            return TYPE_ERROR;
+        }
+
+        type = cc_compile_expr(cc, &as_list(object)[2]);
+
+        if (type == TYPE_ERROR)
+            return type;
+
+        if (func->locals.type != TYPE_DICT)
+            func->locals = dict(vector_symbol(0), vector_symbol(0));
+
+        name = i64(env_get_typename_by_type(&runtime_get()->env, type));
+        name.type = -TYPE_SYMBOL;
+
+        dict_set(&func->locals, as_list(object)[1], name);
+
+        push_opcode(cc, car->id, code, OP_LSET);
+
+        id = vector_i64_find(&as_list(&func->locals)[0], as_list(object)[1].i64);
+        push_rf_object(code, i64(-1 - id));
 
         return type;
     }
@@ -284,7 +325,7 @@ i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i32_t args, u32_t arity)
 i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
 {
     rf_object_t *car, err, *addr, *arg_keys, *arg_vals;
-    i8_t type = TYPE_ANY;
+    i8_t type = TYPE_ANY, len = 0;
     u32_t i, arity;
     i32_t args = 0;
     i64_t id, sym;
@@ -313,11 +354,11 @@ i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
             return -TYPE_SYMBOL;
         }
 
-        // first try to search in the function args
-        if (func->args.type == TYPE_DICT)
+        // first find in locals
+        if (func->locals.type == TYPE_DICT)
         {
-            arg_keys = &as_list(&func->args)[0];
-            arg_vals = &as_list(&func->args)[1];
+            arg_keys = &as_list(&func->locals)[0];
+            arg_vals = &as_list(&func->locals)[1];
 
             id = vector_i64_find(arg_keys, object->i64);
 
@@ -327,6 +368,28 @@ i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
                 type = env_get_type_by_typename(&runtime_get()->env, sym);
                 push_opcode(cc, object->id, code, OP_LLOAD);
                 push_rf_object(code, i64(-1 - id));
+
+                return type;
+            }
+        }
+
+        // then try to search in the function args
+        if (func->args.type == TYPE_DICT)
+        {
+            arg_keys = &as_list(&func->args)[0];
+            arg_vals = &as_list(&func->args)[1];
+
+            id = vector_i64_find(arg_keys, object->i64);
+
+            if (func->locals.type == TYPE_DICT)
+                len = (i8_t)as_list(&func->locals)[0].adt->len;
+
+            if (id < arg_vals->adt->len)
+            {
+                sym = as_vector_i64(arg_vals)[id];
+                type = env_get_type_by_typename(&runtime_get()->env, sym);
+                push_opcode(cc, object->id, code, OP_LLOAD);
+                push_rf_object(code, i64(-1 - (id + len)));
 
                 return type;
             }
@@ -399,11 +462,19 @@ i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
         addr = env_get_variable(&runtime_get()->env, *car);
         if (addr && addr->type == TYPE_FUNCTION)
         {
+            // reserve stack space for locals
+            func = as_function(addr);
+            if (func->locals.type == TYPE_DICT)
+            {
+                len = (i8_t)as_list(&func->locals)[0].adt->len;
+                push_opcode(cc, car->id, code, OP_RESERVE);
+                push_opcode(cc, car->id, code, len);
+            }
             push_opcode(cc, car->id, code, OP_CALLF);
             push_rf_object(code, rf_object_clone(addr));
             // Cleanup arguments from the stack after call
             push_opcode(cc, car->id, code, OP_SWAPN);
-            push_opcode(cc, car->id, code, (i8_t)arity);
+            push_opcode(cc, car->id, code, (i8_t)arity + len);
 
             return as_function(addr)->rettype;
         }
@@ -428,49 +499,65 @@ rf_object_t cc_compile_function(i8_t top, str_t name, rf_object_t args, rf_objec
 {
     cc_t cc = {
         .debuginfo = debuginfo,
-        .function = function(args, string(0), debuginfo_new(debuginfo->filename, name)),
+        .function = function(args, null(), string(0), debuginfo_new(debuginfo->filename, name)),
     };
 
     i8_t type, op;
     i32_t i;
-    rf_object_t *code = &as_function(&cc.function)->code, *b, err;
+    function_t *func = as_function(&cc.function);
+    rf_object_t *code = &func->code, *b, err;
 
-    for (i = 0; i < len; i++)
+    if (len == 0)
     {
-        b = body + i;
-        if (b->type != TYPE_LIST)
-            continue;
-
-        type = cc_compile_expr(&cc, body + i);
-        if (i < len - 1)
-            push_opcode(&cc, id, code, OP_POP);
-    }
-
-    if (code->type != TYPE_ERROR)
-    {
-        if (len == 0)
-        {
-            push_opcode(&cc, id, code, OP_PUSH);
-            push_rf_object(code, null());
-        }
-
-        as_function(&cc.function)->rettype = type;
-
-        if (top)
-            op = OP_HALT;
-        else
-            op = OP_RET;
-
-        push_opcode(&cc, id, code, op);
-
+        push_opcode(&cc, id, code, OP_PUSH);
+        push_rf_object(code, null());
         return cc.function;
     }
 
-    code->adt->span = debuginfo_get(cc.debuginfo, code->id);
-    err = rf_object_clone(code);
-    rf_object_free(&cc.function);
+    // Compile all arguments but last one
+    for (i = 0; i < len - 1; i++)
+    {
+        b = body + i;
+        // skip const expressions
+        if (b->type != TYPE_LIST)
+            continue;
 
-    return err;
+        type = cc_compile_expr(&cc, b);
+
+        if (type == TYPE_ERROR)
+        {
+            code->adt->span = debuginfo_get(cc.debuginfo, code->id);
+            err = rf_object_clone(code);
+            rf_object_free(&cc.function);
+            return err;
+        }
+
+        push_opcode(&cc, id, code, OP_POP);
+    }
+
+    // Compile last argument
+    b = body + i;
+    type = cc_compile_expr(&cc, b);
+
+    if (type == TYPE_ERROR)
+    {
+        code->adt->span = debuginfo_get(cc.debuginfo, code->id);
+        err = rf_object_clone(code);
+        rf_object_free(&cc.function);
+        return err;
+    }
+    // --
+
+    func->rettype = type;
+
+    if (top)
+        op = OP_HALT;
+    else
+        op = OP_RET;
+
+    push_opcode(&cc, id, code, op);
+
+    return cc.function;
 }
 
 /*

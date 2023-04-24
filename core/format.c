@@ -414,6 +414,7 @@ i32_t function_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32
 {
     UNUSED(limit);
     UNUSED(indent);
+    UNUSED(rf_object);
 
     // function_t *function = as_function(rf_object);
 
