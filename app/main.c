@@ -221,6 +221,7 @@ null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
     }
 
     // printf("%s\n", vm_code_fmt(&compiled));
+
     // release rc's of parsed asap
     rf_object_free(&parsed);
 
