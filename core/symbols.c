@@ -32,6 +32,8 @@
 #include "util.h"
 #include "runtime.h"
 
+#define SYMBOLS_POOL_SIZE 4096 * 8
+
 typedef struct str_slice_t
 {
     str_t str;
@@ -135,8 +137,8 @@ symbols_t *symbols_new()
     symbols->pool_node = node;
     symbols->strings_pool = (str_t)(node + sizeof(pool_node_t *)); // Skip the node size of next ptr
 
-    symbols->str_to_id = ht_new(&string_hash, &string_str_cmp);
-    symbols->id_to_str = ht_new(&i64_hash, &i64_cmp);
+    symbols->str_to_id = ht_new(SYMBOLS_POOL_SIZE, &string_hash, &string_str_cmp);
+    symbols->id_to_str = ht_new(SYMBOLS_POOL_SIZE, &i64_hash, &i64_cmp);
 
     return symbols;
 }

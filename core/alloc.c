@@ -27,6 +27,7 @@
 #include "rayforce.h"
 #include "ops.h"
 #include "mmap.h"
+#include "util.h"
 
 static alloc_t _ALLOC = NULL;
 

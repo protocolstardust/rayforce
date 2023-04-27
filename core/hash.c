@@ -30,14 +30,14 @@
 #include "rayforce.h"
 #include "alloc.h"
 
-hash_table_t *ht_new(i64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
+hash_table_t *ht_new(i32_t size, i64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
 {
     hash_table_t *table = (hash_table_t *)rf_malloc(sizeof(hash_table_t));
 
-    bucket_t **buckets = (bucket_t **)rf_malloc(sizeof(bucket_t *) * DEFAULT_SIZE);
-    memset(buckets, 0, sizeof(bucket_t *) * DEFAULT_SIZE);
+    bucket_t **buckets = (bucket_t **)rf_malloc(sizeof(bucket_t *) * size);
+    memset(buckets, 0, sizeof(bucket_t *) * size);
 
-    table->cap = DEFAULT_SIZE;
+    table->cap = size;
     table->buckets = buckets;
     table->size = 0;
     table->hasher = hasher;

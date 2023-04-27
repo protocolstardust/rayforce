@@ -471,9 +471,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             addr = &cc->function;
         }
         else
-        {
             addr = env_get_variable(&runtime_get()->env, *car);
-        }
 
         if (addr && addr->type == TYPE_FUNCTION)
         {
@@ -557,7 +555,8 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
     cc_t cc = {
         .top_level = top,
         .debuginfo = debuginfo,
-        .function = function(rettype, args, null(), string(0), debuginfo_new(debuginfo->filename, name)),
+        .function = function(rettype, args, null(), string(0),
+                             debuginfo_new(debuginfo->filename, name)),
     };
 
     i8_t l = 0, type;
@@ -573,7 +572,6 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
         type = TYPE_LIST;
         goto epilogue;
     }
-
     // Compile all arguments but the last one
     for (i = 0; i < len - 1; i++)
     {

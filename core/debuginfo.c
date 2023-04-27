@@ -39,7 +39,7 @@ debuginfo_t debuginfo_new(str_t filename, str_t function)
     debuginfo_t debuginfo = {
         .filename = filename,
         .function = function,
-        .spans = ht_new(&u32_hash, &u32_cmp),
+        .spans = ht_new(32, &u32_hash, &u32_cmp),
     };
 
     return debuginfo;
