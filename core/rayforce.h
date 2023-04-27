@@ -158,6 +158,7 @@ extern rf_object_t dict(rf_object_t keys, rf_object_t vals);  // dict
 // Reference counting
 extern rf_object_t rf_object_clone(rf_object_t *rf_object); // clone
 extern rf_object_t rf_object_cow(rf_object_t *rf_object);   // clone if refcount > 1
+extern i64_t rf_object_rc(rf_object_t *rf_object);          // get refcount
 
 // Error
 extern rf_object_t error(i8_t code, str_t message);

@@ -221,6 +221,9 @@ null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
     }
 
     // printf("%s\n", vm_code_fmt(&compiled));
+    // release rc's of parsed asap
+    rf_object_free(&parsed);
+
     executed = vm_exec(vm, &compiled);
 
     if (is_error(&executed))
@@ -228,7 +231,6 @@ null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
     else if (!is_null(&executed))
         printf("%s\n", rf_object_fmt(&executed));
 
-    rf_object_free(&parsed);
     rf_object_free(&executed);
     rf_object_free(&compiled);
 

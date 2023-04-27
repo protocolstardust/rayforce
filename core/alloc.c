@@ -37,8 +37,8 @@ static alloc_t _ALLOC = NULL;
 
 extern null_t *rf_malloc(i32_t size)
 {
-    if (size < SIZE_TO_MMAP)
-        return malloc(size);
+    // if (size < SIZE_TO_MMAP)
+    return malloc(size);
 
     return mmap(NULL, ALIGNUP(size, PAGE_SIZE),
                 PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);

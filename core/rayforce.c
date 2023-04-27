@@ -169,6 +169,11 @@ rf_object_t rf_object_clone(rf_object_t *object)
     if (object->adt == NULL)
         return *object;
 
+    if (object->type == TYPE_ERROR)
+    {
+        return *object;
+    }
+
     __atomic_fetch_add(&object->adt->rc, 1, __ATOMIC_RELAXED);
 
     return *object;
@@ -200,7 +205,53 @@ null_t rf_object_free(rf_object_t *object)
         rf_free(object->adt);
 }
 
-extern rf_object_t rf_object_cow(rf_object_t *object)
+rf_object_t rf_object_cow(rf_object_t *object)
 {
+    rf_object_t new;
+
+    if (object->type < 0)
+        return *object;
+
+    if (object->adt == NULL)
+        return *object;
+
+    if (object->type == TYPE_ERROR)
+    {
+        return *object;
+    }
+
+    if (object->adt->rc == 1)
+        return *object;
+
+    if (object->type == TYPE_LIST)
+    {
+        new = list(object->adt->len);
+        for (i64_t i = 0; i < object->adt->len; i++)
+            as_list(&new)[i] = rf_object_cow(&as_list(object)[i]);
+
+        return new;
+    }
+
+    if (object->type == TYPE_I64)
+    {
+        new = vector_i64(object->adt->len);
+        memcpy(as_vector_i64(&new), as_vector_i64(object), object->adt->len * sizeof(i64_t));
+        return new;
+    }
+
     return *object;
+}
+
+i64_t rf_object_rc(rf_object_t *object)
+{
+    if (object->type < 0)
+        return 1;
+
+    if (object->adt == NULL)
+        return 1;
+
+    if (object->type == TYPE_ERROR)
+        return 1;
+
+    return __atomic_load_n(&object->adt->rc, __ATOMIC_RELAXED);
 }
