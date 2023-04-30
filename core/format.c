@@ -61,16 +61,21 @@ extern i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t ind
 i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt, ...)
 {
     i32_t n = 0, size = limit > 0 ? limit : MAX_ROW_WIDTH;
-    str_t p;
+    str_t p, s;
 
     // If ptr is NULL, realloc behaves like malloc.
     if (*len <= (size + *offset))
     {
         *len += size + 1;
-        *dst = rf_realloc(*dst, *len);
+        s = rf_realloc(*dst, *len);
 
-        if (*dst == NULL)
+        if (s == NULL)
+        {
+            rf_free(*dst);
             panic("str_fmt_into: OOM");
+        }
+
+        *dst = s;
     }
 
     // debug("LEN: %d, OFFSET: %d, SIZE: %d FREE: %d", *len, *offset, size, *len - *offset);
@@ -85,7 +90,11 @@ i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt
         va_end(args);
 
         if (n < 0)
+        {
+            if (*dst != NULL)
+                rf_free(*dst);
             panic("str_fmt_into: OOM");
+        }
 
         if (n < size)
             break;
@@ -97,11 +106,15 @@ i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt
         }
 
         size = n + 1;
-        *dst = rf_realloc(*dst, size);
+        s = rf_realloc(*dst, size);
 
-        if (*dst == NULL)
+        if (s == NULL)
+        {
+            rf_free(*dst);
             panic("str_fmt_into: OOM");
+        }
 
+        *dst = s;
         *len += size;
     }
 
@@ -112,7 +125,7 @@ i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt
 str_t str_fmt(i32_t limit, str_t fmt, ...)
 {
     i32_t n = 0, size = limit > 0 ? limit : MAX_ROW_WIDTH;
-    str_t p = rf_malloc(size);
+    str_t p = rf_malloc(size), s;
 
     while (1)
     {
@@ -122,7 +135,10 @@ str_t str_fmt(i32_t limit, str_t fmt, ...)
         va_end(args);
 
         if (n < 0)
+        {
+            rf_free(p);
             panic("str_fmt_into: OOM");
+        }
 
         if (n < size)
             break;
@@ -131,10 +147,15 @@ str_t str_fmt(i32_t limit, str_t fmt, ...)
             return p;
 
         size = n + 1;
-        p = rf_realloc(p, size);
+        s = rf_realloc(p, size);
 
-        if (p == NULL)
+        if (s == NULL)
+        {
+            rf_free(p);
             panic("str_fmt_into: OOM");
+        }
+
+        p = s;
     }
 
     return p;

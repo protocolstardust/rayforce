@@ -28,7 +28,7 @@
 /*
  * Creates new vector of type type
  */
-extern rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
+rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
 {
     header_t *adt = rf_malloc(size_of_val * len + sizeof(header_t));
 
@@ -44,41 +44,41 @@ extern rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
     return v;
 }
 
-extern i64_t vector_i64_push(rf_object_t *vector, i64_t value)
+i64_t vector_i64_push(rf_object_t *vector, i64_t value)
 {
     push(vector, i64_t, value);
     return vector->adt->len;
 }
 
-extern i64_t vector_i64_pop(rf_object_t *vector)
+i64_t vector_i64_pop(rf_object_t *vector)
 {
     return pop(vector, i64_t);
 }
 
-extern i64_t vector_f64_push(rf_object_t *vector, f64_t value)
+i64_t vector_f64_push(rf_object_t *vector, f64_t value)
 {
     push(vector, f64_t, value);
     return vector->adt->len;
 }
 
-extern f64_t vector_f64_pop(rf_object_t *vector)
+f64_t vector_f64_pop(rf_object_t *vector)
 {
     return pop(vector, f64_t);
 }
 
-extern i64_t list_push(rf_object_t *list, rf_object_t rf_object)
+i64_t list_push(rf_object_t *list, rf_object_t rf_object)
 {
     push(list, rf_object_t, rf_object);
     return list->adt->len;
 }
 
-extern rf_object_t list_pop(rf_object_t *list)
+rf_object_t list_pop(rf_object_t *list)
 {
     rf_object_t rf_object = pop(list, rf_object_t);
     return rf_object_clone(&rf_object);
 }
 
-extern i64_t vector_push(rf_object_t *vector, rf_object_t rf_object)
+i64_t vector_push(rf_object_t *vector, rf_object_t rf_object)
 {
     i8_t type = vector->type;
 
@@ -106,7 +106,7 @@ extern i64_t vector_push(rf_object_t *vector, rf_object_t rf_object)
     return vector->adt->len;
 }
 
-extern rf_object_t vector_pop(rf_object_t *vector)
+rf_object_t vector_pop(rf_object_t *vector)
 {
     if (vector->adt->len == 0)
         return null();
@@ -155,7 +155,7 @@ null_t vector_reserve(rf_object_t *vector, u32_t len)
     }
 }
 
-extern i64_t vector_i64_find(rf_object_t *vector, i64_t key)
+i64_t vector_i64_find(rf_object_t *vector, i64_t key)
 {
     i64_t *ptr = as_vector_i64(vector);
     i32_t i;
@@ -169,7 +169,7 @@ extern i64_t vector_i64_find(rf_object_t *vector, i64_t key)
     return vector->adt->len;
 }
 
-extern i64_t vector_f64_find(rf_object_t *vector, f64_t key)
+i64_t vector_f64_find(rf_object_t *vector, f64_t key)
 {
     f64_t *ptr = as_vector_f64(vector);
     i32_t i;
@@ -183,7 +183,7 @@ extern i64_t vector_f64_find(rf_object_t *vector, f64_t key)
     return vector->adt->len;
 }
 
-extern i64_t list_find(rf_object_t *list, rf_object_t key)
+i64_t list_find(rf_object_t *list, rf_object_t key)
 {
     rf_object_t *ptr = as_list(list);
     i32_t i;
@@ -197,7 +197,7 @@ extern i64_t list_find(rf_object_t *list, rf_object_t key)
     return list->adt->len;
 }
 
-extern i64_t vector_find(rf_object_t *vector, rf_object_t key)
+i64_t vector_find(rf_object_t *vector, rf_object_t key)
 {
     i8_t type = vector->type;
 
@@ -217,7 +217,7 @@ extern i64_t vector_find(rf_object_t *vector, rf_object_t key)
 /*
  * Try to flatten list in a vector if all elements are of the same type
  */
-extern rf_object_t list_flatten(rf_object_t list)
+rf_object_t list_flatten(rf_object_t list)
 {
     if (list.type != TYPE_LIST)
         return list;

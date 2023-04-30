@@ -23,6 +23,7 @@
 
 #include "debuginfo.h"
 #include "string.h"
+#include "alloc.h"
 
 i64_t u32_hash(null_t *val)
 {
@@ -68,4 +69,5 @@ span_t debuginfo_get(debuginfo_t *debuginfo, u32_t index)
 null_t debuginfo_free(debuginfo_t *debuginfo)
 {
     ht_free(debuginfo->spans);
+    rf_free(debuginfo->spans);
 }

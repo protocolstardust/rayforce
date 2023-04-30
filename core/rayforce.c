@@ -77,7 +77,8 @@ rf_object_t error(i8_t code, str_t message)
     rf_object_t err = string_from_str(message, strlen(message));
     err.type = TYPE_ERROR;
     err.adt->code = code;
-
+    // TODO: figure out who is responsible for freeing the message
+    rf_free(message);
     return err;
 }
 
@@ -257,7 +258,7 @@ type_error:
  */
 null_t rf_object_free(rf_object_t *object)
 {
-    i64_t i, rc;
+    i64_t i = 0, rc = 0;
 
     if (object->type < 0)
         return;
@@ -279,12 +280,16 @@ null_t rf_object_free(rf_object_t *object)
 type_any:
     return;
 type_bool:
+    rf_free(object->adt);
     return;
 type_i64:
+    rf_free(object->adt);
     return;
 type_f64:
+    rf_free(object->adt);
     return;
 type_symbol:
+    rf_free(object->adt);
     return;
 type_string:
     rf_free(object->adt);
@@ -312,6 +317,7 @@ type_function:
     rf_free(object->adt);
     return;
 type_error:
+    rf_free(object->adt);
     return;
 }
 

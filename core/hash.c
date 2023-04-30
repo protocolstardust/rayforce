@@ -51,7 +51,7 @@ null_t ht_free(hash_table_t *table)
     i32_t i;
     bucket_t *bucket, *next;
 
-    for (i = 0; i < table->size; i++)
+    for (i = 0; i < table->cap; i++)
     {
         bucket = table->buckets[i];
 
@@ -62,6 +62,8 @@ null_t ht_free(hash_table_t *table)
             bucket = next;
         }
     }
+
+    rf_free(table->buckets);
 }
 
 /*
@@ -123,9 +125,9 @@ null_t *ht_insert_with(hash_table_t *table, null_t *key, null_t *val, null_t *(*
 
 /*
  * Inserts new node or updates existing one.
- * Returns 1 if the node was updated, 0 if it was inserted.
+ * Returns true if the node was updated, false if it was inserted.
  */
-i32_t ht_update(hash_table_t *table, null_t *key, null_t *val)
+bool_t ht_update(hash_table_t *table, null_t *key, null_t *val)
 {
     // Table's size is always a power of 2
     i32_t index = table->hasher(key) & (table->cap - 1);
@@ -137,7 +139,7 @@ i32_t ht_update(hash_table_t *table, null_t *key, null_t *val)
         if (table->compare((*bucket)->key, key) == 0)
         {
             (*bucket)->val = val;
-            return 1;
+            return true;
         }
 
         bucket = &((*bucket)->next);
@@ -151,7 +153,7 @@ i32_t ht_update(hash_table_t *table, null_t *key, null_t *val)
 
     table->size++;
 
-    return 0;
+    return false;
 }
 
 /*

@@ -29,7 +29,7 @@
 // Global runtime reference
 runtime_t _RUNTIME = NULL;
 
-extern null_t runtime_init(u16_t slaves)
+null_t runtime_init(u16_t slaves)
 {
     rf_alloc_init();
 
@@ -41,13 +41,16 @@ extern null_t runtime_init(u16_t slaves)
     _RUNTIME->env = create_env();
 }
 
-extern null_t runtime_cleanup()
+null_t runtime_cleanup()
 {
+    symbols_free(_RUNTIME->symbols);
+    rf_free(_RUNTIME->symbols);
+    free_env(&_RUNTIME->env);
     munmap(_RUNTIME, ALIGNUP(sizeof(struct runtime_t), PAGE_SIZE));
     rf_alloc_cleanup();
 }
 
-extern runtime_t runtime_get()
+runtime_t runtime_get()
 {
     return _RUNTIME;
 }

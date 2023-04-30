@@ -99,6 +99,11 @@ pool_node_t *pool_node_new()
     return node;
 }
 
+null_t pool_node_free(pool_node_t *node)
+{
+    munmap(node, STRINGS_POOL_SIZE);
+}
+
 /*
  * This callback will be called on new buckets being added to a hash table.
  * In case of symbols this avoids having to copy the string every time.
@@ -150,12 +155,14 @@ null_t symbols_free(symbols_t *symbols)
     while (node)
     {
         pool_node_t *next = node->next;
-        munmap(node, STRINGS_POOL_SIZE);
+        pool_node_free(node);
         node = next;
     }
 
     ht_free(symbols->str_to_id);
     ht_free(symbols->id_to_str);
+    rf_free(symbols->str_to_id);
+    rf_free(symbols->id_to_str);
 }
 
 i64_t symbols_intern(str_t s, i64_t len)

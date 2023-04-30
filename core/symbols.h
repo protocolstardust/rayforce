@@ -40,8 +40,8 @@ typedef struct pool_node_t
 } pool_node_t;
 
 /*
-Intern symbols here. Assume symbols are never freed.
-*/
+ *Intern symbols here. Assume symbols are never freed.
+ */
 typedef struct symbols_t
 {
     hash_table_t *str_to_id;

@@ -64,6 +64,7 @@ typedef struct env_t
 } env_t;
 
 env_t create_env();
+null_t free_env(env_t *env);
 
 #define get_records_len(records, i) (as_list(records)[i].adt->len)
 #define get_record(records, i, j) (((env_record_t *)as_string((as_list(records) + i))) + j)

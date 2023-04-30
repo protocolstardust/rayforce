@@ -30,6 +30,8 @@ rf_object_t function(i8_t rettype, rf_object_t args, rf_object_t locals, rf_obje
     header_t *adt = rf_malloc(sizeof(header_t) + sizeof(function_t));
     function_t *f = (function_t *)(adt + 1);
 
+    adt->rc = 1;
+
     f->args = args;
     f->locals = locals;
     f->code = code;

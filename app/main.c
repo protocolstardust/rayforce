@@ -39,6 +39,7 @@
 #include "../core/cc.h"
 #include "../core/debuginfo.h"
 #include "../core/dict.h"
+#include "../core/alloc.h"
 
 #define LINE_SIZE 2048
 
@@ -200,6 +201,7 @@ rf_object_t parse_cmdline(i32_t argc, str_t argv[])
 null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
 {
     rf_object_t parsed, compiled, executed;
+    str_t formatted;
 
     parsed = parse(parser, name, buf);
     // printf("%s\n", rf_object_fmt(&parsed));
@@ -230,7 +232,14 @@ null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
     if (is_error(&executed))
         print_error(&executed, name, buf, len);
     else if (!is_null(&executed))
-        printf("%s\n", rf_object_fmt(&executed));
+    {
+        formatted = rf_object_fmt(&executed);
+        if (formatted != NULL)
+        {
+            printf("%s\n", formatted);
+            rf_free(formatted);
+        }
+    }
 
     rf_object_free(&executed);
     rf_object_free(&compiled);
@@ -273,23 +282,22 @@ i32_t main(i32_t argc, str_t argv[])
 {
     runtime_init(0);
 
-    rf_object_t args = parse_cmdline(argc, argv), filename;
-    i8_t run = 1;
+    // rf_object_t args = parse_cmdline(argc, argv), filename;
     str_t line = (str_t)rf_malloc(LINE_SIZE), ptr; //, filename = NULL;
     parser_t parser = parser_new();
     vm_t *vm;
 
-    print_logo();
+    // print_logo();
 
     vm = vm_new();
 
-    filename = dict_get(&args, symbol("file"));
-    if (!is_null(&filename))
-        load_file(&parser, vm, as_string(&filename));
+    // filename = dict_get(&args, symbol("file"));
+    // if (!is_null(&filename))
+    //     load_file(&parser, vm, as_string(&filename));
 
-    rf_object_free(&args);
+    // rf_object_free(&args);
 
-    while (run)
+    while (!vm->halted)
     {
         printf("%s%s%s", GREEN, PROMPT, RESET);
         ptr = fgets(line, LINE_SIZE, stdin);
@@ -299,6 +307,7 @@ i32_t main(i32_t argc, str_t argv[])
         repl("top-level", &parser, vm, line, LINE_SIZE);
     }
 
+    parser_free(&parser);
     rf_free(line);
     vm_free(vm);
 

@@ -117,9 +117,6 @@ env_t create_env()
 
 null_t free_env(env_t *env)
 {
-    for (i32_t i = 0; i < REC_SIZE; i++)
-        rf_object_free(&as_list(&env->functions)[i]);
-
     rf_object_free(&env->functions);
     rf_object_free(&env->variables);
 }
