@@ -433,7 +433,7 @@ i8_t cc_compile_throw(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t 
 
         if (type != TYPE_STRING)
             ccerr(cc, object->id, ERR_TYPE,
-                  str_fmt(0, "'throw': argument must be a string, not '%s'",
+                  str_fmt(0, "'throw': argument must be a 'String', not '%s'",
                           symbols_get(env_get_typename_by_type(env, type))));
 
         return TYPE_THROW;
