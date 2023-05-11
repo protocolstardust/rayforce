@@ -316,7 +316,7 @@ op_til:
     x2 = stack_pop(vm);
     x1 = vector_i64(x2.i64);
     v = as_vector_i64(&x1);
-    for (i = 0; i < x2.i64; i++)
+    for (i = 0; i < (i32_t)x2.i64; i++)
         v[i] = i;
     x1.id = x2.id;
     stack_push(vm, x1);

@@ -35,13 +35,15 @@
 
 typedef struct node_t
 {
-    struct node_t *ptr;
-    u8_t order;
-    u8_t occup;
-    u8_t pad[6];
+    union
+    {
+        struct node_t *ptr;
+        u8_t order;
+    };
+
 } node_t;
 
-CASSERT(sizeof(struct node_t) == 16, alloc_h)
+CASSERT(sizeof(struct node_t) == 8, alloc_h)
 
 typedef struct alloc_t
 {
