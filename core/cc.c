@@ -604,7 +604,6 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         arg_vals = &as_list(&func->locals)[1];
 
         id = vector_i64_find(arg_keys, object->i64);
-
         if (id < arg_vals->adt->len)
         {
             sym = as_vector_i64(arg_vals)[id];
@@ -621,6 +620,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         arg_vals = &as_list(&func->args)[1];
 
         id = vector_i64_find(arg_keys, object->i64);
+        debug("LOCALS");
 
         if (id < arg_vals->adt->len)
         {

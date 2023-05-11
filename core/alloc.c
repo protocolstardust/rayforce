@@ -31,22 +31,45 @@
 
 static alloc_t _ALLOC = NULL;
 
-#define MASK ((u64_t)0xFFFFFFFFFFFFFFFF)
-#define MEMBASE ((i64_t)_ALLOC->pool)
-#define offset(b) ((i64_t)b - MEMBASE)
-#define _buddyof(b, i) (offset(b) ^ (1 << (i)))
-#define buddyof(b, i) ((null_t *)(_buddyof(b, i) + MEMBASE))
-#define blocksize(i) (1 << (i))
-#define order_of(s) (32 - __builtin_clz(s + sizeof(struct node_t) - 1))
+// clang-format off
+#define AVAIL_MASK    ((u64_t)0xFFFFFFFFFFFFFFFF)
+#define MEMBASE       ((i64_t)_ALLOC->base)
+
+#define offset(b)     ((i64_t)b - MEMBASE)
+#define blocksize(i)  (1 << (i))
+#define buddyof(b, i) ((null_t *)((offset(b) ^ blocksize(i)) + MEMBASE))
+#define realsize(s)   (s + sizeof(struct node_t))
+#define orderof(s)    (32 - __builtin_clz(s - 1))
+// clang-format on
+
+null_t *rf_alloc_add_pool(u32_t size)
+{
+    u32_t order = orderof(size);
+    null_t *pool = (null_t *)mmap(NULL, size,
+                                  PROT_READ | PROT_WRITE,
+                                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    memset(pool, 0, size);
+
+    node_t *base = (node_t *)pool;
+    base->order = order;
+    base->next = _ALLOC->pools;
+    _ALLOC->pools = base;
+
+    return (null_t *)(base + 1);
+}
 
 alloc_t rf_alloc_init()
 {
     _ALLOC = (alloc_t)mmap(NULL, sizeof(struct alloc_t),
-                           PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                           PROT_READ | PROT_WRITE,
+                           MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    _ALLOC->pools = NULL;
+    _ALLOC->base = rf_alloc_add_pool(realsize(POOL_SIZE));
+    _ALLOC->freelist[MAX_ORDER] = (node_t *)_ALLOC->base;
+    _ALLOC->avail = 1 << MAX_ORDER;
 
-    memset(_ALLOC, 0, sizeof(struct alloc_t));
-    _ALLOC->freelist[MAX_ORDER] = (node_t *)_ALLOC->pool;
-    _ALLOC->blocks = 1 << MAX_ORDER;
+    debug_assert(_ALLOC->base != NULL);
+    debug_assert((i64_t)_ALLOC->base % sizeof(struct node_t) == 0);
 
     return _ALLOC;
 }
@@ -58,6 +81,9 @@ alloc_t rf_alloc_get()
 
 null_t rf_alloc_cleanup()
 {
+    for (node_t *node = _ALLOC->pools; node; node = node->next)
+        munmap(node - 1, blocksize(node->order));
+
     munmap(_ALLOC, sizeof(struct alloc_t));
 }
 
@@ -80,53 +106,41 @@ null_t *rf_realloc(null_t *ptr, i32_t new_size)
 
 #else
 
-null_t debug_blocks()
-{
-    i32_t i = 0;
-    node_t *node;
-    for (; i <= MAX_ORDER; i++)
-    {
-        node = _ALLOC->freelist[i];
-        printf("-- order: %d [", i);
-        while (node)
-        {
-            printf("%p, ", node);
-            node = node->ptr;
-        }
-        printf("]\n");
-    }
-}
-
 null_t *rf_malloc(i32_t size)
 {
     i32_t i, order;
     null_t *block;
     node_t *node;
 
+    size = realsize(size);
+
     // calculate minimal order for this size
-    order = order_of(size);
+    order = orderof(size);
 
     // find least order block that fits
-    i = (MASK << order) & _ALLOC->blocks;
-    if (!i)
-        panic("OOM");
+    i = (AVAIL_MASK << order) & _ALLOC->avail;
+
+    // no free block found for this size, so mmap it directly
+    if (i == 0)
+        return rf_alloc_add_pool(size);
+
     i = __builtin_ctz(i);
 
     // remove the block out of list
     block = _ALLOC->freelist[i];
-    _ALLOC->freelist[i] = _ALLOC->freelist[i]->ptr;
+    _ALLOC->freelist[i] = _ALLOC->freelist[i]->next;
     ((node_t *)block)->order = order;
     if (_ALLOC->freelist[i] == NULL)
-        _ALLOC->blocks &= ~(1 << i);
+        _ALLOC->avail &= ~blocksize(i);
 
     // split until i == order
     while (i-- > order)
     {
         node = (node_t *)buddyof(block, i);
         node->order = order;
-        node->ptr = _ALLOC->freelist[i];
+        node->next = _ALLOC->freelist[i];
         _ALLOC->freelist[i] = node;
-        _ALLOC->blocks |= (1 << i);
+        _ALLOC->avail |= blocksize(i);
     }
 
     block = (null_t *)((node_t *)block + 1);
@@ -135,27 +149,27 @@ null_t *rf_malloc(i32_t size)
 
 null_t rf_free(null_t *block)
 {
-    node_t *node = (node_t *)block - 1, *n;
+    node_t *node = (node_t *)block - 1, **n;
     block = (null_t *)node;
     null_t *buddy;
     i32_t i = node->order;
 
-    for (;; i++)
+    for (; i <= MAX_ORDER; i++)
     {
         // calculate buddy
         buddy = buddyof(block, i);
-        n = _ALLOC->freelist[i];
+        n = &_ALLOC->freelist[i];
 
         // find buddy in list
-        while (n && (n != buddy))
-            n = n->ptr;
+        while ((*n != NULL) && (*n != buddy))
+            n = &((*n)->next);
 
         // not found, insert into list
-        if (n != buddy)
+        if (*n != buddy)
         {
-            node->ptr = _ALLOC->freelist[i];
+            node->next = _ALLOC->freelist[i];
             _ALLOC->freelist[i] = node;
-            _ALLOC->blocks |= (1 << i);
+            _ALLOC->avail |= blocksize(i);
             return;
         }
 
@@ -164,8 +178,8 @@ null_t rf_free(null_t *block)
         node = block;
 
         // remove buddy out of list
-        _ALLOC->freelist[i] = _ALLOC->freelist[i]->ptr;
-        _ALLOC->blocks &= ~(1 << i);
+        *n = (*n)->next;
+        _ALLOC->avail &= ~blocksize(i);
     }
 }
 
@@ -177,13 +191,14 @@ null_t *rf_realloc(null_t *ptr, i32_t new_size)
     if (new_size == 0)
     {
         rf_free(ptr);
-        panic("REALLOC: new size is 0");
         return NULL;
     }
 
+    new_size = realsize(new_size);
+
     node_t *node = ((node_t *)ptr) - 1;
-    i32_t size = 1 << node->order;
-    i32_t adjusted_size = 1 << order_of(new_size);
+    i32_t size = blocksize(node->order);
+    i32_t adjusted_size = blocksize(orderof(new_size));
 
     // If new size is smaller or equal to the current block size, no need to reallocate
     if (adjusted_size <= size)
@@ -198,6 +213,23 @@ null_t *rf_realloc(null_t *ptr, i32_t new_size)
     }
 
     return new_ptr;
+}
+
+null_t print_blocks()
+{
+    i32_t i = 0;
+    node_t *node;
+    for (; i <= MAX_ORDER; i++)
+    {
+        node = _ALLOC->freelist[i];
+        printf("-- order: %d [", i);
+        while (node)
+        {
+            printf("%p, ", node);
+            node = node->next;
+        }
+        printf("]\n");
+    }
 }
 
 #endif

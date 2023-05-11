@@ -32,24 +32,22 @@
 #define MIN_ALLOC ((i64_t)1 << MIN_ORDER)
 #define MAX_ALLOC ((i64_t)1 << MAX_ORDER)
 #define POOL_SIZE (1 << MAX_ORDER)
+#define MAX_POOL_ORDER 48
 
 typedef struct node_t
 {
-    union
-    {
-        struct node_t *ptr;
-        u8_t order;
-    };
-
+    struct node_t *next;
+    u64_t order;
 } node_t;
 
-CASSERT(sizeof(struct node_t) == 8, alloc_h)
+CASSERT(sizeof(struct node_t) == 16, alloc_h)
 
 typedef struct alloc_t
 {
-    node_t *freelist[MAX_ORDER + 2];
-    u32_t blocks;
-    u8_t pool[POOL_SIZE];
+    node_t *freelist[MAX_POOL_ORDER]; // free list of blocks by order
+    node_t *pools;                    // list of pools
+    u32_t avail;                      // mask of available blocks by order
+    null_t *base;                     // base address of the pool
 } __attribute__((aligned(PAGE_SIZE))) * alloc_t;
 
 CASSERT(sizeof(struct alloc_t) % PAGE_SIZE == 0, alloc_h)
