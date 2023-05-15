@@ -175,7 +175,7 @@ i8_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
             return TYPE_ERROR;
 
         // check if variable is not set or has the same type
-        addr = env_get_variable(&runtime_get()->env, as_list(object)[1]);
+        addr = env_get_variable(&runtime_get()->env, &as_list(object)[1]);
 
         if (addr != NULL && type != addr->type)
             cerr(cc, car->id, ERR_TYPE, "'set': variable type mismatch");
@@ -206,11 +206,11 @@ i8_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
         name = i64(env_get_typename_by_type(&runtime_get()->env, type));
         name.type = -TYPE_SYMBOL;
 
-        dict_set(&func->locals, as_list(object)[1], name);
+        dict_set(&func->locals, &as_list(object)[1], name);
 
         push_opcode(cc, car->id, code, OP_LSET);
 
-        id = vector_i64_find(&as_list(&func->locals)[0], as_list(object)[1].i64);
+        id = vector_find(&as_list(&func->locals)[0], &as_list(object)[1]);
         push_rf_object(code, i64(1 + id));
 
         if (!has_consumer)
@@ -683,7 +683,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         // first find in locals
         arg_keys = &as_list(&func->locals)[0];
         arg_vals = &as_list(&func->locals)[1];
-        id = vector_i64_find(arg_keys, object->i64);
+        id = vector_find(arg_keys, object);
 
         if (id < arg_vals->adt->len)
         {
@@ -699,7 +699,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         // then try to search in the function args
         arg_keys = &as_list(&func->args)[0];
         arg_vals = &as_list(&func->args)[1];
-        id = vector_i64_find(arg_keys, object->i64);
+        id = vector_find(arg_keys, object);
 
         if (id < arg_vals->adt->len)
         {
@@ -713,7 +713,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         }
 
         // then in a global env
-        addr = env_get_variable(&runtime_get()->env, *object);
+        addr = env_get_variable(&runtime_get()->env, object);
 
         if (addr == NULL)
             cerr(cc, object->id, ERR_TYPE, "unknown symbol");
@@ -760,7 +760,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             addr = &cc->function;
         }
         else
-            addr = env_get_variable(&runtime_get()->env, *car);
+            addr = env_get_variable(&runtime_get()->env, car);
 
         if (addr && addr->type == TYPE_FUNCTION)
         {

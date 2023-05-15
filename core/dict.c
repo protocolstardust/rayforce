@@ -45,7 +45,7 @@ extern rf_object_t dict(rf_object_t keys, rf_object_t vals)
     return dict;
 }
 
-extern rf_object_t dict_get(rf_object_t *dict, rf_object_t key)
+extern rf_object_t dict_get(rf_object_t *dict, rf_object_t *key)
 {
     if (dict->type != TYPE_DICT)
         return error(ERR_TYPE, "Expected dict");
@@ -78,7 +78,7 @@ extern rf_object_t dict_get(rf_object_t *dict, rf_object_t key)
     return val;
 }
 
-extern rf_object_t dict_set(rf_object_t *dict, rf_object_t key, rf_object_t val)
+extern rf_object_t dict_set(rf_object_t *dict, rf_object_t *key, rf_object_t val)
 {
     if (dict->type != TYPE_DICT)
         return error(ERR_TYPE, "Expected dict");
@@ -89,7 +89,7 @@ extern rf_object_t dict_set(rf_object_t *dict, rf_object_t key, rf_object_t val)
 
     if (index == keys->adt->len)
     {
-        vector_push(keys, key);
+        vector_push(keys, rf_object_clone(key));
         vector_push(vals, rf_object_clone(&val));
         return val;
     }

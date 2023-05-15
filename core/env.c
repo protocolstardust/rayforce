@@ -123,6 +123,10 @@ null_t init_functions(rf_object_t *records)
     REC(records, 2, "nth",       TYPE_CHAR,       rf_nth_Char_I64,         { TYPE_CHAR,    TYPE_I64    });
     REC(records, 2, "nth",       TYPE_ANY,        rf_nth_List_i64,         { TYPE_LIST,   -TYPE_I64    });
     REC(records, 2, "nth",       TYPE_LIST,       rf_nth_List_I64,         { TYPE_LIST,    TYPE_I64    });
+    REC(records, 2, "find",     -TYPE_I64,        rf_find_I64_i64,         { TYPE_I64,    -TYPE_I64    });
+    REC(records, 2, "find",     -TYPE_I64,        rf_find_F64_f64,         { TYPE_F64,    -TYPE_F64    });
+    REC(records, 2, "find",      TYPE_I64,        rf_find_I64_I64,         { TYPE_I64,     TYPE_I64    });
+    REC(records, 2, "find",      TYPE_I64,        rf_find_F64_F64,         { TYPE_F64,     TYPE_F64    });
 
     // Ternary  
     // Quaternary  
@@ -191,7 +195,7 @@ null_t free_env(env_t *env)
     rf_object_free(&env->functions);
 }
 
-rf_object_t *env_get_variable(env_t *env, rf_object_t name)
+rf_object_t *env_get_variable(env_t *env, rf_object_t *name)
 {
     rf_object_t addr = dict_get(&env->variables, name);
     if (is_null(&addr))
@@ -200,7 +204,7 @@ rf_object_t *env_get_variable(env_t *env, rf_object_t name)
     return (rf_object_t *)addr.i64;
 }
 
-null_t env_set_variable(env_t *env, rf_object_t name, rf_object_t value)
+null_t env_set_variable(env_t *env, rf_object_t *name, rf_object_t value)
 {
     rf_object_t *new_addr = (rf_object_t *)rf_malloc(sizeof(rf_object_t));
     *new_addr = value;

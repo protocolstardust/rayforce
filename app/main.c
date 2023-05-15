@@ -335,7 +335,7 @@ i32_t main(i32_t argc, str_t argv[])
 
     runtime_init(0);
 
-    rf_object_t args = parse_cmdline(argc, argv), filename;
+    rf_object_t args = parse_cmdline(argc, argv), filename, symfile = symbol("file");
     str_t line, ptr;
     parser_t parser = parser_new();
     vm_t *vm;
@@ -349,7 +349,7 @@ i32_t main(i32_t argc, str_t argv[])
     vm = vm_new();
 
     // load file
-    filename = dict_get(&args, symbol("file"));
+    filename = dict_get(&args, &symfile);
     if (!is_null(&filename))
     {
         file = file_open(as_string(&filename));

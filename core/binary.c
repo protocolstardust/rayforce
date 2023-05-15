@@ -738,7 +738,7 @@ rf_object_t rf_or_Bool_Bool(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_nth_I64_i64(rf_object_t *x, rf_object_t *y)
 {
-    return vector_get(x, *y);
+    return vector_get(x, y);
 }
 
 rf_object_t rf_nth_I64_I64(rf_object_t *x, rf_object_t *y)
@@ -761,7 +761,7 @@ rf_object_t rf_nth_I64_I64(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_nth_F64_i64(rf_object_t *x, rf_object_t *y)
 {
-    return vector_get(x, *y);
+    return vector_get(x, y);
 }
 
 rf_object_t rf_nth_F64_I64(rf_object_t *x, rf_object_t *y)
@@ -785,7 +785,7 @@ rf_object_t rf_nth_F64_I64(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_nth_Char_i64(rf_object_t *x, rf_object_t *y)
 {
-    return vector_get(x, *y);
+    return vector_get(x, y);
 }
 
 rf_object_t rf_nth_Char_I64(rf_object_t *x, rf_object_t *y)
@@ -809,7 +809,7 @@ rf_object_t rf_nth_Char_I64(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_nth_List_i64(rf_object_t *x, rf_object_t *y)
 {
-    return vector_get(x, *y);
+    return vector_get(x, y);
 }
 
 rf_object_t rf_nth_List_I64(rf_object_t *x, rf_object_t *y)
@@ -826,6 +826,72 @@ rf_object_t rf_nth_List_I64(rf_object_t *x, rf_object_t *y)
             ov[i] = null();
         else
             ov[i] = rf_object_clone(&iv1[iv2[i]]);
+    }
+
+    return vec;
+}
+
+rf_object_t rf_find_I64_i64(rf_object_t *x, rf_object_t *y)
+{
+    i64_t l = x->adt->len, i;
+
+    i = vector_find(x, y);
+
+    if (i == l)
+        return i64(NULL_I64);
+    else
+        return i64(i);
+}
+
+rf_object_t rf_find_I64_I64(rf_object_t *x, rf_object_t *y)
+{
+    i64_t xl = x->adt->len, yl = y->adt->len, i, j;
+    rf_object_t vec = vector_i64(yl);
+    i64_t *iv1 = as_vector_i64(x), *iv2 = as_vector_i64(y);
+
+    for (i = 0; i < xl; i++)
+    {
+        for (j = 0; j < yl; j++)
+            if (iv1[j] == iv2[i])
+                break;
+
+        if (j == xl)
+            iv2[i] = NULL_I64;
+        else
+            iv2[i] = j;
+    }
+
+    return vec;
+}
+
+rf_object_t rf_find_F64_f64(rf_object_t *x, rf_object_t *y)
+{
+    i64_t l = x->adt->len, i;
+
+    i = vector_find(x, y);
+
+    if (i == l)
+        return i64(NULL_I64);
+    else
+        return i64(i);
+}
+
+rf_object_t rf_find_F64_F64(rf_object_t *x, rf_object_t *y)
+{
+    i64_t xl = x->adt->len, yl = y->adt->len, i, j;
+    rf_object_t vec = vector_i64(yl);
+    f64_t *iv1 = as_vector_f64(x);
+    i64_t *iv2 = as_vector_i64(y);
+
+    for (i = 0; i < yl; i++)
+    {
+        for (j = 0; j < xl; j++)
+            if (iv1[j] == y->f64)
+                break;
+        if (j == xl)
+            iv2[i] = NULL_I64;
+        else
+            iv2[i] = j;
     }
 
     return vec;

@@ -340,9 +340,9 @@ op_lset:
     dispatch();
 op_gset:
     b = vm->ip++;
-    x2 = *(rf_object_t *)(code + vm->ip);
+    addr = (rf_object_t *)(code + vm->ip);
     vm->ip += sizeof(rf_object_t);
-    env_set_variable(&runtime_get()->env, x2, rf_object_clone(stack_peek(vm)));
+    env_set_variable(&runtime_get()->env, addr, rf_object_clone(stack_peek(vm)));
     dispatch();
 op_lload:
     b = vm->ip++;

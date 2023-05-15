@@ -165,72 +165,14 @@ null_t vector_reserve(rf_object_t *vector, u32_t len)
     }
 }
 
-i64_t vector_i64_find(rf_object_t *vector, i64_t key)
+i64_t vector_find(rf_object_t *vector, rf_object_t *key)
 {
-    i64_t *ptr = as_vector_i64(vector), l;
-    i32_t i;
-
-    l = vector->adt->len;
-    for (i = 0; i < l; i++)
-    {
-        if (ptr[i] == key)
-            return i;
-    }
-
-    return l;
-}
-
-i64_t vector_f64_find(rf_object_t *vector, f64_t key)
-{
-    f64_t *ptr = as_vector_f64(vector);
-    i32_t i;
-    i64_t l;
-
-    l = vector->adt->len;
-    for (i = 0; i < l; i++)
-    {
-        if (ptr[i] == key)
-            return i;
-    }
-
-    return l;
-}
-
-i64_t list_find(rf_object_t *list, rf_object_t key)
-{
-    rf_object_t *ptr = as_list(list);
-    i32_t i;
-    i64_t l = list->adt->len;
-
-    for (i = 0; i < l; i++)
-    {
-        if (rf_object_eq(&ptr[i], &key))
-            return i;
-    }
-
-    return l;
-}
-
-i64_t vector_find(rf_object_t *vector, rf_object_t key)
-{
-    i8_t type = vector->type;
-
-    switch (type)
-    {
-    case TYPE_I64:
-        return vector_i64_find(vector, key.i64);
-    case TYPE_F64:
-        return vector_f64_find(vector, key.f64);
-    case TYPE_SYMBOL:
-        return vector_i64_find(vector, key.i64);
-    default:
-        return list_find(vector, key);
-    }
-}
-
-rf_object_t vector_get(rf_object_t *vector, rf_object_t key)
-{
-    i64_t l = vector->adt->len, i = key.i64;
+    char_t kc, *vc;
+    bool_t kb, *vb;
+    i64_t ki, *vi;
+    f64_t kf, *vf;
+    rf_object_t *kl, *vl;
+    i64_t i, l;
     i8_t type = vector->type - TYPE_BOOL;
 
     static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
@@ -238,6 +180,67 @@ rf_object_t vector_get(rf_object_t *vector, rf_object_t key)
 
     if (type > TYPE_LIST)
         panic("vector_get: non-gettable type");
+
+    l = vector->adt->len;
+
+    goto *types_table[(i32_t)type];
+
+type_bool:
+    vb = as_vector_bool(vector);
+    kb = key->bool;
+    for (i = 0; i < l; i++)
+        if (vb[i] == kb)
+            return i;
+    return l;
+type_i64:
+    vi = as_vector_i64(vector);
+    ki = key->i64;
+    for (i = 0; i < l; i++)
+        if (vi[i] == ki)
+            return i;
+    return l;
+type_f64:
+    vf = as_vector_f64(vector);
+    kf = key->f64;
+    for (i = 0; i < l; i++)
+        if (vf[i] == kf)
+            return i;
+    return l;
+type_symbol:
+    vi = as_vector_symbol(vector);
+    ki = key->i64;
+    for (i = 0; i < l; i++)
+        if (vi[i] == ki)
+            return i;
+    return l;
+type_char:
+    vc = as_string(vector);
+    kc = key->schar;
+    for (i = 0; i < l; i++)
+        if (vc[i] == kc)
+            return i;
+    return l;
+type_list:
+    vl = as_list(vector);
+    kl = key;
+    for (i = 0; i < l; i++)
+        if (rf_object_eq(&vl[i], kl))
+            return i;
+    return l;
+}
+
+rf_object_t vector_get(rf_object_t *vector, rf_object_t *key)
+{
+    i64_t l, i = key->i64;
+    i8_t type = vector->type - TYPE_BOOL;
+
+    static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
+                                    &&type_char, &&type_list};
+
+    if (type > TYPE_LIST)
+        panic("vector_get: non-gettable type");
+
+    l = vector->adt->len;
 
     goto *types_table[(i32_t)type];
 

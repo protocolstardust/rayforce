@@ -68,8 +68,8 @@ null_t free_env(env_t *env);
 #define get_records_len(records, i) (as_list(records)[i].adt->len)
 #define get_record(records, i, j) (((env_record_t *)as_string((as_list(records) + i))) + j)
 
-rf_object_t *env_get_variable(env_t *env, rf_object_t name);
-null_t env_set_variable(env_t *env, rf_object_t name, rf_object_t value);
+rf_object_t *env_get_variable(env_t *env, rf_object_t *name);
+null_t env_set_variable(env_t *env, rf_object_t *name, rf_object_t value);
 extern i64_t env_get_typename_by_type(env_t *env, i8_t type);
 extern i8_t env_get_type_by_typename(env_t *env, i64_t name);
 

@@ -75,7 +75,7 @@ extern "C"
 
 typedef char i8_t;
 typedef unsigned char u8_t;
-typedef unsigned char char_t;
+typedef char char_t;
 typedef char bool_t;
 typedef char *str_t;
 typedef short i16_t;
