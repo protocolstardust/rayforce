@@ -32,7 +32,7 @@
 
 hash_table_t *ht_new(i32_t size, i64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
 {
-    hash_table_t *table = (hash_table_t *)mmap(NULL, sizeof(hash_table_t),
+    hash_table_t *table = (hash_table_t *)mmap(NULL, sizeof(struct hash_table_t),
                                                PROT_READ | PROT_WRITE,
                                                MAP_ANONYMOUS | MAP_PRIVATE,
                                                -1, 0);
@@ -71,6 +71,7 @@ null_t ht_free(hash_table_t *table)
     }
 
     munmap(table->buckets, sizeof(bucket_t *) * table->cap);
+    munmap(table, sizeof(struct hash_table_t));
 }
 
 /*
@@ -180,5 +181,5 @@ null_t *ht_get(hash_table_t *table, null_t *key)
         bucket = bucket->next;
     }
 
-    return NULL;
+    return (null_t *)-1;
 }

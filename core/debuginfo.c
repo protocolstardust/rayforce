@@ -57,7 +57,7 @@ span_t debuginfo_get(debuginfo_t *debuginfo, u32_t index)
 {
     u64_t *s = (u64_t *)ht_get(debuginfo->spans, (null_t *)(i64_t)index);
 
-    if (!s)
+    if ((i64_t)s < 0)
         return (span_t){0};
 
     span_t span;
@@ -69,5 +69,4 @@ span_t debuginfo_get(debuginfo_t *debuginfo, u32_t index)
 null_t debuginfo_free(debuginfo_t *debuginfo)
 {
     ht_free(debuginfo->spans);
-    // rf_free(debuginfo->spans);
 }

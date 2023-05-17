@@ -21,6 +21,7 @@
  *   SOFTWARE.
  */
 
+#include <time.h>
 #include "binary.h"
 #include "dict.h"
 #include "util.h"
@@ -28,6 +29,7 @@
 #include "util.h"
 #include "format.h"
 #include "vector.h"
+#include "hash.h"
 
 rf_object_t rf_dict(rf_object_t *x, rf_object_t *y)
 {
@@ -845,30 +847,26 @@ rf_object_t rf_find_I64_i64(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_find_I64_I64(rf_object_t *x, rf_object_t *y)
 {
-    i64_t xl = x->adt->len, yl = y->adt->len, i, j;
-    rf_object_t vec = vector_i64(yl), found;
+    i64_t xl = x->adt->len, yl = y->adt->len, i;
+    rf_object_t vec = vector_i64(yl);
     i64_t *iv1 = as_vector_i64(x), *iv2 = as_vector_i64(y),
-          *ov = as_vector_i64(&vec), *fv, min = 0, max = 0;
+          *ov = as_vector_i64(&vec), v;
 
-    // for (i = 0; i < xl; i++)
-    // {
-    //     if (iv1[i] < min)
-    //         min = iv1[i];
-    //     if (iv1[i] > max)
-    //         max = iv1[i];
-    // }
+    hash_table_t *ht = ht_new(xl, i64_hash, i64_cmp);
 
-    // j = max - min + 1;
-    // found = vector_i64(j);
-    // fv = as_vector_i64(&found);
-    // memset(fv, 0, sizeof(i64_t) * j);
+    for (i = 0; i < xl; i++)
+        ht_insert(ht, (null_t *)iv1[i], (null_t *)i);
 
-    // for (i = 0; i < yl; i++)
-    // {
+    for (i = 0; i < yl; i++)
+    {
+        v = (i64_t)ht_get(ht, (null_t *)iv2[i]);
+        if (v < 0)
+            ov[i] = NULL_I64;
+        else
+            ov[i] = v;
+    }
 
-    // }
-
-    rf_object_free(&found);
+    ht_free(ht);
 
     return vec;
 }
@@ -901,6 +899,27 @@ rf_object_t rf_find_F64_F64(rf_object_t *x, rf_object_t *y)
             iv2[i] = NULL_I64;
         else
             iv2[i] = j;
+    }
+
+    return vec;
+}
+
+rf_object_t rf_rand_i64_i64(rf_object_t *x, rf_object_t *y)
+{
+    // Parameters for a linear congruential generator (LCG)
+#define LCG_MULTIPLIER 1103515245ll
+#define LCG_INCREMENT 12345ll
+#define LCG_MODULUS (1ll << 63) // 2^63
+
+    i64_t i, n = x->i64, range = y->i64;
+    i64_t seed = time(0);
+    rf_object_t vec = vector_i64(n);
+    i64_t *ov = as_vector_i64(&vec);
+
+    for (i = 0; i < n; i++)
+    {
+        seed = (LCG_MULTIPLIER * seed + LCG_INCREMENT) % LCG_MODULUS;
+        ov[i] = seed % range;
     }
 
     return vec;

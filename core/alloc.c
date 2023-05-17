@@ -70,20 +70,24 @@ null_t *rf_alloc_add_pool(u32_t size)
     return (null_t *)node;
 }
 
+null_t rf_alloc_add_main_pool()
+{
+    node_t *node = (node_t *)rf_alloc_add_pool(realsize(POOL_SIZE));
+    debug_assert(node != NULL);
+    debug_assert((i64_t)node % 16 == 0);
+    node->next = NULL;
+    _ALLOC->freelist[MAX_ORDER] = node;
+    _ALLOC->avail |= 1 << MAX_ORDER;
+}
+
 alloc_t rf_alloc_init()
 {
     _ALLOC = (alloc_t)mmap(NULL, sizeof(struct alloc_t),
                            PROT_READ | PROT_WRITE,
                            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-    node_t *node = (node_t *)rf_alloc_add_pool(realsize(POOL_SIZE));
-
-    debug_assert(node != NULL);
-    debug_assert((i64_t)node % 16 == 0);
-
-    node->next = NULL;
-    _ALLOC->freelist[MAX_ORDER] = node;
-    _ALLOC->avail = 1 << MAX_ORDER;
+    _ALLOC->avail = 0;
+    rf_alloc_add_main_pool();
 
     return _ALLOC;
 }
@@ -98,11 +102,17 @@ null_t rf_alloc_cleanup()
     // All the nodes remains are pools, so just munmap them
     for (i32_t i = 0; i <= MAX_POOL_ORDER; i++)
     {
-        node_t *node = _ALLOC->freelist[i];
+        node_t *node = _ALLOC->freelist[i], *next;
         while (node)
         {
-            debug_assert(node == node->base);
-            node_t *next = node->next;
+            next = node->next;
+            if (node->base != node)
+            {
+                printf("node->base: %p\n", node->base);
+                print_blocks();
+                node = next;
+                continue;
+            }
             munmap(node->base, node->size);
             node = next;
         }
@@ -165,14 +175,20 @@ null_t *rf_malloc(i32_t size)
     // find least order block that fits
     i = (AVAIL_MASK << order) & _ALLOC->avail;
 
-    // no free block found for this size, so mmap it directly
+    // no free block found for this size, so mmap it directly if it is bigger than pool size or
+    // add a new pool and split as well
     if (i == 0)
     {
-        block = rf_alloc_add_pool(size);
-        return (null_t *)((node_t *)block + 1);
+        if (size >= POOL_SIZE)
+        {
+            block = rf_alloc_add_pool(size);
+            return (null_t *)((node_t *)block + 1);
+        }
+        rf_alloc_add_main_pool();
+        i = MAX_ORDER;
     }
-
-    i = __builtin_ctzl(i);
+    else
+        i = __builtin_ctzl(i);
 
     // remove the block out of list
     block = _ALLOC->freelist[i];

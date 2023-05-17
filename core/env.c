@@ -128,6 +128,7 @@ null_t init_functions(rf_object_t *records)
     REC(records, 2, "find",     -TYPE_I64,        rf_find_F64_f64,         { TYPE_F64,    -TYPE_F64    });
     REC(records, 2, "find",      TYPE_I64,        rf_find_I64_I64,         { TYPE_I64,     TYPE_I64    });
     REC(records, 2, "find",      TYPE_I64,        rf_find_F64_F64,         { TYPE_F64,     TYPE_F64    });
+    REC(records, 2, "rand",      TYPE_I64,        rf_rand_i64_i64,         {-TYPE_I64,    -TYPE_I64    });
 
     // Ternary  
     // Quaternary  
@@ -140,21 +141,21 @@ null_t init_functions(rf_object_t *records)
 
 null_t init_typenames(i64_t *typenames)
 {
-    typenames[-TYPE_BOOL    + TYPE_OFFSET] = symbol("bool").i64;
-    typenames[-TYPE_I64     + TYPE_OFFSET] = symbol("i64").i64;
-    typenames[-TYPE_F64     + TYPE_OFFSET] = symbol("f64").i64;
-    typenames[-TYPE_SYMBOL  + TYPE_OFFSET] = symbol("symbol").i64;
-    typenames[-TYPE_CHAR    + TYPE_OFFSET] = symbol("char").i64;
-    typenames[TYPE_NULL     + TYPE_OFFSET] = symbol("Null").i64;
-    typenames[TYPE_BOOL     + TYPE_OFFSET] = symbol("Bool").i64;
-    typenames[TYPE_I64      + TYPE_OFFSET] = symbol("I64").i64;
-    typenames[TYPE_F64      + TYPE_OFFSET] = symbol("F64").i64;
-    typenames[TYPE_SYMBOL   + TYPE_OFFSET] = symbol("Symbol").i64;
-    typenames[TYPE_CHAR     + TYPE_OFFSET] = symbol("Char").i64;
-    typenames[TYPE_LIST     + TYPE_OFFSET] = symbol("List").i64;
-    typenames[TYPE_DICT     + TYPE_OFFSET] = symbol("Dict").i64;
-    typenames[TYPE_TABLE    + TYPE_OFFSET] = symbol("Table").i64;
-    typenames[TYPE_FUNCTION + TYPE_OFFSET] = symbol("Function").i64;
+    typenames[-TYPE_BOOL     + TYPE_OFFSET] = symbol("bool").i64;
+    typenames[-TYPE_I64      + TYPE_OFFSET] = symbol("i64").i64;
+    typenames[-TYPE_F64      + TYPE_OFFSET] = symbol("f64").i64;
+    typenames[-TYPE_SYMBOL   + TYPE_OFFSET] = symbol("symbol").i64;
+    typenames[-TYPE_CHAR     + TYPE_OFFSET] = symbol("char").i64;
+    typenames[ TYPE_NULL     + TYPE_OFFSET] = symbol("Null").i64;
+    typenames[ TYPE_BOOL     + TYPE_OFFSET] = symbol("Bool").i64;
+    typenames[ TYPE_I64      + TYPE_OFFSET] = symbol("I64").i64;
+    typenames[ TYPE_F64      + TYPE_OFFSET] = symbol("F64").i64;
+    typenames[ TYPE_SYMBOL   + TYPE_OFFSET] = symbol("Symbol").i64;
+    typenames[ TYPE_CHAR     + TYPE_OFFSET] = symbol("Char").i64;
+    typenames[ TYPE_LIST     + TYPE_OFFSET] = symbol("List").i64;
+    typenames[ TYPE_DICT     + TYPE_OFFSET] = symbol("Dict").i64;
+    typenames[ TYPE_TABLE    + TYPE_OFFSET] = symbol("Table").i64;
+    typenames[ TYPE_FUNCTION + TYPE_OFFSET] = symbol("Function").i64;
 }
 // clang-format on
 
