@@ -341,7 +341,7 @@ i32_t main(i32_t argc, str_t argv[])
     vm_t *vm;
     file_t file;
 
-    // print_logo();
+    print_logo();
     line = (str_t)mmap(NULL, LINE_SIZE,
                        PROT_READ | PROT_WRITE,
                        MAP_ANONYMOUS | MAP_PRIVATE,
