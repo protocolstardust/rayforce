@@ -29,26 +29,25 @@
 #include "hash.h"
 #include "rayforce.h"
 #include "alloc.h"
+#include "util.h"
 
-hash_table_t *ht_new(i32_t size, i64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
+#define htsize(s) (sizeof(struct hash_table_t) + sizeof(bucket_t) * s)
+
+hash_table_t *ht_new(u32_t size, u64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
 {
-    hash_table_t *table = (hash_table_t *)mmap(NULL, sizeof(struct hash_table_t),
+    size = next_power_of_two_u32(size);
+    u32_t i;
+    hash_table_t *table = (hash_table_t *)mmap(NULL, htsize(size),
                                                PROT_READ | PROT_WRITE,
                                                MAP_ANONYMOUS | MAP_PRIVATE,
                                                -1, 0);
-
-    bucket_t **buckets = (bucket_t **)mmap(NULL, sizeof(bucket_t *) * size,
-                                           PROT_READ | PROT_WRITE,
-                                           MAP_ANONYMOUS | MAP_PRIVATE,
-                                           -1, 0);
-
-    memset(buckets, 0, sizeof(bucket_t *) * size);
-
     table->cap = size;
-    table->buckets = buckets;
     table->size = 0;
     table->hasher = hasher;
     table->compare = compare;
+
+    for (i = 0; i < size; i++)
+        table->buckets[i] = (bucket_t){0, 0, (bucket_t *)-1};
 
     return table;
 }
@@ -60,9 +59,9 @@ null_t ht_free(hash_table_t *table)
 
     for (i = 0; i < c; i++)
     {
-        bucket = table->buckets[i];
+        bucket = table->buckets[i].next;
 
-        while (bucket)
+        while ((i64_t)bucket > 0)
         {
             next = bucket->next;
             rf_free(bucket);
@@ -70,8 +69,7 @@ null_t ht_free(hash_table_t *table)
         }
     }
 
-    munmap(table->buckets, sizeof(bucket_t *) * table->cap);
-    munmap(table, sizeof(struct hash_table_t));
+    munmap(table, htsize(c));
 }
 
 /*
@@ -81,23 +79,36 @@ null_t ht_free(hash_table_t *table)
 null_t *ht_insert(hash_table_t *table, null_t *key, null_t *val)
 {
     // Table's size is always a power of 2
-    i32_t index = table->hasher(key) & (table->cap - 1);
-    bucket_t **bucket = &table->buckets[index];
+    i32_t index = table->hasher(key) % (table->cap - 1);
+    bucket_t *bucket = &table->buckets[index], *next;
 
-    while (*bucket)
+    // empty bucket is marked with -1
+    if ((i64_t)(bucket->next) == -1)
     {
-        // Key already exists, return it
-        if (table->compare((*bucket)->key, key) == 0)
-            return (*bucket)->val;
-
-        bucket = &((*bucket)->next);
+        bucket->next = NULL;
+        bucket->key = key;
+        bucket->val = val;
+        table->size++;
+        return val;
     }
 
+    next = bucket;
+
+    while ((i64_t)next > 0)
+    {
+        // Key already exists, return it
+        if (table->compare(bucket->key, key) == 0)
+            return bucket->val;
+
+        bucket = next;
+        next = bucket->next;
+    }
     // Add new bucket to the end of the list
-    (*bucket) = (bucket_t *)rf_malloc(sizeof(bucket_t));
-    (*bucket)->key = key;
-    (*bucket)->val = val;
-    (*bucket)->next = NULL;
+    bucket->next = (bucket_t *)rf_malloc(sizeof(struct bucket_t));
+    bucket = bucket->next;
+    bucket->key = key;
+    bucket->val = val;
+    bucket->next = (bucket_t *)-1;
 
     table->size++;
 
@@ -111,24 +122,39 @@ null_t *ht_insert_with(hash_table_t *table, null_t *key, null_t *val, null_t *(*
 {
     // Table's size is always a power of 2
     i32_t index = table->hasher(key) & (table->cap - 1);
-    bucket_t **bucket = &table->buckets[index];
+    bucket_t *bucket = &table->buckets[index], *next;
 
-    while (*bucket)
+    // empty bucket is marked with -1
+    if ((i64_t)(bucket->next) == -1)
+    {
+        bucket->next = NULL;
+        bucket->key = key;
+        bucket->val = val;
+        table->size++;
+
+        return func(key, val, bucket);
+    }
+
+    next = bucket;
+
+    while ((i64_t)next > 0)
     {
         // Key already exists, return it
-        if (table->compare((*bucket)->key, key) == 0)
-            return (*bucket)->val;
+        if (table->compare(bucket->key, key) == 0)
+            return bucket->val;
 
-        bucket = &((*bucket)->next);
+        bucket = next;
+        next = bucket->next;
     }
 
     // Add new bucket to the end of the list
-    (*bucket) = (bucket_t *)rf_malloc(sizeof(bucket_t));
-    (*bucket)->next = NULL;
+    bucket->next = (bucket_t *)rf_malloc(sizeof(bucket_t));
+    bucket = bucket->next;
+    bucket->next = (bucket_t *)-1;
 
     table->size++;
 
-    return func(key, val, *bucket);
+    return func(key, val, bucket);
 }
 
 /*
@@ -139,25 +165,39 @@ bool_t ht_update(hash_table_t *table, null_t *key, null_t *val)
 {
     // Table's size is always a power of 2
     i32_t index = table->hasher(key) & (table->cap - 1);
-    bucket_t **bucket = &table->buckets[index];
+    bucket_t *bucket = &table->buckets[index], *next;
 
-    while (*bucket)
+    // empty bucket is marked with -1
+    if ((i64_t)(bucket->next) == -1)
+    {
+        bucket->next = NULL;
+        bucket->key = key;
+        bucket->val = val;
+        table->size++;
+        return false;
+    }
+
+    next = bucket;
+
+    while ((i64_t)next > 0)
     {
         // Key already exists, update it
-        if (table->compare((*bucket)->key, key) == 0)
+        if (table->compare(bucket->key, key) == 0)
         {
-            (*bucket)->val = val;
+            bucket->val = val;
             return true;
         }
 
-        bucket = &((*bucket)->next);
+        bucket = next;
+        next = bucket->next;
     }
 
     // Add new bucket to the end of the list
-    (*bucket) = (bucket_t *)rf_malloc(sizeof(bucket_t));
-    (*bucket)->key = key;
-    (*bucket)->val = val;
-    (*bucket)->next = NULL;
+    bucket->next = (bucket_t *)rf_malloc(sizeof(bucket_t));
+    bucket = bucket->next;
+    bucket->key = key;
+    bucket->val = val;
+    bucket->next = (bucket_t *)-1;
 
     table->size++;
 
@@ -171,14 +211,20 @@ bool_t ht_update(hash_table_t *table, null_t *key, null_t *val)
 null_t *ht_get(hash_table_t *table, null_t *key)
 {
     i32_t index = table->hasher(key) & (table->cap - 1);
-    bucket_t *bucket = table->buckets[index];
+    bucket_t *bucket = &table->buckets[index], *next;
 
-    while (bucket)
+    if ((i64_t)(bucket->next) == -1)
+        return (null_t *)-1;
+
+    next = bucket;
+
+    while ((i64_t)next > 0)
     {
         if (table->compare(bucket->key, key) == 0)
             return bucket->val;
 
-        bucket = bucket->next;
+        bucket = next;
+        next = bucket->next;
     }
 
     return (null_t *)-1;

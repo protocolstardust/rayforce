@@ -25,9 +25,9 @@
 #include "string.h"
 #include "alloc.h"
 
-i64_t u32_hash(null_t *val)
+u64_t u32_hash(null_t *val)
 {
-    return (i64_t)val;
+    return (u64_t)val;
 }
 
 i32_t u32_cmp(null_t *a, null_t *b)

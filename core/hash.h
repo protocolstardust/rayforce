@@ -35,14 +35,14 @@ typedef struct bucket_t
 
 typedef struct hash_table_t
 {
-    i32_t cap;  // Total capacity of the table (always a multiplier of DEFAULT_SIZE)
-    i32_t size; // Actual size of the table in elements
-    bucket_t **buckets;
-    i64_t (*hasher)(null_t *a);
+    u32_t cap;  // Total capacity of the table (always a multiplier of DEFAULT_SIZE)
+    u32_t size; // Actual size of the table in elements
+    u64_t (*hasher)(null_t *a);
     i32_t (*compare)(null_t *a, null_t *b);
+    bucket_t buckets[];
 } hash_table_t;
 
-hash_table_t *ht_new(i32_t size, i64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b));
+hash_table_t *ht_new(u32_t size, u64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b));
 null_t ht_free(hash_table_t *table);
 
 null_t *ht_insert(hash_table_t *table, null_t *key, null_t *val);
