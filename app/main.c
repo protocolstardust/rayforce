@@ -324,14 +324,15 @@ null_t int_handler(i32_t sig)
 
 i32_t main(i32_t argc, str_t argv[])
 {
+#if defined(__linux__) || defined(__APPLE__) && defined(__MACH__)
     struct sigaction sa;
-
     sa.sa_handler = int_handler;
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
 
     if (sigaction(SIGINT, &sa, NULL) == -1)
         perror("Error: cannot handle SIGINT");
+#endif
 
     runtime_init(0);
 
@@ -341,7 +342,10 @@ i32_t main(i32_t argc, str_t argv[])
     vm_t *vm;
     file_t file;
 
+#if defined(__linux__) || defined(__APPLE__) && defined(__MACH__)
     print_logo();
+#endif
+
     line = (str_t)mmap_malloc(LINE_SIZE);
     vm = vm_new();
 

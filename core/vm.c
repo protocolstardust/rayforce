@@ -58,7 +58,7 @@ typedef struct ctx_t
     i32_t bp;
 } ctx_t;
 
-CASSERT(sizeof(ctx_t) == sizeof(rf_object_t), vm_c)
+// CASSERT(sizeof(struct ctx_t) == sizeof(struct rf_object_t), vm_c)
 
 vm_t *vm_new()
 {

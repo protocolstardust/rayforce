@@ -35,6 +35,8 @@
 #include "function.h"
 #include "dict.h"
 
+#define stack_malloc(size) _alloca(size)
+
 i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object);
 rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_t args, rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo);
 
@@ -500,7 +502,7 @@ i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
             cerr(cc, car->id, ERR_LENGTH, "'map' takes at least two arguments");
 
         arity -= 1;
-        args = (i8_t *)alloca(arity);
+        args = (i8_t *)stack_malloc(arity);
 
         // reserve space for map result
         push_opcode(cc, car->id, code, OP_PUSH);
@@ -806,7 +808,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 
         car = &as_list(object)[0];
         arity = object->adt->len - 1;
-        args = (i8_t *)alloca(arity);
+        args = (i8_t *)stack_malloc(arity);
 
         // special forms compilation need to be done before arguments compilation
         type = cc_compile_special_forms(has_consumer, cc, object, arity);
