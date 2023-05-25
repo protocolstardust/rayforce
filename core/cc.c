@@ -35,7 +35,11 @@
 #include "function.h"
 #include "dict.h"
 
+#if defined(_WIN32) || defined(__CYGWIN__)
 #define stack_malloc(size) _alloca(size)
+#else
+#define stack_malloc(size) alloca(size)
+#endif
 
 i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object);
 rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_t args, rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo);
