@@ -200,6 +200,9 @@ i32_t ts_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t lim
 {
     UNUSED(indent);
 
+    if (val == NULL_I64)
+        return str_fmt_into(dst, len, offset, limit, "%*.*s%s", indent, indent, PADDING, "0t");
+
     timestamp_t ts = rf_timestamp_from_i64(val);
     i32_t n = str_fmt_into(dst, len, offset, limit, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d",
                            ts.year, ts.month, ts.day, ts.hours, ts.mins, ts.secs, ts.nanos);

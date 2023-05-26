@@ -298,6 +298,22 @@ rf_object_t parse_number(parser_t *parser)
             num.id = span_commit(parser, span);
             return num;
         }
+
+        if (*(parser->current + 1) == 't')
+        {
+            shift(parser, 2);
+            num = timestamp(NULL_I64);
+            num.id = span_commit(parser, span);
+            return num;
+        }
+
+        if (*(parser->current + 1) == 'g')
+        {
+            shift(parser, 2);
+            num = guid(NULL);
+            num.id = span_commit(parser, span);
+            return num;
+        }
     }
 
     errno = 0;
