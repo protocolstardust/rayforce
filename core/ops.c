@@ -62,7 +62,7 @@ bool_t rf_eq(rf_object_t *x, rf_object_t *y)
 bool_t rf_lt(rf_object_t *x, rf_object_t *y)
 {
     if (x->type != y->type)
-        return x->type - y->type;
+        return false;
 
     switch (x->type)
     {
