@@ -313,8 +313,7 @@ type_error:
  */
 null_t rf_object_free(rf_object_t *object)
 {
-    i64_t i, rc, l, *addrs;
-    str_t code;
+    i64_t i, rc, l;
 
     if (object->type == -TYPE_GUID)
     {
@@ -386,12 +385,7 @@ type_table:
 type_function:
     if (rc == 0)
     {
-        code = as_string(&as_function(object)->code);
-        l = as_function(object)->const_addrs.adt->len;
-        addrs = as_vector_i64(&as_function(object)->const_addrs);
-        for (i = 0; i < l; i++)
-            rf_object_free((rf_object_t *)(code + addrs[i]));
-        rf_object_free(&as_function(object)->const_addrs);
+        rf_object_free(&as_function(object)->constants);
         rf_object_free(&as_function(object)->args);
         rf_object_free(&as_function(object)->locals);
         rf_object_free(&as_function(object)->code);

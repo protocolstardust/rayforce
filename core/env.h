@@ -47,7 +47,7 @@ typedef rf_object_t (*nary_t)(rf_object_t *, i64_t);
 typedef struct env_record_t
 {
     i64_t id;
-    i64_t op;             // opcode or function ptr
+    u64_t op;             // opcode or function ptr
     i8_t args[MAX_ARITY]; // argument types
     i8_t ret;
 } env_record_t;

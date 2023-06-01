@@ -51,6 +51,13 @@
         while (i > 0)                                                  \
             debug("%d: %s", v->sp - i, rf_object_fmt(&v->stack[--i])); \
     }
+
+#define load_u64(x, v)                              \
+    {                                               \
+        memcpy((x), code + (v)->ip, sizeof(u64_t)); \
+        (v)->ip += sizeof(u64_t);                   \
+    }
+
 typedef struct ctx_t
 {
     function_t *addr;
@@ -81,9 +88,10 @@ rf_object_t vm_exec(vm_t *vm, rf_object_t *fun)
     i8_t type, c;
     function_t *f = as_function(fun);
     str_t code = as_string(&f->code);
-    rf_object_t x1, x2, x3, x4, x5, x6, *addr;
+    rf_object_t x1, x2, x3, x4, x5, *addr;
     i64_t t;
-    i32_t i, j, l, b;
+    u64_t l;
+    i32_t i, j, b;
     nilary_t f0;
     unary_t f1;
     binary_t f2;
@@ -163,13 +171,13 @@ op_halt:
 op_ret:
     vm->ip++;
     x3 = stack_pop(vm); // return value
-    l = (i32_t)as_list(&f->locals)[0].adt->len;
-    for (i = 0; i < l; i++)
+    j = (i32_t)as_list(&f->locals)[0].adt->len;
+    for (i = 0; i < j; i++)
         stack_pop_free(vm); // pop locals
     x2 = stack_pop(vm);     // ctx
     stack_pop_free(vm);     // <function>
-    l = (i32_t)as_list(&f->args)[0].adt->len;
-    for (i = 0; i < l; i++)
+    j = (i32_t)as_list(&f->args)[0].adt->len;
+    for (i = 0; i < j; i++)
         stack_pop_free(vm); // pop args
     ctx = *(ctx_t *)&x2;
     vm->ip = ctx.ip;
@@ -180,9 +188,9 @@ op_ret:
     dispatch();
 op_push:
     vm->ip++;
-    x1 = rf_object_clone((rf_object_t *)(code + vm->ip));
+    load_u64(&l, vm);
+    x1 = vector_get(&f->constants, l);
     stack_push(vm, x1);
-    vm->ip += sizeof(rf_object_t);
     dispatch();
 op_pop:
     vm->ip++;
@@ -191,16 +199,14 @@ op_pop:
 op_jne:
     vm->ip++;
     x2 = stack_pop(vm);
-    x1 = *(rf_object_t *)(code + vm->ip);
+    load_u64(&l, vm);
     if (!x2.bool)
-        vm->ip = (i32_t)x1.i64;
-    else
-        vm->ip += sizeof(rf_object_t);
+        vm->ip = l;
     dispatch();
 op_jmp:
     vm->ip++;
-    x1 = *(rf_object_t *)(code + vm->ip);
-    vm->ip = (i32_t)x1.i64;
+    load_u64(&l, vm);
+    vm->ip = l;
     dispatch();
 op_type:
     vm->ip++;
@@ -221,19 +227,17 @@ op_timer_get:
     dispatch();
 op_call0:
     b = vm->ip++;
-    x2 = *(rf_object_t *)(code + vm->ip);
-    vm->ip += sizeof(rf_object_t);
-    f0 = (nilary_t)x2.i64;
+    load_u64(&l, vm);
+    f0 = (nilary_t)l;
     x1 = f0();
     unwrap(x1, b);
     stack_push(vm, x1);
     dispatch();
 op_call1:
     b = vm->ip++;
-    x3 = *(rf_object_t *)(code + vm->ip);
-    vm->ip += sizeof(rf_object_t);
+    load_u64(&l, vm);
     x2 = stack_pop(vm);
-    f1 = (unary_t)x3.i64;
+    f1 = (unary_t)l;
     x1 = f1(&x2);
     rf_object_free(&x2);
     unwrap(x1, b);
@@ -241,11 +245,10 @@ op_call1:
     dispatch();
 op_call2:
     b = vm->ip++;
-    x4 = *(rf_object_t *)(code + vm->ip);
-    vm->ip += sizeof(rf_object_t);
+    load_u64(&l, vm);
     x3 = stack_pop(vm);
     x2 = stack_pop(vm);
-    f2 = (binary_t)x4.i64;
+    f2 = (binary_t)l;
     x1 = f2(&x2, &x3);
     rf_object_free(&x2);
     rf_object_free(&x3);
@@ -254,12 +257,11 @@ op_call2:
     dispatch();
 op_call3:
     b = vm->ip++;
-    x5 = *(rf_object_t *)(code + vm->ip);
-    vm->ip += sizeof(rf_object_t);
+    load_u64(&l, vm);
     x4 = stack_pop(vm);
     x3 = stack_pop(vm);
     x2 = stack_pop(vm);
-    f3 = (ternary_t)x5.i64;
+    f3 = (ternary_t)l;
     x1 = f3(&x2, &x3, &x4);
     rf_object_free(&x2);
     rf_object_free(&x3);
@@ -269,13 +271,12 @@ op_call3:
     dispatch();
 op_call4:
     b = vm->ip++;
-    x6 = *(rf_object_t *)(code + vm->ip);
-    vm->ip += sizeof(rf_object_t);
+    load_u64(&l, vm);
     x5 = stack_pop(vm);
     x4 = stack_pop(vm);
     x3 = stack_pop(vm);
     x2 = stack_pop(vm);
-    f4 = (quaternary_t)x6.i64;
+    f4 = (quaternary_t)l;
     x1 = f4(&x2, &x3, &x4, &x5);
     rf_object_free(&x2);
     rf_object_free(&x3);
@@ -286,13 +287,12 @@ op_call4:
     dispatch();
 op_calln:
     b = vm->ip++;
-    l = code[vm->ip++];
-    x2 = *(rf_object_t *)(code + vm->ip);
-    vm->ip += sizeof(rf_object_t);
-    fn = (nary_t)x2.i64;
-    addr = (rf_object_t *)(&vm->stack[vm->sp - l]);
-    x1 = fn(addr, l);
-    for (i = 0; i < l; i++)
+    j = code[vm->ip++];
+    load_u64(&l, vm);
+    fn = (nary_t)l;
+    addr = (rf_object_t *)(&vm->stack[vm->sp - j]);
+    x1 = fn(addr, j);
+    for (i = 0; i < j; i++)
         stack_pop_free(vm); // pop args
     unwrap(x1, b);
     stack_push(vm, x1);
@@ -338,28 +338,25 @@ op_callf:
     dispatch();
 op_lset:
     b = vm->ip++;
-    t = ((rf_object_t *)(code + vm->ip))->i64;
-    vm->ip += sizeof(rf_object_t);
+    load_u64(&t, vm);
     vm->stack[vm->bp + t] = rf_object_clone(stack_peek(vm));
     dispatch();
 op_gset:
     b = vm->ip++;
-    addr = (rf_object_t *)(code + vm->ip);
-    vm->ip += sizeof(rf_object_t);
-    env_set_variable(&runtime_get()->env, addr, rf_object_clone(stack_peek(vm)));
+    load_u64(&l, vm);
+    x1 = symboli64(l);
+    env_set_variable(&runtime_get()->env, &x1, rf_object_clone(stack_peek(vm)));
     dispatch();
 op_lload:
     b = vm->ip++;
-    t = ((rf_object_t *)(code + vm->ip))->i64;
-    vm->ip += sizeof(rf_object_t);
+    load_u64(&t, vm);
     x1 = vm->stack[vm->bp + t];
     stack_push(vm, rf_object_clone(&x1));
     dispatch();
 op_gload:
     b = vm->ip++;
-    addr = (rf_object_t *)((rf_object_t *)(code + vm->ip))->i64;
-    vm->ip += sizeof(rf_object_t);
-    stack_push(vm, rf_object_clone(addr));
+    load_u64(&l, vm);
+    stack_push(vm, rf_object_clone((rf_object_t *)l));
     dispatch();
 op_cast:
     b = vm->ip++;
@@ -372,8 +369,7 @@ op_cast:
     dispatch();
 op_try:
     b = vm->ip++;
-    t = ((rf_object_t *)(code + vm->ip))->i64;
-    vm->ip += sizeof(rf_object_t);
+    load_u64(&t, vm);
     // save ctx
     ctx = (ctx_t){.addr = NULL, .ip = (i32_t)t, .bp = vm->bp};
     memcpy(&x1, &ctx, sizeof(ctx_t));

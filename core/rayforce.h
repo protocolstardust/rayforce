@@ -70,7 +70,7 @@ extern "C"
 #define ERR_THROW 12
 #define ERR_UNKNOWN 127
 
-#define NULL_I64 ((i64_t)1 << 63)
+#define NULL_I64 ((i64_t)0x8000000000000000LL)
 #define NULL_F64 ((f64_t)(0 / 0.0))
 #define true (char)1
 #define false (char)0

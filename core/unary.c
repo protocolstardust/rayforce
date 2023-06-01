@@ -122,7 +122,7 @@ rf_object_t rf_group_I64(rf_object_t *x)
 
     // return vec;
 
-    return i64(0);
+    return *x;
 }
 
 rf_object_t rf_sum_I64(rf_object_t *x)

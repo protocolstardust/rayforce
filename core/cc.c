@@ -54,14 +54,26 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
         as_string(v)[(v)->adt->len++] = (i8_t)x;                  \
     }
 
-#define push_rf_object(c, x)                                \
-    {                                                       \
-        vector_reserve(c, sizeof(rf_object_t));             \
-        *(rf_object_t *)(as_string(c) + (c)->adt->len) = x; \
-        (c)->adt->len += sizeof(rf_object_t);               \
+#define push_u8(c, x)                            \
+    {                                            \
+        vector_reserve((c), 1);                  \
+        as_string(c)[(c)->adt->len++] = (u8_t)x; \
     }
 
-#define peek_rf_object(c) (rf_object_t *)(as_string(c) + (c)->adt->len - sizeof(rf_object_t))
+#define push_u64(c, x)                                          \
+    {                                                           \
+        u64_t u = (u64_t)x;                                     \
+        vector_reserve((c), 8);                                 \
+        memcpy((u64_t *)(as_string(c) + (c)->adt->len), &u, 8); \
+        (c)->adt->len += 8;                                     \
+    }
+
+#define push_const(c, k)                              \
+    {                                                 \
+        function_t *_f = as_function(&(c)->function); \
+        push_u64(&_f->code, _f->constants.adt->len);  \
+        vector_push(&_f->constants, k);               \
+    }
 
 #define cerr(c, i, t, e)                                              \
     {                                                                 \
@@ -189,7 +201,7 @@ i8_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
             cerr(cc, car->id, ERR_TYPE, "'set': variable type mismatch");
 
         push_opcode(cc, car->id, code, OP_GSET);
-        push_rf_object(code, as_list(object)[1]);
+        push_u64(code, as_list(object)[1].i64);
 
         if (!has_consumer)
             push_opcode(cc, car->id, code, OP_POP);
@@ -219,7 +231,7 @@ i8_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
         push_opcode(cc, car->id, code, OP_LSET);
 
         id = vector_find(&as_list(&func->locals)[0], &as_list(object)[1]);
-        push_rf_object(code, i64(1 + id));
+        push_u64(code, 1 + id);
 
         if (!has_consumer)
             push_opcode(cc, car->id, code, OP_POP);
@@ -311,8 +323,7 @@ i8_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ari
         }
 
         push_opcode(cc, object->id, code, OP_PUSH);
-        vector_push(&func->const_addrs, i64(code->adt->len));
-        push_rf_object(code, fun);
+        push_const(cc, fun);
         func->stack_size++;
 
         return TYPE_FUNCTION;
@@ -345,7 +356,7 @@ i8_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
 
         push_opcode(cc, car->id, code, OP_JNE);
         lbl1 = code->adt->len;
-        push_rf_object(code, i64(0));
+        push_u64(code, 0);
 
         // true branch
         type = cc_compile_expr(has_consumer, cc, &as_list(object)[2]);
@@ -358,8 +369,8 @@ i8_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
         {
             push_opcode(cc, car->id, code, OP_JMP);
             lbl2 = code->adt->len;
-            push_rf_object(code, i64(0));
-            ((rf_object_t *)(as_string(code) + lbl1))->i64 = code->adt->len;
+            push_u64(code, 0);
+            memcpy(as_string(code) + lbl1, &code->adt->len, sizeof(u64_t));
 
             // false branch
             type1 = cc_compile_expr(has_consumer, cc, &as_list(object)[3]);
@@ -373,10 +384,10 @@ i8_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
                               symbols_get(env_get_typename_by_type(env, type)),
                               symbols_get(env_get_typename_by_type(env, type1))));
 
-            ((rf_object_t *)(as_string(code) + lbl2))->i64 = code->adt->len;
+            memcpy(as_string(code) + lbl2, &code->adt->len, sizeof(u64_t));
         }
         else
-            ((rf_object_t *)(as_string(code) + lbl1))->i64 = code->adt->len;
+            memcpy(as_string(code) + lbl1, &code->adt->len, sizeof(u64_t));
 
         return type;
     }
@@ -400,7 +411,7 @@ i8_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
 
         push_opcode(cc, car->id, code, OP_TRY);
         lbl1 = code->adt->len;
-        push_rf_object(code, i64(0));
+        push_u64(code, 0);
 
         // compile expression under trap
         type = cc_compile_expr(true, cc, &as_list(object)[1]);
@@ -410,9 +421,9 @@ i8_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
 
         push_opcode(cc, car->id, code, OP_JMP);
         lbl2 = code->adt->len;
-        push_rf_object(code, i64(0));
+        push_u64(code, 0);
 
-        ((rf_object_t *)(as_string(code) + lbl1))->i64 = code->adt->len;
+        memcpy(as_string(code) + lbl1, &code->adt->len, sizeof(u64_t));
 
         // compile expression under catch
         type1 = cc_compile_expr(has_consumer, cc, &as_list(object)[2]);
@@ -426,7 +437,7 @@ i8_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
                           symbols_get(env_get_typename_by_type(env, type)),
                           symbols_get(env_get_typename_by_type(env, type1))));
 
-        ((rf_object_t *)(as_string(code) + lbl2))->i64 = code->adt->len;
+        memcpy(as_string(code) + lbl2, &code->adt->len, sizeof(u64_t));
 
         return type;
     }
@@ -510,7 +521,7 @@ i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
 
         // reserve space for map result
         push_opcode(cc, car->id, code, OP_PUSH);
-        push_rf_object(code, null());
+        push_const(cc, null());
 
         // compile args
         for (i = 0; i < arity; i++)
@@ -525,12 +536,12 @@ i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
 
         push_opcode(cc, car->id, code, OP_ALLOC);
         lbl0 = code->adt->len;
-        push_opcode(cc, car->id, code, 0);
-        push_opcode(cc, car->id, code, (i8_t)arity);
+        push_u8(code, 0);
+        push_u8(code, arity);
         // additional check for zero length argument
         push_opcode(cc, car->id, code, OP_JNE);
         lbl1 = code->adt->len;
-        push_rf_object(code, i64(0));
+        push_u64(code, 0);
 
         // compile function
         type = cc_compile_expr(true, cc, &as_list(object)[1]);
@@ -538,7 +549,7 @@ i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
         if (type != TYPE_FUNCTION)
             cerr(cc, car->id, ERR_LENGTH, "'map' takes function as first argument");
 
-        addr = peek_rf_object(code);
+        addr = &as_list(&func->constants)[func->constants.adt->len - 1];
         func = as_function(addr);
 
         // specify type for alloc result as return type of the function
@@ -566,18 +577,18 @@ i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
 
         lbl2 = code->adt->len;
         push_opcode(cc, car->id, code, OP_MAP);
-        push_opcode(cc, car->id, code, (i8_t)arity);
+        push_u8(code, arity);
         push_opcode(cc, car->id, code, OP_CALLF);
         push_opcode(cc, car->id, code, OP_COLLECT);
-        push_opcode(cc, car->id, code, (i8_t)arity);
+        push_u8(code, arity);
         push_opcode(cc, car->id, code, OP_JNE);
-        push_rf_object(code, i64(lbl2));
+        push_u64(code, lbl2);
         // pop function
         push_opcode(cc, car->id, code, OP_POP);
         // pop arguments
         for (i = 0; i < arity; i++)
             push_opcode(cc, car->id, code, OP_POP);
-        ((rf_object_t *)(as_string(code) + lbl1))->i64 = code->adt->len;
+        memcpy(as_string(code) + lbl1, &code->adt->len, sizeof(u64_t));
 
         // additional one for ctx
         func->stack_size += 2;
@@ -594,9 +605,9 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
 
     i8_t type;
     rf_object_t *car, *params, key, val;
-    function_t *func = as_function(&cc->function);
-    rf_object_t *code = &func->code;
-    env_t *env = &runtime_get()->env;
+    // function_t *func = as_function(&cc->function);
+    // rf_object_t *code = &func->code;
+    // env_t *env = &runtime_get()->env;
     table_t table;
 
     car = &as_list(object)[0];
@@ -718,7 +729,6 @@ i8_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object
 i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i8_t *args, u32_t arity)
 {
     i32_t i, l, o = 0, n = 0;
-    rf_object_t fn;
     u32_t found_arity = arity, j;
     rf_object_t *code = &as_function(&cc->function)->code, *records = &runtime_get()->env.functions;
     env_record_t *rec = find_record(records, car, args, &found_arity);
@@ -778,9 +788,7 @@ i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i8_t *args, u32_t arity)
         push_opcode(cc, car->id, code, arity);
     }
 
-    fn = i64(rec->op);
-    fn.id = car->id;
-    push_rf_object(code, fn);
+    push_u64(code, rec->op);
     return rec->ret;
 }
 
@@ -796,20 +804,6 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 
     switch (object->type)
     {
-    case -TYPE_I64:
-        if (!has_consumer)
-            return TYPE_NONE;
-        push_opcode(cc, object->id, code, OP_PUSH);
-        push_rf_object(code, *object);
-        func->stack_size++;
-        return -TYPE_I64;
-
-    case -TYPE_F64:
-        push_opcode(cc, object->id, code, OP_PUSH);
-        push_rf_object(code, *object);
-        func->stack_size++;
-        return -TYPE_F64;
-
     case -TYPE_SYMBOL:
         if (!has_consumer)
             return TYPE_NONE;
@@ -819,7 +813,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         {
             object->flags = 0;
             push_opcode(cc, object->id, code, OP_PUSH);
-            push_rf_object(code, *object);
+            push_const(cc, *object);
             func->stack_size++;
             return -TYPE_SYMBOL;
         }
@@ -834,7 +828,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             sym = as_vector_i64(arg_vals)[id];
             type = env_get_type_by_typename(env, sym);
             push_opcode(cc, object->id, code, OP_LLOAD);
-            push_rf_object(code, i64(1 + id));
+            push_u64(code, 1 + id);
             func->stack_size++;
 
             return type;
@@ -850,7 +844,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             sym = as_vector_i64(arg_vals)[id];
             type = env_get_type_by_typename(env, sym);
             push_opcode(cc, object->id, code, OP_LLOAD);
-            push_rf_object(code, i64(-(arg_keys->adt->len - id + 1)));
+            push_u64(code, -(arg_keys->adt->len - id + 1));
             func->stack_size++;
 
             return type;
@@ -863,7 +857,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             cerr(cc, object->id, ERR_TYPE, "unknown symbol");
 
         push_opcode(cc, object->id, code, OP_GLOAD);
-        push_rf_object(code, i64((i64_t)addr));
+        push_u64(code, addr);
         func->stack_size++;
 
         return addr->type;
@@ -874,8 +868,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             lst = rf_object_clone(object);
             lst.flags = 0;
             push_opcode(cc, object->id, code, OP_PUSH);
-            vector_push(&func->const_addrs, i64(code->adt->len));
-            push_rf_object(code, lst);
+            push_const(cc, lst);
             func->stack_size++;
 
             return TYPE_LIST;
@@ -938,7 +931,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
                 }
 
                 push_opcode(cc, car->id, code, OP_PUSH);
-                push_rf_object(code, rf_object_clone(addr));
+                push_const(cc, rf_object_clone(addr));
                 push_opcode(cc, car->id, code, OP_CALLF);
 
                 // additional one for ctx
@@ -989,7 +982,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
                 }
 
                 push_opcode(cc, car->id, code, OP_GLOAD);
-                push_rf_object(code, i64((i64_t)addr));
+                push_u64(code, addr);
                 push_opcode(cc, car->id, code, OP_CALLF);
 
                 // additional one for ctx
@@ -1008,7 +1001,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         if (type != TYPE_FUNCTION)
             cerr(cc, car->id, ERR_TYPE, "expected function/symbol as first argument");
 
-        addr = peek_rf_object(code);
+        addr = &as_list(&func->constants)[func->constants.adt->len - 1];
         func = as_function(addr);
 
         arg_keys = &as_list(&func->args)[0];
@@ -1041,10 +1034,8 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         if (!has_consumer)
             return TYPE_NONE;
         push_opcode(cc, object->id, code, OP_PUSH);
-        vector_push(&func->const_addrs, i64(code->adt->len));
-        push_rf_object(code, rf_object_clone(object));
+        push_const(cc, rf_object_clone(object));
         func->stack_size++;
-
         return object->type;
     }
 }
@@ -1072,7 +1063,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
     if (len == 0)
     {
         push_opcode(&cc, id, code, OP_PUSH);
-        push_rf_object(code, null());
+        push_const(&cc, null());
         type = TYPE_LIST;
         goto epilogue;
     }
