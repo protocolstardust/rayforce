@@ -266,14 +266,11 @@ null_t *rf_realloc(null_t *ptr, i32_t new_size)
         return NULL;
     }
 
-    new_size = realsize(new_size);
-
     node_t *node = ((node_t *)ptr) - 1;
-    i32_t size = node->size;
-    i32_t adjusted_size = blocksize(orderof(new_size));
+    i32_t size = node->size - sizeof(struct node_t);
 
     // TODO: Shrink
-    if (adjusted_size <= size)
+    if (new_size <= size)
         return ptr;
 
     null_t *new_ptr = rf_malloc(new_size);

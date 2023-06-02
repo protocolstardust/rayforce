@@ -89,69 +89,69 @@
 
 int test_symbols()
 {
-    clock_t start, end;
-    f64_t cpu_time_used;
+    // clock_t start, end;
+    // f64_t cpu_time_used;
 
-    str_t st[1000000];
+    // str_t st[1000000];
 
-    i64_t pg_size = 4096 * 1024;
+    // i64_t pg_size = 4096 * 1024;
 
-    i64_t *buckets = malloc(pg_size * sizeof(i64_t));
-    memset(buckets, 0, pg_size * sizeof(i64_t));
+    // i64_t *buckets = malloc(pg_size * sizeof(i64_t));
+    // memset(buckets, 0, pg_size * sizeof(i64_t));
 
-    for (int i = 0; i < 1000000; i++)
-    {
-        st[i] = (str_t)malloc(10);
-        snprintf(st[i], 10, "%d", 100000000 + i);
-    }
+    // for (int i = 0; i < 1000000; i++)
+    // {
+    //     st[i] = (str_t)malloc(10);
+    //     snprintf(st[i], 10, "%d", 100000000 + i);
+    // }
 
-    start = clock();
+    // start = clock();
 
-    for (int i = 0; i < 1000000; i++)
-    {
-        // printf("%s\n", st[i]);
-        rf_object_t s = str(st[i], strlen(st[i]));
-        i64_t id = symbols_intern(&s);
-        // str_t val = symbols_get(id);
-        // if (val == NULL)
-        //     printf("NULL -- ID: %lld ORIG: %s\n", id, st[i]);
-        // else
-        //     printf("%s\n", val);
-    }
+    // for (int i = 0; i < 1000000; i++)
+    // {
+    //     // printf("%s\n", st[i]);
+    //     rf_object_t s = str(st[i], strlen(st[i]));
+    //     i64_t id = symbols_intern(&s);
+    //     // str_t val = symbols_get(id);
+    //     // if (val == NULL)
+    //     //     printf("NULL -- ID: %lld ORIG: %s\n", id, st[i]);
+    //     // else
+    //     //     printf("%s\n", val);
+    // }
 
-    // rf_object_t s = str("code", 4);
-    // i64_t id1 = symbols_intern(&s), id2;
-    // str_t val = symbols_get(id1);
+    // // rf_object_t s = str("code", 4);
+    // // i64_t id1 = symbols_intern(&s), id2;
+    // // str_t val = symbols_get(id1);
 
-    // s = str("code", 4);
-    // id2 = symbols_intern(&s);
-    // val = symbols_get(id2);
+    // // s = str("code", 4);
+    // // id2 = symbols_intern(&s);
+    // // val = symbols_get(id2);
 
-    // printf("%d == %d\n", id1, id2);
+    // // printf("%d == %d\n", id1, id2);
 
-    end = clock();
+    // end = clock();
 
-    cpu_time_used = ((f64_t)(end - start)) / CLOCKS_PER_SEC;
-    printf("Time: %f ms\n", cpu_time_used * 1000);
+    // cpu_time_used = ((f64_t)(end - start)) / CLOCKS_PER_SEC;
+    // printf("Time: %f ms\n", cpu_time_used * 1000);
     return 0;
 }
 
 null_t test_find()
 {
-    rf_object_t v = vector_i64(100000000);
-    for (int i = 0; i < 100000000; i++)
-    {
-        as_vector_i64(&v)[i] = i;
-    }
+    // rf_object_t v = vector_i64(100000000);
+    // for (int i = 0; i < 100000000; i++)
+    // {
+    //     as_vector_i64(&v)[i] = i;
+    // }
 
-    clock_t start, end;
-    f64_t cpu_time_used;
-    start = clock();
-    i64_t i = vector_find(&v, i64(99999999));
-    end = clock();
-    cpu_time_used = ((f64_t)(end - start)) / CLOCKS_PER_SEC;
-    printf("I: %lld\n", i);
-    printf("Time: %f ms\n", cpu_time_used * 1000);
+    // clock_t start, end;
+    // f64_t cpu_time_used;
+    // start = clock();
+    // i64_t i = vector_find(&v, i64(99999999));
+    // end = clock();
+    // cpu_time_used = ((f64_t)(end - start)) / CLOCKS_PER_SEC;
+    // printf("I: %lld\n", i);
+    // printf("Time: %f ms\n", cpu_time_used * 1000);
 }
 
 null_t test_string_match()
@@ -167,38 +167,29 @@ null_t test_string_match()
 
     return;
 }
-typedef struct error_t
-{
-    char *file_path;
-    int error_code;
-    char *error_msg;
-    int start_line;
-    int end_line;
-    int start_column;
-    int end_column;
-} error_t;
 
-null_t test_span()
+null_t test_vector()
 {
-    error_t error;
-    error.file_path = "./core/rayforce.h";
-    error.error_code = 1;
-    error.error_msg = "An example error message";
-    error.start_line = 33;
-    error.end_line = 35;
-    error.start_column = 5;
-    error.end_column = 10;
+    debug("testing vector");
 
-    pretty_print_error(&error);
+    rf_object_t v = vector_i64(1);
+    as_vector_i64(&v)[0] = 1;
+
+    for (i32_t i = 0; i < 1000000; i++)
+    {
+        vector_push(&v, i64(i));
+    }
+
+    debug("testing vector done");
+
+    rf_object_free(&v);
 }
+
 i32_t main()
 {
-    runtime_init();
+    runtime_init(0);
 
-    // test_symbols();
+    test_vector();
 
-    test_span();
-
-    // test_string_match();
     runtime_cleanup();
 }

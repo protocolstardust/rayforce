@@ -58,7 +58,7 @@ type_list:
  */
 rf_object_t vector(i8_t type, i64_t len)
 {
-    i64_t size = size_of_val(type) * len + sizeof(header_t);
+    i64_t size = capacity(len * size_of_val(type) + sizeof(header_t));
     header_t *adt = rf_malloc(size);
 
     if (adt == NULL)
@@ -183,7 +183,7 @@ type_list:
 null_t vector_grow(rf_object_t *vector, u32_t len)
 {
     // calculate size of vector with new length
-    i64_t new_size = capacity(size_of_val(vector->type) * len + sizeof(header_t));
+    i64_t new_size = capacity(len * size_of_val(vector->type) + sizeof(header_t));
 
     rf_realloc(vector->adt, new_size);
     vector->adt->len = len;
@@ -192,7 +192,7 @@ null_t vector_grow(rf_object_t *vector, u32_t len)
 null_t vector_shrink(rf_object_t *vector, u32_t len)
 {
     // calculate size of vector with new length
-    i64_t new_size = capacity(size_of_val(vector->type) * len + sizeof(header_t));
+    i64_t new_size = capacity(len * size_of_val(vector->type) + sizeof(header_t));
 
     rf_realloc(vector->adt, new_size);
     vector->adt->len = len;
@@ -409,32 +409,5 @@ rf_object_t list_flatten(rf_object_t *list)
 
 null_t vector_free(rf_object_t *vector)
 {
-    // i64_t size_of_val;
-    // i64_t size;
-
-    // switch (vector->type)
-    // {
-    // case TYPE_BOOL:
-    //     size_of_val = sizeof(i8_t);
-    //     break;
-    // case TYPE_I64:
-    //     size_of_val = sizeof(i64_t);
-    //     break;
-    // case TYPE_F64:
-    //     size_of_val = sizeof(f64_t);
-    //     break;
-    // case TYPE_SYMBOL:
-    //     size_of_val = sizeof(i64_t);
-    //     break;
-    // case TYPE_LIST:
-    //     size_of_val = sizeof(rf_object_t);
-    //     break;
-    // case TYPE_CHAR:
-    //     size_of_val = sizeof(i8_t);
-    //     break;
-    // default:
-    //     panic(str_fmt(0, "unknown type: %d", vector->type));
-    // }
-
     rf_free(vector->adt);
 }

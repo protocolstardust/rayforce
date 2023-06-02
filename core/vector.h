@@ -36,7 +36,7 @@
 #define VEC_ATTR_MASK 0xFF << 55
 
 /*
- * Each vector capacity is always factor of 8
+ * Each vector capacity is always factor of 16
  * This allows to avoid storing capacity in vector
  */
 #define CAPACITY_FACTOR 16
@@ -71,10 +71,11 @@
  * t - type of rf_objectect to append
  * x - rf_objectect to append
  */
-#define push(v, t, x)                                                 \
-    {                                                                 \
-        reserve(v, t, 1);                                             \
-        memcpy(&((t *)as_string(v))[(v)->adt->len++], &x, sizeof(t)); \
+#define push(v, t, x)                                                      \
+    {                                                                      \
+        reserve(v, t, 1);                                                  \
+        memcpy(as_string(v) + ((v)->adt->len * sizeof(t)), &x, sizeof(t)); \
+        (v)->adt->len++;                                                   \
     }
 
 #define pop(v, t) ((t *)(as_string(v)))[--(v)->adt->len]

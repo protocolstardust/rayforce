@@ -1398,7 +1398,15 @@ rf_object_t rf_filter_I64_Bool(rf_object_t *x, rf_object_t *y)
 
     return res;
 }
-// rf_object_t rf_filter_Timestamp_Bool(rf_object_t *x, rf_object_t *y);
-// rf_object_t rf_filter_Guid_Bool(rf_object_t *x, rf_object_t *y);
-// rf_object_t rf_filter_F64_Bool(rf_object_t *x, rf_object_t *y);
-// rf_object_t rf_filter_Char_Bool(rf_object_t *x, rf_object_t *y);
+
+rf_object_t rf_take_i64_i64(rf_object_t *x, rf_object_t *y)
+{
+    i64_t i, l = x->i64, n = y->i64;
+    rf_object_t vec = vector_i64(l);
+    i64_t *ov = as_vector_i64(&vec);
+
+    for (i = 0; i < l; i++)
+        ov[i] = n;
+
+    return vec;
+}

@@ -50,79 +50,117 @@ rf_object_t rf_til_i64(rf_object_t *x)
 
 rf_object_t rf_distinct_I64(rf_object_t *x)
 {
-    i32_t i, j = 0, mask_size;
-    i64_t min, max, l = x->adt->len, *xi = as_vector_i64(x), *vi;
-    rf_object_t mask, vec;
-    bool_t *m;
+    // i32_t i, j = 0, mask_size;
+    // i64_t min, max, l = x->adt->len, *xi = as_vector_i64(x), *vi;
+    // rf_object_t mask, vec;
+    // bool_t *m;
 
-    if (l == 0)
-        return vector_i64(0);
+    // if (l == 0)
+    //     return vector_i64(0);
 
-    if (x->adt->attrs & VEC_ATTR_DISTINCT)
-        return rf_object_clone(x);
+    // if (x->adt->attrs & VEC_ATTR_DISTINCT)
+    //     return rf_object_clone(x);
 
-    max = min = xi[0];
+    // max = min = xi[0];
 
-    for (i = 0; i < l; i++)
-    {
-        if (xi[i] < min)
-            min = xi[i];
-        else if (xi[i] > max)
-            max = xi[i];
-    }
+    // for (i = 0; i < l; i++)
+    // {
+    //     if (xi[i] < min)
+    //         min = xi[i];
+    //     else if (xi[i] > max)
+    //         max = xi[i];
+    // }
 
-    mask_size = max - min + 1;
+    // mask_size = max - min + 1;
 
-    mask = vector_bool(mask_size);
-    m = as_vector_bool(&mask);
-    memset(m, 0, mask_size);
+    // mask = vector_bool(mask_size);
+    // m = as_vector_bool(&mask);
+    // memset(m, 0, mask_size);
 
-    vec = vector_i64(l);
-    vi = as_vector_i64(&vec);
+    // vec = vector_i64(l);
+    // vi = as_vector_i64(&vec);
 
-    for (i = 0; i < l; i++)
-    {
-        if (!m[xi[i]])
-        {
-            vi[j++] = xi[i];
-            m[xi[i]] = true;
-        }
-    }
+    // for (i = 0; i < l; i++)
+    // {
+    //     if (!m[xi[i]])
+    //     {
+    //         vi[j++] = xi[i];
+    //         m[xi[i]] = true;
+    //     }
+    // }
 
-    rf_object_free(&mask);
-    vec.adt->len = j;
+    // rf_object_free(&mask);
+    // vector_shrink(&vec, j);
+
+    i64_t i, j = 0, xl = x->adt->len, *iv1 = as_vector_i64(x), *ov;
+    rf_object_t vec;
+    ht_t *ht;
+    bucket_t *b;
+
+    ht = ht_new(xl, i64_hash, i64_cmp);
+
+    for (i = 0; i < xl; i++)
+        ht_insert(ht, (null_t *)(iv1[i]), (null_t *)i);
+
+    vec = vector_i64(ht->count);
+    ov = as_vector_i64(&vec);
+
+    i = j = 0;
+    while ((b = ht_next_bucket(ht, &i)))
+        ov[j++] = (i64_t)b->key;
+
+    ht_free(ht);
 
     return vec;
 }
-
 rf_object_t rf_group_I64(rf_object_t *x)
 {
-    // u64_t i, n, xl = x->adt->len;
-    // rf_object_t vec = vector_i64(xl), found;
-    // i64_t *iv1 = as_vector_i64(x), *iv2 = as_vector_i64(y),
-    //       *ov = as_vector_i64(&vec), *fv, v;
-    // ht_t *ht;
+    i64_t i, j = 0, n = 0, l, xl = x->adt->len, *iv1 = as_vector_i64(x), *kv;
+    rf_object_t keys, vals, *vv, v;
+    ht_t *ht;
+    i64_t cap = 2;
 
-    // // otherwise, use a hash table
-    // ht = ht_new(xl, i64_hash, i64_cmp);
+    keys = vector_i64(xl);
+    kv = as_vector_i64(&keys);
+    vals = list(xl);
+    vv = as_list(&vals);
 
-    // for (i = 0; i < xl; i++)
-    //     ht_insert(ht, (null_t *)(normalize(iv1[i])), (null_t *)i);
+    ht = ht_new(xl, i64_hash, i64_cmp);
 
-    // for (i = 0; i < yl; i++)
-    // {
-    //     v = (i64_t)ht_get(ht, (null_t *)(normalize(iv2[i])));
-    //     if (v < 0)
-    //         ov[i] = NULL_I64;
-    //     else
-    //         ov[i] = v;
-    // }
+    for (i = 0; i < xl; i++)
+    {
+        n = (i64_t)ht_get(ht, (null_t *)iv1[i]);
+        if (n == NULL_I64)
+        {
+            kv[j] = iv1[i];
+            ht_insert(ht, (null_t *)iv1[i], (null_t *)j);
+            v = vector_i64(cap);
+            as_vector_i64(&v)[0] = i;
+            v.adt->len = 1;
+            vv[j++] = v;
+        }
+        // else
+        // {
+        //     l = vv[n].adt->len;
+        //     if (l < cap)
+        //         as_vector_i64(&vv[n])[l] = i;
+        //     else
+        //     {
+        //         cap *= 2;
+        //         vector_grow(&vv[n], cap);
+        //         as_vector_i64(&vv[n])[l] = i;
+        //     }
 
-    // ht_free(ht);
+        //     vv[n].adt->len = l + 1;
+        // }
+    }
 
-    // return vec;
+    ht_free(ht);
 
-    return *x;
+    vector_shrink(&keys, j);
+    vector_shrink(&vals, j);
+
+    return dict(keys, vals);
 }
 
 rf_object_t rf_sum_I64(rf_object_t *x)

@@ -108,9 +108,9 @@ null_t pool_node_free(pool_node_t *node)
  * In case of symbols this avoids having to copy the string every time.
  * Stores string in the strings pool and returns the pointer to the string.
  */
-null_t *str_dup(null_t *key, null_t *val, bucket_t *bucket)
+null_t *str_dup(null_t *key, null_t *val, null_t *seed, bucket_t *bucket)
 {
-    symbols_t *symbols = runtime_get()->symbols;
+    symbols_t *symbols = (symbols_t *)seed;
 
     str_slice_t *string = (str_slice_t *)key;
     str_t str = string->str;
@@ -167,7 +167,7 @@ i64_t symbols_intern(str_t s, i64_t len)
     symbols_t *symbols = runtime_get()->symbols;
     i64_t id = symbols->str_to_id->count;
     str_slice_t str_slice = {s, len};
-    i64_t id_or_str = (i64_t)ht_insert_with(symbols->str_to_id, &str_slice, (null_t *)id, &str_dup);
+    i64_t id_or_str = (i64_t)ht_insert_with(symbols->str_to_id, &str_slice, (null_t *)id, symbols, &str_dup);
     if (symbols->str_to_id->count == (u64_t)id)
         return id_or_str;
 
