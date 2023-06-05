@@ -33,7 +33,7 @@
 
 ht_t *ht_new(i64_t size, u64_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b))
 {
-    i64_t i;
+    i64_t i, *kv;
     ht_t *table = (ht_t *)rf_malloc(sizeof(struct ht_t));
 
     table->keys = vector_i64(size);
@@ -43,8 +43,10 @@ ht_t *ht_new(i64_t size, u64_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64
     table->hasher = hasher;
     table->compare = compare;
 
+    kv = as_vector_i64(&table->keys);
+
     for (i = 0; i < size; i++)
-        as_vector_i64(&table->keys)[i] = NULL_I64;
+        kv[i] = NULL_I64;
 
     return table;
 }
@@ -61,7 +63,7 @@ null_t rehash(ht_t *table)
     i64_t i, old_size = table->size;
     rf_object_t old_keys = table->keys;
     rf_object_t old_vals = table->vals;
-    i64_t *ok = as_vector_i64(&old_keys), *ov = as_vector_i64(&old_vals);
+    i64_t *ok = as_vector_i64(&old_keys), *ov = as_vector_i64(&old_vals), *kv;
 
     // Double the table size.
     table->size *= 2;
@@ -74,8 +76,10 @@ null_t rehash(ht_t *table)
             ht_insert(table, ok[i], ov[i]);
     }
 
+    kv = as_vector_i64(&table->keys);
+
     for (; i < table->size; i++)
-        as_vector_i64(&table->keys)[i] = NULL_I64;
+        kv[i] = NULL_I64;
 
     rf_object_free(&old_keys);
     rf_object_free(&old_vals);
@@ -129,6 +133,7 @@ i64_t ht_insert(ht_t *table, i64_t key, i64_t val)
         return val;
     }
 
+    debug("REHASH!!!!");
     rehash(table);
     return ht_insert(table, key, val);
 }
@@ -160,8 +165,9 @@ i64_t ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
         return func(key, val, seed, &keys[i], &vals[i]);
     }
 
-    rehash(table);
-    return ht_insert(table, key, val);
+    // rehash(table);
+    // return ht_insert(table, key, val);
+    panic("Hash table is full");
 }
 
 /*
