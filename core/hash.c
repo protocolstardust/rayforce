@@ -59,7 +59,7 @@ null_t ht_free(ht_t *table)
     rf_free(table);
 }
 
-null_t rehash(ht_t *table)
+null_t ht_rehash(ht_t *table)
 {
     i64_t i, old_size = table->size;
     rf_object_t old_keys = table->keys;
@@ -85,7 +85,7 @@ null_t rehash(ht_t *table)
     rf_object_free(&old_vals);
 }
 
-null_t rehash_with(ht_t *table, null_t *seed, i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval))
+null_t ht_rehash_with(ht_t *table, null_t *seed, i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval))
 {
     i64_t i, old_size = table->size;
     rf_object_t old_keys = table->keys;
@@ -137,15 +137,15 @@ entry:
             vals[i] = val;
             table->count++;
 
-            // Check if rehash is necessary.
+            // Check if ht_rehash is necessary.
             if ((f64_t)table->count / table->size > 0.7)
-                rehash(table);
+                ht_rehash(table);
 
             return val;
         }
     }
 
-    rehash(table);
+    ht_rehash(table);
     goto entry;
 }
 
@@ -174,15 +174,15 @@ entry:
         {
             table->count++;
 
-            // Check if rehash is necessary.
+            // Check if ht_rehash is necessary.
             if ((f64_t)table->count / table->size > 0.7)
-                rehash_with(table, seed, func);
+                ht_rehash_with(table, seed, func);
 
             return func(key, val, seed, &keys[i], &vals[i]);
         }
     }
 
-    rehash_with(table, seed, func);
+    ht_rehash_with(table, seed, func);
     goto entry;
 }
 
@@ -216,15 +216,15 @@ entry:
             vals[i] = val;
             table->count++;
 
-            // Check if rehash is necessary.
+            // Check if ht_rehash is necessary.
             if ((f64_t)table->count / table->size > 0.7)
-                rehash(table);
+                ht_rehash(table);
 
             return false;
         }
     }
 
-    rehash(table);
+    ht_rehash(table);
     goto entry;
 }
 
@@ -258,15 +258,15 @@ entry:
             vals[i] = val;
             table->count++;
 
-            // Check if rehash is necessary.
+            // Check if ht_rehash is necessary.
             if ((f64_t)table->count / table->size > 0.7)
-                rehash_with(table, seed, func);
+                ht_rehash_with(table, seed, func);
 
             return false;
         }
     }
 
-    rehash_with(table, seed, func);
+    ht_rehash_with(table, seed, func);
     goto entry;
 }
 
