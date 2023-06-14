@@ -125,3 +125,8 @@ u64_t fnv1a_hash_64(i64_t key)
 
     return hash;
 }
+
+u64_t i64_hash(i64_t key)
+{
+    return (u64_t)key;
+}

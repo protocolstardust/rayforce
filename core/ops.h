@@ -73,5 +73,6 @@ u64_t rand_u64();
 // Knuth's multiplicative hash
 u64_t kmh_hash(i64_t key);
 u64_t fnv1a_hash_64(i64_t key);
+u64_t i64_hash(i64_t a);
 
 #endif
