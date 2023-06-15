@@ -58,7 +58,7 @@ null_t print_blocks()
 
 null_t *rf_alloc_add_pool(u32_t size)
 {
-    null_t *pool = (null_t *)mmap_malloc(size);
+    null_t *pool = mmap_malloc(size);
     node_t *node = (node_t *)pool;
 
     assert(node != NULL);
@@ -72,12 +72,22 @@ null_t *rf_alloc_add_pool(u32_t size)
 
 alloc_t rf_alloc_init()
 {
-    i32_t order;
+    i32_t i, order;
 
     _ALLOC = (alloc_t)mmap_malloc(sizeof(struct alloc_t));
     _ALLOC->avail = 0;
+    _ALLOC->blocks64 = mmap_malloc(NUM_64_BLOCKS * 64);
+    _ALLOC->freelist64 = NULL;
 
-    for (order = MAX_ORDER - 6; order <= MAX_ORDER; order++)
+    // fill linked list of 64 bytes blocks
+    for (i = NUM_64_BLOCKS - 1; i >= 0; i--)
+    {
+        null_t *block64 = _ALLOC->blocks64 + i * 64;
+        *(null_t **)block64 = _ALLOC->freelist64;
+        _ALLOC->freelist64 = block64;
+    }
+
+    for (order = MAX_ORDER - 4; order <= MAX_ORDER; order++)
     {
         node_t *node = (node_t *)rf_alloc_add_pool(1ull << order);
 
@@ -117,6 +127,7 @@ null_t rf_alloc_cleanup()
         }
     }
 
+    mmap_free(_ALLOC->blocks64, NUM_64_BLOCKS * 64);
     mmap_free(_ALLOC, sizeof(struct alloc_t));
 }
 
@@ -165,7 +176,20 @@ null_t *rf_malloc(u64_t size)
     u32_t i, order;
     null_t *block, *base;
     node_t *node;
-    u64_t capacity = size + sizeof(struct node_t);
+    u64_t capacity;
+
+    if (size == 0)
+        return NULL;
+
+    if (size <= 64 && _ALLOC->freelist64 != NULL)
+    {
+        block = _ALLOC->freelist64;
+        _ALLOC->freelist64 = *(null_t **)block;
+
+        return block;
+    }
+
+    capacity = size + sizeof(struct node_t);
 
     // calculate minimal order for this size
     order = orderof(capacity);
@@ -222,6 +246,14 @@ null_t *rf_malloc(u64_t size)
 
 null_t rf_free(null_t *block)
 {
+    // block is a 64 bytes block
+    if (block >= _ALLOC->blocks64 && block < _ALLOC->blocks64 + NUM_64_BLOCKS * 64)
+    {
+        *(null_t **)block = _ALLOC->freelist64;
+        _ALLOC->freelist64 = block;
+        return;
+    }
+
     null_t *buddy;
     node_t *node = (node_t *)block - 1, **n;
     block = (null_t *)node;
@@ -267,32 +299,48 @@ null_t rf_free(null_t *block)
     }
 }
 
-null_t *rf_realloc(null_t *ptr, u64_t new_size)
+null_t *rf_realloc(null_t *block, u64_t new_size)
 {
-    if (ptr == NULL)
+    if (block == NULL)
         return rf_malloc(new_size);
 
     if (new_size == 0)
     {
-        rf_free(ptr);
+        rf_free(block);
         return NULL;
     }
 
-    node_t *node = ((node_t *)ptr) - 1;
+    // block is a 64 bytes block
+    if (block >= _ALLOC->blocks64 && block < _ALLOC->blocks64 + NUM_64_BLOCKS * 64)
+    {
+        if (new_size <= 64)
+            return block;
+
+        null_t *new_block = rf_malloc(new_size);
+        if (new_block)
+        {
+            memcpy(new_block, block, 64);
+            rf_free(block);
+        }
+
+        return new_block;
+    }
+
+    node_t *node = ((node_t *)block) - 1;
     u64_t size = node->size - sizeof(struct node_t);
 
     // TODO: Shrink
     if (new_size <= size)
-        return ptr;
+        return block;
 
-    null_t *new_ptr = rf_malloc(new_size);
-    if (new_ptr)
+    null_t *new_block = rf_malloc(new_size);
+    if (new_block)
     {
-        memcpy(new_ptr, ptr, size);
-        rf_free(ptr);
+        memcpy(new_block, block, size);
+        rf_free(block);
     }
 
-    return new_ptr;
+    return new_block;
 }
 
 #endif

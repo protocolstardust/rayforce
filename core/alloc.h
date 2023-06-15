@@ -28,12 +28,14 @@
 #include "symbols.h"
 
 // clang-format off
-#define MIN_ORDER      4
-#define MAX_ORDER      28 // 2^28 = 256MB
-#define MAX_POOL_ORDER 36 // 2^36 = 64GB
-#define MIN_ALLOC      (1ull << MIN_ORDER)
-#define MAX_ALLOC      (1ull << MAX_ORDER)
-#define POOL_SIZE      (1ull << MAX_ORDER)
+#define MIN_ORDER        6  // 2^6  = 64 bytes
+#define MAX_ORDER        28 // 2^28 = 256MB
+#define MAX_POOL_ORDER   36 // 2^36 = 64GB
+#define MIN_ALLOC        (1ull << MIN_ORDER)
+#define MAX_ALLOC        (1ull << MAX_ORDER)
+#define POOL_SIZE        (1ull << MAX_ORDER)
+#define SMALL_BLOCK_SIZE (1ull << MIN_ORDER) // 64 bytes
+#define NUM_64_BLOCKS    1024 * 1024 * 16    // 16M blocks
 
 typedef struct node_t
 {
@@ -56,6 +58,8 @@ typedef struct memstat_t
 
 typedef struct alloc_t
 {
+    null_t *blocks64;                     // pool of 64 bytes blocks
+    null_t *freelist64;                   // blocks of 64 bytes
     node_t *freelist[MAX_POOL_ORDER + 2]; // free list of blocks by order
     u64_t   avail;                        // mask of available blocks by order
 } __attribute__((aligned(PAGE_SIZE))) * alloc_t;
@@ -63,7 +67,7 @@ typedef struct alloc_t
 CASSERT(sizeof(struct alloc_t) % PAGE_SIZE == 0, alloc_h)
 
 extern null_t   *rf_malloc(u64_t size);
-extern null_t   *rf_realloc(null_t *ptr, u64_t size);
+extern null_t   *rf_realloc(null_t *block, u64_t size);
 extern null_t    rf_free(null_t *block);
 extern alloc_t   rf_alloc_init();
 extern alloc_t   rf_alloc_get();
