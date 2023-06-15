@@ -181,12 +181,19 @@ null_t *rf_malloc(u64_t size)
     if (size == 0)
         return NULL;
 
-    if (size <= 64 && _ALLOC->freelist64 != NULL)
+    if (size <= 64)
     {
-        block = _ALLOC->freelist64;
-        _ALLOC->freelist64 = *(null_t **)block;
+        if (_ALLOC->freelist64 != NULL)
+        {
+            block = _ALLOC->freelist64;
+            _ALLOC->freelist64 = *(null_t **)block;
 
-        return block;
+            return block;
+        }
+        // else
+        // {
+        //     printf("no 64 bytes blocks left\n");
+        // }
     }
 
     capacity = size + sizeof(struct node_t);
@@ -246,6 +253,10 @@ null_t *rf_malloc(u64_t size)
 
 null_t rf_free(null_t *block)
 {
+    null_t *buddy;
+    node_t *node, **n;
+    u32_t order;
+
     // block is a 64 bytes block
     if (block >= _ALLOC->blocks64 && block <= _ALLOC->blocks64 + NUM_64_BLOCKS * 64 - 64)
     {
@@ -254,10 +265,9 @@ null_t rf_free(null_t *block)
         return;
     }
 
-    null_t *buddy;
-    node_t *node = (node_t *)block - 1, **n;
+    node = (node_t *)block - 1;
     block = (null_t *)node;
-    u32_t order = orderof(node->size);
+    order = orderof(node->size);
 
     for (;; order++)
     {
@@ -301,6 +311,10 @@ null_t rf_free(null_t *block)
 
 null_t *rf_realloc(null_t *block, u64_t new_size)
 {
+    node_t *node;
+    u64_t size;
+    null_t *new_block;
+
     if (block == NULL)
         return rf_malloc(new_size);
 
@@ -316,29 +330,28 @@ null_t *rf_realloc(null_t *block, u64_t new_size)
         if (new_size <= 64)
             return block;
 
-        null_t *new_block = rf_malloc(new_size);
+        new_block = rf_malloc(new_size);
         if (new_block)
-        {
             memcpy(new_block, block, 64);
-            rf_free(block);
-        }
+
+        *(null_t **)block = _ALLOC->freelist64;
+        _ALLOC->freelist64 = block;
 
         return new_block;
     }
 
-    node_t *node = ((node_t *)block) - 1;
-    u64_t size = node->size - sizeof(struct node_t);
+    node = ((node_t *)block) - 1;
+    size = node->size - sizeof(struct node_t);
 
     // TODO: Shrink
     if (new_size <= size)
         return block;
 
-    null_t *new_block = rf_malloc(new_size);
+    new_block = rf_malloc(new_size);
     if (new_block)
-    {
         memcpy(new_block, block, size);
-        rf_free(block);
-    }
+
+    rf_free(block);
 
     return new_block;
 }
