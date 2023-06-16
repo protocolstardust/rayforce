@@ -119,12 +119,11 @@ i64_t str_dup(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
         symbols->pool_node = node;
         symbols->strings_pool = (str_t)(node + sizeof(pool_node_t *)); // Skip the node size of next ptr
     }
-
     strncpy(symbols->strings_pool, str, len);
     *tkey = (i64_t)symbols->strings_pool;
     *tval = val;
     symbols->strings_pool += len + 1; // +1 for null terminator (buffer is zeroed)
-    return key;
+    return *tkey;
 }
 
 symbols_t *symbols_new()
