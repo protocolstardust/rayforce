@@ -496,9 +496,42 @@ rf_object_t rf_eq_F64_F64(rf_object_t *x, rf_object_t *y)
     return res;
 }
 
-rf_object_t rf_eq_Bool_Bool(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_eq_bool_bool(rf_object_t *x, rf_object_t *y)
 {
     return (bool(x->bool == y->bool));
+}
+
+rf_object_t rf_eq_symbol_symbol(rf_object_t *x, rf_object_t *y)
+{
+    return (bool(x->i64 == y->i64));
+}
+
+rf_object_t rf_eq_Symbol_symbol(rf_object_t *x, rf_object_t *y)
+{
+    i32_t i;
+    i64_t l = x->adt->len;
+    i64_t *iv = as_vector_symbol(x);
+    rf_object_t res = vector_bool(x->adt->len);
+    bool_t *ov = as_vector_bool(&res);
+
+    for (i = 0; i < l; i++)
+        ov[i] = iv[i] == y->i64;
+
+    return res;
+}
+
+rf_object_t rf_eq_Symbol_Symbol(rf_object_t *x, rf_object_t *y)
+{
+    i32_t i;
+    i64_t l = x->adt->len;
+    i64_t *iv1 = as_vector_symbol(x), *iv2 = as_vector_symbol(y);
+    rf_object_t res = vector_bool(x->adt->len);
+    bool_t *ov = as_vector_bool(&res);
+
+    for (i = 0; i < l; i++)
+        ov[i] = iv1[i] == iv2[i];
+
+    return res;
 }
 
 rf_object_t rf_ne_i64_i64(rf_object_t *x, rf_object_t *y)

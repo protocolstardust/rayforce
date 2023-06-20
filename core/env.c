@@ -78,6 +78,9 @@ null_t init_functions(rf_object_t *records)
     REC(records, 2, "==",       -TYPE_BOOL,       rf_eq_f64_f64,           {-TYPE_F64,       -TYPE_F64         });
     REC(records, 2, "==",        TYPE_BOOL,       rf_eq_F64_f64,           { TYPE_F64,       -TYPE_F64         })
     REC(records, 2, "==",        TYPE_BOOL,       rf_eq_F64_F64,           { TYPE_F64,        TYPE_F64         });
+    REC(records, 2, "==",       -TYPE_BOOL,       rf_eq_symbol_symbol,     {-TYPE_SYMBOL,    -TYPE_SYMBOL      });
+    REC(records, 2, "==",        TYPE_BOOL,       rf_eq_Symbol_symbol,     { TYPE_SYMBOL,    -TYPE_SYMBOL      });
+    REC(records, 2, "==",        TYPE_BOOL,       rf_eq_Symbol_Symbol,     { TYPE_SYMBOL,     TYPE_SYMBOL      });
     REC(records, 2, "<",        -TYPE_BOOL,       rf_lt_i64_i64,           {-TYPE_I64,       -TYPE_I64         });
     REC(records, 2, "<",        -TYPE_BOOL,       rf_lt_f64_f64,           {-TYPE_F64,       -TYPE_F64         });
     REC(records, 2, "<",         TYPE_BOOL,       rf_lt_I64_i64,           { TYPE_I64,       -TYPE_I64         });

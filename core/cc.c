@@ -610,11 +610,8 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
     UNUSED(has_consumer);
 
     i8_t type;
-    rf_object_t *car, *params, key, val;
-    // function_t *func = as_function(&cc->function);
-    // rf_object_t *code = &func->code;
-    // env_t *env = &runtime_get()->env;
-    table_t table;
+    i64_t lbl1, lbl2;
+    rf_object_t *car, *params, key, val, table;
 
     car = &as_list(object)[0];
     if (car->i64 == symbol("select").i64)
@@ -628,20 +625,15 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
             cerr(cc, car->id, ERR_LENGTH, "'select' takes dict of params");
 
         key = symbol("from");
-        val = dict_get(params, &key);
-        if (val.type == TYPE_NULL)
+        table = dict_get(params, &key);
+
+        if (table.type == TYPE_NULL)
             cerr(cc, car->id, ERR_LENGTH, "'select': 'from' is required");
-
-        table = (table_t){
-            .expr = val,
-            .cols = dict(vector_symbol(0), vector_symbol(0)),
-        };
-
-        cc->table = &table;
 
         // compile filters
         key = symbol("where");
         val = dict_get(params, &key);
+
         if (!is_null(&val))
         {
             type = cc_compile_expr(true, cc, &val);
@@ -649,21 +641,18 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
 
             if (type == TYPE_ERROR)
             {
-                rf_object_free(&cc->table->expr);
-                rf_object_free(&cc->table->cols);
+                rf_object_free(&table);
                 return type;
             }
 
             if (type != -TYPE_BOOL)
             {
-                rf_object_free(&cc->table->expr);
-                rf_object_free(&cc->table->cols);
+                rf_object_free(&table);
                 cerr(cc, car->id, ERR_TYPE, "'select': condition must have a Bool result");
             }
         }
 
-        rf_object_free(&cc->table->expr);
-        rf_object_free(&cc->table->cols);
+        rf_object_free(&table);
         // --
     }
 
@@ -1054,7 +1043,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
 {
     cc_t cc = {
         .top_level = top,
-        .table = NULL,
+        .tabletype = NULL,
         .debuginfo = debuginfo,
         .function = function(rettype, args, dict(vector_symbol(0), vector_i64(0)), string(0),
                              debuginfo_new(debuginfo->filename, name)),
