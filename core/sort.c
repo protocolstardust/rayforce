@@ -238,28 +238,7 @@ null_t insertion_sort_desc(i64_t array[], i64_t indices[], i64_t left, i64_t rig
 }
 //
 
-i64_t count_out_of_order_asc(i64_t array[], i64_t n)
-{
-    i64_t i, out_of_order_count = 0;
-
-    for (i = 0; i < n - 1; i++)
-        if (array[i] > array[i + 1])
-            out_of_order_count++;
-
-    return out_of_order_count;
-}
-
-i64_t count_out_of_order_desc(i64_t array[], i64_t n)
-{
-    i64_t i, out_of_order_count = 0;
-
-    for (i = 0; i < n - 1; i++)
-        if (array[i] < array[i + 1])
-            out_of_order_count++;
-
-    return out_of_order_count;
-}
-
+// counting sort
 null_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max)
 {
     i64_t i, j = 0, l, n, p, range, *m, *v;
@@ -371,15 +350,10 @@ rf_object_t rf_sort_asc(rf_object_t *vec)
 
         if ((iv[i] - min) < COUNTING_SORT_LIMIT)
             inrange++;
-    }
 
-    if (inrange == len)
-    {
-        counting_sort_asc(iv, ov, len, min, max);
-        return indices;
+        if (i > 0 && iv[i] < iv[i - 1])
+            out_of_order++;
     }
-
-    out_of_order = count_out_of_order_asc(iv, len);
 
     // ascending order
     if (out_of_order == 0)
@@ -396,6 +370,12 @@ rf_object_t rf_sort_asc(rf_object_t *vec)
         vec->adt->attrs |= VEC_ATTR_DESC;
         for (i = 0; i < len; i++)
             ov[i] = len - i - 1;
+        return indices;
+    }
+
+    if (inrange == len)
+    {
+        counting_sort_asc(iv, ov, len, min, max);
         return indices;
     }
 
@@ -451,15 +431,10 @@ rf_object_t rf_sort_desc(rf_object_t *vec)
 
         if ((iv[i] - min) < COUNTING_SORT_LIMIT)
             inrange++;
-    }
 
-    if (inrange == len)
-    {
-        counting_sort_desc(iv, ov, len, min, max);
-        return indices;
+        if (i > 0 && iv[i] > iv[i - 1])
+            out_of_order++;
     }
-
-    out_of_order = count_out_of_order_desc(iv, len);
 
     // descending order
     if (out_of_order == 0)
@@ -476,6 +451,12 @@ rf_object_t rf_sort_desc(rf_object_t *vec)
         vec->adt->attrs |= VEC_ATTR_ASC;
         for (i64_t i = 0; i < len; i++)
             ov[i] = len - i - 1;
+        return indices;
+    }
+
+    if (inrange == len)
+    {
+        counting_sort_desc(iv, ov, len, min, max);
         return indices;
     }
 
