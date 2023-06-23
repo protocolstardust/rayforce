@@ -423,7 +423,7 @@ rf_object_t vector_filter(rf_object_t *x, bool_t mask[], i64_t len)
 
 type_bool:
     vec = vector_bool(ol);
-    for (i = 0; i < l; i++)
+    for (i = 0; (j < ol && i < l); i++)
         if (mask[i])
             as_vector_bool(&vec)[j++] = as_vector_bool(x)[i];
     if (len == NULL_I64)
@@ -431,7 +431,7 @@ type_bool:
     return vec;
 type_i64:
     vec = vector_i64(ol);
-    for (i = 0; i < l; i++)
+    for (i = 0; (j < ol && i < l); i++)
         if (mask[i])
             as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
     if (len == NULL_I64)
@@ -439,7 +439,7 @@ type_i64:
     return vec;
 type_f64:
     vec = vector_f64(ol);
-    for (i = 0; i < l; i++)
+    for (i = 0; (j < ol && i < l); i++)
         if (mask[i])
             as_vector_f64(&vec)[j++] = as_vector_f64(x)[i];
     if (len == NULL_I64)
@@ -447,7 +447,7 @@ type_f64:
     return vec;
 type_symbol:
     vec = vector_symbol(ol);
-    for (i = 0; i < l; i++)
+    for (i = 0; (j < ol && i < l); i++)
         if (mask[i])
             as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
     if (len == NULL_I64)
@@ -455,7 +455,7 @@ type_symbol:
     return vec;
 type_timestamp:
     vec = vector_timestamp(ol);
-    for (i = 0; i < l; i++)
+    for (i = 0; (j < ol && i < l); i++)
         if (mask[i])
             as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
     if (len == NULL_I64)
@@ -463,14 +463,14 @@ type_timestamp:
     return vec;
 type_guid:
     vec = vector_guid(ol);
-    for (i = 0; i < l; i++)
+    for (i = 0; (j < ol && i < l); i++)
         if (mask[i])
             as_vector_guid(&vec)[j++] = as_vector_guid(x)[i];
     if (len == NULL_I64)
         return vec;
 type_char:
     vec = string(ol);
-    for (i = 0; i < l; i++)
+    for (i = 0; (j < ol && i < l); i++)
         if (mask[i])
             as_string(&vec)[j++] = as_string(x)[i];
     if (len == NULL_I64)
@@ -478,7 +478,7 @@ type_char:
     return vec;
 type_list:
     vec = list(ol);
-    for (i = 0; i < l; i++)
+    for (i = 0; (j < ol && i < l); i++)
         if (mask[i])
             as_list(&vec)[j++] = rf_object_clone(&as_list(x)[i]);
     if (len == NULL_I64)
