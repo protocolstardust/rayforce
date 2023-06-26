@@ -25,6 +25,7 @@
 #include "mmap.h"
 #include "alloc.h"
 #include "util.h"
+#include "cc.h"
 
 // Global runtime reference
 runtime_t _RUNTIME = NULL;

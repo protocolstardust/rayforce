@@ -144,18 +144,13 @@ cc_result_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object,
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
-    if (car->i64 == symbol("`").i64)
-    {
-        if (!has_consumer)
-            return CC_NONE;
+    if (!has_consumer)
+        return CC_NONE;
 
-        push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, rf_object_clone(&as_list(object)[1]));
+    push_opcode(cc, car->id, code, OP_PUSH);
+    push_const(cc, rf_object_clone(&as_list(object)[1]));
 
-        return as_list(object)[1].type;
-    }
-
-    return CC_NONE;
+    return as_list(object)[1].type;
 }
 
 cc_result_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -165,60 +160,51 @@ cc_result_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, 
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
-    if (car->i64 == symbol("time").i64)
-    {
-        if (!has_consumer)
-            return CC_NULL;
+    if (!has_consumer)
+        return CC_NULL;
 
-        if (arity != 1)
-            cerr(cc, car->id, ERR_LENGTH, "'time' takes one argument");
+    if (arity != 1)
+        cerr(cc, car->id, ERR_LENGTH, "'time' takes one argument");
 
-        push_opcode(cc, car->id, code, OP_TIMER_SET);
-        res = cc_compile_expr(false, cc, &as_list(object)[1]);
+    push_opcode(cc, car->id, code, OP_TIMER_SET);
+    res = cc_compile_expr(false, cc, &as_list(object)[1]);
 
-        if (res == CC_ERROR)
-            return CC_ERROR;
+    if (res == CC_ERROR)
+        return CC_ERROR;
 
-        push_opcode(cc, car->id, code, OP_TIMER_GET);
+    push_opcode(cc, car->id, code, OP_TIMER_GET);
 
-        return CC_OK;
-    }
-
-    return CC_NONE;
+    return CC_OK;
 }
 
 cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
+    debug("SET!!!!");
     cc_result_t res;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
-    if (car->i64 == symbol("set").i64)
-    {
-        if (!has_consumer)
-            return CC_NULL;
+    if (!has_consumer)
+        return CC_NULL;
 
-        if (arity != 2)
-            cerr(cc, car->id, ERR_LENGTH, "'set' takes two arguments");
+    if (arity != 2)
+        cerr(cc, car->id, ERR_LENGTH, "'set' takes two arguments");
 
-        if (as_list(object)[1].type != -TYPE_SYMBOL)
-            cerr(cc, car->id, ERR_TYPE, "'set' first argument must be a symbol");
+    if (as_list(object)[1].type != -TYPE_SYMBOL)
+        cerr(cc, car->id, ERR_TYPE, "'set' first argument must be a symbol");
 
-        push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, as_list(object)[1]);
-        res = cc_compile_expr(true, cc, &as_list(object)[2]);
+    push_opcode(cc, car->id, code, OP_PUSH);
+    push_const(cc, as_list(object)[1]);
+    res = cc_compile_expr(true, cc, &as_list(object)[2]);
 
-        if (res == CC_ERROR)
-            return CC_ERROR;
+    if (res == CC_ERROR)
+        return CC_ERROR;
 
-        push_opcode(cc, car->id, code, OP_CALL2);
-        push_u64(code, rf_set_variable);
+    push_opcode(cc, car->id, code, OP_CALL2);
+    push_u64(code, rf_set_variable);
 
-        return CC_OK;
-    }
-
-    return CC_NONE;
+    return CC_OK;
 }
 
 type_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -621,61 +607,20 @@ type_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32
 cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     cc_result_t res = CC_NONE;
+    rf_object_t *car = &as_list(object)[0];
 
-    res = cc_compile_set(has_consumer, cc, object, arity);
-
-    if (res != CC_NONE)
-        return res;
-
-    // type = cc_compile_quote(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
-
-    res = cc_compile_time(has_consumer, cc, object, arity);
-
-    if (res != CC_NONE)
-        return res;
-
-    // type = cc_compile_cast(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
-
-    // type = cc_compile_fn(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
-
-    // type = cc_compile_cond(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
-
-    // type = cc_compile_try(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
-
-    // type = cc_compile_catch(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
-
-    // type = cc_compile_throw(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
-
-    // type = cc_compile_map(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
-
-    // type = cc_compile_select(has_consumer, cc, object, arity);
-
-    // if (type != TYPE_NONE)
-    //     return type;
+    switch (car->i64)
+    {
+    case KW_SYM_QUOTE:
+        res = cc_compile_quote(has_consumer, cc, object, arity);
+        break;
+    case KW_SYM_TIME:
+        res = cc_compile_time(has_consumer, cc, object, arity);
+        break;
+    case KW_SYM_SET:
+        res = cc_compile_set(has_consumer, cc, object, arity);
+        break;
+    }
 
     return res;
 }

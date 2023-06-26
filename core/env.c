@@ -220,6 +220,15 @@ null_t init_typenames(i64_t *typenames)
     typenames[ TYPE_TABLE     + TYPE_OFFSET] = symbol("Table").i64;
     typenames[ TYPE_FUNCTION  + TYPE_OFFSET] = symbol("Function").i64;
 }
+
+null_t init_kw_symbols()
+{
+    assert(symbol("null").i64  == KW_SYM_NULL);
+    assert(symbol("time").i64  == KW_SYM_TIME);
+    assert(symbol("`").i64     == KW_SYM_QUOTE);
+    assert(symbol("set").i64   == KW_SYM_SET);
+    assert(symbol("let").i64   == KW_SYM_LET);
+}
 // clang-format on
 
 env_t create_env()
@@ -229,6 +238,8 @@ env_t create_env()
 
     for (i32_t i = 0; i < REC_SIZE; i++)
         as_list(&functions)[i] = vector(TYPE_CHAR, 0);
+
+    init_kw_symbols();
 
     init_functions(&functions);
 
