@@ -208,6 +208,57 @@ rf_object_t rf_mul(rf_object_t *x, rf_object_t *y)
     }
 }
 
+rf_object_t rf_div(rf_object_t *x, rf_object_t *y)
+{
+    i32_t i;
+    i64_t l;
+    rf_object_t vec;
+
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(-TYPE_I64, -TYPE_I64):
+        return (i64(DIVI64(x->i64, y->i64)));
+
+    case MTYPE2(-TYPE_F64, -TYPE_F64):
+        return (f64(DIVF64(x->f64, y->f64)));
+
+    case MTYPE2(TYPE_I64, -TYPE_I64):
+        l = x->adt->len;
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(&vec)[i] = DIVI64(as_vector_i64(x)[i], y->i64);
+
+        return vec;
+
+    case MTYPE2(TYPE_I64, TYPE_I64):
+        l = x->adt->len;
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(&vec)[i] = DIVI64(as_vector_i64(x)[i], as_vector_i64(y)[i]);
+
+        return vec;
+
+    case MTYPE2(TYPE_F64, -TYPE_F64):
+        l = x->adt->len;
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_vector_f64(&vec)[i] = DIVF64(as_vector_f64(x)[i], y->f64);
+
+        return vec;
+
+    case MTYPE2(TYPE_F64, TYPE_F64):
+        l = x->adt->len;
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_vector_f64(&vec)[i] = DIVF64(as_vector_f64(x)[i], as_vector_f64(y)[i]);
+
+        return vec;
+
+    default:
+        return error_type2(x->type, y->type, "mul: unsupported types");
+    }
+}
+
 rf_object_t rf_fdiv(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
@@ -310,57 +361,6 @@ rf_object_t rf_mod(rf_object_t *x, rf_object_t *y)
     }
 }
 
-rf_object_t rf_mod(rf_object_t *x, rf_object_t *y)
-{
-    i32_t i;
-    i64_t l;
-    rf_object_t vec;
-
-    switch (MTYPE2(x->type, y->type))
-    {
-    case MTYPE2(-TYPE_I64, -TYPE_I64):
-        return (i64(MODI64(x->i64, y->i64)));
-
-    case MTYPE2(-TYPE_F64, -TYPE_F64):
-        return (f64(MODF64(x->f64, y->f64)));
-
-    case MTYPE2(TYPE_I64, -TYPE_I64):
-        l = x->adt->len;
-        vec = vector_i64(l);
-        for (i = 0; i < l; i++)
-            as_vector_i64(&vec)[i] = MODI64(as_vector_i64(x)[i], y->i64);
-
-        return vec;
-
-    case MTYPE2(TYPE_I64, TYPE_I64):
-        l = x->adt->len;
-        vec = vector_i64(l);
-        for (i = 0; i < l; i++)
-            as_vector_i64(&vec)[i] = MODI64(as_vector_i64(x)[i], as_vector_i64(y)[i]);
-
-        return vec;
-
-    case MTYPE2(TYPE_F64, -TYPE_F64):
-        l = x->adt->len;
-        vec = vector_f64(l);
-        for (i = 0; i < l; i++)
-            as_vector_f64(&vec)[i] = MODF64(as_vector_f64(x)[i], y->f64);
-
-        return vec;
-
-    case MTYPE2(TYPE_F64, TYPE_F64):
-        l = x->adt->len;
-        vec = vector_f64(l);
-        for (i = 0; i < l; i++)
-            as_vector_f64(&vec)[i] = MODF64(as_vector_f64(x)[i], as_vector_f64(y)[i]);
-
-        return vec;
-
-    default:
-        return error_type2(x->type, y->type, "mod: unsupported types");
-    }
-}
-
 rf_object_t rf_like(rf_object_t *x, rf_object_t *y)
 {
     switch (MTYPE2(x->type, y->type))
@@ -375,12 +375,62 @@ rf_object_t rf_like(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_eq(rf_object_t *x, rf_object_t *y)
 {
-    return bool(rfi_eq(x, y));
+    i64_t i, l;
+    rf_object_t vec;
+
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(TYPE_BOOL, TYPE_BOOL):
+        return (bool(x->bool == y->bool));
+
+    case MTYPE2(-TYPE_I64, -TYPE_I64):
+        return (bool(x->i64 == y->i64));
+
+    case MTYPE2(-TYPE_F64, -TYPE_F64):
+        return (bool(x->f64 == y->f64));
+
+    case MTYPE2(TYPE_I64, -TYPE_I64):
+        l = x->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = as_vector_i64(x)[i] == y->i64;
+
+        return vec;
+
+    case MTYPE2(TYPE_I64, TYPE_I64):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "eq: vectors of different length");
+
+        l = x->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = as_vector_i64(x)[i] == as_vector_i64(y)[i];
+
+        return vec;
+
+    default:
+        return error_type2(x->type, y->type, "eq: unsupported types");
+    }
 }
 
-rf_object_t rf_ne_i64_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_ne(rf_object_t *x, rf_object_t *y)
 {
-    return (bool(!rfi_eq(x, y)));
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(TYPE_BOOL, TYPE_BOOL):
+        return (bool(x->bool != y->bool));
+
+    case MTYPE2(-TYPE_I64, -TYPE_I64):
+        return (bool(x->i64 != y->i64));
+
+    case MTYPE2(-TYPE_F64, -TYPE_F64):
+        return (bool(x->f64 != y->f64));
+
+    default:
+        return error_type2(x->type, y->type, "ne: unsupported types");
+    }
 }
 
 rf_object_t rf_lt(rf_object_t *x, rf_object_t *y)
@@ -415,6 +465,9 @@ rf_object_t rf_le(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_gt(rf_object_t *x, rf_object_t *y)
 {
+    i64_t i, l;
+    rf_object_t vec;
+
     switch (MTYPE2(x->type, y->type))
     {
     case MTYPE2(-TYPE_I64, -TYPE_I64):
@@ -422,6 +475,18 @@ rf_object_t rf_gt(rf_object_t *x, rf_object_t *y)
 
     case MTYPE2(-TYPE_F64, -TYPE_F64):
         return (bool(x->f64 > y->f64));
+
+    case MTYPE2(TYPE_I64, TYPE_I64):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "gt: vectors of different length");
+
+        l = x->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = as_vector_i64(x)[i] > as_vector_i64(y)[i];
+
+        return vec;
 
     default:
         return error_type2(x->type, y->type, "gt: unsupported types");
@@ -459,6 +524,30 @@ rf_object_t rf_and(rf_object_t *x, rf_object_t *y)
         res = vector_bool(x->adt->len);
         for (i = 0; i < l; i++)
             as_vector_bool(&res)[i] = as_vector_bool(x)[i] & as_vector_bool(y)[i];
+
+        return res;
+
+    default:
+        return error_type2(x->type, y->type, "and: unsupported types");
+    }
+}
+
+rf_object_t rf_or(rf_object_t *x, rf_object_t *y)
+{
+    i32_t i;
+    i64_t l;
+    rf_object_t res;
+
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(-TYPE_BOOL, -TYPE_BOOL):
+        return (bool(x->bool || y->bool));
+
+    case MTYPE2(TYPE_BOOL, TYPE_BOOL):
+        l = x->adt->len;
+        res = vector_bool(x->adt->len);
+        for (i = 0; i < l; i++)
+            as_vector_bool(&res)[i] = as_vector_bool(x)[i] | as_vector_bool(y)[i];
 
         return res;
 
@@ -846,53 +935,147 @@ rf_object_t rf_concat(rf_object_t *x, rf_object_t *y)
     }
 }
 
-rf_object_t rf_filter_I64_Bool(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_filter(rf_object_t *x, rf_object_t *y)
 {
-    if (x->adt->len != y->adt->len)
-        return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
-
     i32_t i, j = 0;
-    i64_t l = x->adt->len;
-    i64_t *iv1 = as_vector_i64(x);
-    bool_t *iv2 = as_vector_bool(y);
-    rf_object_t res = vector_i64(l);
-    i64_t *ov = as_vector_i64(&res);
+    i64_t l, p = NULL_I64;
+    rf_object_t res, *vals, col;
 
-    for (i = 0; i < l; i++)
-        if (iv2[i])
-            ov[j++] = iv1[i];
-
-    vector_shrink(&res, j);
-
-    return res;
-}
-
-rf_object_t rf_filter_Table_Bool(rf_object_t *x, rf_object_t *y)
-{
-    rf_object_t *vals = &as_list(x)[1], outvals, col;
-    i64_t i, j, p = NULL_I64, len = vals->adt->len;
-    bool_t *m = as_vector_bool(y);
-
-    outvals = list(len);
-
-    for (i = 0; i < len; i++)
+    switch (MTYPE2(x->type, y->type))
     {
-        col = vector_filter(&as_list(vals)[i], m, p);
-        p = col.adt->len;
-        as_list(&outvals)[i] = col;
-    }
 
-    return table(rf_object_clone(&as_list(x)[0]), outvals);
+    case MTYPE2(TYPE_BOOL, TYPE_BOOL):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+
+        l = x->adt->len;
+        res = vector_bool(l);
+        for (i = 0; i < l; i++)
+            if (as_vector_bool(y)[i])
+                as_vector_bool(&res)[j++] = as_vector_bool(x)[i];
+
+        vector_shrink(&res, j);
+
+        return res;
+
+    case MTYPE2(TYPE_I64, TYPE_BOOL):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+
+        l = x->adt->len;
+        res = vector_i64(l);
+        for (i = 0; i < l; i++)
+            if (as_vector_bool(y)[i])
+                as_vector_i64(&res)[j++] = as_vector_i64(x)[i];
+
+        vector_shrink(&res, j);
+
+        return res;
+
+    case MTYPE2(TYPE_F64, TYPE_BOOL):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+
+        l = x->adt->len;
+        res = vector_f64(l);
+        for (i = 0; i < l; i++)
+            if (as_vector_bool(y)[i])
+                as_vector_f64(&res)[j++] = as_vector_f64(x)[i];
+
+        vector_shrink(&res, j);
+
+        return res;
+
+    case MTYPE2(TYPE_TIMESTAMP, TYPE_BOOL):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+
+        l = x->adt->len;
+        res = vector_timestamp(l);
+        for (i = 0; i < l; i++)
+            if (as_vector_bool(y)[i])
+                as_vector_timestamp(&res)[j++] = as_vector_timestamp(x)[i];
+
+        vector_shrink(&res, j);
+
+        return res;
+
+    case MTYPE2(TYPE_GUID, TYPE_BOOL):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+
+        l = x->adt->len;
+        res = vector_guid(l);
+        for (i = 0; i < l; i++)
+            if (as_vector_bool(y)[i])
+                as_vector_guid(&res)[j++] = as_vector_guid(x)[i];
+
+        vector_shrink(&res, j);
+
+        return res;
+
+    case MTYPE2(TYPE_CHAR, TYPE_BOOL):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+
+        l = x->adt->len;
+        res = string(l);
+        for (i = 0; i < l; i++)
+            if (as_vector_bool(y)[i])
+                as_string(&res)[j++] = as_string(x)[i];
+
+        vector_shrink(&res, j);
+
+        return res;
+
+    case MTYPE2(TYPE_LIST, TYPE_BOOL):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+
+        l = x->adt->len;
+        res = list(l);
+        for (i = 0; i < l; i++)
+            if (as_vector_bool(y)[i])
+                as_list(&res)[j++] = rf_object_clone(&as_list(x)[i]);
+
+        vector_shrink(&res, j);
+
+        return res;
+
+    case MTYPE2(TYPE_TABLE, TYPE_BOOL):
+        vals = &as_list(x)[1];
+        l = vals->adt->len;
+        res = list(l);
+
+        for (i = 0; i < l; i++)
+        {
+            col = vector_filter(&as_list(vals)[i], as_vector_bool(y), p);
+            p = col.adt->len;
+            as_list(&res)[i] = col;
+        }
+
+        return table(rf_object_clone(&as_list(x)[0]), res);
+
+    default:
+        return error_type2(x->type, y->type, "filter: unsupported types");
+    }
 }
 
-rf_object_t rf_take_i64_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
 {
-    i64_t i, l = x->i64, n = y->i64;
-    rf_object_t vec = vector_i64(l);
-    i64_t *ov = as_vector_i64(&vec);
+    i64_t i, l;
+    rf_object_t vec;
 
-    for (i = 0; i < l; i++)
-        ov[i] = n;
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(-TYPE_I64, -TYPE_I64):
+        vec = vector_i64(x->i64);
+        for (i = 0; i < l; i++)
+            as_vector_i64(&vec)[i] = y->i64;
 
-    return vec;
+        return vec;
+
+    default:
+        return error_type2(x->type, y->type, "take: unsupported types");
+    }
 }
