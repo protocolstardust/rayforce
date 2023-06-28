@@ -103,8 +103,8 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
     static null_t *dispatch_table[] = {
         &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_timer_set, &&op_timer_get,
         &&op_call0, &&op_call1, &&op_call2, &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_store,
-        &&op_load, &&op_lset, &&op_lget, &&op_cast, &&op_try, &&op_catch, &&op_throw, &&op_trace,
-        &&op_alloc, &&op_map, &&op_collect};
+        &&op_load, &&op_lset, &&op_lget, &&op_lattach, &&op_ldetach, &&op_cast, &&op_try, &&op_catch,
+        &&op_throw, &&op_trace, &&op_alloc, &&op_map, &&op_collect};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -174,7 +174,7 @@ op_halt:
 op_ret:
     vm->ip++;
     // clear locals
-    dict_clear(&f->locals);
+    vector_clear(&f->locals);
     x3 = stack_pop(vm); // return value
     x2 = stack_pop(vm); // ctx
     stack_pop_free(vm); // <function>
@@ -348,16 +348,36 @@ op_lset:
     b = vm->ip++;
     x2 = stack_pop(vm);
     x1 = stack_pop(vm);
-    dict_set(&f->locals, &x1, x2);
+    if (f->locals.adt->len == 0)
+        vector_push(&f->locals, dict(vector_symbol(0), list(0)));
+    dict_set(&as_list(&f->locals)[0], &x1, x2);
     dispatch();
 op_lget:
     b = vm->ip++;
     x1 = stack_pop(vm);
-    x2 = dict_get(&f->locals, &x1);
+    j = f->locals.adt->len;
+    for (i = 0; i < j; i++)
+    {
+        x2 = dict_get(&as_list(&f->locals)[j - i - 1], &x1);
+        if (x2.type != TYPE_NULL)
+            break;
+    }
     if (x2.type == TYPE_NULL)
         x2 = rf_get_variable(&x1);
     unwrap(x2, b);
     stack_push(vm, x2);
+    dispatch();
+op_lattach:
+    b = vm->ip++;
+    x1 = stack_pop(vm);
+    if (x1.type != TYPE_TABLE && x1.type != TYPE_DICT)
+        unwrap(error(ERR_TYPE, "expected dict or table"), b);
+    vector_push(&f->locals, x1);
+    dispatch();
+op_ldetach:
+    b = vm->ip++;
+    x1 = vector_pop(&f->locals);
+    rf_object_free(&x1);
     dispatch();
 op_cast:
     b = vm->ip++;

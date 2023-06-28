@@ -142,7 +142,7 @@ type_char:
     return schar(pop(vector, char_t));
 type_list:
     o = pop(vector, rf_object_t);
-    return rf_object_clone(&o);
+    return o;
 }
 
 null_t vector_reserve(rf_object_t *vector, u32_t len)
@@ -577,7 +577,7 @@ null_t vector_clear(rf_object_t *vector)
             rf_object_free(&list[i]);
     }
 
-    vector->adt->len = 0;
+    vector_shrink(vector, 0);
 }
 
 null_t vector_free(rf_object_t *vector)

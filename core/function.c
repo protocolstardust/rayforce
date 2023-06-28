@@ -33,7 +33,7 @@ rf_object_t function(rf_object_t args, rf_object_t code, debuginfo_t debuginfo)
     adt->rc = 1;
 
     f->args = args;
-    f->locals = dict(vector_symbol(0), list(0));
+    f->locals = list(0);
     f->code = code;
     f->constants = list(0);
     f->debuginfo = debuginfo;
