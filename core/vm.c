@@ -315,9 +315,12 @@ op_callf:
      * +-------------------+
      */
     b = vm->ip++;
+    l = code[vm->ip++];
     addr = stack_peek(vm); // function
     if (addr->type != TYPE_FUNCTION)
         unwrap(error(ERR_TYPE, "expected function"), b);
+    if (l != as_function(addr)->args.adt->len)
+        unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
     if ((vm->sp + as_function(addr)->stack_size) * sizeof(rf_object_t) > VM_STACK_SIZE)
         unwrap(error(ERR_STACK_OVERFLOW, "stack overflow"), b);
     // save ctx

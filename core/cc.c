@@ -738,6 +738,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             return CC_ERROR;
 
         push_opcode(cc, car->id, code, OP_CALLF);
+        push_opcode(cc, car->id, code, arity);
 
         return CC_OK;
 
