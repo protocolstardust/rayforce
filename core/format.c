@@ -487,6 +487,9 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t 
 
     rf_object_free(&column_widths);
 
+    if (table_height < (i32_t)(&as_list(columns)[0])->adt->len)
+        str_fmt_into(dst, len, offset, 0, "\n..");
+
     return n;
 }
 

@@ -181,9 +181,6 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
-    if (!has_consumer)
-        return CC_NULL;
-
     if (arity != 2)
         cerr(cc, car->id, ERR_LENGTH, "'set' takes two arguments");
 
@@ -200,10 +197,13 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
     push_opcode(cc, car->id, code, OP_CALL2);
     push_u64(code, rf_set_variable);
 
+    if (!has_consumer)
+        push_opcode(cc, car->id, code, OP_POP);
+
     return CC_OK;
 }
 
-cc_result_t cc_compile_let(cc_t *cc, rf_object_t *object, u32_t arity)
+cc_result_t cc_compile_let(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     i64_t id = 0;
     cc_result_t res;
@@ -226,6 +226,9 @@ cc_result_t cc_compile_let(cc_t *cc, rf_object_t *object, u32_t arity)
         return CC_ERROR;
 
     push_opcode(cc, car->id, code, OP_LSET);
+
+    if (!has_consumer)
+        push_opcode(cc, car->id, code, OP_POP);
 
     return CC_OK;
 }
@@ -559,7 +562,7 @@ cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t 
         res = cc_compile_set(has_consumer, cc, object, arity);
         break;
     case KW_LET:
-        res = cc_compile_let(cc, object, arity);
+        res = cc_compile_let(has_consumer, cc, object, arity);
         break;
     case KW_FN:
         res = cc_compile_fn(cc, object, arity);

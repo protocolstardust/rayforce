@@ -53,12 +53,12 @@ rf_object_t rf_collect_table(rf_object_t *mask, rf_object_t *cols, rf_object_t *
     l = vals->adt->len;
     res = list(l);
 
-    for (i = 0; i < l; i++)
-    {
-        col = vector_filter(&as_list(vals)[i], as_vector_bool(mask), p);
-        p = col.adt->len;
-        as_list(&res)[i] = col;
-    }
+    // for (i = 0; i < l; i++)
+    // {
+    //     col = vector_filter(&as_list(vals)[i], as_vector_bool(mask), p);
+    //     p = col.adt->len;
+    //     as_list(&res)[i] = col;
+    // }
 
     return table(rf_object_clone(&as_list(tab)[0]), res);
 }
