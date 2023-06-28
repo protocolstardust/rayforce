@@ -90,7 +90,8 @@ static inline __attribute__((always_inline)) rf_object_t rf_cast(type_t type, rf
         break;
     case m(TYPE_I64, TYPE_LIST):
         x = vector_i64(y->adt->len);
-        for (i = 0; i < y->adt->len; i++)
+        l = (i64_t)y->adt->len;
+        for (i = 0; i < l; i++)
         {
             if (as_list(y)[i].type != -TYPE_I64)
             {
@@ -107,7 +108,8 @@ static inline __attribute__((always_inline)) rf_object_t rf_cast(type_t type, rf
         break;
     case m(TYPE_F64, TYPE_LIST):
         x = vector_f64(y->adt->len);
-        for (i = 0; i < y->adt->len; i++)
+        l = (i64_t)y->adt->len;
+        for (i = 0; i < l; i++)
         {
             if (as_list(y)[i].type != -TYPE_F64)
             {
@@ -124,7 +126,8 @@ static inline __attribute__((always_inline)) rf_object_t rf_cast(type_t type, rf
         break;
     case m(TYPE_BOOL, TYPE_I64):
         x = vector_bool(y->adt->len);
-        for (i = 0; i < y->adt->len; i++)
+        l = (i64_t)y->adt->len;
+        for (i = 0; i < l; i++)
             as_vector_bool(&x)[i] = as_list(y)[i].i64 != 0;
         break;
     case m(-TYPE_GUID, TYPE_CHAR):

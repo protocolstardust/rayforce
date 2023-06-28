@@ -142,10 +142,10 @@ null_t init_kw_symbols()
     assert(intern_keyword("fn",    2)  == KW_FN);
     assert(intern_keyword("self",  4)  == KW_SELF);
     assert(intern_keyword("if",    2)  == KW_IF);
-    assert(intern_keyword("else",  4)  == KW_ELSE);
     assert(intern_keyword("try",   3)  == KW_TRY);
     assert(intern_keyword("catch", 5)  == KW_CATCH);
     assert(intern_keyword("throw", 5)  == KW_THROW);
+    assert(intern_keyword("map",   3)  == KW_MAP);
 }
 // clang-format on
 

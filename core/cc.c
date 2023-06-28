@@ -134,10 +134,8 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, u32_t *arity)
     return NULL;
 }
 
-cc_result_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+cc_result_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 {
-    UNUSED(arity);
-
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -204,10 +202,8 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
     return CC_OK;
 }
 
-cc_result_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+cc_result_t cc_compile_fn(cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    UNUSED(has_consumer);
-
     rf_object_t *car = &as_list(object)[0], *b, fun;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -282,93 +278,66 @@ cc_result_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, 
     return CC_OK;
 }
 
-type_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+cc_result_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    type_t type, type1;
+    cc_result_t res;
     i64_t lbl1, lbl2;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
-    env_t *env = &runtime_get()->env;
 
-    if (car->i64 == symbol("try").i64)
-    {
-        if (arity != 2)
-            cerr(cc, car->id, ERR_LENGTH, "'try': expects 2 arguments");
+    if (arity != 2)
+        cerr(cc, car->id, ERR_LENGTH, "'try': expects 2 arguments");
 
-        push_opcode(cc, car->id, code, OP_TRY);
-        push_u64(code, 0);
-        lbl1 = code->adt->len - sizeof(u64_t);
+    push_opcode(cc, car->id, code, OP_TRY);
+    push_u64(code, 0);
+    lbl1 = code->adt->len - sizeof(u64_t);
 
-        // compile expression under trap
-        type = cc_compile_expr(true, cc, &as_list(object)[1]);
+    // compile expression under trap
+    res = cc_compile_expr(true, cc, &as_list(object)[1]);
 
-        if (type == TYPE_ERROR)
-            return type;
+    if (res == CC_ERROR)
+        return CC_ERROR;
 
-        push_opcode(cc, car->id, code, OP_JMP);
-        push_u64(code, 0);
-        lbl2 = code->adt->len - sizeof(u64_t);
+    push_opcode(cc, car->id, code, OP_JMP);
+    push_u64(code, 0);
+    lbl2 = code->adt->len - sizeof(u64_t);
 
-        *(u64_t *)(as_string(code) + lbl1) = code->adt->len;
+    *(u64_t *)(as_string(code) + lbl1) = code->adt->len;
 
-        // compile expression under catch
-        type1 = cc_compile_expr(has_consumer, cc, &as_list(object)[2]);
+    // compile expression under catch
+    res = cc_compile_expr(has_consumer, cc, &as_list(object)[2]);
 
-        if (type1 == TYPE_ERROR)
-            return type1;
+    if (res == CC_ERROR)
+        return CC_ERROR;
 
-        if (type != type1)
-            ccerr(cc, object->id, ERR_TYPE,
-                  str_fmt(0, "'try': different types of expressions: '%s', '%s'",
-                          symbols_get(env_get_typename_by_type(env, type)),
-                          symbols_get(env_get_typename_by_type(env, type1))));
+    *(u64_t *)(as_string(code) + lbl2) = code->adt->len;
 
-        *(u64_t *)(as_string(code) + lbl2) = code->adt->len;
-
-        return type;
-    }
-
-    return TYPE_NONE;
+    return CC_OK;
 }
 
-type_t cc_compile_throw(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+cc_result_t cc_compile_throw(cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    UNUSED(has_consumer);
-
-    type_t type;
+    cc_result_t res;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
-    env_t *env = &runtime_get()->env;
 
-    if (car->i64 == symbol("throw").i64)
-    {
-        if (arity != 1)
-            cerr(cc, car->id, ERR_LENGTH, "'throw': expects 1 argument");
+    if (arity != 1)
+        cerr(cc, car->id, ERR_LENGTH, "'throw': expects 1 argument");
 
-        type = cc_compile_expr(true, cc, &as_list(object)[1]);
+    res = cc_compile_expr(true, cc, &as_list(object)[1]);
 
-        if (type == TYPE_ERROR)
-            return type;
+    if (res == CC_ERROR)
+        return CC_ERROR;
 
-        push_opcode(cc, car->id, code, OP_THROW);
+    push_opcode(cc, car->id, code, OP_THROW);
 
-        if (type != TYPE_CHAR)
-            ccerr(cc, object->id, ERR_TYPE,
-                  str_fmt(0, "'throw': argument must be a 'Char', not '%s'",
-                          symbols_get(env_get_typename_by_type(env, type))));
-
-        return TYPE_THROW;
-    }
-
-    return TYPE_NONE;
+    return CC_OK;
 }
 
-type_t cc_compile_catch(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_catch(cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    UNUSED(has_consumer);
-
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -577,7 +546,7 @@ cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t 
     switch (car->i64)
     {
     case KW_QUOTE:
-        res = cc_compile_quote(has_consumer, cc, object, arity);
+        res = cc_compile_quote(has_consumer, cc, object);
         break;
     case KW_TIME:
         res = cc_compile_time(has_consumer, cc, object, arity);
@@ -586,10 +555,19 @@ cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t 
         res = cc_compile_set(has_consumer, cc, object, arity);
         break;
     case KW_FN:
-        res = cc_compile_fn(has_consumer, cc, object, arity);
+        res = cc_compile_fn(cc, object, arity);
         break;
     case KW_IF:
         res = cc_compile_cond(has_consumer, cc, object, arity);
+        break;
+    case KW_MAP:
+        res = cc_compile_map(has_consumer, cc, object, arity);
+        break;
+    case KW_TRY:
+        res = cc_compile_try(has_consumer, cc, object, arity);
+        break;
+    case KW_THROW:
+        res = cc_compile_throw(cc, object, arity);
         break;
     }
 
@@ -668,7 +646,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         // then try to find in locals
         id = vector_find(&func->locals, object);
 
-        if (id < func->locals.adt->len)
+        if (id < (i64_t)func->locals.adt->len)
         {
             push_opcode(cc, object->id, code, OP_LOAD);
             push_u64(code, 1 + id);
@@ -680,7 +658,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         // then try to search in the function args
         id = vector_find(&func->args, object);
 
-        if (id < func->args.adt->len)
+        if (id < (i64_t)func->args.adt->len)
         {
             push_opcode(cc, object->id, code, OP_LOAD);
             push_u64(code, -(func->args.adt->len - id + 1));

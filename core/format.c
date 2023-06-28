@@ -299,7 +299,7 @@ i32_t list_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
         maxn(n, str_fmt_into(dst, len, offset, 2, "\n"));
     }
 
-    if (list_height < rf_object->adt->len)
+    if (list_height < (i32_t)rf_object->adt->len)
         maxn(n, str_fmt_into(dst, len, offset, 0, "%*.*s..\n", indent, indent, PADDING));
 
     indent -= 2;
@@ -382,7 +382,7 @@ i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
         maxn(n, m);
     }
 
-    if (dict_height < keys->adt->len)
+    if (dict_height < (i32_t)keys->adt->len)
         maxn(n, str_fmt_into(dst, len, offset, 0, "%*.*s..\n", indent, indent, PADDING));
 
     indent -= 2;

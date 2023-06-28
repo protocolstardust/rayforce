@@ -335,7 +335,7 @@ null_t vector_set(rf_object_t *vector, i64_t index, rf_object_t value)
     // if (type > TYPE_LIST)
     // panic("vector_set: non-settable type");
 
-    if (index < 0 || index >= vector->adt->len)
+    if (index < 0 || index >= (i64_t)vector->adt->len)
         return;
 
     goto *types_table[(i32_t)type];
@@ -417,7 +417,7 @@ rf_object_t vector_filter(rf_object_t *x, bool_t mask[], i64_t len)
                                     &&type_timestamp, &&type_guid, &&type_char, &&type_list};
 
     l = x->adt->len;
-    ol = (len == NULL_I64) ? x->adt->len : len;
+    ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
 
     goto *types_table[(i32_t)type];
 

@@ -107,8 +107,8 @@ CASSERT(sizeof(struct span_t) == 8, debuginfo_h)
  */
 typedef struct header_t
 {
-    i64_t len;
-    i64_t rc;
+    u64_t len;
+    u64_t rc;
     span_t span;
     union
     {

@@ -61,7 +61,7 @@ rf_object_t dict_set(rf_object_t *dict, rf_object_t *key, rf_object_t val)
     rf_object_t *vals = &as_list(dict)[1];
     i64_t index = vector_find(keys, key);
 
-    if (index == keys->adt->len)
+    if (index == (i64_t)keys->adt->len)
     {
         vector_push(keys, rf_object_clone(key));
         vector_push(vals, rf_object_clone(&val));

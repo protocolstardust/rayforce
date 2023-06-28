@@ -520,7 +520,7 @@ rf_object_t parse_vector(parser_t *parser)
                 vector_push(&vec, token);
             else if (vec.type == TYPE_I64)
             {
-                for (i = 0; i < vec.adt->len; i++)
+                for (i = 0; i < (i32_t)vec.adt->len; i++)
                     as_vector_f64(&vec)[i] = (f64_t)as_vector_i64(&vec)[i];
 
                 vector_push(&vec, token);
