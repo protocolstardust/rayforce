@@ -34,6 +34,7 @@
 #include "unary.h"
 #include "binary.h"
 #include "ternary.h"
+#include "nary.h"
 #include "function.h"
 #include "dict.h"
 #include "ops.h"
@@ -519,7 +520,8 @@ cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
 cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     cc_result_t res;
-    rf_object_t *car, *params, key, val;
+    i64_t i, l, k;
+    rf_object_t *car, *params, key, val, cols;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
@@ -548,23 +550,59 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     key = symboli64(KW_WHERE);
     val = dict_get(params, &key);
 
-    if (val.i64 != NULL_I64)
+    if (val.type != TYPE_NULL)
     {
         res = cc_compile_expr(true, cc, &val);
         rf_object_free(&val);
 
         if (res == CC_ERROR)
             return CC_ERROR;
+
+        push_opcode(cc, car->id, code, OP_PUSH);
+        push_const(cc, cols);
+
+        push_opcode(cc, car->id, code, OP_LDETACH);
+
+        push_opcode(cc, car->id, code, OP_CALL3);
+        push_u64(code, rf_filter_table);
+        push_opcode(cc, car->id, code, OP_LATTACH);
     }
-    else
-        rf_object_free(&val);
+
+    cols = vector_symbol(0);
+    l = params->adt->len;
+    for (i = 0; i < l; i++)
+    {
+        k = as_vector_symbol(&as_list(params)[0])[i];
+        if (k != KW_FROM && k != KW_WHERE)
+            vector_push(&cols, symboli64(as_vector_symbol(&as_list(params)[0])[i]));
+    }
 
     push_opcode(cc, car->id, code, OP_PUSH);
-    push_const(cc, null());
-    push_opcode(cc, car->id, code, OP_LDETACH);
+    push_const(cc, rf_object_clone(&cols));
 
-    push_opcode(cc, car->id, code, OP_CALL3);
-    push_u64(code, rf_collect_table);
+    // compile mappings
+    for (i = 0; i < l; i++)
+    {
+        k = as_vector_symbol(&as_list(params)[0])[i];
+        if (k != KW_FROM && k != KW_WHERE)
+        {
+            val = as_list(&as_list(params)[1])[i];
+            res = cc_compile_expr(true, cc, &val);
+
+            if (res == CC_ERROR)
+                return CC_ERROR;
+        }
+    }
+
+    push_opcode(cc, car->id, code, OP_CALLN);
+    push_opcode(cc, car->id, code, (u8_t)cols.adt->len);
+    push_u64(code, rf_list);
+
+    push_opcode(cc, car->id, code, OP_CALL2);
+    push_u64(code, rf_table);
+
+    push_opcode(cc, car->id, code, OP_LDETACH);
+    push_opcode(cc, car->id, code, OP_POP);
 
     if (!has_consumer)
         push_opcode(cc, car->id, code, OP_POP);

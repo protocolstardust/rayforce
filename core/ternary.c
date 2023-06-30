@@ -43,12 +43,10 @@ rf_object_t rf_rand(rf_object_t *x, rf_object_t *y, rf_object_t *z)
     return vec;
 }
 
-rf_object_t rf_collect_table(rf_object_t *mask, rf_object_t *cols, rf_object_t *tab)
+rf_object_t rf_filter_table(rf_object_t *mask, rf_object_t *cols, rf_object_t *tab)
 {
-    UNUSED(cols);
-
-    i64_t i, l, p = 0;
-    rf_object_t res, *vals, col;
+    i64_t i, j, l, p = 0;
+    rf_object_t res, *vals, val, col;
 
     l = (i64_t)mask->adt->len;
     for (i = 0; i < l; i++)
@@ -59,11 +57,13 @@ rf_object_t rf_collect_table(rf_object_t *mask, rf_object_t *cols, rf_object_t *
         p = NULL_I64;
 
     vals = &as_list(tab)[1];
-    l = vals->adt->len;
+    // l = cols->adt->len;
+    l = (i64_t)vals->adt->len;
     res = list(l);
 
     for (i = 0; i < l; i++)
     {
+        // val = dict_get(&cols->adt->items[i]);
         col = vector_filter(&as_list(vals)[i], as_vector_bool(mask), p);
         as_list(&res)[i] = col;
     }
