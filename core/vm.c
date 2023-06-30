@@ -428,10 +428,11 @@ op_map:
     // arguments count
     c = code[vm->ip++];
     l = stack_peek_n(vm, c)->adt->len;
+    j = 0;
     // push arguments
-    for (i = 0; i < c; i++)
+    for (i = c - 1; i >= 0; i--)
     {
-        addr = stack_peek_n(vm, c - i - 1);
+        addr = stack_peek_n(vm, i + j++);
         stack_push(vm, vector_get(addr, l));
     }
     dispatch();
