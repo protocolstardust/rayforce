@@ -558,13 +558,16 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         if (res == CC_ERROR)
             return CC_ERROR;
 
-        push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, cols);
+        push_opcode(cc, car->id, code, OP_CALL1);
+        push_u64(code, rf_where);
+
+        // push_opcode(cc, car->id, code, OP_PUSH);
+        // push_const(cc, cols);
 
         push_opcode(cc, car->id, code, OP_LDETACH);
 
-        push_opcode(cc, car->id, code, OP_CALL3);
-        push_u64(code, rf_filter_table);
+        push_opcode(cc, car->id, code, OP_CALL2);
+        push_u64(code, rf_take);
         push_opcode(cc, car->id, code, OP_LATTACH);
     }
 

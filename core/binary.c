@@ -1072,18 +1072,35 @@ rf_object_t rf_filter(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
 {
-    i64_t i, l;
-    rf_object_t vec;
+    i64_t i, j, l, m, *p;
+    rf_object_t res, col;
 
     switch (MTYPE2(x->type, y->type))
     {
     case MTYPE2(-TYPE_I64, -TYPE_I64):
         l = x->adt->len;
-        vec = vector_i64(x->i64);
+        res = vector_i64(x->i64);
         for (i = 0; i < l; i++)
-            as_vector_i64(&vec)[i] = y->i64;
+            as_vector_i64(&res)[i] = y->i64;
 
-        return vec;
+        return res;
+
+    case MTYPE2(TYPE_I64, TYPE_TABLE):
+        m = as_list(y)[0].adt->len;
+        res = table(rf_object_clone(&as_list(y)[0]), list(m));
+        l = x->adt->len;
+        p = as_vector_i64(x);
+
+        for (i = 0; i < m; i++)
+        {
+            col = vector(as_list(&as_list(y)[1])[i].type, l);
+            for (j = 0; j < l; j++)
+                as_vector_i64(&col)[j] = as_vector_i64(&as_list(&as_list(y)[1])[i])[p[j]];
+
+            as_list(&as_list(&res)[1])[i] = col;
+        }
+
+        return res;
 
     default:
         return error_type2(x->type, y->type, "take: unsupported types");

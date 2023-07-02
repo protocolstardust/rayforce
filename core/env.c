@@ -72,6 +72,7 @@ null_t init_functions(rf_object_t *records)
     REC(records, 1, "flatten",     vector_flatten);
     REC(records, 1, "guid",        rf_guid_generate);
     REC(records, 1, "neg",         rf_neg);
+    REC(records, 1, "where",       rf_where);
       
     // Binary         
     REC(records, 2, "==",          rf_eq);

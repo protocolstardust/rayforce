@@ -179,7 +179,8 @@ rf_object_t timestamp(i64_t val)
 
 rf_object_t table(rf_object_t keys, rf_object_t vals)
 {
-    rf_object_t table;
+    u64_t i, len;
+    rf_object_t table, v;
 
     if (keys.type != TYPE_SYMBOL || vals.type != TYPE_LIST)
         return error(ERR_TYPE, "Keys must be a symbol vector and rf_objects must be list");
@@ -187,13 +188,17 @@ rf_object_t table(rf_object_t keys, rf_object_t vals)
     if (keys.adt->len != vals.adt->len)
         return error(ERR_LENGTH, "Keys and rf_objects must have the same length");
 
-    // len = vals.adt->len;
+    len = vals.adt->len;
 
-    // for (i = 0; i < len; i++)
-    // {
-    //     if (v[i].type < 0)
-    //         return error(ERR_TYPE, "Values must not be scalars");
-    // }
+    for (i = 0; i < len; i++)
+    {
+        if (as_list(&vals)[i].type < 0)
+        {
+            v = vector(-as_list(&vals)[i].type, 1);
+            as_vector_i64(&v)[0] = as_list(&vals)[i].i64;
+            as_list(&vals)[i] = v;
+        }
+    }
 
     table = list(2);
 

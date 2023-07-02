@@ -454,3 +454,30 @@ rf_object_t rf_neg(rf_object_t *x)
         return error_type1(x->type, "neg: unsupported type");
     }
 }
+
+rf_object_t rf_where(rf_object_t *x)
+{
+    i32_t i, j = 0;
+    i64_t l, *ov;
+    bool_t *iv;
+    rf_object_t res;
+
+    switch (MTYPE(x->type))
+    {
+    case MTYPE(TYPE_BOOL):
+        l = x->adt->len;
+        iv = as_vector_bool(x);
+        res = vector_i64(l);
+        ov = as_vector_i64(&res);
+        for (i = 0; i < l; i++)
+            if (iv[i])
+                ov[j++] = i;
+
+        vector_shrink(&res, j);
+
+        return res;
+
+    default:
+        return error_type1(x->type, "where: unsupported type");
+    }
+}
