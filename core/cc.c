@@ -517,6 +517,36 @@ cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
     return CC_OK;
 }
 
+rf_object_t find_used_columns(rf_object_t *params)
+{
+
+    // for (i = 0; i < l; i++)
+    // {
+    //     k = as_vector_symbol(&as_list(params)[0])[i];
+    //     if (k != KW_FROM && k != KW_WHERE)
+    //     {
+    //         val = as_list(&as_list(params)[1])[i];
+    //         if (val.type == TYPE_LIST)
+    //         {
+    //         }
+    //     }
+    // }
+    i64_t i, l, k;
+    rf_object_t key, val, cols;
+
+    cols = vector_symbol(0);
+    l = as_list(params)[0].adt->len;
+
+    for (i = 0; i < l; i++)
+    {
+        k = as_vector_symbol(&as_list(params)[0])[i];
+        if (k != KW_FROM && k != KW_WHERE)
+            vector_push(&cols, symboli64(as_vector_symbol(&as_list(params)[0])[i]));
+    }
+
+    return cols;
+}
+
 cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     cc_result_t res;
@@ -546,7 +576,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     if (res == CC_ERROR)
         return CC_ERROR;
 
-    push_opcode(cc, car->id, code, OP_LATTACH);
+    // push_opcode(cc, car->id, code, OP_LATTACH);
 
     // compile filters
     key = symboli64(KW_WHERE);
@@ -555,28 +585,15 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     if (val.type != TYPE_NULL)
     {
         // first determine which of columns are used in select
-        // for (i = 0; i < l; i++)
-        // {
-        //     k = as_vector_symbol(&as_list(params)[0])[i];
-        //     if (k != KW_FROM && k != KW_WHERE)
-        //     {
-        //         val = as_list(&as_list(params)[1])[i];
-        //         if (val.type == TYPE_LIST)
-        //         {
-        //         }
-        //     }
-        // }
-
-        cols = vector_symbol(0);
-        vector_push(&cols, symbol("a"));
-        vector_push(&cols, symbol("b"));
         push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, cols);
+        push_const(cc, find_used_columns(params));
 
+        // remap table of columns
         push_opcode(cc, car->id, code, OP_LDETACH);
         push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_take);
 
+        // compile filters
         push_opcode(cc, car->id, code, OP_LATTACH);
 
         res = cc_compile_expr(true, cc, &val);
@@ -588,6 +605,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         push_opcode(cc, car->id, code, OP_CALL1);
         push_u64(code, rf_where);
 
+        // remap table of columns (by applying filters)
         push_opcode(cc, car->id, code, OP_LDETACH);
         push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_take);
