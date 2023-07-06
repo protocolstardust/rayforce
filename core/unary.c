@@ -116,6 +116,7 @@ rf_object_t rf_sum(rf_object_t *x)
     i32_t i;
     i64_t l, isum = 0, *iv;
     f64_t fsum = 0.0, *fv;
+    rf_object_t res, v;
 
     switch (MTYPE(x->type))
     {
@@ -147,6 +148,24 @@ rf_object_t rf_sum(rf_object_t *x)
         return f64(fsum);
 
     default:
+        if (x->type == TYPE_LIST)
+        {
+            l = x->adt->len;
+            res = list(l);
+            res.adt->len = 0;
+            for (i = 0; i < l; i++)
+            {
+                v = rf_sum(&as_list(x)[i]);
+                if (v.type == TYPE_ERROR)
+                {
+                    rf_object_free(&res);
+                    return v;
+                }
+                as_list(&res)[res.adt->len++] = v;
+            }
+
+            return res;
+        }
         return error_type1(x->type, "sum: unsupported type");
     }
 }
@@ -156,6 +175,7 @@ rf_object_t rf_avg(rf_object_t *x)
     i32_t i;
     i64_t l, isum, *iv, n = 0;
     f64_t fsum, *fv;
+    rf_object_t res, v;
 
     switch (MTYPE(x->type))
     {
@@ -192,6 +212,24 @@ rf_object_t rf_avg(rf_object_t *x)
         return f64(fsum / l);
 
     default:
+        if (x->type == TYPE_LIST)
+        {
+            l = x->adt->len;
+            res = list(l);
+            res.adt->len = 0;
+            for (i = 0; i < l; i++)
+            {
+                v = rf_avg(&as_list(x)[i]);
+                if (v.type == TYPE_ERROR)
+                {
+                    rf_object_free(&res);
+                    return v;
+                }
+                as_list(&res)[res.adt->len++] = v;
+            }
+
+            return res;
+        }
         return error_type1(x->type, "avg: unsupported type");
     }
 }
