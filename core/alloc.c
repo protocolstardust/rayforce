@@ -99,7 +99,7 @@ alloc_t rf_alloc_init()
         _ALLOC->freelist64 = block64;
     }
 
-    for (order = MAX_ORDER - 4; order <= MAX_ORDER; order++)
+    for (order = MAX_ORDER; order <= MAX_ORDER; order++)
     {
         node_t *node = (node_t *)rf_alloc_add_pool(1ull << order);
 
@@ -107,7 +107,7 @@ alloc_t rf_alloc_init()
         _ALLOC->freelist[order] = node;
         _ALLOC->avail |= 1ull << order;
     }
-
+    // print_blocks();
     return _ALLOC;
 }
 
@@ -118,6 +118,7 @@ alloc_t rf_alloc_get()
 
 null_t rf_alloc_cleanup()
 {
+    // print_blocks();
     i32_t i;
 
     // All the nodes remains are pools, so just munmap them
@@ -130,9 +131,7 @@ null_t rf_alloc_cleanup()
             if (node->base != node)
             {
                 debug("node->base: %p\n", node->base);
-                // print_blocks();
-                node = next;
-                continue;
+                return;
             }
             mmap_free(node->base, node->size);
             node = next;
