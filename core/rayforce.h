@@ -53,6 +53,7 @@ extern "C"
 #define TYPE_LAMBDA 100
 #define TYPE_UNARY 101
 #define TYPE_BINARY 102
+#define TYPE_VARY 103
 #define TYPE_INSTRUCTION 111
 #define TYPE_ERROR 127
 

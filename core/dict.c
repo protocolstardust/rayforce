@@ -82,6 +82,8 @@ rf_object_t dict_set(rf_object_t *dict, rf_object_t *key, rf_object_t val)
     case TYPE_LIST:
         as_list(vals)[index] = rf_object_clone(&val);
         break;
+    default:
+        panic("dict set: unknown type");
     }
 
     return val;

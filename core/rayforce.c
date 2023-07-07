@@ -239,7 +239,7 @@ bool_t rf_object_eq(rf_object_t *a, rf_object_t *b)
     if (a->type != b->type)
         return 0;
 
-    if (a->type == -TYPE_I64 || a->type == -TYPE_SYMBOL)
+    if (a->type == -TYPE_I64 || a->type == -TYPE_SYMBOL || a->type == TYPE_UNARY || a->type == TYPE_BINARY || a->type == TYPE_VARY)
         return a->i64 == b->i64;
     else if (a->type == -TYPE_F64)
         return a->f64 == b->f64;
@@ -296,7 +296,7 @@ rf_object_t __attribute__((hot)) rf_object_clone(rf_object_t *object)
     case TYPE_NULL:
     case TYPE_UNARY:
     case TYPE_BINARY:
-    case -TYPE_LAMBDA:
+    case TYPE_VARY:
         return *object;
     case -TYPE_GUID:
         if (object->guid == NULL)
@@ -351,7 +351,7 @@ null_t __attribute__((hot)) rf_object_free(rf_object_t *object)
     case TYPE_NULL:
     case TYPE_UNARY:
     case TYPE_BINARY:
-    case -TYPE_LAMBDA:
+    case TYPE_VARY:
         return;
     case -TYPE_GUID:
         if (object->guid == NULL)
@@ -429,7 +429,7 @@ rf_object_t rf_object_cow(rf_object_t *object)
     case TYPE_NULL:
     case TYPE_UNARY:
     case TYPE_BINARY:
-    case -TYPE_LAMBDA:
+    case TYPE_VARY:
         return *object;
     case -TYPE_GUID:
         if (object->guid == NULL)

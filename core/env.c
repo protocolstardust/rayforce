@@ -30,10 +30,16 @@
 #include "runtime.h"
 #include "format.h"
 
-#define reg(r, n, t, o)                                             \
+#define regf(r, n, t, o)                                            \
     {                                                               \
         rf_object_t k = symboli64(intern_keyword(n, strlen(n)));    \
         dict_set(r, &k, (rf_object_t){.type = t, .i64 = (i64_t)o}); \
+    };
+
+#define regt(r, i, s)               \
+    {                               \
+        rf_object_t k = i64(i);     \
+        dict_set(r, &k, symbol(s)); \
     };
 
 rf_object_t rf_env()
@@ -63,85 +69,88 @@ rf_object_t rf_memstat()
 null_t init_functions(rf_object_t *functions)
 {
     // Unary
-    reg(functions, "type",        TYPE_UNARY,    rf_type);
-    reg(functions, "til",         TYPE_UNARY,    rf_til);
+    regf(functions, "type",        TYPE_UNARY,    rf_type);
+    regf(functions, "til",         TYPE_UNARY,    rf_til);
     // REC(functions,  "trace",       OP_TRACE);
-    reg(functions,  "distinct",   TYPE_UNARY,    rf_distinct);
-    reg(functions,  "group",      TYPE_UNARY,    rf_group);
-    reg(functions,  "sum",        TYPE_UNARY,    rf_sum);
-    reg(functions,  "avg",        TYPE_UNARY,    rf_avg);
-    reg(functions,  "min",        TYPE_UNARY,    rf_min);
-    reg(functions,  "max",        TYPE_UNARY,    rf_max);
-    reg(functions,  "count",      TYPE_UNARY,    rf_count);
-    reg(functions,  "not",        TYPE_UNARY,    rf_not);
-    reg(functions,  "iasc",       TYPE_UNARY,    rf_iasc);
-    reg(functions,  "idesc",      TYPE_UNARY,    rf_idesc);
-    reg(functions,  "asc",        TYPE_UNARY,    rf_asc);
-    reg(functions,  "desc",       TYPE_UNARY,    rf_desc);
-    reg(functions,  "flatten",    TYPE_UNARY,    vector_flatten);
-    reg(functions,  "guid",       TYPE_UNARY,    rf_guid_generate);
-    reg(functions,  "neg",        TYPE_UNARY,    rf_neg);
-    reg(functions,  "where",      TYPE_UNARY,    rf_where);
+    regf(functions,  "distinct",   TYPE_UNARY,    rf_distinct);
+    regf(functions,  "group",      TYPE_UNARY,    rf_group);
+    regf(functions,  "sum",        TYPE_UNARY,    rf_sum);
+    regf(functions,  "avg",        TYPE_UNARY,    rf_avg);
+    regf(functions,  "min",        TYPE_UNARY,    rf_min);
+    regf(functions,  "max",        TYPE_UNARY,    rf_max);
+    regf(functions,  "count",      TYPE_UNARY,    rf_count);
+    regf(functions,  "not",        TYPE_UNARY,    rf_not);
+    regf(functions,  "iasc",       TYPE_UNARY,    rf_iasc);
+    regf(functions,  "idesc",      TYPE_UNARY,    rf_idesc);
+    regf(functions,  "asc",        TYPE_UNARY,    rf_asc);
+    regf(functions,  "desc",       TYPE_UNARY,    rf_desc);
+    regf(functions,  "flatten",    TYPE_UNARY,    vector_flatten);
+    regf(functions,  "guid",       TYPE_UNARY,    rf_guid_generate);
+    regf(functions,  "neg",        TYPE_UNARY,    rf_neg);
+    regf(functions,  "where",      TYPE_UNARY,    rf_where);
       
     // Binary         
-    reg(functions, "==",          TYPE_BINARY,   rf_eq);
-    reg(functions, "<",           TYPE_BINARY,   rf_lt);
-    reg(functions, ">",           TYPE_BINARY,   rf_gt);
-    reg(functions, "<=",          TYPE_BINARY,   rf_le);
-    reg(functions, ">=",          TYPE_BINARY,   rf_ge);
-    reg(functions, "!=",          TYPE_BINARY,   rf_ne);
-    reg(functions, "and",         TYPE_BINARY,   rf_and);
-    reg(functions, "or",          TYPE_BINARY,   rf_or);
-    reg(functions,  "+",          TYPE_BINARY,   rf_add);
-    reg(functions, "-",           TYPE_BINARY,   rf_sub);
-    reg(functions, "*",           TYPE_BINARY,   rf_mul);
-    reg(functions, "/",           TYPE_BINARY,   rf_div);
-    reg(functions, "%",           TYPE_BINARY,   rf_mod);
-    reg(functions, "div",         TYPE_BINARY,   rf_fdiv);
-    reg(functions, "like",        TYPE_BINARY,   rf_like);
-    reg(functions, "dict",        TYPE_BINARY,   rf_dict);
-    reg(functions, "table",       TYPE_BINARY,   rf_table);
-    reg(functions, "get",         TYPE_BINARY,   rf_get);
-    reg(functions, "find",        TYPE_BINARY,   rf_find);
-    reg(functions, "concat",      TYPE_BINARY,   rf_concat);
-    reg(functions, "filter",      TYPE_BINARY,   rf_filter);
-    reg(functions, "take",        TYPE_BINARY,   rf_take);
-    reg(functions, "in",          TYPE_BINARY,   rf_in);
-    reg(functions, "sect",        TYPE_BINARY,   rf_sect);
-    reg(functions, "except",      TYPE_BINARY,   rf_except);
-    reg(functions, "rand",        TYPE_BINARY,   rf_rand);
+    regf(functions, "==",          TYPE_BINARY,   rf_eq);
+    regf(functions, "<",           TYPE_BINARY,   rf_lt);
+    regf(functions, ">",           TYPE_BINARY,   rf_gt);
+    regf(functions, "<=",          TYPE_BINARY,   rf_le);
+    regf(functions, ">=",          TYPE_BINARY,   rf_ge);
+    regf(functions, "!=",          TYPE_BINARY,   rf_ne);
+    regf(functions, "and",         TYPE_BINARY,   rf_and);
+    regf(functions, "or",          TYPE_BINARY,   rf_or);
+    regf(functions,  "+",          TYPE_BINARY,   rf_add);
+    regf(functions, "-",           TYPE_BINARY,   rf_sub);
+    regf(functions, "*",           TYPE_BINARY,   rf_mul);
+    regf(functions, "/",           TYPE_BINARY,   rf_div);
+    regf(functions, "%",           TYPE_BINARY,   rf_mod);
+    regf(functions, "div",         TYPE_BINARY,   rf_fdiv);
+    regf(functions, "like",        TYPE_BINARY,   rf_like);
+    regf(functions, "dict",        TYPE_BINARY,   rf_dict);
+    regf(functions, "table",       TYPE_BINARY,   rf_table);
+    regf(functions, "get",         TYPE_BINARY,   rf_get);
+    regf(functions, "find",        TYPE_BINARY,   rf_find);
+    regf(functions, "concat",      TYPE_BINARY,   rf_concat);
+    regf(functions, "filter",      TYPE_BINARY,   rf_filter);
+    regf(functions, "take",        TYPE_BINARY,   rf_take);
+    regf(functions, "in",          TYPE_BINARY,   rf_in);
+    regf(functions, "sect",        TYPE_BINARY,   rf_sect);
+    regf(functions, "except",      TYPE_BINARY,   rf_except);
+    regf(functions, "rand",        TYPE_BINARY,   rf_rand);
      
     // Lambdas       
-    // reg(functions, "env",         rf_env);
-    // reg(functions, "memstat",     rf_memstat);
-    reg(functions,  "list",      -TYPE_LAMBDA,   rf_list);
-    reg(functions, "format",     -TYPE_LAMBDA,   rf_format);
-    reg(functions, "print",      -TYPE_LAMBDA,   rf_print);
-    reg(functions, "println",    -TYPE_LAMBDA,   rf_println);
+    // regf(functions, "env",         rf_env);
+    // regf(functions, "memstat",     rf_memstat);
+    regf(functions,  "list",       TYPE_VARY,   rf_list);
+    regf(functions, "format",      TYPE_VARY,   rf_format);
+    regf(functions, "print",       TYPE_VARY,   rf_print);
+    regf(functions, "println",     TYPE_VARY,   rf_println);
 }    
     
-null_t init_typenames(i64_t *typenames)    
+null_t init_typenames(rf_object_t *typenames)    
 {
-    // typenames[-TYPE_BOOL      + TYPE_OFFSET] = symbol("bool").i64;
-    // typenames[-TYPE_I64       + TYPE_OFFSET] = symbol("i64").i64;
-    // typenames[-TYPE_F64       + TYPE_OFFSET] = symbol("f64").i64;
-    // typenames[-TYPE_SYMBOL    + TYPE_OFFSET] = symbol("symbol").i64;
-    // typenames[-TYPE_TIMESTAMP + TYPE_OFFSET] = symbol("timestamp").i64;
-    // typenames[-TYPE_GUID      + TYPE_OFFSET] = symbol("guid").i64;
-    // typenames[-TYPE_CHAR      + TYPE_OFFSET] = symbol("char").i64;
-    // typenames[ TYPE_NULL      + TYPE_OFFSET] = symbol("Null").i64;
-    // typenames[ TYPE_BOOL      + TYPE_OFFSET] = symbol("Bool").i64;
-    // typenames[ TYPE_I64       + TYPE_OFFSET] = symbol("I64").i64;
-    // typenames[ TYPE_F64       + TYPE_OFFSET] = symbol("F64").i64;
-    // typenames[ TYPE_SYMBOL    + TYPE_OFFSET] = symbol("Symbol").i64;
-    // typenames[ TYPE_TIMESTAMP + TYPE_OFFSET] = symbol("Timestamp").i64;
-    // typenames[ TYPE_GUID      + TYPE_OFFSET] = symbol("Guid").i64;
-    // typenames[ TYPE_CHAR      + TYPE_OFFSET] = symbol("Char").i64;
-    // typenames[ TYPE_LIST      + TYPE_OFFSET] = symbol("List").i64;
-    // typenames[ TYPE_DICT      + TYPE_OFFSET] = symbol("Dict").i64;
-    // typenames[ TYPE_TABLE     + TYPE_OFFSET] = symbol("Table").i64;
-    // typenames[ TYPE_LAMBDA  + TYPE_OFFSET] = symbol("lambda").i64;
-    // typenames[ TYPE_ERROR     + TYPE_OFFSET] = symbol("Error").i64;
+    regt(typenames, -TYPE_BOOL,       "bool");
+    regt(typenames, -TYPE_I64,        "i64");
+    regt(typenames, -TYPE_F64,        "f64");
+    regt(typenames, -TYPE_CHAR,       "char");
+    regt(typenames, -TYPE_SYMBOL,     "symbol");
+    regt(typenames, -TYPE_TIMESTAMP,  "timestamp");
+    regt(typenames, -TYPE_GUID,       "guid");
+    regt(typenames, TYPE_BOOL,        "Bool");
+    regt(typenames, TYPE_I64,         "I64");
+    regt(typenames, TYPE_F64,         "F64");
+    regt(typenames, TYPE_CHAR,        "Char");
+    regt(typenames, TYPE_SYMBOL,      "Symbol");
+    regt(typenames, TYPE_TIMESTAMP,   "Timestamp");
+    regt(typenames, TYPE_GUID,        "Guid");
+    regt(typenames, TYPE_LIST,        "List");
+    regt(typenames, TYPE_TABLE,       "Table");
+    regt(typenames, TYPE_DICT,        "Dict");
+    regt(typenames, TYPE_UNARY,       "Unary");
+    regt(typenames, TYPE_BINARY,      "Binary");
+    regt(typenames, TYPE_VARY,        "Vary");
+    regt(typenames, TYPE_LAMBDA,      "Lambda");
+    regt(typenames, TYPE_NULL,        "Null");
+    regt(typenames, TYPE_ERROR,       "Error");
 }
 
 
@@ -171,17 +180,19 @@ env_t create_env()
 {
     rf_object_t functions = dict(vector_symbol(0), list(0));
     rf_object_t variables = dict(vector_symbol(0), list(0));
+    rf_object_t typenames = dict(vector_i64(0), vector_symbol(0));
 
     init_kw_symbols();
 
     init_functions(&functions);
 
+    init_typenames(&typenames);
+
     env_t env = {
         .functions = functions,
         .variables = variables,
+        .typenames = typenames,
     };
-
-    init_typenames(env.typenames);
 
     return env;
 }
@@ -194,14 +205,21 @@ null_t free_env(env_t *env)
 
 i64_t env_get_typename_by_type(env_t *env, type_t type)
 {
-    return env->typenames[type + TYPE_OFFSET];
+    rf_object_t k, n;
+    k = i64(type);
+    n = dict_get(&env->typenames, &k);
+
+    return n.i64;
 }
 
 type_t env_get_type_by_typename(env_t *env, i64_t name)
 {
-    for (i32_t i = 0; i < MAX_TYPE; i++)
-        if (env->typenames[i] == name)
-            return i - TYPE_OFFSET;
+    i64_t i, l;
+    l = as_list(&env->typenames)[1].adt->len;
+
+    for (i = 0; i < l; i++)
+        if (as_list(&as_list(&env->typenames)[1])[i].i64 == name)
+            return (type_t)as_list(&as_list(&env->typenames)[0])[i].i64;
 
     return TYPE_NONE;
 }

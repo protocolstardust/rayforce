@@ -504,6 +504,17 @@ i32_t error_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t 
     return str_fmt_into(dst, len, offset, 0, "** [E%.3d] error: %s", error->adt->code, as_string(error));
 }
 
+i32_t internal_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *object)
+{
+    rf_object_t *functions = &runtime_get()->env.functions;
+    i64_t id, sym;
+
+    id = vector_find(&as_list(functions)[1], object);
+    sym = as_vector_symbol(&as_list(functions)[0])[id];
+
+    return symbol_fmt_into(dst, len, offset, 0, limit, sym);
+}
+
 i32_t lambda_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *rf_object)
 {
     UNUSED(limit);
@@ -556,9 +567,9 @@ i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i3
     case TYPE_TABLE:
         return table_fmt_into(dst, len, offset, indent, limit, object);
     case TYPE_UNARY:
-        return str_fmt_into(dst, len, offset, limit, "unary %lld", object->i64);
     case TYPE_BINARY:
-        return str_fmt_into(dst, len, offset, limit, "binary %lld", object->i64);
+    case TYPE_VARY:
+        return internal_fmt_into(dst, len, offset, indent, limit, object);
     case TYPE_LAMBDA:
         return lambda_fmt_into(dst, len, offset, indent, limit, object);
     case TYPE_ERROR:

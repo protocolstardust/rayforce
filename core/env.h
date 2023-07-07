@@ -62,9 +62,9 @@ typedef rf_object_t (*vary_t)(rf_object_t *, i64_t n);
  */
 typedef struct env_t
 {
-    rf_object_t functions;     // dict, containing function primitives
-    rf_object_t variables;     // dict, containing mappings variables names to their values
-    i64_t typenames[MAX_TYPE]; // array of symbols contains typenames, maps type id to type name
+    rf_object_t functions; // dict, containing function primitives
+    rf_object_t variables; // dict, containing mappings variables names to their values
+    rf_object_t typenames; // dict, containing mappings type ids to their names
 } env_t;
 
 env_t create_env();

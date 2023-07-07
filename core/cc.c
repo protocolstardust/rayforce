@@ -372,7 +372,7 @@ cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u8_t arity)
         push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rec.i64);
         return CC_OK;
-    case -TYPE_LAMBDA:
+    case TYPE_VARY:
         push_opcode(cc, car->id, code, OP_CALLN);
         push_opcode(cc, car->id, code, arity);
         push_u64(code, rec.i64);
@@ -695,6 +695,16 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         {
             push_opcode(cc, object->id, code, OP_LOAD);
             push_u64(code, -1);
+            func->stack_size++;
+
+            return CC_OK;
+        }
+
+        // internal function
+        if (object->i64 < 0)
+        {
+            push_opcode(cc, object->id, code, OP_PUSH);
+            push_const(cc, dict_get(&runtime_get()->env.functions, object));
             func->stack_size++;
 
             return CC_OK;

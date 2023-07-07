@@ -226,10 +226,13 @@ op_calln:
     dispatch();
 op_calld:
     b = vm->ip++;
+    n = code[vm->ip++];
     addr = stack_peek(vm);
     switch (addr->type)
     {
     case TYPE_UNARY:
+        if (n != 1)
+            unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
         x0 = stack_pop(vm);
         f1 = (unary_t)x0.i64;
         x2 = stack_pop(vm);
@@ -239,6 +242,8 @@ op_calld:
         stack_push(vm, x1);
         break;
     case TYPE_BINARY:
+        if (n != 2)
+            unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
         x0 = stack_pop(vm);
         f2 = (binary_t)x0.i64;
         x3 = stack_pop(vm);
@@ -249,13 +254,12 @@ op_calld:
         unwrap(x1, b);
         stack_push(vm, x1);
         break;
-    case -TYPE_LAMBDA:
+    case TYPE_VARY:
         x0 = stack_pop(vm);
         fn = (vary_t)x0.i64;
-        l = code[vm->ip++];
-        addr = (rf_object_t *)(&vm->stack[vm->sp - l]);
-        x1 = fn(addr, l);
-        for (i = 0; i < l; i++)
+        addr = (rf_object_t *)(&vm->stack[vm->sp - n]);
+        x1 = fn(addr, n);
+        for (i = 0; i < n; i++)
             stack_pop_free(vm); // pop args
         unwrap(x1, b);
         stack_push(vm, x1);
@@ -278,8 +282,7 @@ op_calld:
          * |       arg1        |
          * +-------------------+
          */
-        l = code[vm->ip++];
-        if (l != as_lambda(addr)->args.adt->len)
+        if (n != as_lambda(addr)->args.adt->len)
             unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
         if ((vm->sp + as_lambda(addr)->stack_size) * sizeof(rf_object_t) > VM_STACK_SIZE)
             unwrap(error(ERR_STACK_OVERFLOW, "stack overflow"), b);
