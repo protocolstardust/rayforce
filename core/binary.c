@@ -34,14 +34,6 @@
 #include "hash.h"
 #include "set.h"
 
-rf_object_t error_type2(type_t type1, type_t type2, str_t msg)
-{
-    str_t fmsg = str_fmt(0, "%s: '%s', '%s'", msg, env_get_typename(type1), env_get_typename(type2));
-    rf_object_t err = error(ERR_TYPE, fmsg);
-    rf_free(fmsg);
-    return err;
-}
-
 rf_object_t rf_set_variable(rf_object_t *key, rf_object_t *val)
 {
     return dict_set(&runtime_get()->env.variables, key, rf_object_clone(val));

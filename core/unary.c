@@ -36,14 +36,6 @@
 #include "env.h"
 #include "group.h"
 
-rf_object_t error_type1(type_t type, str_t msg)
-{
-    str_t fmsg = str_fmt(0, "%s: '%s'", msg, env_get_typename(type));
-    rf_object_t err = error(ERR_TYPE, fmsg);
-    rf_free(fmsg);
-    return err;
-}
-
 rf_object_t rf_get_variable(rf_object_t *x)
 {
     rf_object_t v = dict_get(&runtime_get()->env.variables, x);

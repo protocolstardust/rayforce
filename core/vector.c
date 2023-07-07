@@ -25,6 +25,10 @@
 #include "vector.h"
 #include "util.h"
 #include "format.h"
+#include "env.h"
+
+#define panic_type(m, t1) panic(str_fmt(0, "%s: '%s'", m, env_get_typename(t1)))
+#define panic_type2(m, t1, t2) panic(str_fmt(0, "%s: '%s', '%s'", m, env_get_typename(t1), env_get_typename(t2)))
 
 i64_t size_of_val(type_t type)
 {
@@ -47,7 +51,7 @@ i64_t size_of_val(type_t type)
     case TYPE_LIST:
         return sizeof(rf_object_t);
     default:
-        panic("size of val: unknown type");
+        panic_type("size of val unknown type", type);
     }
 }
 
@@ -77,7 +81,7 @@ rf_object_t vector(type_t type, i64_t len)
 i64_t vector_push(rf_object_t *vector, rf_object_t value)
 {
     if (value.type != -vector->type && vector->type != TYPE_LIST)
-        panic("vector push: type mismatch");
+        panic_type2("vector push type mismatch", vector->type, value.type);
 
     switch (vector->type)
     {
@@ -106,7 +110,7 @@ i64_t vector_push(rf_object_t *vector, rf_object_t value)
         push(vector, rf_object_t, value);
         break;
     default:
-        panic("vector push: unknown type");
+        panic_type("vector push: unknown type", vector->type);
     }
 
     return vector->adt->len;
@@ -139,7 +143,7 @@ rf_object_t vector_pop(rf_object_t *vector)
     case TYPE_LIST:
         return pop(vector, rf_object_t);
     default:
-        panic("vector pop: unknown type");
+        panic_type("vector pop: unknown type", vector->type);
     }
 }
 
@@ -172,7 +176,7 @@ null_t vector_reserve(rf_object_t *vector, u32_t len)
         reserve(vector, rf_object_t, len);
         return;
     default:
-        panic("vector reserve: unknown type");
+        panic_type("vector reserve: unknown type", vector->type);
     }
 }
 
@@ -383,7 +387,7 @@ null_t vector_set(rf_object_t *vector, i64_t index, rf_object_t value)
             as_list(vector)[index] = rf_object_clone(&value);
         return;
     default:
-        panic("vector_set: invalid type");
+        panic_type("vector_set: unknown type", vector->type);
     }
 }
 
@@ -535,7 +539,7 @@ rf_object_t vector_filter(rf_object_t *x, bool_t mask[], i64_t len)
             vector_shrink(&vec, j);
         return vec;
     default:
-        panic("vector_filter: invalid type");
+        panic_type("vector_filter: unknown type", x->type);
     }
 }
 

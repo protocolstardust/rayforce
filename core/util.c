@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include "util.h"
 #include "format.h"
+#include "alloc.h"
+#include "env.h"
 
 u32_t next_power_of_two_u32(u32_t n)
 {
@@ -64,4 +66,20 @@ i64_t size_of_element(type_t type)
     default:
         panic(str_fmt(0, "Unknown type: %d", type));
     }
+}
+
+rf_object_t error_type1(type_t type, str_t msg)
+{
+    str_t fmsg = str_fmt(0, "%s: '%s'", msg, env_get_typename(type));
+    rf_object_t err = error(ERR_TYPE, fmsg);
+    rf_free(fmsg);
+    return err;
+}
+
+rf_object_t error_type2(type_t type1, type_t type2, str_t msg)
+{
+    str_t fmsg = str_fmt(0, "%s: '%s', '%s'", msg, env_get_typename(type1), env_get_typename(type2));
+    rf_object_t err = error(ERR_TYPE, fmsg);
+    rf_free(fmsg);
+    return err;
 }

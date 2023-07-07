@@ -520,11 +520,11 @@ rf_object_t parse_vector(parser_t *parser)
                 vector_push(&vec, token);
             else if (vec.type == TYPE_I64)
             {
+                vec.type = TYPE_F64;
                 for (i = 0; i < (i32_t)vec.adt->len; i++)
                     as_vector_f64(&vec)[i] = (f64_t)as_vector_i64(&vec)[i];
 
                 vector_push(&vec, token);
-                vec.type = TYPE_F64;
             }
             else
             {
@@ -538,8 +538,8 @@ rf_object_t parse_vector(parser_t *parser)
         {
             if (vec.type == TYPE_SYMBOL || (vec.adt->len == 0))
             {
-                vector_push(&vec, token);
                 vec.type = TYPE_SYMBOL;
+                vector_push(&vec, token);
             }
             else
             {
