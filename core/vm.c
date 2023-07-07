@@ -98,9 +98,9 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_call, &&op_timer_set, &&op_timer_get,
-        &&op_store, &&op_load, &&op_lset, &&op_lget, &&op_lattach, &&op_ldetach, &&op_cast,
-        &&op_try, &&op_catch, &&op_throw, &&op_trace, &&op_alloc, &&op_map, &&op_collect};
+        &&op_halt, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_call, &&op_ret, &&op_timer_set, &&op_timer_get,
+        &&op_store, &&op_load, &&op_lset, &&op_lget, &&op_lattach, &&op_ldetach, &&op_try, &&op_catch, &&op_throw,
+        &&op_trace, &&op_alloc, &&op_map, &&op_collect};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -167,21 +167,6 @@ op_halt:
         return stack_pop(vm);
     else
         return null();
-op_ret:
-    vm->ip++;
-    x3 = stack_pop(vm); // return value
-    x2 = stack_pop(vm); // ctx
-    stack_pop_free(vm); // free lambda
-    j = (i32_t)f->args.adt->len;
-    for (i = 0; i < j; i++)
-        stack_pop_free(vm); // pop args
-    ctx = *(ctx_t *)&x2;
-    vm->ip = ctx.ip;
-    vm->bp = ctx.bp;
-    f = ctx.addr;
-    code = as_string(&f->code);
-    stack_push(vm, x3); // push back return value
-    dispatch();
 op_push:
     vm->ip++;
     load_u64(l, vm);
@@ -276,6 +261,21 @@ op_call:
         unwrap(error(ERR_TYPE, "call"), b);
     }
     dispatch();
+op_ret:
+    vm->ip++;
+    x3 = stack_pop(vm); // return value
+    x2 = stack_pop(vm); // ctx
+    stack_pop_free(vm); // free lambda
+    j = (i32_t)f->args.adt->len;
+    for (i = 0; i < j; i++)
+        stack_pop_free(vm); // pop args
+    ctx = *(ctx_t *)&x2;
+    vm->ip = ctx.ip;
+    vm->bp = ctx.bp;
+    f = ctx.addr;
+    code = as_string(&f->code);
+    stack_push(vm, x3); // push back return value
+    dispatch();
 op_timer_set:
     vm->ip++;
     vm->timer = clock();
@@ -330,15 +330,6 @@ op_lattach:
 op_ldetach:
     b = vm->ip++;
     x1 = vector_pop(&f->locals);
-    stack_push(vm, x1);
-    dispatch();
-op_cast:
-    b = vm->ip++;
-    i = code[vm->ip++];
-    x2 = stack_pop(vm);
-    x1 = rf_cast(i, &x2);
-    rf_object_free(&x2);
-    unwrap(x1, b);
     stack_push(vm, x1);
     dispatch();
 op_try:
@@ -480,10 +471,6 @@ str_t vm_code_fmt(rf_object_t *fun)
         case OP_LOAD:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] load [%d]\n", c++, ip, (i32_t)((rf_object_t *)(code + ip + 1))->i64);
             ip += 1 + sizeof(rf_object_t);
-            break;
-        case OP_CAST:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] cast %d\n", c++, ip, code[ip + 1]);
-            ip += 2;
             break;
         case OP_TRY:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] try ", c++, ip++);

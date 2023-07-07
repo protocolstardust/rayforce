@@ -35,12 +35,12 @@
 typedef enum vm_opcode_t
 {
     OP_HALT = 0,  // Halt the VM
-    OP_RET,       // Return from lambda
     OP_PUSH,      // Push an rf_object to the stack
     OP_POP,       // Pop an rf_object from the stack
     OP_JNE,       // Jump if not equal
     OP_JMP,       // Jump
     OP_CALL,      // Call primitive/lambda
+    OP_RET,       // Return from lambda
     OP_TIMER_SET, // Start timer
     OP_TIMER_GET, // Get timer value
     OP_STORE,     // Store value somewhere in a stack pointed by argument
@@ -49,7 +49,6 @@ typedef enum vm_opcode_t
     OP_LGET,      // Get local variable
     OP_LATTACH,   // Attach dict frame to local variables
     OP_LDETACH,   // Detach dict frame from local variables
-    OP_CAST,      // Cast rf_object to another type
     OP_TRY,       // Trap an expression to return here on error
     OP_CATCH,     // Catch an error from vm register and push it onto the stack
     OP_THROW,     // Throw an error
