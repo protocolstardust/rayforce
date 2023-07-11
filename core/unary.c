@@ -46,6 +46,7 @@ rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x)
     if (x->type == TYPE_LIST)
     {
         l = x->adt->len;
+
         if (l == 0)
             return error(ERR_TYPE, "empty list");
 
@@ -55,22 +56,42 @@ rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x)
             return item;
 
         // probably we can fold it in a vector if all other values will be of the same type
-        if (item.type < 0)
+        if (is_scalar(&item))
             res = vector(-item.type, l);
         else
             res = list(l);
 
-        vector_set(&res, 0, item);
+        res.adt->len = 1;
+
+        item = vector_set(&res, 0, item);
+
+        if (item.type == TYPE_ERROR)
+        {
+            res.adt->len--;
+            rf_object_free(&res);
+            return item;
+        }
 
         for (i = 1; i < l; i++)
         {
             item = rf_call_unary_atomic(f, &as_list(x)[i]);
+
             if (item.type == TYPE_ERROR)
             {
                 rf_object_free(&res);
                 return item;
             }
-            vector_set(&res, i, item);
+
+            res.adt->len++;
+
+            item = vector_set(&res, i, item);
+
+            if (item.type == TYPE_ERROR)
+            {
+                res.adt->len--;
+                rf_object_free(&res);
+                return item;
+            }
         }
 
         return res;

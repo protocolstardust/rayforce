@@ -78,49 +78,8 @@ rf_object_t vector(type_t type, i64_t len)
     return v;
 }
 
-rf_object_t vector_push(rf_object_t *vec, rf_object_t value)
+rf_object_t _push(rf_object_t *vec, rf_object_t value)
 {
-    i64_t i, l;
-    rf_object_t lst;
-
-    if (vec->type == TYPE_NULL)
-    {
-        if (is_scalar(&value))
-        {
-            *vec = vector(-value.type, 0);
-            vector_push(vec, value);
-            return null();
-        }
-
-        *vec = list(1);
-        as_list(vec)[0] = value;
-        return null();
-    }
-
-    if (!is_vector(vec))
-        panic("vector push: can not push to scalar");
-
-    l = vec->adt->len;
-
-    // if (l == 0)
-    // {
-    //     vec.type = -value.type;
-    // }
-
-    // change vector type to a list
-    // if (vec->type != -value.type && vec->type != TYPE_LIST)
-    // {
-    //     lst = list(l + 1);
-    //     for (i = 0; i < l; i++)
-    //         as_list(&lst)[i] = vector_get(&vec[i], i);
-
-    //     as_list(&lst)[l] = value;
-
-    //     rf_object_free(vec);
-
-    //     *vec = lst;
-    //     return null();
-    // }
     switch (vec->type)
     {
     case TYPE_BOOL:
@@ -150,6 +109,58 @@ rf_object_t vector_push(rf_object_t *vec, rf_object_t value)
     default:
         panic("vector push: can not push to a unknown type");
     }
+}
+
+rf_object_t list_push(rf_object_t *vec, rf_object_t value)
+{
+    i64_t i, l;
+    rf_object_t lst;
+
+    if (!is_vector(vec))
+        panic("vector push: can not push to a non-vector");
+
+    if (vec->type != -value.type && vec->type != TYPE_LIST)
+        panic("vector push: can not push to a non-list");
+
+    return _push(vec, value);
+}
+
+rf_object_t vector_push(rf_object_t *vec, rf_object_t value)
+{
+    i64_t i, l;
+    rf_object_t lst;
+
+    if (!is_vector(vec))
+        panic("vector push: can not push to a non-vector");
+
+    l = vec->adt->len;
+
+    if (l == 0)
+    {
+        if (is_scalar(&value))
+            vec->type = -value.type;
+        else
+            vec->type = TYPE_LIST;
+    }
+    else
+    {
+        // change vector type to a list
+        if (vec->type != -value.type && vec->type != TYPE_LIST)
+        {
+            lst = list(l + 1);
+            for (i = 0; i < l; i++)
+                as_list(&lst)[i] = vector_get(vec, i);
+
+            as_list(&lst)[l] = value;
+
+            rf_object_free(vec);
+
+            *vec = lst;
+            return null();
+        }
+    }
+
+    return _push(vec, value);
 }
 
 rf_object_t vector_pop(rf_object_t *vec)
@@ -382,28 +393,29 @@ rf_object_t vector_set(rf_object_t *vec, i64_t index, rf_object_t value)
     i64_t i, l;
     rf_object_t lst;
 
+    if (!is_vector(vec))
+        return error(ERR_TYPE, "vector set: can not set to a non-vector");
+
+    l = vec->adt->len;
+
+    if (index >= l)
+        return error(ERR_LENGTH, "vector set: index out of bounds");
+
     // change vector type to a list
     if (vec->type != -value.type && vec->type != TYPE_LIST)
     {
-        l = vec->adt->len;
-        if (index >= l)
-            return error(ERR_LENGTH, "vector set: index out of bounds");
-
         lst = list(l);
-        for (i = 0; i < index; i++)
-            as_list(&lst)[i] = vector_get(&vec[i], i);
+        for (i = 0; i < l; i++)
+            as_list(&lst)[i] = vector_get(vec, i);
 
         as_list(&lst)[index] = value;
 
         rf_object_free(vec);
 
         *vec = lst;
+
         return null();
     }
-
-    l = vec->adt->len;
-    if (index >= l)
-        return error(ERR_LENGTH, "vector set: index out of bounds");
 
     switch (vec->type)
     {
@@ -430,7 +442,8 @@ rf_object_t vector_set(rf_object_t *vec, i64_t index, rf_object_t value)
         as_string(vec)[index] = value.schar;
         break;
     case TYPE_LIST:
-        as_list(vec)[index] = rf_object_clone(&value);
+        rf_object_free(&as_list(vec)[index]);
+        as_list(vec)[index] = value;
         break;
     default:
         panic_type("vector_set: unknown type", vec->type);
@@ -618,13 +631,13 @@ null_t vector_free(rf_object_t *vec)
 
 rf_object_t rf_list(rf_object_t *x, u32_t n)
 {
-    rf_object_t l = list(n);
+    rf_object_t l = list(0);
     u32_t i;
 
     for (i = 0; i < n; i++)
     {
         rf_object_t *item = x + i;
-        as_list(&l)[i] = rf_object_clone(item);
+        vector_push(&l, rf_object_clone(item));
     }
 
     return l;
