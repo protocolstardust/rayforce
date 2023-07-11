@@ -83,6 +83,20 @@ rf_object_t vector_push(rf_object_t *vec, rf_object_t value)
     i64_t i, l;
     rf_object_t lst;
 
+    if (vec->type == TYPE_NULL)
+    {
+        if (is_scalar(&value))
+        {
+            *vec = vector(-value.type, 0);
+            vector_push(vec, value);
+            return null();
+        }
+
+        *vec = list(1);
+        as_list(vec)[0] = value;
+        return null();
+    }
+
     if (!is_vector(vec))
         panic("vector push: can not push to scalar");
 
@@ -107,7 +121,6 @@ rf_object_t vector_push(rf_object_t *vec, rf_object_t value)
     //     *vec = lst;
     //     return null();
     // }
-
     switch (vec->type)
     {
     case TYPE_BOOL:

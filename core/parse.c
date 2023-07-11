@@ -632,7 +632,7 @@ rf_object_t parse_list(parser_t *parser)
 
 rf_object_t parse_dict(parser_t *parser)
 {
-    rf_object_t token, keys = list(0), vals = list(0), d, err;
+    rf_object_t token, keys = null(), vals = null(), d, err;
     span_t span = span_start(parser);
 
     shift(parser, 1); // skip '{'
@@ -701,6 +701,12 @@ rf_object_t parse_dict(parser_t *parser)
         span_extend(parser, &span);
         token = advance(parser);
     }
+
+    if (keys.type == TYPE_NULL)
+        keys = vector_i64(0);
+
+    if (vals.type == TYPE_NULL)
+        vals = vector_i64(0);
 
     d = dict(keys, vals);
 

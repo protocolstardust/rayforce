@@ -29,11 +29,19 @@
 
 rf_object_t dict(rf_object_t keys, rf_object_t vals)
 {
-    if (keys.type < 0 || vals.type < 0)
-        return error(ERR_TYPE, "Keys and rf_objects must be lists");
+    if (!is_vector(&keys) || !is_vector(&vals))
+    {
+        rf_object_free(&keys);
+        rf_object_free(&vals);
+        return error(ERR_TYPE, "Keys and Values must be lists");
+    }
 
     if (keys.adt->len != vals.adt->len)
-        return error(ERR_LENGTH, "Keys and rf_objects must have the same length");
+    {
+        rf_object_free(&keys);
+        rf_object_free(&vals);
+        return error(ERR_LENGTH, "Keys and Values must have the same length");
+    }
 
     rf_object_t dict = list(2);
 

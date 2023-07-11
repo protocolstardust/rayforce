@@ -35,7 +35,7 @@
 #include "lambda.h"
 #include "timestamp.h"
 
-#define MAX_ROW_WIDTH 120
+#define MAX_ROW_WIDTH 80
 #define FORMAT_TRAILER_SIZE 4
 #define F64_PRECISION 2
 #define TABLE_MAX_WIDTH 10  // Maximum number of columns
@@ -226,33 +226,25 @@ i32_t guid_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, guid_t *
     return n;
 }
 
-i32_t vector_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_object_t *rf_object)
+i32_t vector_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_object_t *object)
 {
-    if (rf_object->adt->len == 0)
+    if (object->adt->len == 0)
         return str_fmt_into(dst, len, offset, limit, "[]");
 
     i32_t i, n = str_fmt_into(dst, len, offset, limit, "["), indent = 0;
     i64_t l;
+    rf_object_t v;
 
     if (n > limit)
         return n;
 
-    l = rf_object->adt->len;
+    l = object->adt->len;
 
     for (i = 0; i < l; i++)
     {
-        if (rf_object->type == TYPE_BOOL)
-            n += bool_fmt_into(dst, len, offset, limit, as_vector_bool(rf_object)[i]);
-        else if (rf_object->type == TYPE_I64)
-            n += i64_fmt_into(dst, len, offset, limit, as_vector_i64(rf_object)[i]);
-        else if (rf_object->type == TYPE_F64)
-            n += f64_fmt_into(dst, len, offset, limit, as_vector_f64(rf_object)[i]);
-        else if (rf_object->type == TYPE_SYMBOL)
-            n += symbol_fmt_into(dst, len, offset, limit, as_vector_i64(rf_object)[i]);
-        else if (rf_object->type == TYPE_TIMESTAMP)
-            n += ts_fmt_into(dst, len, offset, limit, as_vector_i64(rf_object)[i]);
-        else if (rf_object->type == TYPE_GUID)
-            n += guid_fmt_into(dst, len, offset, limit, as_vector_guid(rf_object) + i);
+        v = vector_get(object, i);
+        n += rf_object_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, &v);
+        rf_object_free(&v);
 
         if (n > limit)
             break;
