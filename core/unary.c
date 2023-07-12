@@ -83,6 +83,17 @@ rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x)
     return f(x);
 }
 
+rf_object_t rf_call_unary(u8_t flags, unary_t f, rf_object_t *x)
+{
+    switch (flags)
+    {
+    case FLAG_ATOMIC:
+        return rf_call_unary_atomic(f, x);
+    default:
+        return f(x);
+    }
+}
+
 rf_object_t rf_get_variable(rf_object_t *x)
 {
     rf_object_t v = dict_get(&runtime_get()->env.variables, x);

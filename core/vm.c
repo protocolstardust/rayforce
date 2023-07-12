@@ -37,6 +37,7 @@
 #include "cast.h"
 #include "unary.h"
 #include "binary.h"
+#include "vary.h"
 
 #define stack_push(v, x) (v->stack[v->sp++] = x)
 #define stack_pop(v) (v->stack[--v->sp])
@@ -86,12 +87,9 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
     str_t code = as_string(&f->code);
     rf_object_t x0, x1, x2, x3, *addr;
     i64_t t;
-    u8_t n;
+    u8_t n, flags;
     u64_t l, p;
     i32_t i, j, b;
-    unary_t f1;
-    binary_t f2;
-    vary_t fn;
     ctx_t ctx;
 
     vm->ip = 0;
@@ -100,10 +98,10 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_call1, &&op_call1a, &&op_call2,
-        &&op_call2la, &&op_call2ra, &&op_call2a, &&op_calln, &&op_calld, &&op_ret, &&op_timer_set,
-        &&op_timer_get, &&op_store, &&op_load, &&op_lset, &&op_lget, &&op_lattach, &&op_ldetach,
-        &&op_try, &&op_catch, &&op_throw, &&op_trace, &&op_alloc, &&op_map, &&op_collect};
+        &&op_halt, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_call1, &&op_call2, &&op_calln,
+        &&op_calld, &&op_ret, &&op_timer_set, &&op_timer_get, &&op_store, &&op_load, &&op_lset,
+        &&op_lget, &&op_lattach, &&op_ldetach, &&op_try, &&op_catch, &&op_throw, &&op_trace,
+        &&op_alloc, &&op_map, &&op_collect};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -194,61 +192,23 @@ op_jmp:
     dispatch();
 op_call1:
     b = vm->ip++;
+    flags = code[vm->ip++];
     load_u64(l, vm);
+made_call1:
     x2 = stack_pop(vm);
-    x1 = ((unary_t)l)(&x2);
-    rf_object_free(&x2);
-    unwrap(x1, b);
-    stack_push(vm, x1);
-    dispatch();
-op_call1a:
-    b = vm->ip++;
-    load_u64(l, vm);
-    x2 = stack_pop(vm);
-    x1 = rf_call_unary_atomic((unary_t)l, &x2);
+    x1 = rf_call_unary(flags, (unary_t)l, &x2);
     rf_object_free(&x2);
     unwrap(x1, b);
     stack_push(vm, x1);
     dispatch();
 op_call2:
     b = vm->ip++;
+    flags = code[vm->ip++];
     load_u64(l, vm);
+made_call2:
     x3 = stack_pop(vm);
     x2 = stack_pop(vm);
-    x1 = ((binary_t)l)(&x2, &x3);
-    rf_object_free(&x2);
-    rf_object_free(&x3);
-    unwrap(x1, b);
-    stack_push(vm, x1);
-    dispatch();
-op_call2la:
-    b = vm->ip++;
-    load_u64(l, vm);
-    x3 = stack_pop(vm);
-    x2 = stack_pop(vm);
-    x1 = rf_call_binary_left_atomic((binary_t)l, &x2, &x3);
-    rf_object_free(&x2);
-    rf_object_free(&x3);
-    unwrap(x1, b);
-    stack_push(vm, x1);
-    dispatch();
-op_call2ra:
-    b = vm->ip++;
-    load_u64(l, vm);
-    x3 = stack_pop(vm);
-    x2 = stack_pop(vm);
-    x1 = rf_call_binary_right_atomic((binary_t)l, &x2, &x3);
-    rf_object_free(&x2);
-    rf_object_free(&x3);
-    unwrap(x1, b);
-    stack_push(vm, x1);
-    dispatch();
-op_call2a:
-    b = vm->ip++;
-    load_u64(l, vm);
-    x3 = stack_pop(vm);
-    x2 = stack_pop(vm);
-    x1 = rf_call_binary_atomic((binary_t)l, &x2, &x3);
+    x1 = rf_call_binary(flags, (binary_t)l, &x2, &x3);
     rf_object_free(&x2);
     rf_object_free(&x3);
     unwrap(x1, b);
@@ -257,10 +217,11 @@ op_call2a:
 op_calln:
     b = vm->ip++;
     n = code[vm->ip++];
+    flags = code[vm->ip++];
     load_u64(l, vm);
-    fn = (vary_t)l;
+made_calln:
     addr = (rf_object_t *)(&vm->stack[vm->sp - n]);
-    x1 = fn(addr, n);
+    x1 = rf_call_vary(flags, (vary_t)l, addr, n);
     for (i = 0; i < n; i++)
         stack_pop_free(vm); // pop args
     unwrap(x1, b);
@@ -276,36 +237,21 @@ op_calld:
         if (n != 1)
             unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
         x0 = stack_pop(vm);
-        f1 = (unary_t)x0.i64;
-        x2 = stack_pop(vm);
-        x1 = f1(&x2);
-        rf_object_free(&x2);
-        unwrap(x1, b);
-        stack_push(vm, x1);
-        break;
+        l = x0.i64;
+        flags = x0.flags;
+        goto made_call1;
     case TYPE_BINARY:
         if (n != 2)
             unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
         x0 = stack_pop(vm);
-        f2 = (binary_t)x0.i64;
-        x3 = stack_pop(vm);
-        x2 = stack_pop(vm);
-        x1 = f2(&x2, &x3);
-        rf_object_free(&x2);
-        rf_object_free(&x3);
-        unwrap(x1, b);
-        stack_push(vm, x1);
-        break;
+        l = x0.i64;
+        flags = x0.flags;
+        goto made_call2;
     case TYPE_VARY:
         x0 = stack_pop(vm);
-        fn = (vary_t)x0.i64;
-        addr = (rf_object_t *)(&vm->stack[vm->sp - n]);
-        x1 = fn(addr, n);
-        for (i = 0; i < n; i++)
-            stack_pop_free(vm); // pop args
-        unwrap(x1, b);
-        stack_push(vm, x1);
-        break;
+        l = x0.i64;
+        flags = x0.flags;
+        goto made_calln;
     case TYPE_LAMBDA:
         /* Call stack of user lambda call looks as follows:
          * +-------------------+
@@ -444,9 +390,10 @@ op_trace:
 op_alloc:
     b = vm->ip++;
     c = code[vm->ip++];
-    l = stack_peek_n(vm, c - 1)->adt->len;
+    addr = stack_peek_n(vm, c - 1);
+    l = addr->adt->len;
     // allocate result and write to a preserved space on the stack
-    x1 = list(l);
+    x1 = vector(addr->type, l);
     x1.adt->len = 0;
     *stack_peek_n(vm, c) = x1;
     // push counter
@@ -478,7 +425,7 @@ op_collect:
     addr = stack_peek_n(vm, c);
     l = addr->adt->len++;
     // store result
-    vector_set(addr, l, x1);
+    vector_write(addr, l, x1);
     // load first argument len
     p = stack_peek_n(vm, c - 1)->adt->len;
     // push counter

@@ -28,7 +28,7 @@
 
 typedef rf_object_t (*unary_t)(rf_object_t *);
 
-rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x);
+rf_object_t rf_call_unary(u8_t flags, unary_t f, rf_object_t *x);
 rf_object_t rf_get_variable(rf_object_t *x);
 rf_object_t rf_type(rf_object_t *x);
 rf_object_t rf_count(rf_object_t *x);

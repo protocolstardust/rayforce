@@ -52,8 +52,6 @@
 #define KW_BY -15
 #define KW_ORDER -16
 
-typedef rf_object_t (*vary_t)(rf_object_t *, i64_t n);
-
 /*
  *  Environment
  */

@@ -231,6 +231,21 @@ rf_object_t rf_call_binary_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
     return f(x, y);
 }
 
+rf_object_t rf_call_binary(u8_t flags, binary_t f, rf_object_t *x, rf_object_t *y)
+{
+    switch (flags)
+    {
+    case FLAG_ATOMIC:
+        return rf_call_binary_atomic(f, x, y);
+    case FLAG_LEFT_ATOMIC:
+        return rf_call_binary_left_atomic(f, x, y);
+    case FLAG_RIGHT_ATOMIC:
+        return rf_call_binary_right_atomic(f, x, y);
+    default:
+        return f(x, y);
+    }
+}
+
 rf_object_t rf_set_variable(rf_object_t *key, rf_object_t *val)
 {
     return dict_set(&runtime_get()->env.variables, key, rf_object_clone(val));

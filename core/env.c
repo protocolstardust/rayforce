@@ -26,6 +26,7 @@
 #include "dict.h"
 #include "unary.h"
 #include "binary.h"
+#include "vary.h"
 #include "guid.h"
 #include "runtime.h"
 #include "format.h"
