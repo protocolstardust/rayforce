@@ -44,6 +44,7 @@ rf_object_t rf_call_binary_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
         (y->type == TYPE_LIST && is_vector(x)))
     {
         l = x->adt->len;
+
         if (l != y->adt->len)
             return error(ERR_LENGTH, "binary: vectors must be of the same length");
 
@@ -66,6 +67,70 @@ rf_object_t rf_call_binary_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
             b = vector_get(y, i);
             item = rf_call_binary_atomic(f, &a, &b);
             rf_object_free(&a);
+            rf_object_free(&b);
+
+            if (item.type == TYPE_ERROR)
+            {
+                res.adt->len = i;
+                rf_object_free(&res);
+                return item;
+            }
+
+            vector_write(&res, i, item);
+        }
+
+        return res;
+    }
+    else if (x->type == TYPE_LIST)
+    {
+        l = x->adt->len;
+        a = vector_get(x, 0);
+        item = rf_call_binary_atomic(f, &a, y);
+        rf_object_free(&a);
+
+        if (item.type == TYPE_ERROR)
+            return item;
+
+        res = list(l);
+
+        vector_write(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            a = vector_get(x, i);
+            item = rf_call_binary_atomic(f, &a, y);
+            rf_object_free(&a);
+
+            if (item.type == TYPE_ERROR)
+            {
+                res.adt->len = i;
+                rf_object_free(&res);
+                return item;
+            }
+
+            vector_write(&res, i, item);
+        }
+
+        return res;
+    }
+    else if (y->type == TYPE_LIST)
+    {
+        l = y->adt->len;
+        b = vector_get(y, 0);
+        item = rf_call_binary_atomic(f, x, &b);
+        rf_object_free(&b);
+
+        if (item.type == TYPE_ERROR)
+            return item;
+
+        res = list(l);
+
+        vector_write(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            b = vector_get(y, i);
+            item = rf_call_binary_atomic(f, x, &b);
             rf_object_free(&b);
 
             if (item.type == TYPE_ERROR)
