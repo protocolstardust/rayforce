@@ -260,10 +260,20 @@ rf_object_t rf_table(rf_object_t *x, rf_object_t *y)
 {
     bool_t s = false;
     u64_t i, j, len, cl = 0;
-    rf_object_t lst, c;
+    rf_object_t lst, c, l = null();
 
-    if (x->type != TYPE_SYMBOL || y->type != TYPE_LIST)
-        return error(ERR_TYPE, "Keys must be a symbol vector and Values must be list");
+    if (x->type != TYPE_SYMBOL)
+        return error(ERR_TYPE, "Keys must be a symbol vector");
+
+    if (y->type != TYPE_LIST)
+    {
+        if (x->adt->len != 1)
+            return error(ERR_LENGTH, "Keys and Values must have the same length");
+
+        l = list(1);
+        as_list(&l)[0] = rf_object_clone(y);
+        y = &l;
+    }
 
     if (x->adt->len != y->adt->len)
         return error(ERR_LENGTH, "Keys and Values must have the same length");
@@ -305,6 +315,9 @@ rf_object_t rf_table(rf_object_t *x, rf_object_t *y)
     // otherwise we need to expand scalars to vectors
     lst = list(len);
 
+    if (cl == 0)
+        cl = 1;
+
     for (i = 0; i < len; i++)
     {
         switch (as_list(y)[i].type)
@@ -321,6 +334,8 @@ rf_object_t rf_table(rf_object_t *x, rf_object_t *y)
             as_list(&lst)[i] = rf_object_clone(&as_list(y)[i]);
         }
     }
+
+    rf_object_free(&l);
 
     return table(rf_object_clone(x), lst);
 }

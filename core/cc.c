@@ -362,7 +362,7 @@ cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u8_t arity)
     {
     case TYPE_UNARY:
         if (arity != 1)
-            cerr(cc, car->id, ERR_LENGTH, str_fmt(0, "unary function expects 1 argument"));
+            cerr(cc, car->id, ERR_LENGTH, "unary function expects 1 argument");
 
         push_opcode(cc, car->id, code, OP_CALL1);
         push_opcode(cc, car->id, code, rec.flags);
@@ -371,7 +371,7 @@ cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u8_t arity)
         return CC_OK;
     case TYPE_BINARY:
         if (arity != 2)
-            cerr(cc, car->id, ERR_LENGTH, str_fmt(0, "binary function expects 2 arguments"));
+            cerr(cc, car->id, ERR_LENGTH, "binary function expects 2 arguments");
 
         push_opcode(cc, car->id, code, OP_CALL2);
         push_opcode(cc, car->id, code, rec.flags);
@@ -567,7 +567,6 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     val = dict_get(params, &key);
     if (!is_null(&val))
     {
-
         push_opcode(cc, car->id, code, OP_LATTACH);
 
         res = cc_compile_expr(true, cc, &val);
@@ -636,6 +635,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
 
     return CC_OK;
 }
+
 /*
  * Special forms are those that are not in a table of lambdas because of their special nature.
  * return TYPE_ERROR if there is an error

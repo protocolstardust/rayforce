@@ -688,6 +688,17 @@ null_t vector_free(rf_object_t *vec)
 
 rf_object_t rf_list(rf_object_t *x, u32_t n)
 {
+    rf_object_t l = list(n);
+    u32_t i;
+
+    for (i = 0; i < n; i++)
+        as_list(&l)[i] = rf_object_clone(x + i);
+
+    return l;
+}
+
+rf_object_t rf_enlist(rf_object_t *x, u32_t n)
+{
     rf_object_t l = list(0);
     u32_t i;
 

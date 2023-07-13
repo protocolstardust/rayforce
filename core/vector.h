@@ -91,6 +91,7 @@ null_t vector_write(rf_object_t *vec, i64_t index, rf_object_t value);
 rf_object_t vector_push(rf_object_t *vec, rf_object_t object);
 rf_object_t list_push(rf_object_t *vec, rf_object_t object);
 rf_object_t rf_list(rf_object_t *x, u32_t n);
+rf_object_t rf_enlist(rf_object_t *x, u32_t n);
 
 null_t vector_reserve(rf_object_t *vec, u32_t len);
 null_t vector_grow(rf_object_t *vec, u32_t len);
