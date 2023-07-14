@@ -1456,12 +1456,12 @@ rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
 
     switch (MTYPE2(x->type, y->type))
     {
-    case MTYPE2(-TYPE_BOOL, -TYPE_I64):
+    case MTYPE2(TYPE_BOOL, -TYPE_I64):
     case MTYPE2(TYPE_I64, -TYPE_I64):
+    case MTYPE2(TYPE_F64, -TYPE_I64):
     case MTYPE2(TYPE_TIMESTAMP, -TYPE_I64):
     case MTYPE2(TYPE_GUID, -TYPE_I64):
     case MTYPE2(TYPE_SYMBOL, -TYPE_I64):
-    case MTYPE2(TYPE_F64, -TYPE_I64):
         return vector_get(x, y->i64);
 
     case MTYPE2(-TYPE_I64, -TYPE_I64):
@@ -1488,12 +1488,16 @@ rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
 
         return res;
 
+    case MTYPE2(TYPE_TABLE, -TYPE_I64):
     case MTYPE2(TYPE_TABLE, TYPE_I64):
         l = as_list(x)[0].adt->len;
-        res = list(l);
+        cols = list(l);
         for (i = 0; i < l; i++)
         {
             c = rf_take(&as_list(&as_list(x)[1])[i], y);
+
+            if (is_scalar(&c))
+                c = rf_enlist(&c, 1);
 
             if (c.type == TYPE_ERROR)
             {
@@ -1502,10 +1506,13 @@ rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
                 return c;
             }
 
-            vector_write(&res, i, c);
+            vector_write(&cols, i, c);
         }
 
-        return table(rf_object_clone(&as_list(x)[0]), res);
+        res = rf_table(&as_list(x)[0], &cols);
+        rf_object_free(&cols);
+
+        return res;
 
     case MTYPE2(TYPE_TABLE, TYPE_SYMBOL):
         syms = rf_sect(&as_list(x)[0], y);

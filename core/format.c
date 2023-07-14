@@ -345,7 +345,7 @@ i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     return n;
 }
 
-i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, rf_object_t *object)
+i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, rf_object_t *object)
 {
     i64_t *header = as_vector_symbol(&as_list(object)[0]);
     rf_object_t *columns = &as_list(object)[1], column_widths, c;
@@ -400,7 +400,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, rf_object_t *object)
         str_fmt_into(dst, len, offset, 0, " ..");
 
     // Print table header separator
-    str_fmt_into(dst, len, offset, 0, "\n+");
+    str_fmt_into(dst, len, offset, 0, "\n%*.*s+", indent, indent, PADDING);
     for (i = 0; i < table_width; i++)
     {
         n = as_vector_i64(&column_widths)[i] + 2;
@@ -410,7 +410,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, rf_object_t *object)
     // Print table content
     for (j = 0; j < table_height; j++)
     {
-        str_fmt_into(dst, len, offset, 0, "\n|");
+        str_fmt_into(dst, len, offset, 0, "\n%*.*s|", indent, indent, PADDING);
 
         for (i = 0; i < table_width; i++)
         {
@@ -496,7 +496,7 @@ i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i3
     case TYPE_DICT:
         return dict_fmt_into(dst, len, offset, indent, limit, object);
     case TYPE_TABLE:
-        return table_fmt_into(dst, len, offset, object);
+        return table_fmt_into(dst, len, offset, indent, object);
     case TYPE_UNARY:
     case TYPE_BINARY:
     case TYPE_VARY:
