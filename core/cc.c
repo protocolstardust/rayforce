@@ -647,27 +647,54 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
 
         push_opcode(cc, car->id, code, OP_LPOP);
 
-        // push used columns
-        push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, k);
+        // reduce by used columns (if any)
+        if (k.adt->len > 0)
+        {
 
+            push_opcode(cc, car->id, code, OP_DUP);
+            push_opcode(cc, car->id, code, OP_CALL1);
+            push_opcode(cc, car->id, code, 0);
+            push_u64(code, rf_key);
+            push_opcode(cc, car->id, code, OP_PUSH);
+            push_const(cc, k);
+            push_opcode(cc, car->id, code, OP_CALL2);
+            push_opcode(cc, car->id, code, 0);
+            push_u64(code, rf_sect);
+            push_opcode(cc, car->id, code, OP_CALL2);
+            push_opcode(cc, car->id, code, 0);
+            push_u64(code, rf_take);
+        }
+        else
+            rf_object_free(&k);
+
+        push_opcode(cc, car->id, code, OP_SWAP);
+
+        // apply filters
         push_opcode(cc, car->id, code, OP_CALL2);
         push_opcode(cc, car->id, code, 0);
         push_u64(code, rf_take);
-
-        push_opcode(cc, car->id, code, OP_SWAP);
     }
     else
     {
-        // push used columns
-        push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, k);
+        // reduce by used columns (if any)
+        if (k.adt->len > 0)
+        {
+            push_opcode(cc, car->id, code, OP_DUP);
+            push_opcode(cc, car->id, code, OP_CALL1);
+            push_opcode(cc, car->id, code, 0);
+            push_u64(code, rf_key);
+            push_opcode(cc, car->id, code, OP_PUSH);
+            push_const(cc, k);
+            push_opcode(cc, car->id, code, OP_CALL2);
+            push_opcode(cc, car->id, code, 0);
+            push_u64(code, rf_sect);
+            push_opcode(cc, car->id, code, OP_CALL2);
+            push_opcode(cc, car->id, code, 0);
+            push_u64(code, rf_take);
+        }
+        else
+            rf_object_free(&k);
     }
-
-    // reduce table by used columns/filters
-    push_opcode(cc, car->id, code, OP_CALL2);
-    push_opcode(cc, car->id, code, 0);
-    push_u64(code, rf_take);
 
     push_opcode(cc, car->id, code, OP_LPUSH);
 

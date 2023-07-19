@@ -111,17 +111,12 @@ rf_object_t rf_type(rf_object_t *x)
 
 rf_object_t rf_count(rf_object_t *x)
 {
-    if (!is_vector(x))
-        return i64(1);
-
     switch (x->type)
     {
-    case TYPE_LAMBDA:
-        return i64(1);
     case TYPE_TABLE:
-        return i64((&as_list(&as_list(x)[1])[0])->adt->len);
+        return i64(as_list(&as_list(x)[1])[0].adt->len);
     default:
-        return i64(x->adt->len);
+        return i64(1);
     }
 }
 
@@ -567,6 +562,7 @@ rf_object_t rf_key(rf_object_t *x)
 {
     switch (MTYPE(x->type))
     {
+    case MTYPE(TYPE_TABLE):
     case MTYPE(TYPE_DICT):
         return rf_object_clone(&as_list(x)[0]);
     default:
@@ -578,6 +574,7 @@ rf_object_t rf_value(rf_object_t *x)
 {
     switch (MTYPE(x->type))
     {
+    case MTYPE(TYPE_TABLE):
     case MTYPE(TYPE_DICT):
         return rf_object_clone(&as_list(x)[1]);
     default:

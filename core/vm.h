@@ -38,6 +38,7 @@ typedef enum vm_opcode_t
     OP_PUSH,      // Push an rf_object to the stack
     OP_POP,       // Pop an rf_object from the stack
     OP_SWAP,      // Swap two rf_objects on the stack
+    OP_DUP,       // Duplicate an rf_object on the stack
     OP_JNE,       // Jump if not equal
     OP_JMP,       // Jump
     OP_CALL1,     // Call unary

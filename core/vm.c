@@ -100,7 +100,7 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_push, &&op_pop, &&op_swap, &&op_jne, &&op_jmp, &&op_call1, &&op_call2, &&op_calln,
+        &&op_halt, &&op_push, &&op_pop, &&op_swap, &&op_dup, &&op_jne, &&op_jmp, &&op_call1, &&op_call2, &&op_calln,
         &&op_calld, &&op_ret, &&op_timer_set, &&op_timer_get, &&op_store, &&op_load, &&op_lset,
         &&op_lget, &&op_lpush, &&op_lpop, &&op_group, &&op_try, &&op_catch, &&op_throw,
         &&op_trace, &&op_alloc, &&op_map, &&op_collect};
@@ -186,6 +186,11 @@ op_swap:
     x2 = stack_pop(vm);
     stack_push(vm, x1);
     stack_push(vm, x2);
+    dispatch();
+op_dup:
+    vm->ip++;
+    addr = stack_peek(vm);
+    stack_push(vm, rf_object_clone(addr));
     dispatch();
 op_jne:
     vm->ip++;

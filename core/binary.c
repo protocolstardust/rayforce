@@ -400,6 +400,8 @@ rf_object_t rf_add(rf_object_t *x, rf_object_t *y)
 
     case MTYPE2(TYPE_I64, TYPE_I64):
         l = x->adt->len;
+        if (l != y->adt->len)
+            return error(ERR_LENGTH, "add: vectors must be of the same length");
         vec = vector_i64(l);
         for (i = 0; i < l; i++)
             as_vector_i64(&vec)[i] = ADDI64(as_vector_i64(x)[i], as_vector_i64(y)[i]);
