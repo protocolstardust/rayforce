@@ -485,67 +485,6 @@ null_t find_used_symbols(rf_object_t *lst, rf_object_t *syms)
     }
 }
 
-cc_result_t cc_compile_by(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
-{
-    UNUSED(has_consumer);
-    UNUSED(cc);
-    UNUSED(object);
-    UNUSED(arity);
-
-    return CC_NONE;
-
-    // cc_result_t res;
-    // i64_t i, l;
-    // rf_object_t *car, *params, key, val, cols, syms, k, v;
-    // lambda_t *func = as_lambda(&cc->lambda);
-    // rf_object_t *code = &func->code;
-
-    // // group by
-    // key = symboli64(KW_BY);
-    // val = dict_get(params, &key);
-    // if (!is_null(&val))
-    // {
-    //     push_opcode(cc, car->id, code, OP_LPUSH);
-
-    //     res = cc_compile_expr(true, cc, &val);
-    //     rf_object_free(&val);
-
-    //     push_opcode(cc, car->id, code, OP_PUSH);
-
-    //     if (val.type == -TYPE_SYMBOL)
-    //     {
-    //         push_const(cc, val);
-    //     }
-    //     else
-    //     {
-    //         push_const(cc, symbol("x1"));
-    //     }
-
-    //     if (res == CC_ERROR)
-    //     {
-    //         rf_object_free(&cols);
-    //         return CC_ERROR;
-    //     }
-
-    //     push_opcode(cc, car->id, code, OP_GROUP);
-
-    //     // detach and drop table from env
-    //     push_opcode(cc, car->id, code, OP_LPOP);
-    //     return CC_OK;
-    //     push_opcode(cc, car->id, code, OP_PUSH);
-    //     push_const(cc, syms);
-    //     push_opcode(cc, car->id, code, OP_CALL2);
-    //     push_opcode(cc, car->id, code, 0);
-    //     push_u64(code, rf_take);
-
-    //     push_opcode(cc, car->id, code, OP_CALL2);
-    //     push_opcode(cc, car->id, code, 0);
-    //     push_u64(code, rf_group_table);
-    // }
-
-    // return CC_OK;
-}
-
 cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     cc_result_t res;
@@ -553,6 +492,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     rf_object_t *car, *params, key, val, cols, syms, k, v;
     lambda_t *func = as_lambda(&cc->lambda);
     rf_object_t *code = &func->code;
+    bool_t groupby = false, map = false;
 
     car = &as_list(object)[0];
 
@@ -584,6 +524,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     val = dict_get(params, &key);
     if (!is_null(&val))
     {
+        groupby = true;
         if (val.type == -TYPE_SYMBOL)
             vector_push(&cols, val);
         else
@@ -603,6 +544,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
                 continue;
 
             vector_push(&cols, k);
+            map = true;
         }
     }
 
@@ -640,7 +582,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         push_opcode(cc, car->id, code, OP_LPOP);
 
         // reduce by used columns (if any)
-        if (k.adt->len > 0)
+        if (map)
         {
 
             push_opcode(cc, car->id, code, OP_DUP);
@@ -669,7 +611,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     else
     {
         // reduce by used columns (if any)
-        if (k.adt->len > 0)
+        if (map)
         {
             push_opcode(cc, car->id, code, OP_DUP);
             push_opcode(cc, car->id, code, OP_CALL1);
@@ -688,19 +630,61 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
             rf_object_free(&k);
     }
 
-    if (cols.adt->len > 0)
+    if (map || groupby)
         push_opcode(cc, car->id, code, OP_LPUSH);
 
-    res = cc_compile_by(has_consumer, cc, object, arity);
+    // Group?
+    key = symboli64(KW_BY);
+    val = dict_get(params, &key);
+    if (!is_null(&val))
+    {
+        res = cc_compile_expr(true, cc, &val);
+        rf_object_free(&val);
 
-    if (res == CC_ERROR)
-        return CC_ERROR;
+        if (res == CC_ERROR)
+        {
+            rf_object_free(&cols);
+            return CC_ERROR;
+        }
+
+        push_opcode(cc, object->id, code, OP_CALL1);
+        push_opcode(cc, object->id, code, 0);
+        push_u64(code, rf_group);
+
+        push_opcode(cc, object->id, code, OP_DUP);
+        push_opcode(cc, object->id, code, OP_CALL1);
+        push_opcode(cc, object->id, code, 0);
+        push_u64(code, rf_value);
+
+        push_opcode(cc, car->id, code, OP_LPOP);
+        push_opcode(cc, car->id, code, OP_SWAP);
+
+        // apply grouping
+        push_opcode(cc, car->id, code, OP_CALL2);
+        push_opcode(cc, car->id, code, 0);
+        push_u64(code, rf_group_Table);
+
+        push_opcode(cc, car->id, code, OP_LPUSH);
+
+        push_opcode(cc, object->id, code, OP_CALL1);
+        push_opcode(cc, object->id, code, 0);
+        push_u64(code, rf_key);
+
+        // TODO!!!
+        if (!map)
+        {
+            push_opcode(cc, car->id, code, OP_LPOP);
+        }
+    }
 
     // compile mappings (if specified)
-    if (cols.adt->len > 0)
+    if (map)
     {
         push_opcode(cc, car->id, code, OP_PUSH);
         push_const(cc, cols);
+
+        if (groupby)
+            push_opcode(cc, car->id, code, OP_SWAP);
 
         for (i = 0; i < l; i++)
         {

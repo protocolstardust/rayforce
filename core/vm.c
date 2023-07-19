@@ -102,7 +102,7 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
     static null_t *dispatch_table[] = {
         &&op_halt, &&op_push, &&op_pop, &&op_swap, &&op_dup, &&op_jne, &&op_jmp, &&op_call1, &&op_call2, &&op_calln,
         &&op_calld, &&op_ret, &&op_timer_set, &&op_timer_get, &&op_store, &&op_load, &&op_lset,
-        &&op_lget, &&op_lpush, &&op_lpop, &&op_group, &&op_try, &&op_catch, &&op_throw,
+        &&op_lget, &&op_lpush, &&op_lpop, &&op_try, &&op_catch, &&op_throw,
         &&op_trace, &&op_alloc, &&op_map, &&op_collect};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
@@ -371,18 +371,6 @@ op_lpop:
     b = vm->ip++;
     x1 = vector_pop(&f->locals);
     stack_push(vm, x1);
-    dispatch();
-op_group:
-    b = vm->ip++;
-    x4 = stack_pop(vm);
-    x3 = stack_pop(vm);
-    x2 = rf_group(&x3);
-    rf_object_free(&x3);
-    unwrap(x2, b);
-    x1 = rf_key(&x2);
-    x0 = rf_value(&x2);
-    dict_set(&as_list(&f->locals)[0], &x4, x1);
-    stack_push(vm, x0);
     dispatch();
 op_try:
     b = vm->ip++;

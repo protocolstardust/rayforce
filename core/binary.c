@@ -1805,3 +1805,27 @@ rf_object_t rf_cast(rf_object_t *x, rf_object_t *y)
 
     return res;
 }
+
+rf_object_t rf_group_Table(rf_object_t *x, rf_object_t *y)
+{
+    i64_t i, l;
+    rf_object_t res, val;
+
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(TYPE_TABLE, TYPE_LIST):
+        l = as_list(x)[1].adt->len;
+        res = list(l);
+
+        for (i = 0; i < l; i++)
+        {
+            val = rf_call_binary_right_atomic(rf_take, &as_list(&as_list(x)[1])[i], y);
+            as_list(&res)[i] = val;
+        }
+
+        return table(rf_object_clone(&as_list(x)[0]), res);
+
+    default:
+        return error_type2(x->type, y->type, "group: unsupported types");
+    }
+}

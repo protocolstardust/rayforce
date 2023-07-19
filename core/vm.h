@@ -54,7 +54,6 @@ typedef enum vm_opcode_t
     OP_LGET,      // Get local variable
     OP_LPUSH,     // Attach dict frame to local variables
     OP_LPOP,      // Detach dict frame from local variables
-    OP_GROUP,     // Call group and remap result dict key as column and value push onto a stack
     OP_TRY,       // Trap an expression to return here on error
     OP_CATCH,     // Catch an error from vm register and push it onto the stack
     OP_THROW,     // Throw an error
