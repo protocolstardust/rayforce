@@ -466,8 +466,6 @@ i64_t rf_alloc_gc()
         }
     }
 
-    print_blocks();
-
     return total;
 }
 
