@@ -273,9 +273,11 @@ null_t test_alloc_free()
 {
     null_t *ptr1 = rf_malloc(8 * 10000000);
     null_t *ptr2 = rf_malloc(8 * 10000000);
+    null_t *ptr3 = rf_malloc(8 * 100000);
 
-    rf_free(ptr1);
     rf_free(ptr2);
+    rf_free(ptr3);
+    rf_free(ptr1);
 }
 
 i32_t main()
