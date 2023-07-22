@@ -586,3 +586,133 @@ str_t rf_object_fmt_n(rf_object_t *x, u32_t n)
 
     return s;
 }
+
+null_t print_error(rf_object_t *error, str_t filename, str_t source, u32_t len)
+{
+    const str_t PADDING = "                                                  ";
+    u16_t line_number = 0, i, l;
+    str_t start = source;
+    str_t end = NULL;
+    str_t error_desc, lf = "", msg, p;
+    span_t span = error->adt->span;
+
+    switch (error->adt->code)
+    {
+    case ERR_INIT:
+        error_desc = "init";
+        break;
+    case ERR_PARSE:
+        error_desc = "parse";
+        break;
+    case ERR_FORMAT:
+        error_desc = "format";
+        break;
+    case ERR_TYPE:
+        error_desc = "type";
+        break;
+    case ERR_LENGTH:
+        error_desc = "length";
+        break;
+    case ERR_INDEX:
+        error_desc = "index";
+        break;
+    case ERR_ALLOC:
+        error_desc = "alloc";
+        break;
+    case ERR_IO:
+        error_desc = "io";
+        break;
+    case ERR_NOT_FOUND:
+        error_desc = "not found";
+        break;
+    case ERR_NOT_EXIST:
+        error_desc = "not exist";
+        break;
+    case ERR_NOT_IMPLEMENTED:
+        error_desc = "not implemented";
+        break;
+    case ERR_STACK_OVERFLOW:
+        error_desc = "stack overflow";
+        break;
+    case ERR_THROW:
+        error_desc = "throw";
+        break;
+    default:
+        error_desc = "unknown";
+    }
+
+    if (!source)
+    {
+        printf("%s** [E%.3d] error%s: %s\n %s-->%s %s:%d:%d\n    %s %s %s\n", TOMATO, error->adt->code, RESET,
+               error_desc, CYAN, RESET, filename, span.end_line, span.end_column, TOMATO, as_string(error), RESET);
+        return;
+    }
+
+    printf("%s** [E%.3d] error%s: %s\n %s-->%s %s:%d:%d\n    %s|%s\n", TOMATO, error->adt->code, RESET,
+           error_desc, CYAN, RESET, filename, span.end_line, span.end_column, CYAN, RESET);
+
+    while (1)
+    {
+        end = strchr(start, '\n');
+        if (end == NULL)
+        {
+            end = source + len;
+            lf = "\n";
+        }
+
+        u32_t line_len = end - start + 1;
+
+        if (line_number >= span.start_line && line_number <= span.end_line)
+        {
+            printf("%.3d %s|%s %.*s", line_number + 1, CYAN, RESET, line_len, start);
+
+            // Print the arrow or span for the error
+            if (span.start_line == span.end_line)
+            {
+                printf("%s    %s|%s ", lf, CYAN, RESET);
+                for (i = 0; i < span.start_column; i++)
+                    printf(" ");
+
+                for (i = span.start_column; i <= span.end_column; i++)
+                    printf("%s^%s", TOMATO, RESET);
+
+                l = 0;
+                msg = as_string(error);
+                p = strtok(msg, "\n");
+                while (p != NULL)
+                {
+                    if (!l)
+                        printf("%*.*s %s%s%s\n", l, l, PADDING, TOMATO, p, RESET);
+                    else
+                        printf("%*.*s %s%s%s\n", l, l, PADDING, YELLOW, p, RESET);
+                    p = strtok(NULL, "\n");
+                    l = span.end_column - span.start_column + 8;
+                }
+            }
+            else
+            {
+                if (line_number == span.start_line)
+                {
+                    printf("    %s|%s ", CYAN, RESET);
+                    for (i = 0; i < span.start_column; i++)
+                        printf(" ");
+
+                    printf("%s^%s\n", TOMATO, RESET);
+                }
+                else if (line_number == span.end_line)
+                {
+                    for (i = 0; i < span.end_column + 6; i++)
+                        printf(" ");
+
+                    printf("%s^ %s%s\n", TOMATO, as_string(error), RESET);
+                }
+            }
+        }
+
+        if (line_number > span.end_line)
+            break;
+
+        line_number++;
+        start = end + 1;
+    }
+}

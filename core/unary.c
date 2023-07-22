@@ -663,6 +663,14 @@ rf_object_t rf_read_parse_compile(rf_object_t *x)
         parser = parser_new();
         par = parse(&parser, as_string(x), as_string(&red));
         rf_object_free(&red);
+
+        if (par.type == TYPE_ERROR)
+        {
+            print_error(&par, as_string(x), as_string(&red), red.adt->len);
+            parser_free(&parser);
+            return par;
+        }
+
         com = cc_compile_lambda(false, as_string(x), vector_symbol(0),
                                 as_list(&par), par.id, par.adt->len, &parser.debuginfo);
         rf_object_free(&par);
