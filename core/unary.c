@@ -101,7 +101,7 @@ rf_object_t rf_get_variable(rf_object_t *x)
 {
     rf_object_t v = dict_get(&runtime_get()->env.variables, x);
     if (is_null(&v))
-        return error(ERR_NOT_FOUND, "not found");
+        return error(ERR_NOT_FOUND, "symbol not found");
 
     return v;
 }
@@ -605,6 +605,7 @@ rf_object_t rf_fread(rf_object_t *x)
             fmsg = str_fmt(0, "file: '%s' does not exist", as_string(x));
             err = error(ERR_NOT_EXIST, fmsg);
             rf_free(fmsg);
+            err.id = x->id;
             return err;
         }
 
@@ -618,6 +619,7 @@ rf_object_t rf_fread(rf_object_t *x)
             err = error(ERR_IO, fmsg);
             rf_free(fmsg);
             close(fd);
+            err.id = x->id;
             return err;
         }
 

@@ -307,8 +307,8 @@ op_ret:
     vm->ip++;
     x3 = stack_pop(vm); // return value
     x2 = stack_pop(vm); // ctx
-    stack_pop_free(vm); // free lambda
     j = (i32_t)f->args.adt->len;
+    stack_pop_free(vm); // free lambda
     for (i = 0; i < j; i++)
         stack_pop_free(vm); // pop args
     ctx = *(ctx_t *)&x2;
