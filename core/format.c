@@ -609,10 +609,10 @@ nil_t print_error(obj_t error, str_t filename, str_t source, u32_t len)
     u16_t line_number = 0, i, l;
     str_t start = source;
     str_t end = NULL;
-    str_t error_desc, lf = "", msg, p;
+    str_t error_desc, lf = "", p, msg;
     span_t span = *(span_t *)&as_list(error)[2];
 
-    switch (error->code)
+    switch (as_list(error)[0]->i64)
     {
     case ERR_INIT:
         error_desc = "init";

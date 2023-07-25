@@ -193,7 +193,7 @@ obj_t shrink(obj_t *obj, u64_t len)
     debug_assert(is_vector(*obj));
 
     if ((*obj)->len == len)
-        return;
+        return *obj;
 
     // calculate size of vector with new length
     i64_t new_size = sizeof(struct obj_t) + len * size_of((*obj)->type);
