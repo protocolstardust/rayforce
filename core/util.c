@@ -75,11 +75,11 @@ u64_t next_power_of_two_u64(u64_t n)
 bool_t is_valid(obj_t obj)
 {
     // clang-format off
-    return obj &&
-           ((obj->type >= -TYPE_CHAR && obj->type <= TYPE_CHAR)
+    return (obj == NULL) 
+           || (obj->type >= -TYPE_CHAR && obj->type <= TYPE_CHAR)
            || obj->type == TYPE_TABLE       || obj->type == TYPE_DICT   
            || obj->type == TYPE_LAMBDA      || obj->type == TYPE_UNARY 
            || obj->type == TYPE_BINARY      || obj->type == TYPE_VARY   
-           || obj->type == TYPE_INSTRUCTION || obj->type == TYPE_ERROR);
+           || obj->type == TYPE_INSTRUCTION || obj->type == TYPE_ERROR;
     // clang-format on
 }

@@ -117,9 +117,9 @@ nil_t repl(str_t name, parser_t *parser, str_t buf, i32_t len)
         return;
     }
 
-    formatted = vm_code_fmt(compiled);
-    printf("%s\n", formatted);
-    heap_free(formatted);
+    // formatted = vm_code_fmt(compiled);
+    // printf("%s\n", formatted);
+    // heap_free(formatted);
 
     // release rc's of parsed asap
     drop(parsed);

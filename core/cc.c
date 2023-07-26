@@ -137,8 +137,7 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity
         cerr(cc, car, ERR_TYPE, "'set' first argument must be a symbol");
 
     push_opcode(cc, car, code, OP_PUSH);
-    // push_const(cc, clone(as_list(obj)[1]));
-    push_const(cc, symbol("IU"));
+    push_const(cc, clone(as_list(obj)[1]));
     res = cc_compile_expr(true, cc, as_list(obj)[2]);
 
     if (res == CC_ERROR)

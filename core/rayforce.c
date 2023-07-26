@@ -397,8 +397,6 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
             if (i == as_list(*obj)[0]->len)
             {
                 res = join_obj(&as_list(*obj)[0], idx);
-                drop(idx);
-
                 if (res->type == TYPE_ERROR)
                     return res;
 
@@ -411,7 +409,7 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
             }
 
             set_obj(&as_list(*obj)[1], i, val);
-            drop(idx);
+
             return *obj;
         }
 
@@ -658,11 +656,11 @@ obj_t cast(type_t type, obj_t obj)
 
     return res;
 }
-/*
- * Increment the reference count of an obj_t
- */
+
 obj_t __attribute__((hot)) clone(obj_t obj)
 {
+    debug_assert(is_valid(obj));
+
     if (obj == NULL)
         return NULL;
 
@@ -677,11 +675,10 @@ obj_t __attribute__((hot)) clone(obj_t obj)
     return obj;
 }
 
-/*
- * Free an obj_t
- */
 nil_t __attribute__((hot)) drop(obj_t obj)
 {
+    debug_assert(is_valid(obj));
+
     if (obj == NULL)
         return;
 
@@ -696,8 +693,6 @@ nil_t __attribute__((hot)) drop(obj_t obj)
         (obj)->rc -= 1;
         rc = (obj)->rc;
     }
-
-    debug_assert(is_valid(obj));
 
     switch (obj->type)
     {
@@ -744,9 +739,6 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     }
 }
 
-/*
- * Copy on write rf_
- */
 obj_t cow(obj_t obj)
 {
     i64_t i, l;
@@ -756,9 +748,6 @@ obj_t cow(obj_t obj)
     return obj;
 }
 
-/*
- * Get the reference count of an rf_
- */
 u32_t rc(obj_t obj)
 {
     u32_t rc;
