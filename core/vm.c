@@ -459,44 +459,59 @@ str_t vm_code_fmt(obj_t fun)
     u32_t b, ip = 0, len = (u32_t)f->code->len;
     u64_t p;
     str_t s = NULL;
-    u8_t n;
+    u8_t n, m;
 
     while (ip < len)
     {
         switch (code[ip])
         {
         case OP_HALT:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] halt\n", c++, ip++);
+            b = ip++;
+            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] halt\n", c++, b);
             break;
-        case OP_RET:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] ret [%d:%d]\n", c++, ip, code[ip + 1], code[ip + 2]);
-            ip += 3;
-            break;
+        // case OP_RET:
+        //     str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] ret [%d:%d]\n", c++, ip, code[ip + 1], code[ip + 2]);
+        //     ip += 3;
+        //     break;
         case OP_PUSH:
             b = ip++;
             n = code[ip++];
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] push <const id: %d>\n", c++, b, n);
             break;
         case OP_POP:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] pop\n", c++, ip++);
+            b = ip++;
+            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] pop\n", c++, b);
             break;
-        case OP_JNE:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] jne ", c++, ip++);
-            obj_fmt_into(&s, &l, &o, 0, 0, (obj_t)(code + ip));
-            str_fmt_into(&s, &l, &o, 0, "\n");
-            ip += sizeof(obj_t);
-            break;
-        case OP_JMP:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] jmp ", c++, ip++);
-            obj_fmt_into(&s, &l, &o, 0, 0, (obj_t)(code + ip));
-            str_fmt_into(&s, &l, &o, 0, "\n");
-            ip += sizeof(obj_t);
-            break;
+        // case OP_JNE:
+        //     str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] jne ", c++, ip++);
+        //     obj_fmt_into(&s, &l, &o, 0, 0, (obj_t)(code + ip));
+        //     str_fmt_into(&s, &l, &o, 0, "\n");
+        //     ip += sizeof(obj_t);
+        //     break;
+        // case OP_JMP:
+        //     str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] jmp ", c++, ip++);
+        //     obj_fmt_into(&s, &l, &o, 0, 0, (obj_t)(code + ip));
+        //     str_fmt_into(&s, &l, &o, 0, "\n");
+        //     ip += sizeof(obj_t);
+        //     break;
         case OP_CALL1:
             b = ip++;
             n = code[ip++];
             load_u64(p, code, ip);
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] call1 <flags: %d fn: %p>\n", c++, b, n, p);
+            break;
+        case OP_CALL2:
+            b = ip++;
+            n = code[ip++];
+            load_u64(p, code, ip);
+            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] call2 <flags: %d fn: %p>\n", c++, b, n, p);
+            break;
+        case OP_CALLN:
+            b = ip++;
+            m = code[ip++];
+            n = code[ip++];
+            load_u64(p, code, ip);
+            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] calln <argn: %d flags: %d fn: %p>\n", c++, b, m, n, p);
             break;
         case OP_TIMER_SET:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] timer_set\n", c++, ip++);

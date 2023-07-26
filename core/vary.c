@@ -65,6 +65,17 @@ obj_t rf_list(obj_t *x, i64_t n)
     return lst;
 }
 
+obj_t rf_enlist(obj_t *x, i64_t n)
+{
+    i64_t i;
+    obj_t lst = list(n);
+
+    for (i = 0; i < n; i++)
+        as_list(lst)[i] = clone(x[i]);
+
+    return lst;
+}
+
 obj_t rf_gc(obj_t *x, i64_t n)
 {
     unused(x);

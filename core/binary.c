@@ -299,9 +299,16 @@ obj_t rf_call_binary(u8_t flags, binary_t f, obj_t x, obj_t y)
     }
 }
 
-obj_t rf_set_variable(obj_t key, obj_t val)
+obj_t rf_set(obj_t key, obj_t val)
 {
-    return set_obj(&runtime_get()->env.variables, key, val);
+    obj_t res;
+
+    res = set_obj(&runtime_get()->env.variables, clone(key), clone(val));
+
+    if (res->type == TYPE_ERROR)
+        return res;
+
+    return clone(val);
 }
 
 obj_t rf_dict(obj_t x, obj_t y)

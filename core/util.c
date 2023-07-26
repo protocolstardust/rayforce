@@ -72,18 +72,14 @@ u64_t next_power_of_two_u64(u64_t n)
     return 1UL << (64 - __builtin_clzl(n));
 }
 
-obj_t error_type1(type_t type, str_t msg)
+bool_t is_valid(obj_t obj)
 {
-    str_t fmsg = str_fmt(0, "%s: '%s'", msg, env_get_typename(type));
-    obj_t err = error(ERR_TYPE, fmsg);
-    heap_free(fmsg);
-    return err;
-}
-
-obj_t error_type2(type_t type1, type_t type2, str_t msg)
-{
-    str_t fmsg = str_fmt(0, "%s: '%s', '%s'", msg, env_get_typename(type1), env_get_typename(type2));
-    obj_t err = error(ERR_TYPE, fmsg);
-    heap_free(fmsg);
-    return err;
+    // clang-format off
+    return obj &&
+           ((obj->type >= -TYPE_CHAR && obj->type <= TYPE_CHAR)
+           || obj->type == TYPE_TABLE       || obj->type == TYPE_DICT   
+           || obj->type == TYPE_LAMBDA      || obj->type == TYPE_UNARY 
+           || obj->type == TYPE_BINARY      || obj->type == TYPE_VARY   
+           || obj->type == TYPE_INSTRUCTION || obj->type == TYPE_ERROR);
+    // clang-format on
 }

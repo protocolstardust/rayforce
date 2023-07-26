@@ -217,12 +217,12 @@ obj_t join_raw(obj_t *obj, nil_t *val)
     memcpy((*obj)->arr + off, &val, size);
     (*obj)->len++;
 
-    return obj;
+    return *obj;
 }
 
 obj_t join_obj(obj_t *obj, obj_t val)
 {
-    obj_t lst = NULL;
+    obj_t res, lst = NULL;
     u64_t i, l;
 
     // change vector type to a list
@@ -242,6 +242,32 @@ obj_t join_obj(obj_t *obj, obj_t val)
 
     //     return lst;
     // }
+
+    switch (MTYPE2((*obj)->type, val->type))
+    {
+    case MTYPE2(TYPE_I64, -TYPE_I64):
+    case MTYPE2(TYPE_SYMBOL, -TYPE_SYMBOL):
+    case MTYPE2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
+        res = join_raw(obj, val->i64);
+        drop(val);
+        return res;
+    case MTYPE2(TYPE_F64, -TYPE_F64):
+        res = join_raw(obj, *(nil_t **)&val->f64);
+        drop(val);
+        return res;
+    case MTYPE2(TYPE_CHAR, -TYPE_CHAR):
+        res = join_raw(obj, *(nil_t **)&val->schar);
+        drop(val);
+        return res;
+    default:
+        if ((*obj)->type == TYPE_LIST)
+        {
+            res = join_raw(obj, val);
+            return res;
+        }
+
+        raise(ERR_TYPE, "join: invalid types: %d, %d", (*obj)->type, val->type);
+    }
 
     return join_raw(obj, val);
 }
@@ -324,31 +350,73 @@ obj_t at_idx(obj_t obj, u64_t idx)
 
 obj_t set_idx(obj_t *obj, u64_t idx, obj_t val)
 {
-    raise(ERR_NOT_IMPLEMENTED, "set_idx");
-    // if (obj == NULL)
-    //     return null();
-
-    // switch (MTYPE2((*obj)->type, val->type))
-    // {
-    // case TYPE_I64:
-    //     as_vector_i64(*obj)[idx] = ;
-    // return case TYPE_SYMBOL:
-    //     return symboli64(as_vector_symbol(obj)[idx]);
-    // case TYPE_TIMESTAMP:
-    //     return timestamp(as_vector_timestamp(obj)[idx]);
-    // case TYPE_F64:
-    //     return f64(as_vector_f64(obj)[idx]);
-    // case TYPE_CHAR:
-    //     return schar(as_string(obj)[idx]);
-    // case TYPE_LIST:
-    //     return clone(as_list(obj)[idx]);
-    //     default: panic(str_fmt(0, "at index: invalid type: %d", obj->type));
-    // }
+    switch (MTYPE2((*obj)->type, val->type))
+    {
+    case MTYPE2(TYPE_I64, -TYPE_I64):
+    case MTYPE2(TYPE_SYMBOL, -TYPE_I64):
+    case MTYPE2(TYPE_TIMESTAMP, -TYPE_I64):
+        as_vector_i64(*obj)[idx] = val->i64;
+        drop(val);
+        return *obj;
+    case MTYPE2(TYPE_F64, -TYPE_F64):
+        as_vector_f64(*obj)[idx] = val->f64;
+        drop(val);
+        return *obj;
+    case MTYPE2(TYPE_CHAR, -TYPE_CHAR):
+        as_string(*obj)[idx] = val->schar;
+        drop(val);
+        return *obj;
+    case MTYPE2(TYPE_LIST, -TYPE_I64):
+        as_list(*obj)[idx] = val;
+        return *obj;
+    default:
+        raise(ERR_TYPE, "set_idx: invalid types: %d, %d", (*obj)->type, val->type);
+    }
 }
 
 obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
 {
-    raise(ERR_NOT_IMPLEMENTED, "set_obj");
+    obj_t res;
+    u64_t i;
+
+    switch (MTYPE2((*obj)->type, idx->type))
+    {
+    case MTYPE2(TYPE_I64, -TYPE_I64):
+    case MTYPE2(TYPE_SYMBOL, -TYPE_I64):
+    case MTYPE2(TYPE_TIMESTAMP, -TYPE_I64):
+    case MTYPE2(TYPE_F64, -TYPE_I64):
+    case MTYPE2(TYPE_CHAR, -TYPE_I64):
+    case MTYPE2(TYPE_LIST, -TYPE_I64):
+        res = set_idx(obj, idx->i64, val);
+        drop(idx);
+        return res;
+    default:
+        if ((*obj)->type == TYPE_DICT)
+        {
+            i = find_obj(as_list(*obj)[0], idx);
+            if (i == as_list(*obj)[0]->len)
+            {
+                res = join_obj(&as_list(*obj)[0], idx);
+                drop(idx);
+
+                if (res->type == TYPE_ERROR)
+                    return res;
+
+                res = join_obj(&as_list(*obj)[1], val);
+
+                if (res->type == TYPE_ERROR)
+                    return res;
+
+                return *obj;
+            }
+
+            set_obj(&as_list(*obj)[1], i, val);
+            drop(idx);
+            return *obj;
+        }
+
+        raise(ERR_TYPE, "set_obj: invalid types: %d, %d", (*obj)->type, val->type);
+    }
 }
 
 bool_t is_null(obj_t obj)
@@ -606,39 +674,7 @@ obj_t __attribute__((hot)) clone(obj_t obj)
     else
         (obj)->rc += 1;
 
-    switch (obj->type)
-    {
-    case -TYPE_BOOL:
-    case -TYPE_I64:
-    case -TYPE_F64:
-    case -TYPE_SYMBOL:
-    case -TYPE_TIMESTAMP:
-    case -TYPE_CHAR:
-    case TYPE_BOOL:
-    case TYPE_I64:
-    case TYPE_F64:
-    case TYPE_SYMBOL:
-    case TYPE_TIMESTAMP:
-    case TYPE_CHAR:
-    case TYPE_LAMBDA:
-    case TYPE_UNARY:
-    case TYPE_BINARY:
-    case TYPE_VARY:
-    case TYPE_ERROR:
-        return obj;
-    case TYPE_LIST:
-        l = obj->len;
-        for (i = 0; i < l; i++)
-            clone(as_list(obj)[i]);
-        return obj;
-    case TYPE_DICT:
-    case TYPE_TABLE:
-        clone(as_list(obj)[0]);
-        clone(as_list(obj)[1]);
-        return obj;
-    default:
-        panic(str_fmt(0, "clone: invalid type: %d", obj->type));
-    }
+    return obj;
 }
 
 /*
@@ -661,39 +697,27 @@ nil_t __attribute__((hot)) drop(obj_t obj)
         rc = (obj)->rc;
     }
 
+    debug_assert(is_valid(obj));
+
     switch (obj->type)
     {
-    case -TYPE_BOOL:
-    case -TYPE_I64:
-    case -TYPE_F64:
-    case -TYPE_SYMBOL:
-    case -TYPE_TIMESTAMP:
-    case -TYPE_CHAR:
-    case TYPE_BOOL:
-    case TYPE_I64:
-    case TYPE_F64:
-    case TYPE_SYMBOL:
-    case TYPE_TIMESTAMP:
-    case TYPE_CHAR:
-    case TYPE_UNARY:
-    case TYPE_BINARY:
-    case TYPE_VARY:
-        if (rc == 0)
-            heap_free(obj);
-        return;
     case TYPE_LIST:
-        l = obj->len;
-        for (i = 0; i < l; i++)
-            drop(as_list(obj)[i]);
         if (rc == 0)
+        {
+            l = obj->len;
+            for (i = 0; i < l; i++)
+                drop(as_list(obj)[i]);
             heap_free(obj);
+        }
         return;
     case TYPE_TABLE:
     case TYPE_DICT:
-        drop(as_list(obj)[0]);
-        drop(as_list(obj)[1]);
         if (rc == 0)
+        {
+            drop(as_list(obj)[0]);
+            drop(as_list(obj)[1]);
             heap_free(obj);
+        }
         return;
     case TYPE_LAMBDA:
         if (rc == 0)
@@ -715,7 +739,8 @@ nil_t __attribute__((hot)) drop(obj_t obj)
         }
         return;
     default:
-        panic(str_fmt(0, "drop: invalid type: %d", obj->type));
+        if (rc == 0)
+            heap_free(obj);
     }
 }
 

@@ -100,6 +100,8 @@
 #define VEC_ATTR_DESC 4
 #define VEC_ATTR_WITHOUT_NULLS 8
 
+bool_t is_valid(obj_t obj);
+
 i32_t size_of(type_t type);
 u32_t next_power_of_two_u32(u32_t n);
 u64_t next_power_of_two_u64(u64_t n);

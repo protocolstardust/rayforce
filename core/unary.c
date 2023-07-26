@@ -36,6 +36,7 @@
 #include "parse.h"
 #include "fs.h"
 #include "cc.h"
+#include "util.h"
 
 // Atomic unary functions (iterates through list of argumen items down to atoms)
 obj_t rf_call_unary_atomic(unary_t f, obj_t x)
@@ -251,7 +252,7 @@ obj_t rf_avg(obj_t x)
         return f64(fsum / l);
 
     default:
-        return error_type1(x->type, "avg: unsupported type");
+        raise(ERR_TYPE "avg: unsupported type: %d", x->type);
     }
 }
 
@@ -424,7 +425,7 @@ obj_t rf_iasc(obj_t x)
     }
 }
 
-obj_trf_idesc(obj_t x)
+obj_t rf_idesc(obj_t x)
 {
     switch (MTYPE(x->type))
     {
@@ -532,7 +533,7 @@ obj_t rf_neg(obj_t x)
     }
 }
 
-obj_trf_where(obj_t x)
+obj_t rf_where(obj_t x)
 {
     i32_t i, j = 0;
     i64_t l, *ov;
@@ -571,7 +572,7 @@ obj_t rf_key(obj_t x)
     }
 }
 
-obj_trf_value(obj_t x)
+obj_t rf_value(obj_t x)
 {
     switch (MTYPE(x->type))
     {
