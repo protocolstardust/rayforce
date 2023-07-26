@@ -251,6 +251,76 @@ obj_t join_sym(obj_t *obj, str_t str)
     return join_raw(obj, sym);
 }
 
+obj_t write_raw(obj_t *obj, u64_t idx, nil_t *val)
+{
+    i32_t size = size_of((*obj)->type);
+    memcpy((*obj)->arr + idx * size, &val, size);
+    return obj;
+}
+
+obj_t write_obj(obj_t *obj, u64_t idx, obj_t val)
+{
+    obj_t ret;
+
+    if (*obj == NULL || !is_vector(*obj))
+        return *obj;
+
+    switch ((*obj)->type)
+    {
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        ret = write_raw(obj, idx, val->i64);
+        drop(val);
+        break;
+    case TYPE_F64:
+        ret = write_raw(obj, idx, *(nil_t **)&val->f64);
+        drop(val);
+        break;
+    case TYPE_CHAR:
+        ret = write_raw(obj, idx, *(nil_t **)&val->schar);
+        drop(val);
+        break;
+    case TYPE_LIST:
+        ret = write_raw(obj, idx, val);
+        break;
+    default:
+        panic(str_fmt(0, "write obj: invalid type: %d", (*obj)->type));
+    }
+
+    return ret;
+}
+
+obj_t write_sym(obj_t *obj, u64_t idx, str_t str)
+{
+    i64_t sym = intern_symbol(str, strlen(str));
+    return write_raw(obj, idx, sym);
+}
+
+obj_t at_index(obj_t obj, u64_t idx)
+{
+    if (obj == NULL || !is_vector(obj))
+        return null();
+
+    switch (obj->type)
+    {
+    case TYPE_I64:
+        return i64(as_vector_i64(obj)[idx]);
+    case TYPE_SYMBOL:
+        return symboli64(as_vector_symbol(obj)[idx]);
+    case TYPE_TIMESTAMP:
+        return timestamp(as_vector_timestamp(obj)[idx]);
+    case TYPE_F64:
+        return f64(as_vector_f64(obj)[idx]);
+    case TYPE_CHAR:
+        return schar(as_string(obj)[idx]);
+    case TYPE_LIST:
+        return clone(as_list(obj)[idx]);
+    default:
+        panic(str_fmt(0, "at index: invalid type: %d", obj->type));
+    }
+}
+
 bool_t is_null(obj_t obj)
 {
     return (obj == NULL) ||

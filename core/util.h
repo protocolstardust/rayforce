@@ -84,6 +84,17 @@
         printf("%f\n", ((f64_t)(clock() - timer)) / CLOCKS_PER_SEC * 1000); \
     }
 
+/*
+ * Create a new error object and return it
+ */
+#define raise(t, ...)                       \
+    {                                       \
+        str_t _m = str_fmt(0, __VA_ARGS__); \
+        obj_t _e = error(t, _m);            \
+        heap_free(_m);                      \
+        return _e;                          \
+    }
+
 #define VEC_ATTR_DISTINCT 1
 #define VEC_ATTR_ASC 2
 #define VEC_ATTR_DESC 4

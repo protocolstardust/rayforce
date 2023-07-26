@@ -25,12 +25,10 @@
 #include "runtime.h"
 #include "unary.h"
 #include "binary.h"
-
 #include "util.h"
 #include "ops.h"
 #include "util.h"
 #include "format.h"
-
 #include "hash.h"
 #include "set.h"
 
@@ -173,111 +171,111 @@ obj_t rf_call_binary_atomic(binary_t f, obj_t x, obj_t y)
     u64_t i, l;
     obj_t res, item, a, b;
 
-    // if ((x->type == TYPE_LIST && is_vector(y)) ||
-    //     (y->type == TYPE_LIST && is_vector(x)))
-    // {
-    //     l = x->len;
+    if ((x->type == TYPE_LIST && is_vector(y)) ||
+        (y->type == TYPE_LIST && is_vector(x)))
+    {
+        l = x->len;
 
-    //     if (l != y->len)
-    //         return error(ERR_LENGTH, "binary: vectors must be of the same length");
+        if (l != y->len)
+            return error(ERR_LENGTH, "binary: vectors must be of the same length");
 
-    //     a = vector_get(x, 0);
-    //     b = vector_get(y, 0);
-    //     item = rf_call_binary_atomic(f, a, b);
-    //     drop(a);
-    //     drop(b);
+        a = at_index(x, 0);
+        b = at_index(y, 0);
+        item = rf_call_binary_atomic(f, a, b);
+        drop(a);
+        drop(b);
 
-    //     if (item->type == TYPE_ERROR)
-    //         return item;
+        if (item->type == TYPE_ERROR)
+            return item;
 
-    //     res = list(l);
+        res = list(l);
 
-    //     vector_write(&res, 0, item);
+        write_obj(&res, 0, item);
 
-    //     for (i = 1; i < l; i++)
-    //     {
-    //         a = vector_get(x, i);
-    //         b = vector_get(y, i);
-    //         item = rf_call_binary_atomic(f, &a, &b);
-    //         drop(a);
-    //         drop(b);
+        for (i = 1; i < l; i++)
+        {
+            a = at_index(x, i);
+            b = at_index(y, i);
+            item = rf_call_binary_atomic(f, a, b);
+            drop(a);
+            drop(b);
 
-    //         if (item->type == TYPE_ERROR)
-    //         {
-    //             res->len = i;
-    //             drop(res);
-    //             return item;
-    //         }
+            if (item->type == TYPE_ERROR)
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
 
-    //         vector_write(&res, i, item);
-    //     }
+            write_obj(&res, i, item);
+        }
 
-    //     return res;
-    // }
-    // else if (x->type == TYPE_LIST)
-    // {
-    //     l = x->len;
-    //     a = vector_get(x, 0);
-    //     item = rf_call_binary_atomic(f, &a, y);
-    //     drop(a);
+        return res;
+    }
+    else if (x->type == TYPE_LIST)
+    {
+        l = x->len;
+        a = at_index(x, 0);
+        item = rf_call_binary_atomic(f, a, y);
+        drop(a);
 
-    //     if (item->type == TYPE_ERROR)
-    //         return item;
+        if (item->type == TYPE_ERROR)
+            return item;
 
-    //     res = list(l);
+        res = list(l);
 
-    //     vector_write(&res, 0, item);
+        write_obj(&res, 0, item);
 
-    //     for (i = 1; i < l; i++)
-    //     {
-    //         a = vector_get(x, i);
-    //         item = rf_call_binary_atomic(f, &a, y);
-    //         drop(a);
+        for (i = 1; i < l; i++)
+        {
+            a = at_index(x, i);
+            item = rf_call_binary_atomic(f, a, y);
+            drop(a);
 
-    //         if (item->type == TYPE_ERROR)
-    //         {
-    //             res->len = i;
-    //             drop(res);
-    //             return item;
-    //         }
+            if (item->type == TYPE_ERROR)
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
 
-    //         vector_write(&res, i, item);
-    //     }
+            write_obj(&res, i, item);
+        }
 
-    //     return res;
-    // }
-    // else if (y->type == TYPE_LIST)
-    // {
-    //     l = y->len;
-    //     b = vector_get(y, 0);
-    //     item = rf_call_binary_atomic(f, x, &b);
-    //     drop(b);
+        return res;
+    }
+    else if (y->type == TYPE_LIST)
+    {
+        l = y->len;
+        b = at_index(y, 0);
+        item = rf_call_binary_atomic(f, x, b);
+        drop(b);
 
-    //     if (item->type == TYPE_ERROR)
-    //         return item;
+        if (item->type == TYPE_ERROR)
+            return item;
 
-    //     res = list(l);
+        res = list(l);
 
-    //     vector_write(&res, 0, item);
+        write_obj(&res, 0, item);
 
-    //     for (i = 1; i < l; i++)
-    //     {
-    //         b = vector_get(y, i);
-    //         item = rf_call_binary_atomic(f, x, &b);
-    //         drop(b);
+        for (i = 1; i < l; i++)
+        {
+            b = at_index(y, i);
+            item = rf_call_binary_atomic(f, x, b);
+            drop(b);
 
-    //         if (item->type == TYPE_ERROR)
-    //         {
-    //             res->len = i;
-    //             drop(res);
-    //             return item;
-    //         }
+            if (item->type == TYPE_ERROR)
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
 
-    //         vector_write(&res, i, item);
-    //     }
+            write_obj(&res, i, item);
+        }
 
-    //     return res;
-    // }
+        return res;
+    }
 
     return call_binary(f, x, y);
 }

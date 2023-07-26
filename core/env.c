@@ -133,7 +133,7 @@ nil_t init_functions(obj_t functions)
     // // regf(function s, "env",        rf_env);
     // // regf(function s, "memstat",    rf_memstat);
     // regf(functions,  "gc",        TYPE_VARY,     FLAG_NONE,         rf_gc);
-    // regf(functions,  "list",      TYPE_VARY,     FLAG_NONE,         rf_list);
+    regf(functions,  "list",      TYPE_VARY,     FLAG_NONE,         rf_list);
     // regf(functions,  "enlist",    TYPE_VARY,     FLAG_NONE,         rf_enlist);
     // regf(functions,  "format",    TYPE_VARY,     FLAG_NONE,         rf_format);
     // regf(functions,  "print",     TYPE_VARY,     FLAG_NONE,         rf_print);

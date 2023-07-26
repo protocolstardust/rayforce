@@ -40,47 +40,46 @@
 // Atomic unary functions (iterates through list of argumen items down to atoms)
 obj_t rf_call_unary_atomic(unary_t f, obj_t x)
 {
-    i64_t i, l;
+    u64_t i, l;
     obj_t res = NULL, item = NULL;
 
     // argument is a list, so iterate through it
-    // if (x->type == TYPE_LIST)
-    // {
-    //     l = x->len;
+    if (x->type == TYPE_LIST)
+    {
+        l = x->len;
 
-    //     if (l == 0)
-    //         return error(ERR_TYPE, "empty list");
+        if (l == 0)
+            return error(ERR_TYPE, "empty list");
 
-    //     item = rf_call_unary_atomic(f, as_list(x)); // call function with first item
+        item = rf_call_unary_atomic(f, as_list(x)[0]); // call function with first item
 
-    //     if (item->type == TYPE_ERROR)
-    //         return item;
+        if (item->type == TYPE_ERROR)
+            return item;
 
-    //     // probably we can fold it in a vector if all other values will be of the same type
-    //     if (is_atom(item))
-    //         res = vector(-item->type, l);
-    //     else
-    //         res = list(l);
+        // probably we can fold it in a vector if all other values will be of the same type
+        if (is_atom(item))
+            res = vector(-item->type, l);
+        else
+            res = list(l);
 
-    //     vector_write(res, 0, item);
-    //     drop(item);
+        write_obj(&res, 0, item);
 
-    //     for (i = 1; i < l; i++)
-    //     {
-    //         item = rf_call_unary_atomic(f, &as_list(x)[i]);
+        for (i = 1; i < l; i++)
+        {
+            item = rf_call_unary_atomic(f, as_list(x)[i]);
 
-    //         if (item->type == TYPE_ERROR)
-    //         {
-    //             res->len = i;
-    //             drop(res);
-    //             return item;
-    //         }
+            if (item->type == TYPE_ERROR)
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
 
-    //         vector_write(&res, i, item);
-    //     }
+            write_obj(&res, i, item);
+        }
 
-    //     return res;
-    // }
+        return res;
+    }
 
     return f(x);
 }
@@ -172,8 +171,8 @@ obj_t rf_group(obj_t x)
 obj_t rf_sum(obj_t x)
 {
     i32_t i;
-    i64_t l, isum = 0, *iv;
-    f64_t fsum = 0.0, *fv;
+    i64_t l, isum = 0;
+    f64_t fsum = 0.0;
 
     switch (MTYPE(x->type))
     {
@@ -183,18 +182,17 @@ obj_t rf_sum(obj_t x)
         return clone(x);
     case MTYPE(TYPE_I64):
         l = x->len;
-        iv = as_vector_i64(x);
         if (x->flags & VEC_ATTR_WITHOUT_NULLS)
         {
             for (i = 0; i < l; i++)
-                isum += iv[i];
+                isum += as_vector_i64(x)[i];
         }
         else
         {
             for (i = 0; i < l; i++)
             {
-                if (iv[i] ^ NULL_I64)
-                    isum += iv[i];
+                if (as_vector_i64(x)[i] ^ NULL_I64)
+                    isum += as_vector_i64(x)[i];
             }
         }
 
@@ -202,14 +200,13 @@ obj_t rf_sum(obj_t x)
 
     case MTYPE(TYPE_F64):
         l = x->len;
-        fv = as_vector_f64(x);
         for (i = 0; i < l; i++)
-            fsum += fv[i];
+            fsum += as_vector_f64(x)[i];
 
         return f64(fsum);
 
     default:
-        return error_type1(x->type, "sum: unsupported type");
+        raise(ERR_TYPE, "sum: unsupported type: %d", x->type);
     }
 }
 

@@ -194,7 +194,7 @@ op_calln:
     flags = code[vm->ip++];
     load_u64(l, vm);
 made_calln:
-    addr = (obj_t)(&vm->stack[vm->sp - n]);
+    addr = (obj_t *)(&vm->stack[vm->sp - n]);
     x1 = rf_call_vary(flags, (vary_t)l, addr, n);
     for (i = 0; i < n; i++)
         drop(stack_pop(vm)); // pop args

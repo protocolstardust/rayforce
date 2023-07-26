@@ -173,6 +173,14 @@ extern obj_t join_raw(obj_t *obj, nil_t *val); // join raw value into a list
 extern obj_t join_obj(obj_t *obj, obj_t  val); // join object to a list
 extern obj_t join_sym(obj_t *obj, str_t  str); // join interned string to a symbol vector
 
+// Writes
+extern obj_t write_raw(obj_t *obj, u64_t idx, nil_t *val); // write raw value into a list
+extern obj_t write_obj(obj_t *obj, u64_t idx, obj_t  val); // write object to a list
+extern obj_t write_sym(obj_t *obj, u64_t idx, str_t  str); // write interned string to a symbol vector
+
+// Read
+extern obj_t at_index(obj_t obj, u64_t idx); // read raw value from a obj at index
+
 // Resize
 extern obj_t resize(obj_t *obj, u64_t len);
 
