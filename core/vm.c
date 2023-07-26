@@ -104,14 +104,14 @@ obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
-#define unwrap(x, y)               \
-    {                              \
-        obj_t o = x;               \
-        if (o->type == TYPE_ERROR) \
-        {                          \
-                                   \
-            return o;              \
-        }                          \
+#define unwrap(x, y)                    \
+    {                                   \
+        obj_t o = x;                    \
+        if (o && o->type == TYPE_ERROR) \
+        {                               \
+                                        \
+            return o;                   \
+        }                               \
     }
 
 #define load_u64(x, v)                                    \
@@ -182,7 +182,7 @@ op_call2:
 made_call2:
     x3 = stack_pop(vm);
     x2 = stack_pop(vm);
-    x1 = rf_call_binary(flags, (binary_t)l, &x2, &x3);
+    x1 = rf_call_binary(flags, (binary_t)l, x2, x3);
     drop(x2);
     drop(x3);
     unwrap(x1, b);

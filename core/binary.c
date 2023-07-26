@@ -46,38 +46,38 @@ obj_t call_binary(binary_t f, obj_t x, obj_t y)
     {
     case MTYPE2(-TYPE_I64, -TYPE_F64):
         cx = f64(x->i64);
-        return f(&cx, y);
+        return f(cx, y);
     case MTYPE2(-TYPE_F64, -TYPE_I64):
         cy = f64(y->i64);
-        return f(x, &cy);
+        return f(x, cy);
     case MTYPE2(-TYPE_I64, TYPE_F64):
         cx = f64(x->i64);
-        return f(&cx, y);
+        return f(cx, y);
     case MTYPE2(-TYPE_F64, TYPE_I64):
         cx = symbol("vector_f64");
-        cy = rf_cast(&cx, y);
-        res = f(x, &cy);
+        cy = rf_cast(cx, y);
+        res = f(x, cy);
         drop(cy);
         return res;
     case MTYPE2(TYPE_I64, -TYPE_F64):
         cx = symbol("vector_f64");
-        cy = rf_cast(&cx, x);
-        res = f(y, &cy);
+        cy = rf_cast(cx, x);
+        res = f(y, cy);
         drop(cy);
         return res;
     case MTYPE2(TYPE_F64, -TYPE_I64):
         cy = f64(y->i64);
-        return f(x, &cy);
+        return f(x, cy);
     case MTYPE2(TYPE_I64, TYPE_F64):
         cx = symbol("vector_f64");
-        cy = rf_cast(&cx, x);
-        res = f(&cy, y);
+        cy = rf_cast(cx, x);
+        res = f(cy, y);
         drop(cy);
         return res;
     case MTYPE2(TYPE_F64, TYPE_I64):
         cx = symbol("vector_f64");
-        cy = rf_cast(&cx, y);
-        res = f(&cy, x);
+        cy = rf_cast(cx, y);
+        res = f(cy, x);
         drop(cy);
         return res;
     default:
@@ -428,119 +428,96 @@ obj_t rf_add(obj_t x, obj_t y)
     u64_t i, l;
     obj_t vec, v;
 
-    // switch (MTYPE2(x->type, y->type))
-    // {
-    // case MTYPE2(-TYPE_I64, -TYPE_I64):
-    //     return i64(ADDvector_i64(x->i64, y->i64));
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(-TYPE_I64, -TYPE_I64):
+        return i64(ADDI64(x->i64, y->i64));
 
-    // case MTYPE2(-TYPE_F64, -TYPE_F64):
-    //     return f64(ADDvector_f64(x->f64, y->f64));
+    case MTYPE2(-TYPE_F64, -TYPE_F64):
+        return f64(ADDF64(x->f64, y->f64));
 
-    // case MTYPE2(-TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-    //     return timestamp(ADDvector_i64(x->i64, y->i64));
+    case MTYPE2(-TYPE_TIMESTAMP, -TYPE_I64):
+        return timestamp(ADDI64(x->i64, y->i64));
 
-    // case MTYPE2(-TYPE_I64, TYPE_I64):
-    //     l = y->len;
-    //     vec = vector_i64(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_i64(&vec)[i] = ADDvector_i64(x->i64, as_vector_i64(y)[i]);
+    case MTYPE2(-TYPE_I64, TYPE_I64):
+        l = y->len;
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(vec)[i] = ADDI64(x->i64, as_vector_i64(y)[i]);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(-TYPE_F64, TYPE_F64):
-    //     l = y->len;
-    //     vec = vector_f64(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_f64(&vec)[i] = ADDvector_f64(x->f64, as_vector_f64(y)[i]);
+    case MTYPE2(-TYPE_F64, TYPE_F64):
+        l = y->len;
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_vector_f64(vec)[i] = ADDF64(x->f64, as_vector_f64(y)[i]);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(-TYPE_TIMESTAMP, TYPE_I64):
-    //     l = y->len;
-    //     vec = vector_timestamp(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_i64(&vec)[i] = ADDvector_i64(x->i64, as_vector_i64(y)[i]);
+    case MTYPE2(-TYPE_TIMESTAMP, TYPE_I64):
+        l = y->len;
+        vec = vector_timestamp(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(vec)[i] = ADDI64(x->i64, as_vector_i64(y)[i]);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(TYPE_TIMESTAMP, -TYPE_I64):
-    //     l = x->len;
-    //     vec = vector_timestamp(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_i64(&vec)[i] = ADDvector_i64(as_vector_i64(x)[i], y->i64);
+    case MTYPE2(TYPE_TIMESTAMP, -TYPE_I64):
+        l = x->len;
+        vec = vector_timestamp(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(vec)[i] = ADDI64(as_vector_i64(x)[i], y->i64);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
-    //     l = x->len;
-    //     vec = vector_timestamp(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_i64(&vec)[i] = ADDvector_i64(as_vector_i64(x)[i], as_vector_i64(y)[i]);
+    case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
+        l = x->len;
+        vec = vector_timestamp(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(vec)[i] = ADDI64(as_vector_i64(x)[i], as_vector_i64(y)[i]);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(TYPE_I64, -TYPE_I64):
-    //     l = x->len;
-    //     vec = vector_i64(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_i64(&vec)[i] = ADDvector_i64(as_vector_i64(x)[i], y->i64);
+    case MTYPE2(TYPE_I64, -TYPE_I64):
+        l = x->len;
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(vec)[i] = ADDI64(as_vector_i64(x)[i], y->i64);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(TYPE_I64, TYPE_I64):
-    //     l = x->len;
-    //     if (l != y->len)
-    //         return error(ERR_LENGTH, "add: vectors must be of the same length");
-    //     vec = vector_i64(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_i64(&vec)[i] = ADDvector_i64(as_vector_i64(x)[i], as_vector_i64(y)[i]);
+    case MTYPE2(TYPE_I64, TYPE_I64):
+        l = x->len;
+        if (l != y->len)
+            return error(ERR_LENGTH, "add: vectors must be of the same length");
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(vec)[i] = ADDI64(as_vector_i64(x)[i], as_vector_i64(y)[i]);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(TYPE_F64, -TYPE_F64):
-    //     l = x->len;
-    //     vec = vector_f64(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_f64(&vec)[i] = ADDvector_f64(as_vector_f64(x)[i], y->f64);
+    case MTYPE2(TYPE_F64, -TYPE_F64):
+        l = x->len;
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_vector_f64(vec)[i] = ADDF64(as_vector_f64(x)[i], y->f64);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(TYPE_F64, TYPE_F64):
-    //     l = x->len;
-    //     if (l != y->len)
-    //         return error(ERR_LENGTH, "add: vectors must be of the same length");
-    //     vec = vector_f64(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_f64(&vec)[i] = ADDvector_f64(as_vector_f64(x)[i], as_vector_f64(y)[i]);
+    case MTYPE2(TYPE_F64, TYPE_F64):
+        l = x->len;
+        if (l != y->len)
+            return error(ERR_LENGTH, "add: vectors must be of the same length");
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_vector_f64(vec)[i] = ADDF64(as_vector_f64(x)[i], as_vector_f64(y)[i]);
 
-    //     return vec;
+        return vec;
 
-    // case MTYPE2(TYPE_LIST, TYPE_LIST):
-    //     l = x->len;
-    //     if (l != y->len)
-    //         return error(ERR_LENGTH, "add: lists must be of the same length");
-
-    //     vec = list(l);
-    //     vec->len = 0;
-
-    //     for (i = 0; i < l; i++)
-    //     {
-    //         v = rf_add(&as_list(x)[i], &as_list(y)[i]);
-    //         if (v.type == TYPE_ERROR)
-    //         {
-    //             drop(vec);
-    //             return v;
-    //         }
-    //         as_list(&vec)[vec->len++] = v;
-    //     }
-
-    //     return vec;
-
-    // default:
-    //     return error_type2(x->type, y->type, "add: unsupported types");
-    // }
-
-    return null();
+    default:
+        return error_type2(x->type, y->type, "add: unsupported types");
+    }
 }
 
 obj_t rf_sub(obj_t x, obj_t y)
