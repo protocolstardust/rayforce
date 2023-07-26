@@ -106,7 +106,4 @@ i32_t size_of(type_t type);
 u32_t next_power_of_two_u32(u32_t n);
 u64_t next_power_of_two_u64(u64_t n);
 
-obj_t error_type1(type_t type, str_t msg);
-obj_t error_type2(type_t type1, type_t type2, str_t msg);
-
 #endif

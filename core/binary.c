@@ -452,7 +452,7 @@ obj_t rf_rand(obj_t x, obj_t y)
         return vec;
 
     default:
-        return error_type2(x->type, y->type, "rand: unsupported types");
+        raise(ERR_TYPE, "rand: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -549,7 +549,7 @@ obj_t rf_add(obj_t x, obj_t y)
         return vec;
 
     default:
-        return error_type2(x->type, y->type, "add: unsupported types");
+        raise(ERR_TYPE, "add: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -826,7 +826,7 @@ obj_t rf_like(obj_t x, obj_t y)
         return (bool(string_match(as_string(x), as_string(y))));
 
     default:
-        return error_type2(x->type, y->type, "like: unsupported types");
+        raise(ERR_TYPE, "like: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -957,7 +957,7 @@ obj_t rf_ne(obj_t x, obj_t y)
         return (bool(x->f64 != y->f64));
 
     default:
-        return error_type2(x->type, y->type, "ne: unsupported types");
+        raise(ERR_TYPE, "ne: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -972,7 +972,7 @@ obj_t rf_lt(obj_t x, obj_t y)
         return (bool(x->f64 < y->f64));
 
     default:
-        return error_type2(x->type, y->type, "lt: unsupported types");
+        raise(ERR_TYPE, "lt: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -987,7 +987,7 @@ obj_t rf_le(obj_t x, obj_t y)
         return (bool(x->f64 <= y->f64));
 
     default:
-        return error_type2(x->type, y->type, "le: unsupported types");
+        raise(ERR_TYPE, "le: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -1034,7 +1034,7 @@ obj_t rf_ge(obj_t x, obj_t y)
         return (bool(x->f64 >= y->f64));
 
     default:
-        return error_type2(x->type, y->type, "ge: unsupported types");
+        raise(ERR_TYPE, "ge: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -1305,7 +1305,7 @@ obj_t rf_find(obj_t x, obj_t y)
         //     return rf_find_vector_i64_vector_i64(x, y);
 
     default:
-        return error_type2(x->type, y->type, "find: unsupported types");
+        raise(ERR_TYPE, "find: unsupported types: %d %d", x->type, y->type);
     }
 }
 

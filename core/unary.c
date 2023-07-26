@@ -157,14 +157,14 @@ obj_t rf_distinct(obj_t x)
         res->type = TYPE_SYMBOL;
         return res;
     default:
-        return error(ERR_TYPE, "distinct: expected vector_i64");
+        raise(ERR_TYPE, "distinct: expected vector_i64");
     }
 }
 
 obj_t rf_group(obj_t x)
 {
     if (MTYPE(x->type) != MTYPE(TYPE_I64))
-        return error(ERR_TYPE, "group: expected vector_i64");
+        raise(ERR_TYPE, "group: expected vector_i64");
 
     return rf_group_vector_i64(x);
 }
@@ -252,7 +252,7 @@ obj_t rf_avg(obj_t x)
         return f64(fsum / l);
 
     default:
-        raise(ERR_TYPE "avg: unsupported type: %d", x->type);
+        raise(ERR_TYPE, "avg: unsupported type: %d", x->type);
     }
 }
 
@@ -333,7 +333,7 @@ obj_t rf_min(obj_t x)
         return f64(fmin);
 
     default:
-        return error_type1(x->type, "min: unsupported type");
+        raise(ERR_TYPE, "min: unsupported type: %d", x->type);
     }
 }
 
@@ -385,7 +385,7 @@ obj_t rf_max(obj_t x)
         return i64(imax);
 
     default:
-        return error_type1(x->type, "max: unsupported type");
+        raise(ERR_TYPE, "max: unsupported type: %d", x->type);
     }
 }
 
@@ -409,7 +409,7 @@ obj_t rf_not(obj_t x)
         return res;
 
     default:
-        return error_type1(x->type, "not: unsupported type");
+        raise(ERR_TYPE, "not: unsupported type: %d", x->type);
     }
 }
 
@@ -421,7 +421,7 @@ obj_t rf_iasc(obj_t x)
         return rf_sort_asc(x);
 
     default:
-        return error_type1(x->type, "iasc: unsupported type");
+        raise(ERR_TYPE, "iasc: unsupported type: %d", x->type);
     }
 }
 
@@ -433,7 +433,7 @@ obj_t rf_idesc(obj_t x)
         return rf_sort_desc(x);
 
     default:
-        return error_type1(x->type, "idesc: unsupported type");
+        raise(ERR_TYPE, "idesc: unsupported type: %d", x->type);
     }
 }
 
@@ -454,7 +454,7 @@ obj_t rf_asc(obj_t x)
         return idx;
 
     default:
-        return error_type1(x->type, "asc: unsupported type");
+        raise(ERR_TYPE, "asc: unsupported type: %d", x->type);
     }
 }
 
@@ -475,7 +475,7 @@ obj_t rf_desc(obj_t x)
         return idx;
 
     default:
-        return error_type1(x->type, "desc: unsupported type");
+        raise(ERR_TYPE, "desc: unsupported type: %d", x->type);
     }
 }
 
@@ -498,7 +498,7 @@ obj_t rf_guid_generate(obj_t x)
         return vec;
 
     default:
-        return error_type1(x->type, "guid_generate: unsupported type");
+        raise(ERR_TYPE, "guid_generate: unsupported type: %d", x->type);
     }
 }
 
@@ -529,7 +529,7 @@ obj_t rf_neg(obj_t x)
         return res;
 
     default:
-        return error_type1(x->type, "neg: unsupported type");
+        raise(ERR_TYPE, "neg: unsupported type: %d", x->type);
     }
 }
 
@@ -556,7 +556,7 @@ obj_t rf_where(obj_t x)
         return res;
 
     default:
-        return error_type1(x->type, "where: unsupported type");
+        raise(ERR_TYPE, "where: unsupported type: %d", x->type);
     }
 }
 
@@ -623,7 +623,7 @@ obj_t rf_fread(obj_t x)
 
         return res;
     default:
-        return error_type1(x->type, "fread: unsupported type");
+        raise(ERR_TYPE, "fread: unsupported type: %d", x->type);
     }
 }
 
@@ -640,7 +640,7 @@ obj_t rf_parse(obj_t x)
         parser_free(&parser);
         return res;
     default:
-        return error_type1(x->type, "parse: unsupported type");
+        raise(ERR_TYPE, "parse: unsupported type: %d", x->type);
     }
 }
 
@@ -673,6 +673,6 @@ obj_t rf_read_parse_compile(obj_t x)
 
         return com;
     default:
-        return error_type1(x->type, "read parse compile: unsupported type");
+        raise(ERR_TYPE, "read_parse_compile: unsupported type: %d", x->type);
     }
 }
