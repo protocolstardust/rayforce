@@ -125,30 +125,30 @@ cc_result_t cc_compile_time(cc_t *cc, obj_t obj, u32_t arity)
 
 cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity)
 {
-    // cc_result_t res;
-    // obj_t car = &as_list(obj)[0];
-    // lambda_t *func = as_lambda(&cc->lambda);
-    // obj_t code = &func->code;
+    cc_result_t res;
+    obj_t car = &as_list(obj)[0];
+    lambda_t *func = as_lambda(cc->lambda);
+    obj_t *code = &func->code;
 
-    // if (arity != 2)
-    //     cerr(cc, car->id, ERR_LENGTH, "'set' takes two arguments");
+    if (arity != 2)
+        cerr(cc, car, ERR_LENGTH, "'set' takes two arguments");
 
-    // if (as_list(obj)[1].type != -TYPE_SYMBOL)
-    //     cerr(cc, car->id, ERR_TYPE, "'set' first argument must be a symbol");
+    if (as_list(obj)[1]->type != -TYPE_SYMBOL)
+        cerr(cc, car, ERR_TYPE, "'set' first argument must be a symbol");
 
-    // push_opcode(cc, car->id, code, OP_PUSH);
-    // push_const(cc, as_list(obj)[1]);
-    // res = cc_compile_expr(true, cc, &as_list(obj)[2]);
+    push_opcode(cc, car, code, OP_PUSH);
+    push_const(cc, clone(as_list(obj)[1]));
+    res = cc_compile_expr(true, cc, as_list(obj)[2]);
 
-    // if (res == CC_ERROR)
-    //     return CC_ERROR;
+    if (res == CC_ERROR)
+        return CC_ERROR;
 
-    // push_opcode(cc, car->id, code, OP_CALL2);
-    // push_opcode(cc, car->id, code, 0);
-    // push_u64(code, rf_set_variable);
+    push_opcode(cc, car, code, OP_CALL2);
+    push_u8(code, 0);
+    push_u64(code, rf_set_variable);
 
-    // if (!has_consumer)
-    //     push_opcode(cc, car->id, code, OP_POP);
+    if (!has_consumer)
+        push_opcode(cc, car, code, OP_POP);
 
     return CC_OK;
 }

@@ -298,7 +298,7 @@ obj_t write_sym(obj_t *obj, u64_t idx, str_t str)
     return write_raw(obj, idx, sym);
 }
 
-obj_t at_index(obj_t obj, u64_t idx)
+obj_t at_idx(obj_t obj, u64_t idx)
 {
     if (obj == NULL || !is_vector(obj))
         return null();
@@ -320,6 +320,35 @@ obj_t at_index(obj_t obj, u64_t idx)
     default:
         panic(str_fmt(0, "at index: invalid type: %d", obj->type));
     }
+}
+
+obj_t set_idx(obj_t *obj, u64_t idx, obj_t val)
+{
+    raise(ERR_NOT_IMPLEMENTED, "set_idx");
+    // if (obj == NULL)
+    //     return null();
+
+    // switch (MTYPE2((*obj)->type, val->type))
+    // {
+    // case TYPE_I64:
+    //     as_vector_i64(*obj)[idx] = ;
+    // return case TYPE_SYMBOL:
+    //     return symboli64(as_vector_symbol(obj)[idx]);
+    // case TYPE_TIMESTAMP:
+    //     return timestamp(as_vector_timestamp(obj)[idx]);
+    // case TYPE_F64:
+    //     return f64(as_vector_f64(obj)[idx]);
+    // case TYPE_CHAR:
+    //     return schar(as_string(obj)[idx]);
+    // case TYPE_LIST:
+    //     return clone(as_list(obj)[idx]);
+    //     default: panic(str_fmt(0, "at index: invalid type: %d", obj->type));
+    // }
+}
+
+obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
+{
+    raise(ERR_NOT_IMPLEMENTED, "set_obj");
 }
 
 bool_t is_null(obj_t obj)
@@ -700,65 +729,6 @@ obj_t cow(obj_t obj)
 
     // TODO: implement copy on write
     return obj;
-
-    // if (obj_t_rc(obj) == 1)
-    //     return clone(obj);
-
-    // switch (obj->type)
-    // {
-    // case TYPE_BOOL:
-    //     new = vector_bool(obj->len);
-    //     new.adt->attrs = obj->attrs;
-    //     memcpy(as_vector_bool(&new), as_vector_bool(obj), obj->len);
-    //     return new;
-    // case TYPE_I64:
-    //     new = vector_i64(obj->len);
-    //     new.adt->attrs = obj->attrs;
-    //     memcpy(as_vector_i64(&new), as_vector_i64(obj), obj->len * sizeof(i64_t));
-    //     return new;
-    // case TYPE_F64:
-    //     new = vector_f64(obj->len);
-    //     new.adt->attrs = obj->attrs;
-    //     memcpy(as_vector_f64(&new), as_vector_f64(obj), obj->len * sizeof(f64_t));
-    //     return new;
-    // case TYPE_SYMBOL:
-    //     new = vector_symbol(obj->len);
-    //     new.adt->attrs = obj->attrs;
-    //     memcpy(as_vector_symbol(&new), as_vector_symbol(obj), obj->len * sizeof(i64_t));
-    //     return new;
-    // case TYPE_TIMESTAMP:
-    //     new = vector_timestamp(obj->len);
-    //     new.adt->attrs = obj->attrs;
-    //     memcpy(as_vector_timestamp(&new), as_vector_timestamp(obj), obj->len * sizeof(i64_t));
-    //     return new;
-    // case TYPE_CHAR:
-    //     new = string(obj->len);
-    //     new.adt->attrs = obj->attrs;
-    //     memcpy(as_string(&new), as_string(obj), obj->len);
-    //     return new;
-    // case TYPE_LIST:
-    //     l = obj->len;
-    //     new = list(l);
-    //     new.adt->attrs = obj->attrs;
-    //     for (i = 0; i < l; i++)
-    //         as_list(&new)[i] = cow(&as_list(obj)[i]);
-    //     return new;
-    // case TYPE_DICT:
-    //     as_list(obj)[0] = cow(&as_list(obj)[0]);
-    //     as_list(obj)[1] = cow(&as_list(obj)[1]);
-    //     new.adt->attrs = obj->attrs;
-    //     return new;
-    // case TYPE_TABLE:
-    //     new = table(cow(&as_list(obj)[0]), cow(&as_list(obj)[1]));
-    //     new.adt->attrs = obj->attrs;
-    //     return new;
-    // case TYPE_LAMBDA:
-    //     return *obj;
-    // case TYPE_ERROR:
-    //     return *obj;
-    // default:
-    //     panic(str_fmt(0, "cow: invalid type: %d", obj->type));
-    // }
 }
 
 /*

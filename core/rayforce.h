@@ -179,7 +179,12 @@ extern obj_t write_obj(obj_t *obj, u64_t idx, obj_t  val); // write object to a 
 extern obj_t write_sym(obj_t *obj, u64_t idx, str_t  str); // write interned string to a symbol vector
 
 // Read
-extern obj_t at_index(obj_t obj, u64_t idx); // read raw value from a obj at index
+extern obj_t at_idx(obj_t obj, u64_t idx); // read raw value from a obj at index
+extern obj_t at_obj(obj_t obj, obj_t idx); // read from obj indexed by obj
+
+// Set
+extern obj_t set_idx(obj_t *obj, u64_t idx, obj_t val); // set obj at index
+extern obj_t set_obj(obj_t *obj, obj_t idx, obj_t val); // set obj indexed by obj
 
 // Resize
 extern obj_t resize(obj_t *obj, u64_t len);

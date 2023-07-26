@@ -95,7 +95,7 @@ obj_t rf_call_binary_left_atomic(binary_t f, obj_t x, obj_t y)
     if (x->type == TYPE_LIST)
     {
         l = x->len;
-        a = at_index(x, 0);
+        a = at_idx(x, 0);
         item = rf_call_binary_left_atomic(f, a, y);
         drop(a);
 
@@ -108,7 +108,7 @@ obj_t rf_call_binary_left_atomic(binary_t f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            a = at_index(x, i);
+            a = at_idx(x, i);
             item = rf_call_binary_left_atomic(f, a, y);
             drop(a);
 
@@ -136,7 +136,7 @@ obj_t rf_call_binary_right_atomic(binary_t f, obj_t x, obj_t y)
     if (y->type == TYPE_LIST)
     {
         l = y->len;
-        b = at_index(y, 0);
+        b = at_idx(y, 0);
         item = rf_call_binary_right_atomic(f, x, b);
         drop(b);
 
@@ -149,7 +149,7 @@ obj_t rf_call_binary_right_atomic(binary_t f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            b = at_index(y, i);
+            b = at_idx(y, i);
             item = rf_call_binary_right_atomic(f, x, b);
             drop(b);
 
@@ -183,8 +183,8 @@ obj_t rf_call_binary_atomic(binary_t f, obj_t x, obj_t y)
         if (l != y->len)
             return error(ERR_LENGTH, "binary: vectors must be of the same length");
 
-        a = at_index(x, 0);
-        b = at_index(y, 0);
+        a = at_idx(x, 0);
+        b = at_idx(y, 0);
         item = rf_call_binary_atomic(f, a, b);
         drop(a);
         drop(b);
@@ -198,8 +198,8 @@ obj_t rf_call_binary_atomic(binary_t f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            a = at_index(x, i);
-            b = at_index(y, i);
+            a = at_idx(x, i);
+            b = at_idx(y, i);
             item = rf_call_binary_atomic(f, a, b);
             drop(a);
             drop(b);
@@ -219,7 +219,7 @@ obj_t rf_call_binary_atomic(binary_t f, obj_t x, obj_t y)
     else if (x->type == TYPE_LIST)
     {
         l = x->len;
-        a = at_index(x, 0);
+        a = at_idx(x, 0);
         item = rf_call_binary_atomic(f, a, y);
         drop(a);
 
@@ -232,7 +232,7 @@ obj_t rf_call_binary_atomic(binary_t f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            a = at_index(x, i);
+            a = at_idx(x, i);
             item = rf_call_binary_atomic(f, a, y);
             drop(a);
 
@@ -251,7 +251,7 @@ obj_t rf_call_binary_atomic(binary_t f, obj_t x, obj_t y)
     else if (y->type == TYPE_LIST)
     {
         l = y->len;
-        b = at_index(y, 0);
+        b = at_idx(y, 0);
         item = rf_call_binary_atomic(f, x, b);
         drop(b);
 
@@ -264,7 +264,7 @@ obj_t rf_call_binary_atomic(binary_t f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            b = at_index(y, i);
+            b = at_idx(y, i);
             item = rf_call_binary_atomic(f, x, b);
             drop(b);
 
@@ -301,7 +301,7 @@ obj_t rf_call_binary(u8_t flags, binary_t f, obj_t x, obj_t y)
 
 obj_t rf_set_variable(obj_t key, obj_t val)
 {
-    // return dict_set(&runtime_get()->env.variables, key, clone(val));
+    return set_obj(&runtime_get()->env.variables, key, val);
 }
 
 obj_t rf_dict(obj_t x, obj_t y)
