@@ -340,97 +340,96 @@ obj_t rf_cast(obj_t x, obj_t y)
 
 obj_t rf_table(obj_t x, obj_t y)
 {
-    // bool_t s = false;
-    // u64_t i, j, len, cl = 0;
-    // obj_t lst, c, l = null(0);
+    bool_t s = false;
+    u64_t i, j, len, cl = 0;
+    obj_t lst, c, l = null(0);
 
-    // if (x->type != TYPE_SYMBOL)
-    //     return error(ERR_TYPE, "Keys must be a symbol vector");
+    if (x->type != TYPE_SYMBOL)
+        return error(ERR_TYPE, "Keys must be a symbol vector");
 
-    // if (y->type != TYPE_LIST)
-    // {
-    //     if (x->len != 1)
-    //         return error(ERR_LENGTH, "Keys and Values must have the same length");
+    if (y->type != TYPE_LIST)
+    {
+        if (x->len != 1)
+            return error(ERR_LENGTH, "Keys and Values must have the same length");
 
-    //     l = list(1);
-    //     as_list(&l)[0] = clone(y);
-    //     y = &l;
-    // }
+        l = list(1);
+        as_list(l)[0] = clone(y);
+        y = &l;
+    }
 
-    // if (x->len != y->len)
-    // {
-    //     drop(l);
-    //     return error(ERR_LENGTH, "Keys and Values must have the same length");
-    // }
+    if (x->len != y->len)
+    {
+        drop(l);
+        return error(ERR_LENGTH, "Keys and Values must have the same length");
+    }
 
-    // len = y->len;
+    len = y->len;
 
-    // for (i = 0; i < len; i++)
-    // {
-    //     switch (as_list(y)[i].type)
-    //     {
-    //     // case TYPE_NULL:
-    //     case -TYPE_BOOL:
-    //     case -TYPE_I64:
-    //     case -TYPE_F64:
-    //     case -TYPE_CHAR:
-    //     case -TYPE_SYMBOL:
-    //     case -TYPE_TIMESTAMP:
-    //         s = true;
-    //         break;
-    //     case TYPE_BOOL:
-    //     case TYPE_I64:
-    //     case TYPE_F64:
-    //     case TYPE_TIMESTAMP:
-    //     case TYPE_CHAR:
-    //     case TYPE_SYMBOL:
-    //     case TYPE_LIST:
-    //         j = as_list(y)[i]->len;
-    //         if (cl != 0 && j != cl)
-    //             return error(ERR_LENGTH, "Values must be of the same length");
+    for (i = 0; i < len; i++)
+    {
+        switch (as_list(y)[i]->type)
+        {
+        // case TYPE_NULL:
+        case -TYPE_BOOL:
+        case -TYPE_I64:
+        case -TYPE_F64:
+        case -TYPE_CHAR:
+        case -TYPE_SYMBOL:
+        case -TYPE_TIMESTAMP:
+            s = true;
+            break;
+        case TYPE_BOOL:
+        case TYPE_I64:
+        case TYPE_F64:
+        case TYPE_TIMESTAMP:
+        case TYPE_CHAR:
+        case TYPE_SYMBOL:
+        case TYPE_LIST:
+            j = as_list(y)[i]->len;
+            if (cl != 0 && j != cl)
+                return error(ERR_LENGTH, "Values must be of the same length");
 
-    //         cl = j;
-    //         break;
-    //     default:
-    //         return error(ERR_TYPE, "unsupported type in a Values list");
-    //     }
-    // }
+            cl = j;
+            break;
+        default:
+            return error(ERR_TYPE, "unsupported type in a Values list");
+        }
+    }
 
-    // // there are no atoms and all columns are of the same length
-    // if (!s)
-    // {
-    //     drop(l);
-    //     return table(clone(x), clone(y));
-    // }
+    // there are no atoms and all columns are of the same length
+    if (!s)
+    {
+        drop(l);
+        return table(clone(x), clone(y));
+    }
 
-    // // otherwise we need to expand atoms to vectors
-    // lst = list(len);
+    // otherwise we need to expand atoms to vectors
+    lst = list(len);
 
-    // if (cl == 0)
-    //     cl = 1;
+    if (cl == 0)
+        cl = 1;
 
-    // for (i = 0; i < len; i++)
-    // {
-    //     switch (as_list(y)[i].type)
-    //     {
-    //     // case TYPE_NULL:
-    //     case -TYPE_BOOL:
-    //     case -TYPE_I64:
-    //     case -TYPE_F64:
-    //     case -TYPE_CHAR:
-    //     case -TYPE_SYMBOL:
-    //         c = i64(cl);
-    //         as_list(&lst)[i] = rf_take(&c, &as_list(y)[i]);
-    //         break;
-    //     default:
-    //         as_list(&lst)[i] = clone(&as_list(y)[i]);
-    //     }
-    // }
+    for (i = 0; i < len; i++)
+    {
+        switch (as_list(y)[i]->type)
+        {
+        // case TYPE_NULL:
+        case -TYPE_BOOL:
+        case -TYPE_I64:
+        case -TYPE_F64:
+        case -TYPE_CHAR:
+        case -TYPE_SYMBOL:
+            c = i64(cl);
+            as_list(lst)[i] = rf_take(c, as_list(y)[i]);
+            break;
+        default:
+            as_list(lst)[i] = clone(as_list(y)[i]);
+        }
+    }
 
-    // drop(l);
+    drop(l);
 
-    // return table(clone(x), lst);
-    return null(0);
+    return table(clone(x), lst);
 }
 
 obj_t rf_rand(obj_t x, obj_t y)
