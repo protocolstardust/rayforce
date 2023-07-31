@@ -55,10 +55,9 @@ nil_t rehash(obj_t *obj, hash_f hash)
     u64_t i, l, size, key, val, factor, index;
     obj_t new_obj;
     type_t type;
-
+    printf("REHASSHHHH!!!\n");
     size = as_list(*obj)[0]->len;
     type = is_null(as_list(*obj)[1]) ? -1 : as_list(*obj)[1]->type;
-    debug("REHASH  TYPE: %d!!!", type);
     new_obj = ht_tab(size * 2, type);
     factor = new_obj->len - 1;
 
@@ -67,7 +66,10 @@ nil_t rehash(obj_t *obj, hash_f hash)
         if (as_i64(as_list(*obj)[0])[i] != NULL_I64)
         {
             key = as_i64(as_list(*obj)[0])[i];
-            val = at_idx(as_list(*obj)[1], i);
+
+            if (type > -1)
+                val = at_idx(as_list(*obj)[1], i);
+
             index = hash ? hash(key) & factor : key & factor;
 
             while (as_i64(as_list(new_obj)[0])[i] != NULL_I64)
@@ -79,7 +81,9 @@ nil_t rehash(obj_t *obj, hash_f hash)
             }
 
             as_i64(as_list(new_obj)[0])[index] = key;
-            set_idx(&as_list(new_obj)[1], i, val);
+
+            if (type > -1)
+                set_idx(&as_list(new_obj)[1], i, val);
         }
     }
 
@@ -118,4 +122,23 @@ i64_t ht_tab_get_with(obj_t *obj, i64_t key, hash_f hash, cmp_f cmp)
 
         rehash(obj, hash);
     }
+}
+
+obj_t ht_reduce(obj_t *obj)
+{
+    i64_t i, j, l;
+    l = as_list(*obj)[0]->len;
+
+    for (i = 0, j = 0; i < l; i++)
+    {
+        if (as_i64(as_list(*obj)[0])[i] != NULL_I64)
+        {
+            as_i64(as_list(*obj)[0])[j++] = as_i64(as_list(*obj)[0])[i];
+
+            // if (as_i64(as_list(*obj)[1])[i])
+        }
+    }
+    resize(&as_list(*obj)[0], j);
+
+    return *obj;
 }

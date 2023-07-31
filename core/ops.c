@@ -202,7 +202,7 @@ bool_t pos_update(i64_t key, i64_t val, nil_t *seed, i64_t *tkey, i64_t *tval)
 
 obj_t distinct(obj_t x)
 {
-    i64_t i, j, l, r, *p, min, max, range, k, w, b;
+    i64_t i, j, l, r, p, min, max, range, k, w, b;
     obj_t mask, vec, set;
 
     if (!x || x->len == 0)
@@ -225,68 +225,54 @@ obj_t distinct(obj_t x)
 
     range = max - min + 1;
 
-    // if (range <= l)
+    if (range <= l)
     {
         r = alignup(range / 8, 8);
         if (!r)
             r = 1;
 
         mask = vector_bool(r);
-        memset(as_bool(mask), 0, r);
+        vec = vector_i64(range);
+
+        memset(as_i64(mask), 0, r * 8);
 
         for (i = 0, j = 0; i < l; i++)
         {
             k = as_i64(x)[i] - min;
-            w = k / 8;
-            b = k & 7;
+            w = k >> 3; // k / 8
+            b = k & 7;  // k % 8
 
             if (as_bool(mask)[w] & (1 << b))
                 continue;
 
             as_bool(mask)[w] |= (1 << b);
-            j++;
-        }
-
-        vec = vector_i64(j);
-
-        for (i = 0, j = 0; i < l; i++)
-        {
-            k = as_i64(x)[i] - min;
-            w = k / 8;
-            b = k & 7;
-
-            if (as_bool(mask)[w] & (1 << b))
-            {
-                as_i64(vec)[j++] = as_i64(x)[i];
-                as_bool(mask)[w] &= ~(1 << b);
-            }
+            as_i64(vec)[j++] = as_i64(x)[i];
         }
 
         drop(mask);
 
+        resize(&vec, j);
+
         return vec;
     }
 
-    raise(ERR_NOT_IMPLEMENTED, "nyi");
-    // set = ht_set(l);
-    // vec = vector_i64(l);
+    set = ht_tab(l, -1);
 
-    // for (i = 0; i < l; i++)
-    // {
-    //     p = ht_set_get(&set, as_i64(x)[i]);
-    //     if (p[0] == NULL_I64)
-    //     {
-    //         p[0] = as_i64(x)[i];
-    //         as_i64(vec)[j++] = as_i64(x)[i];
-    //     }
-    // }
+    for (i = 0, j = 0; i < l; i++)
+    {
+        p = ht_tab_get(&set, as_i64(x)[i] - min);
+        if (as_i64(as_list(set)[0])[p] == NULL_I64)
+            as_i64(as_list(set)[0])[p] = as_i64(x)[i] - min;
+    }
 
-    // vec->attrs |= ATTR_DISTINCT;
+    ht_reduce(&set);
 
-    // drop(set);
-    // resize(&vec, j);
+    vec = clone(as_list(set)[0]);
+    vec->attrs |= ATTR_DISTINCT;
 
-    // return vec;
+    drop(set);
+
+    return vec;
 }
 
 obj_t group(obj_t x)
@@ -317,8 +303,7 @@ obj_t group(obj_t x)
     vals = vector(TYPE_LIST, j);
 
     // finally, fill vectors with positions
-    j = 0;
-    for (i = 0; i < xl; i++)
+    for (i = 0, j = 0; i < xl; i++)
     {
         idx = ht_tab_get(&ht, as_i64(x)[i]);
         if (as_i64(as_list(ht)[1])[idx] & (1ll << 62))
