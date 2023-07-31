@@ -202,8 +202,7 @@ bool_t pos_update(i64_t key, i64_t val, nil_t *seed, i64_t *tkey, i64_t *tval)
 
 obj_t distinct(obj_t x)
 {
-    bool_t *m;
-    i64_t i, j, l, r, p, min, max, range, k, w, b, *iv, *ov;
+    i64_t i, j, l, r, p, min, max, range, k, w, b;
     obj_t mask, vec, set;
 
     if (!x || x->len == 0)
@@ -213,16 +212,15 @@ obj_t distinct(obj_t x)
         return clone(x);
 
     min = max = as_i64(x)[0];
-    iv = __builtin_assume_aligned(as_i64(x), 16);
 
     l = x->len;
 
     for (i = 0; i < l; i++)
     {
-        if (iv[i] < min)
-            min = iv[i];
-        else if (iv[i] > max)
-            max = iv[i];
+        if (as_i64(x)[i] < min)
+            min = as_i64(x)[i];
+        else if (as_i64(x)[i] > max)
+            max = as_i64(x)[i];
     }
 
     range = max - min + 1;
@@ -234,22 +232,20 @@ obj_t distinct(obj_t x)
             r = 1;
 
         mask = vector_bool(r);
-        m = __builtin_assume_aligned(as_bool(mask), 16);
-        memset(m, 0, r);
+        memset(as_bool(mask), 0, r);
         vec = vector_i64(range);
-        ov = __builtin_assume_aligned(as_i64(vec), 16);
 
         for (i = 0, j = 0; i < l; i++)
         {
-            k = iv[i] - min;
+            k = as_i64(x)[i] - min;
             w = k >> 3; // k / 8
             b = k & 7;  // k % 8
 
-            if (m[w] & (1 << b))
+            if (as_bool(mask)[w] & (1 << b))
                 continue;
 
-            m[w] |= (1 << b);
-            ov[j++] = iv[i];
+            as_bool(mask)[w] |= (1 << b);
+            as_i64(vec)[j++] = as_i64(x)[i];
         }
 
         drop(mask);
@@ -282,7 +278,7 @@ obj_t distinct(obj_t x)
 
 obj_t group(obj_t x)
 {
-    i64_t i, j = 0, xl = x->len, range, inrange = 0, min, max, idx, n;
+    i64_t i, j = 0, xl = x->len, idx;
     obj_t keys, vals, mask, v, ht;
 
     if (xl == 0)
