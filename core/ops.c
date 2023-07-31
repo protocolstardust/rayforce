@@ -239,7 +239,6 @@ obj_t distinct(obj_t x)
         vec = vector_i64(range);
         ov = __builtin_assume_aligned(as_i64(vec), 16);
 
-#pragma omp parallel for
         for (i = 0, j = 0; i < l; i++)
         {
             k = iv[i] - min;
@@ -249,7 +248,6 @@ obj_t distinct(obj_t x)
             if (m[w] & (1 << b))
                 continue;
 
-#pragma omp atomic
             m[w] |= (1 << b);
             ov[j++] = iv[i];
         }
@@ -262,19 +260,21 @@ obj_t distinct(obj_t x)
     }
 
     set = ht_tab(l, -1);
+    vec = vector_i64(l);
 
     for (i = 0, j = 0; i < l; i++)
     {
         p = ht_tab_get(&set, as_i64(x)[i] - min);
         if (as_i64(as_list(set)[0])[p] == NULL_I64)
+        {
             as_i64(as_list(set)[0])[p] = as_i64(x)[i] - min;
+            as_i64(vec)[j++] = as_i64(x)[i];
+        }
     }
 
-    ht_reduce(&set);
-
-    vec = clone(as_list(set)[0]);
     vec->attrs |= ATTR_DISTINCT;
 
+    resize(&vec, j);
     drop(set);
 
     return vec;
