@@ -405,8 +405,24 @@ cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity
             return CC_ERROR;
     }
 
+    // first iteration
+    push_opcode(cc, obj, code, OP_MAP);
+    push_u8(code, arity);
+
+    // compile lambda
+    res = cc_compile_call(cc, as_list(obj)[1], arity);
+
+    if (res == CC_ERROR)
+        return CC_ERROR;
+
+    // allocate acc vector due to a result of first iteration
     push_opcode(cc, obj, code, OP_ALLOC);
     push_u8(code, arity);
+
+    // check if iteration is done
+    push_opcode(cc, obj, code, OP_JNE);
+    push_u64(code, 0);
+    lbl1 = (*code)->len - sizeof(u64_t);
 
     lbl0 = (*code)->len;
     push_opcode(cc, obj, code, OP_MAP);
@@ -423,6 +439,8 @@ cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity
     // check if iteration is done
     push_opcode(cc, obj, code, OP_JNE);
     push_u64(code, lbl0);
+
+    *(u64_t *)(as_string(*code) + lbl1) = (*code)->len;
 
     // pop arguments
     for (i = 0; i < arity; i++)
@@ -792,6 +810,19 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, obj_t obj)
     lambda_t *func = as_lambda(cc->lambda);
     obj_t *code = &func->code;
     cc_result_t res = CC_NULL;
+
+    if (!obj)
+    {
+        if (!has_consumer)
+            return CC_NULL;
+
+        // then in a local or global env
+        push_opcode(cc, obj, code, OP_PUSH_CONST);
+        push_const(cc, clone(obj));
+        func->stack_size++;
+
+        return CC_OK;
+    }
 
     switch (obj->type)
     {

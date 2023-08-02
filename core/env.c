@@ -119,7 +119,7 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "table",     TYPE_BINARY,   FLAG_NONE,         rf_table);
     // regf(functions,  "get",       TYPE_BINARY,   FLAG_NONE,         rf_get);
     regf(functions,  "find",      TYPE_BINARY,   FLAG_ATOMIC,       rf_find);
-    regf(functions,  "concat",    TYPE_BINARY,   FLAG_NONE,         rf_concat);
+    regf(functions,  "join",      TYPE_BINARY,   FLAG_NONE,         rf_join);
     regf(functions,  "filter",    TYPE_BINARY,   FLAG_ATOMIC,       rf_filter);
     regf(functions,  "take",      TYPE_BINARY,   FLAG_RIGHT_ATOMIC, rf_take);
     regf(functions,  "in",        TYPE_BINARY,   FLAG_ATOMIC,       rf_in);

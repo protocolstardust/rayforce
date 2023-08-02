@@ -238,6 +238,7 @@ obj_t join_obj(obj_t *obj, obj_t val)
 {
     obj_t res, lst = NULL;
     u64_t i, l;
+    type_t t = val ? val->type : TYPE_LIST;
 
     // change vector type to a list
     // if (obj->type && obj->type != -val->type)
@@ -257,7 +258,7 @@ obj_t join_obj(obj_t *obj, obj_t val)
     //     return lst;
     // }
 
-    switch (mtype2((*obj)->type, val->type))
+    switch (mtype2((*obj)->type, t))
     {
     case mtype2(TYPE_I64, -TYPE_I64):
     case mtype2(TYPE_SYMBOL, -TYPE_SYMBOL):
@@ -301,10 +302,29 @@ obj_t write_raw(obj_t *obj, u64_t idx, nil_t *val)
 
 obj_t write_obj(obj_t *obj, u64_t idx, obj_t val)
 {
+    i64_t i, l;
     obj_t ret;
 
     if (*obj == NULL || !is_vector(*obj))
         return *obj;
+
+    // we need to convert vector to list
+    if ((*obj)->type != -val->type && (*obj)->type != TYPE_LIST)
+    {
+        l = (*obj)->len;
+        ret = vector(TYPE_LIST, l);
+
+        for (i = 0; i < idx; i++)
+            as_list(ret)[i] = at_idx(*obj, i);
+
+        as_list(ret)[idx] = val;
+
+        drop(*obj);
+
+        *obj = ret;
+
+        return ret;
+    }
 
     switch ((*obj)->type)
     {

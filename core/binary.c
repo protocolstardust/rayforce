@@ -1188,7 +1188,7 @@ obj_t rf_at(obj_t x, obj_t y)
     //         if (as_i64(y)[i] >= xl)
     //             as_list(vec)[i] = null(0);
     //         else
-    //             as_list(vec)[i] = clone(&as_list(x)[(i32_t)as_i64(y)[i]]);
+    //             as_list(vec)[i] = clone(as_list(x)[(i32_t)as_i64(y)[i]]);
     //     }
 
     //     return vec;
@@ -1296,199 +1296,200 @@ obj_t rf_find(obj_t x, obj_t y)
     }
 }
 
-obj_t rf_concat(obj_t x, obj_t y)
+obj_t rf_join(obj_t x, obj_t y)
 {
-    // i64_t i, xl, yl;
-    // obj_t vec;
+    i64_t i, xl, yl;
+    obj_t vec;
 
-    // switch (mtype2(x->type, y->type))
-    // {
-    // case mtype2(-TYPE_BOOL, -TYPE_BOOL):
-    //     vec = vector_bool(2);
-    //     as_bool(vec)[0] = x->bool;
-    //     as_bool(vec)[1] = y->bool;
-    //     return vec;
+    if (!x || !y)
+        return list(2, clone(x), clone(y));
 
-    // case mtype2(-TYPE_I64, -TYPE_I64):
-    //     vec = vector_i64(2);
-    //     as_i64(vec)[0] = x->i64;
-    //     as_i64(vec)[1] = y->i64;
-    //     return vec;
+    switch (mtype2(x->type, y->type))
+    {
+    case mtype2(-TYPE_BOOL, -TYPE_BOOL):
+        vec = vector_bool(2);
+        as_bool(vec)[0] = x->bool;
+        as_bool(vec)[1] = y->bool;
+        return vec;
 
-    // case mtype2(-TYPE_F64, -TYPE_F64):
-    //     vec = vector_f64(2);
-    //     as_f64(vec)[0] = x->f64;
-    //     as_f64(vec)[1] = y->f64;
-    //     return vec;
+    case mtype2(-TYPE_I64, -TYPE_I64):
+        vec = vector_i64(2);
+        as_i64(vec)[0] = x->i64;
+        as_i64(vec)[1] = y->i64;
+        return vec;
 
-    // case mtype2(-TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-    //     vec = vector_timestamp(2);
-    //     as_timestamp(vec)[0] = x->i64;
-    //     as_timestamp(vec)[1] = y->i64;
-    //     return vec;
+    case mtype2(-TYPE_F64, -TYPE_F64):
+        vec = vector_f64(2);
+        as_f64(vec)[0] = x->f64;
+        as_f64(vec)[1] = y->f64;
+        return vec;
 
-    // case mtype2(-TYPE_GUID, -TYPE_GUID):
-    //     vec = vector_guid(2);
-    //     memcpy(&as_guid(vec)[0], x->guid, sizeof(guid_t));
-    //     memcpy(&as_guid(vec)[1], y->guid, sizeof(guid_t));
-    //     return vec;
+    case mtype2(-TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
+        vec = vector_timestamp(2);
+        as_timestamp(vec)[0] = x->i64;
+        as_timestamp(vec)[1] = y->i64;
+        return vec;
 
-    // case mtype2(-TYPE_CHAR, -TYPE_CHAR):
-    //     vec = string(2);
-    //     as_string(vec)[0] = x->schar;
-    //     as_string(vec)[1] = y->schar;
-    //     return vec;
+        // case mtype2(-TYPE_GUID, -TYPE_GUID):
+        //     vec = vector_guid(2);
+        //     memcpy(&as_guid(vec)[0], x->guid, sizeof(guid_t));
+        //     memcpy(&as_guid(vec)[1], y->guid, sizeof(guid_t));
+        //     return vec;
 
-    // case mtype2(TYPE_BOOL, -TYPE_BOOL):
-    //     xl = x->len;
-    //     vec = vector_bool(xl + 1);
-    //     for (i = 0; i < xl; i++)
-    //         as_bool(vec)[i] = as_bool(x)[i];
+    case mtype2(-TYPE_CHAR, -TYPE_CHAR):
+        vec = string(2);
+        as_string(vec)[0] = x->schar;
+        as_string(vec)[1] = y->schar;
+        return vec;
 
-    //     as_bool(vec)[xl] = y->bool;
-    //     return vec;
+    case mtype2(TYPE_BOOL, -TYPE_BOOL):
+        xl = x->len;
+        vec = vector_bool(xl + 1);
+        for (i = 0; i < xl; i++)
+            as_bool(vec)[i] = as_bool(x)[i];
 
-    // case mtype2(TYPE_I64, -TYPE_I64):
-    //     xl = x->len;
-    //     vec = vector_i64(xl + 1);
-    //     for (i = 0; i < xl; i++)
-    //         as_i64(vec)[i] = as_i64(x)[i];
+        as_bool(vec)[xl] = y->bool;
+        return vec;
 
-    //     as_i64(vec)[xl] = y->i64;
-    //     return vec;
+    case mtype2(TYPE_I64, -TYPE_I64):
+        xl = x->len;
+        vec = vector_i64(xl + 1);
+        for (i = 0; i < xl; i++)
+            as_i64(vec)[i] = as_i64(x)[i];
 
-    // case mtype2(-TYPE_I64, TYPE_I64):
-    //     yl = y->len;
-    //     vec = vector_i64(yl + 1);
-    //     as_i64(vec)[0] = x->i64;
-    //     for (i = 1; i <= yl; i++)
-    //         as_i64(vec)[i] = as_i64(y)[i - 1];
+        as_i64(vec)[xl] = y->i64;
+        return vec;
 
-    //     return vec;
+    case mtype2(-TYPE_I64, TYPE_I64):
+        yl = y->len;
+        vec = vector_i64(yl + 1);
+        as_i64(vec)[0] = x->i64;
+        for (i = 1; i <= yl; i++)
+            as_i64(vec)[i] = as_i64(y)[i - 1];
 
-    // case mtype2(TYPE_F64, -TYPE_F64):
-    //     xl = x->len;
-    //     vec = vector_f64(xl + 1);
-    //     for (i = 0; i < xl; i++)
-    //         as_f64(vec)[i] = as_f64(x)[i];
+        return vec;
 
-    //     as_f64(vec)[xl] = y->f64;
-    //     return vec;
+    case mtype2(TYPE_F64, -TYPE_F64):
+        xl = x->len;
+        vec = vector_f64(xl + 1);
+        for (i = 0; i < xl; i++)
+            as_f64(vec)[i] = as_f64(x)[i];
 
-    // case mtype2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-    //     xl = x->len;
-    //     vec = vector_timestamp(xl + 1);
-    //     for (i = 0; i < xl; i++)
-    //         as_timestamp(vec)[i] = as_timestamp(x)[i];
+        as_f64(vec)[xl] = y->f64;
+        return vec;
 
-    //     as_timestamp(vec)[xl] = y->i64;
-    //     return vec;
+    case mtype2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
+        xl = x->len;
+        vec = vector_timestamp(xl + 1);
+        for (i = 0; i < xl; i++)
+            as_timestamp(vec)[i] = as_timestamp(x)[i];
 
-    // case mtype2(TYPE_GUID, -TYPE_GUID):
-    //     xl = x->len;
-    //     vec = vector_guid(xl + 1);
-    //     for (i = 0; i < xl; i++)
-    //         as_guid(vec)[i] = as_guid(x)[i];
+        as_timestamp(vec)[xl] = y->i64;
+        return vec;
 
-    //     memcpy(&as_guid(vec)[xl], y->guid, sizeof(guid_t));
-    //     return vec;
+        // case mtype2(TYPE_GUID, -TYPE_GUID):
+        //     xl = x->len;
+        //     vec = vector_guid(xl + 1);
+        //     for (i = 0; i < xl; i++)
+        //         as_guid(vec)[i] = as_guid(x)[i];
 
-    // case mtype2(TYPE_BOOL, TYPE_BOOL):
-    //     xl = x->len;
-    //     yl = y->len;
-    //     vec = vector_bool(xl + yl);
-    //     for (i = 0; i < xl; i++)
-    //         as_bool(vec)[i] = as_bool(x)[i];
-    //     for (i = 0; i < yl; i++)
-    //         as_bool(vec)[i + xl] = as_bool(y)[i];
-    //     return vec;
+        //     memcpy(&as_guid(vec)[xl], y->guid, sizeof(guid_t));
+        //     return vec;
 
-    // case mtype2(TYPE_I64, TYPE_I64):
-    //     xl = x->len;
-    //     yl = y->len;
-    //     vec = vector_i64(xl + yl);
-    //     for (i = 0; i < xl; i++)
-    //         as_i64(vec)[i] = as_i64(x)[i];
-    //     for (i = 0; i < yl; i++)
-    //         as_i64(vec)[i + xl] = as_i64(y)[i];
-    //     return vec;
+    case mtype2(TYPE_BOOL, TYPE_BOOL):
+        xl = x->len;
+        yl = y->len;
+        vec = vector_bool(xl + yl);
+        for (i = 0; i < xl; i++)
+            as_bool(vec)[i] = as_bool(x)[i];
+        for (i = 0; i < yl; i++)
+            as_bool(vec)[i + xl] = as_bool(y)[i];
+        return vec;
 
-    // case mtype2(TYPE_F64, TYPE_F64):
-    //     xl = x->len;
-    //     yl = y->len;
-    //     vec = vector_f64(xl + yl);
-    //     for (i = 0; i < xl; i++)
-    //         as_f64(vec)[i] = as_f64(x)[i];
-    //     for (i = 0; i < yl; i++)
-    //         as_f64(vec)[i + xl] = as_f64(y)[i];
-    //     return vec;
+    case mtype2(TYPE_I64, TYPE_I64):
+        xl = x->len;
+        yl = y->len;
+        vec = vector_i64(xl + yl);
+        for (i = 0; i < xl; i++)
+            as_i64(vec)[i] = as_i64(x)[i];
+        for (i = 0; i < yl; i++)
+            as_i64(vec)[i + xl] = as_i64(y)[i];
+        return vec;
 
-    // case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
-    //     xl = x->len;
-    //     yl = y->len;
-    //     vec = vector_timestamp(xl + yl);
-    //     for (i = 0; i < xl; i++)
-    //         as_timestamp(vec)[i] = as_timestamp(x)[i];
-    //     for (i = 0; i < yl; i++)
-    //         as_timestamp(vec)[i + xl] = as_timestamp(y)[i];
-    //     return vec;
+    case mtype2(TYPE_F64, TYPE_F64):
+        xl = x->len;
+        yl = y->len;
+        vec = vector_f64(xl + yl);
+        for (i = 0; i < xl; i++)
+            as_f64(vec)[i] = as_f64(x)[i];
+        for (i = 0; i < yl; i++)
+            as_f64(vec)[i + xl] = as_f64(y)[i];
+        return vec;
 
-    // case mtype2(TYPE_GUID, TYPE_GUID):
-    //     xl = x->len;
-    //     yl = y->len;
-    //     vec = vector_guid(xl + yl);
-    //     for (i = 0; i < xl; i++)
-    //         as_guid(vec)[i] = as_guid(x)[i];
-    //     for (i = 0; i < yl; i++)
-    //         as_guid(vec)[i + xl] = as_guid(y)[i];
-    //     return vec;
+    case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
+        xl = x->len;
+        yl = y->len;
+        vec = vector_timestamp(xl + yl);
+        for (i = 0; i < xl; i++)
+            as_timestamp(vec)[i] = as_timestamp(x)[i];
+        for (i = 0; i < yl; i++)
+            as_timestamp(vec)[i + xl] = as_timestamp(y)[i];
+        return vec;
 
-    // case mtype2(TYPE_CHAR, TYPE_CHAR):
-    //     xl = x->len;
-    //     yl = y->len;
-    //     vec = string(xl + yl);
-    //     for (i = 0; i < xl; i++)
-    //         as_string(vec)[i] = as_string(x)[i];
-    //     for (i = 0; i < yl; i++)
-    //         as_string(vec)[i + xl] = as_string(y)[i];
-    //     return vec;
+    case mtype2(TYPE_GUID, TYPE_GUID):
+        xl = x->len;
+        yl = y->len;
+        vec = vector_guid(xl + yl);
+        for (i = 0; i < xl; i++)
+            as_guid(vec)[i] = as_guid(x)[i];
+        for (i = 0; i < yl; i++)
+            as_guid(vec)[i + xl] = as_guid(y)[i];
+        return vec;
 
-    // case mtype2(TYPE_LIST, TYPE_LIST):
-    //     xl = x->len;
-    //     yl = y->len;
-    //     vec = list(xl + yl);
-    //     for (i = 0; i < xl; i++)
-    //         as_list(vec)[i] = clone(&as_list(x)[i]);
-    //     for (i = 0; i < yl; i++)
-    //         as_list(vec)[i + xl] = clone(&as_list(y)[i]);
-    //     return vec;
+    case mtype2(TYPE_CHAR, TYPE_CHAR):
+        xl = x->len;
+        yl = y->len;
+        vec = string(xl + yl);
+        for (i = 0; i < xl; i++)
+            as_string(vec)[i] = as_string(x)[i];
+        for (i = 0; i < yl; i++)
+            as_string(vec)[i + xl] = as_string(y)[i];
+        return vec;
 
-    // default:
-    //     if (x->type == TYPE_LIST)
-    //     {
-    //         xl = x->len;
-    //         vec = list(xl + 1);
-    //         for (i = 0; i < xl; i++)
-    //             as_list(vec)[i] = clone(&as_list(x)[i]);
-    //         as_list(vec)[xl] = clone(y);
+    case mtype2(TYPE_LIST, TYPE_LIST):
+        xl = x->len;
+        yl = y->len;
+        vec = list(xl + yl);
+        for (i = 0; i < xl; i++)
+            as_list(vec)[i] = clone(as_list(x)[i]);
+        for (i = 0; i < yl; i++)
+            as_list(vec)[i + xl] = clone(as_list(y)[i]);
+        return vec;
 
-    //         return vec;
-    //     }
-    //     if (y->type == TYPE_LIST)
-    //     {
-    //         yl = y->len;
-    //         vec = list(yl + 1);
-    //         as_list(vec)[0] = clone(x);
-    //         for (i = 0; i < yl; i++)
-    //             as_list(vec)[i + 1] = clone(&as_list(y)[i]);
+    default:
+        if (x->type == TYPE_LIST)
+        {
+            xl = x->len;
+            vec = list(xl + 1);
+            for (i = 0; i < xl; i++)
+                as_list(vec)[i] = clone(as_list(x)[i]);
+            as_list(vec)[xl] = clone(y);
 
-    //         return vec;
-    //     }
+            return vec;
+        }
+        if (y->type == TYPE_LIST)
+        {
+            yl = y->len;
+            vec = list(yl + 1);
+            as_list(vec)[0] = clone(x);
+            for (i = 0; i < yl; i++)
+                as_list(vec)[i + 1] = clone(as_list(y)[i]);
 
-    //     return error_type2(x->type, y->type, "concat: unsupported types");
-    // }
+            return vec;
+        }
 
-    return null(0);
+        raise(ERR_TYPE, "join: unsupported types: %d %d", x->type, y->type);
+    }
 }
 
 obj_t rf_filter(obj_t x, obj_t y)
@@ -1606,25 +1607,25 @@ obj_t rf_filter(obj_t x, obj_t y)
     //     res = list(l);
     //     for (i = 0; i < l; i++)
     //         if (as_bool(y)[i])
-    //             as_list(res)[j++] = clone(&as_list(x)[i]);
+    //             as_list(res)[j++] = clone(as_list(x)[i]);
 
     //     resize(res, j);
 
     //     return res;
 
     // case mtype2(TYPE_TABLE, TYPE_BOOL):
-    //     vals = &as_list(x)[1];
+    //     vals = as_list(x)[1];
     //     l = vals->len;
     //     res = list(l);
 
     //     for (i = 0; i < l; i++)
     //     {
-    //         col = vector_filter(&as_list(vals)[i], as_bool(y), p);
+    //         col = vector_filter(as_list(vals)[i], as_bool(y), p);
     //         p = col->len;
     //         as_list(res)[i] = col;
     //     }
 
-    //     return table(clone(&as_list(x)[0]), res);
+    //     return table(clone(as_list(x)[0]), res);
 
     // default:
     //     return error_type2(x->type, y->type, "filter: unsupported types");
@@ -1709,7 +1710,7 @@ obj_t rf_take(obj_t x, obj_t y)
         //         vector_write(&cols, i, c);
         //     }
 
-        //     res = rf_table(&as_list(x)[0], &cols);
+        //     res = rf_table(as_list(x)[0], &cols);
         //     drop(cols);
 
         //     return res;
@@ -1769,7 +1770,7 @@ obj_t rf_take(obj_t x, obj_t y)
         //     res = list(l);
 
         //     for (i = 0; i < l; i++)
-        //         as_list(res)[i] = clone(&as_list(x)[as_i64(y)[i]]);
+        //         as_list(res)[i] = clone(as_list(x)[as_i64(y)[i]]);
 
         //     return res;
 
@@ -1876,9 +1877,9 @@ obj_t rf_group_Table(obj_t x, obj_t y)
     //     l = as_list(x)[1]->len;
     //     res = list(l);
     //     for (i = 0; i < l; i++)
-    //         as_list(res)[i] = rf_call_binary_right_atomic(rf_take, &as_list(&as_list(x)[1])[i], y);
+    //         as_list(res)[i] = rf_call_binary_right_atomic(rf_take, as_list(as_list(x)[1])[i], y);
 
-    //     return table(clone(&as_list(x)[0]), res);
+    //     return table(clone(as_list(x)[0]), res);
 
     // default:
     //     return error_type2(x->type, y->type, "group: unsupported types");

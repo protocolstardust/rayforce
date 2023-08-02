@@ -121,6 +121,18 @@ nil_t heap_cleanup()
     i32_t i, order;
     node_t *node, *next;
 
+    // check if all small blocks are freed
+    for (i = 0; i < NUM_16_BLOCKS; i++)
+    {
+        if (_HEAP->freelist16 == NULL)
+        {
+            debug("blocks16 leak\n");
+            return;
+        }
+
+        _HEAP->freelist16 = *(nil_t **)_HEAP->freelist16;
+    }
+
     // All the nodes remains are pools, so just munmap them
     for (i = 0; i <= MAX_POOL_ORDER; i++)
     {

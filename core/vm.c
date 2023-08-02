@@ -402,9 +402,11 @@ op_trace:
 op_alloc:
     b = vm->ip++;
     c = code[vm->ip++];
+    x1 = stack_pop(); // result of first iteration
     addr = stack_peek_n(c);
-    l = (*addr)->len;
-    t = (*addr)->type;
+    l = is_vector(*addr) ? (*addr)->len : 1;
+    vm->cnt = 0;
+
     // check lengths
     for (i = 0; i < c; i++)
     {
@@ -412,8 +414,22 @@ op_alloc:
         if (is_vector(*addr) && (*addr)->len != l)
             unwrap(error(ERR_TYPE, "map: arguments must be of the same length or atoms"), b);
     }
-    vm->acc = vector(t, l);
-    vm->cnt = 0;
+
+    switch (l)
+    {
+    case 0:
+        vm->cmp = false;
+        break;
+    case 1:
+        vm->cmp = false;
+        vm->acc = x1;
+        break;
+    default:
+        vm->acc = (x1->type < 0) ? vector(-x1->type, l) : vector(TYPE_LIST, l);
+        write_obj(&vm->acc, vm->cnt++, x1);
+        vm->cmp = true;
+    }
+
     dispatch();
 op_map:
     b = vm->ip++;
@@ -423,17 +439,17 @@ op_map:
     for (i = 0, j = 0; i < c; i++)
     {
         addr = stack_peek_n(c - i + j++);
-        if (!is_vector(*addr))
-            stack_push(clone(*addr));
-        else
+        if (is_vector(*addr))
             stack_push(at_idx(*addr, vm->cnt));
+        else
+            stack_push(clone(*addr));
     }
     dispatch();
 op_collect:
     b = vm->ip++;
     x1 = stack_pop();
-    write_obj(&vm->acc, vm->cnt, x1);
-    vm->cmp = ++vm->cnt == vm->acc->len;
+    write_obj(&vm->acc, vm->cnt++, x1);
+    vm->cmp = vm->cnt == vm->acc->len;
     dispatch();
 op_eval:
     b = vm->ip++;
