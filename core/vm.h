@@ -73,8 +73,7 @@ typedef enum vm_opcode_t
 
 typedef struct vm_t
 {
-    bool_t cmp;   // Compare result flag
-    u8_t trace;   // Trace flag (print stack trace on error limited to n frames)
+    i64_t cmp;    // Compare result flag
     i64_t ip;     // Instruction pointer
     i64_t sp;     // Stack pointer
     i64_t bp;     // Base pointer (beginning on stack frame)

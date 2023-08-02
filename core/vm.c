@@ -33,12 +33,12 @@
 #include "ops.h"
 #include "env.h"
 #include "runtime.h"
-
 #include "unary.h"
 #include "binary.h"
 #include "vary.h"
 #include "cc.h"
 
+CASSERT(sizeof(struct vm_t) == 64, vm_h)
 CASSERT(OP_INVALID < 127, vm_h)
 
 #define stack_push(x) (vm->stack[vm->sp++] = x)
@@ -76,6 +76,7 @@ obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
     u8_t n, attrs;
     u64_t l, p;
     i64_t i, j, b;
+    vm_t cvm;
 
     // init registers
     vm->ip = 0;
@@ -247,13 +248,11 @@ made_calld:
             unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
         if ((vm->sp + as_lambda(x0)->stack_size) * sizeof(obj_t) > VM_STACK_SIZE)
             unwrap(error(ERR_STACK_OVERFLOW, "stack overflow"), b);
-
-        vm_t cvm = vm_new(vm->stack);
+        cvm = vm_new(vm->stack);
         cvm.sp = vm->sp;
         x1 = vm_exec(&cvm, x0);
         vm->sp = cvm.sp;
-        // drop lambda
-        drop(x0);
+        drop(x0); // drop lambda
         // drop args
         for (i = 0; i < l; i++)
             drop(stack_pop());

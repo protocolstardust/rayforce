@@ -27,7 +27,6 @@
 #include "heap.h"
 #include "format.h"
 #include "util.h"
-
 #include "string.h"
 #include "env.h"
 #include "runtime.h"
@@ -340,7 +339,7 @@ cc_result_t cc_compile_call(cc_t *cc, obj_t car, u8_t arity)
     if (car->type == -TYPE_SYMBOL && car->i64 == KW_SELF)
     {
         push_opcode(cc, car, code, OP_PUSH_CONST);
-        push_const(cc, clone(cc->lambda));
+        push_const(cc, cc->lambda);
 
         push_opcode(cc, car, code, OP_CALLD);
         push_u8(code, arity);
