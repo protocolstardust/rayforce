@@ -242,7 +242,8 @@ made_calld:
         drop(x0);
         goto made_calln;
     case TYPE_LAMBDA:
-        if (n != as_lambda(x0)->args->len)
+        l = as_lambda(x0)->args->len;
+        if (n != l)
             unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
         if ((vm->sp + as_lambda(x0)->stack_size) * sizeof(obj_t) > VM_STACK_SIZE)
             unwrap(error(ERR_STACK_OVERFLOW, "stack overflow"), b);
@@ -251,7 +252,11 @@ made_calld:
         cvm.sp = vm->sp;
         x1 = vm_exec(&cvm, x0);
         vm->sp = cvm.sp;
+        // drop lambda
         drop(x0);
+        // drop args
+        for (i = 0; i < l; i++)
+            drop(stack_pop());
         unwrap(x1, b);
         stack_push(x1);
         dispatch();

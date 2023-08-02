@@ -79,8 +79,8 @@ typedef struct vm_t
     i64_t sp;     // Stack pointer
     i64_t bp;     // Base pointer (beginning on stack frame)
     i64_t cnt;    // Counter
-    obj_t acc;    // Accumulator
     i64_t timer;  // Timer for execution time
+    obj_t acc;    // Accumulator
     obj_t *stack; // Stack of arguments
 } vm_t;
 

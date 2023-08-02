@@ -332,8 +332,23 @@ type_t cc_compile_catch(cc_t *cc, obj_t obj, u32_t arity)
 cc_result_t cc_compile_call(cc_t *cc, obj_t car, u8_t arity)
 {
     cc_result_t res;
-    obj_t *code = &as_lambda(cc->lambda)->code, prim;
+    lambda_t *func = as_lambda(cc->lambda);
+    obj_t *code = &func->code, prim;
     i64_t i;
+
+    // self is a special case
+    if (car->type == -TYPE_SYMBOL && car->i64 == KW_SELF)
+    {
+        push_opcode(cc, car, code, OP_PUSH_CONST);
+        push_const(cc, clone(cc->lambda));
+
+        push_opcode(cc, car, code, OP_CALLD);
+        push_u8(code, arity);
+
+        func->stack_size++;
+
+        return CC_OK;
+    }
 
     i = find_obj(as_list(runtime_get()->env.functions)[0], car);
 
@@ -346,6 +361,8 @@ cc_result_t cc_compile_call(cc_t *cc, obj_t car, u8_t arity)
 
         push_opcode(cc, car, code, OP_CALLD);
         push_u8(code, arity);
+
+        func->stack_size++;
 
         return CC_OK;
     }
@@ -864,16 +881,6 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, obj_t obj)
         {
             push_opcode(cc, obj, code, OP_PUSH_CONST);
             push_const(cc, symboli64(obj->i64));
-            func->stack_size++;
-
-            return CC_OK;
-        }
-
-        // self is a special case
-        if (obj->i64 == KW_SELF)
-        {
-            push_opcode(cc, obj, code, OP_PUSH_CONST);
-            push_const(cc, clone(cc->lambda));
             func->stack_size++;
 
             return CC_OK;
