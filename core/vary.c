@@ -23,6 +23,8 @@
 
 #include <stdio.h>
 #include "vm.h"
+#include "unary.h"
+#include "binary.h"
 #include "vary.h"
 #include "heap.h"
 #include "string.h"
@@ -57,20 +59,95 @@ obj_t rf_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 
 obj_t rf_map_vary(obj_t *x, u64_t n)
 {
-    u64_t i;
+    u64_t i, j, l;
     vm_t vm;
+    obj_t v, *b, res;
+
+    if (n < 2)
+        return null(0);
 
     switch ((*x)->type)
     {
+    case TYPE_UNARY:
+        if (n != 2)
+            raise(ERR_TYPE, "'map': unary call with wrong arguments count");
+        return rf_call_unary(FLAG_ATOMIC, (unary_f)(*x)->i64, x[1]);
+    case TYPE_BINARY:
+        if (n != 3)
+            raise(ERR_TYPE, "'map': binary call with wrong arguments count");
+        return rf_call_binary(FLAG_ATOMIC, (binary_f)(*x)->i64, x[1], x[2]);
+    case TYPE_VARY:
+        return rf_call_vary(FLAG_ATOMIC, (vary_f)(*x)->i64, x + 1, n - 1);
     case TYPE_LAMBDA:
-        vm = vm_new(runtime_get()->vm.stack);
-        for (i = 0; i < n - 1; i++)
+        if ((n - 1) != as_lambda(*x)->args->len)
+            raise(ERR_TYPE, "'map': lambda call with wrong arguments count");
+        l = 0xffffffffffffffff;
+        for (i = 1; i < n; i++)
         {
+            b = x + i;
+            if (is_vector(*b) && l == 0xffffffffffffffff)
+                l = (*b)->len;
+            else if (is_vector(*b) && (*b)->len != l)
+                raise(ERR_LENGTH, "'map': inconsistent arguments lengths")
         }
+
+        if (l == 0)
+            return null(0);
+
+        // all are atoms
+        if (l == 0xffffffffffffffff)
+            l = 1;
+
+        vm = vm_new(runtime_get()->vm.stack);
         vm.sp = runtime_get()->vm.sp;
-        return vm_exec(&vm, *x);
+
+        // first item to get type of res
+        for (j = 1; j < n; j++)
+        {
+            b = x + j;
+            v = is_vector(*b) ? at_idx(*b, 0) : clone(*b);
+            vm.stack[vm.sp++] = v;
+            v = vm_exec(&vm, *x);
+            if (v->type == TYPE_ERROR)
+                return v;
+
+            res = vector(v->type, l);
+            write_obj(&res, 0, v);
+        }
+
+        // drop args
+        for (j = 1; j < n; j++)
+            drop(vm.stack[--vm.sp]);
+
+        for (i = 1; i < l; i++)
+        {
+            for (j = 1; j < n; j++)
+            {
+                b = x + j;
+                v = is_vector(*b) ? at_idx(*b, i) : clone(*b);
+                vm.stack[vm.sp++] = v;
+            }
+
+            v = vm_exec(&vm, *x);
+
+            // drop args
+            for (j = 1; j < n; j++)
+                drop(vm.stack[--vm.sp]);
+
+            // check error
+            if (is_error(v))
+            {
+                res->len = i;
+                drop(res);
+                return v;
+            }
+
+            write_obj(&res, i, v);
+        }
+
+        return res;
     default:
-        return i64(123);
+        raise(ERR_TYPE, "'map': unsupported function type: %d", (*x)->type);
     }
 }
 

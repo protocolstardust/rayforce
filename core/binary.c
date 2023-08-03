@@ -100,7 +100,7 @@ obj_t rf_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
         if (item->type == TYPE_ERROR)
             return item;
 
-        res = list(l);
+        res = vector(item->type, l);
 
         write_obj(&res, 0, item);
 
@@ -141,7 +141,7 @@ obj_t rf_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
         if (item->type == TYPE_ERROR)
             return item;
 
-        res = list(l);
+        res = vector(item->type, l);
 
         write_obj(&res, 0, item);
 
@@ -187,10 +187,10 @@ obj_t rf_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         drop(a);
         drop(b);
 
-        if (item->type == TYPE_ERROR)
+        if (is_error(item))
             return item;
 
-        res = list(l);
+        res = vector(item->type, l);
 
         write_obj(&res, 0, item);
 
@@ -224,7 +224,7 @@ obj_t rf_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         if (item->type == TYPE_ERROR)
             return item;
 
-        res = list(l);
+        res = vector(item->type, l);
 
         write_obj(&res, 0, item);
 
@@ -256,7 +256,7 @@ obj_t rf_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         if (item->type == TYPE_ERROR)
             return item;
 
-        res = list(l);
+        res = vector(item->type, l);
 
         write_obj(&res, 0, item);
 

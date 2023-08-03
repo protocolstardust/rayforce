@@ -138,9 +138,18 @@ obj_t timestamp(i64_t val)
 
 obj_t vector(type_t type, u64_t len)
 {
-    obj_t vec = (obj_t)heap_malloc(sizeof(struct obj_t) + len * size_of(type));
+    type_t t;
 
-    vec->type = type;
+    if (type < 0)
+        t = -type;
+    else if (type >= 0 && type < TYPE_TABLE)
+        t = type;
+    else
+        t = TYPE_LIST;
+
+    obj_t vec = (obj_t)heap_malloc(sizeof(struct obj_t) + len * size_of(t));
+
+    vec->type = t;
     vec->rc = 1;
     vec->len = len;
     vec->attrs = 0;
@@ -268,24 +277,24 @@ obj_t join_obj(obj_t *obj, obj_t val)
         drop(val);
         return res;
     case mtype2(TYPE_F64, -TYPE_F64):
-        res = join_raw(obj, *(i64_t *)&val->f64);
+        res = join_raw(obj, *(raw_t *)&val->f64);
         drop(val);
         return res;
     case mtype2(TYPE_CHAR, -TYPE_CHAR):
-        res = join_raw(obj, *(i64_t *)&val->schar);
+        res = join_raw(obj, *(raw_t *)&val->schar);
         drop(val);
         return res;
     default:
         if ((*obj)->type == TYPE_LIST)
         {
-            res = join_raw(obj, (i64_t)val);
+            res = join_raw(obj, (raw_t)val);
             return res;
         }
 
         raise(ERR_TYPE, "join: invalid types: %d, %d", (*obj)->type, val->type);
     }
 
-    return join_raw(obj, (i64_t)val);
+    return join_raw(obj, (raw_t)val);
 }
 
 obj_t join_sym(obj_t *obj, str_t str)
@@ -336,7 +345,7 @@ obj_t write_obj(obj_t *obj, u64_t idx, obj_t val)
         drop(val);
         break;
     case TYPE_F64:
-        ret = write_raw(obj, idx, *(i64_t *)&val->f64);
+        ret = write_raw(obj, idx, *(raw_t *)&val->f64);
         drop(val);
         break;
     case TYPE_CHAR:
@@ -344,7 +353,7 @@ obj_t write_obj(obj_t *obj, u64_t idx, obj_t val)
         drop(val);
         break;
     case TYPE_LIST:
-        ret = write_raw(obj, idx, (i64_t)val);
+        ret = write_raw(obj, idx, (raw_t)val);
         break;
     default:
         panic(str_fmt(0, "write obj: invalid type: %d", (*obj)->type));

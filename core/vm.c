@@ -95,7 +95,7 @@ obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
         if (_o && _o->type == TYPE_ERROR)             \
         {                                             \
             span_t span = nfo_get(&f->nfo, (i64_t)y); \
-            *(span_t *)as_list(_o)[2] = span;         \
+            *(span_t *)&as_list(_o)[2] = span;        \
             while (vm->sp > 0)                        \
             {                                         \
                 _v = stack_pop();                     \
