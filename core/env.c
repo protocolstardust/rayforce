@@ -32,20 +32,21 @@
 #include "format.h"
 #include "ops.h"
 
-#define regf(r, n, t, f, o)                                     \
-    {   \                        
-        i64_t _k = intern_keyword(n, strlen(n));                                \
-        join_raw(&as_list(r)[0], &_k); \
-        obj_t _o = atom(-t);                                    \
-        _o->attrs = f;                                          \
-        _o->i64 = (i64_t)o;                                     \
-        join_raw(&as_list(r)[1], &_o);                    \
+#define regf(r, n, t, f, o)                      \
+    {                                            \
+        i64_t _k = intern_keyword(n, strlen(n)); \
+        join_raw(&as_list(r)[0], &_k);           \
+        obj_t _o = atom(-t);                     \
+        _o->attrs = f;                           \
+        _o->i64 = (i64_t)o;                      \
+        join_raw(&as_list(r)[1], &_o);           \
     };
 
-#define regt(r, i, s)                       \
-    {                                       \
-        join_raw(&as_list(r)[0], &i); \
-        join_sym(&as_list(r)[1], s);        \
+#define regt(r, i, s)                  \
+    {                                  \
+        i64_t _i = i;                  \
+        join_raw(&as_list(r)[0], &_i); \
+        join_sym(&as_list(r)[1], s);   \
     };
 
 obj_t rf_env()
@@ -227,7 +228,10 @@ nil_t free_env(env_t *env)
 
 i64_t env_get_typename_by_type(env_t *env, type_t type)
 {
-    i64_t i = find_raw(as_list(env->typenames)[0], type);
+    i64_t t, i;
+
+    t = type;
+    i = find_raw(as_list(env->typenames)[0], &t);
 
     if (i == (i64_t)as_list(env->typenames)[0]->len)
         return as_symbol(as_list(env->typenames)[1])[0];
@@ -237,7 +241,10 @@ i64_t env_get_typename_by_type(env_t *env, type_t type)
 
 type_t env_get_type_by_typename(env_t *env, i64_t name)
 {
-    i64_t i = find_raw(as_list(env->typenames)[1], name);
+    i64_t n, i;
+
+    n = name;
+    i = find_raw(as_list(env->typenames)[1], &n);
 
     if (i == (i64_t)as_list(env->typenames)[1]->len)
         return TYPE_ERROR;

@@ -273,34 +273,32 @@ obj_t join_obj(obj_t *obj, obj_t val)
     case mtype2(TYPE_I64, -TYPE_I64):
     case mtype2(TYPE_SYMBOL, -TYPE_SYMBOL):
     case mtype2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-        res = join_raw(obj, (raw_t)val->i64);
+        res = join_raw(obj, &val->i64);
         drop(val);
         return res;
     case mtype2(TYPE_F64, -TYPE_F64):
-        res = join_raw(obj, (raw_t *)&val->f64);
+        res = join_raw(obj, &val->f64);
         drop(val);
         return res;
     case mtype2(TYPE_CHAR, -TYPE_CHAR):
-        res = join_raw(obj, *(raw_t *)&val->schar);
+        res = join_raw(obj, &val->schar);
         drop(val);
         return res;
     default:
         if ((*obj)->type == TYPE_LIST)
         {
-            res = join_raw(obj, (raw_t)val);
+            res = join_raw(obj, &val);
             return res;
         }
 
         raise(ERR_TYPE, "join: invalid types: %d, %d", (*obj)->type, val->type);
     }
-
-    return join_raw(obj, (raw_t)val);
 }
 
 obj_t join_sym(obj_t *obj, str_t str)
 {
     i64_t sym = intern_symbol(str, strlen(str));
-    return join_raw(obj, (raw_t)sym);
+    return join_raw(obj, &sym);
 }
 
 obj_t write_raw(obj_t *obj, u64_t idx, raw_t val)
@@ -602,25 +600,25 @@ i64_t find_raw(obj_t obj, raw_t val)
     case TYPE_TIMESTAMP:
         l = obj->len;
         for (i = 0; i < l; i++)
-            if (as_i64(obj)[i] == val)
+            if (as_i64(obj)[i] == *(i64_t *)val)
                 return i;
         return l;
     case TYPE_F64:
         l = obj->len;
         for (i = 0; i < l; i++)
-            if (as_f64(obj)[i] == *(f64_t *)&val)
+            if (as_f64(obj)[i] == *(f64_t *)val)
                 return i;
         return l;
     case TYPE_CHAR:
         l = obj->len;
         for (i = 0; i < l; i++)
-            if (as_string(obj)[i] == *(char_t *)&val)
+            if (as_string(obj)[i] == *(char_t *)val)
                 return i;
         return l;
     case TYPE_LIST:
         l = obj->len;
         for (i = 0; i < l; i++)
-            if (equal(as_list(obj)[i], (obj_t)val))
+            if (equal(as_list(obj)[i], *(obj_t *)val))
                 return i;
         return l;
     default:
@@ -638,13 +636,13 @@ i64_t find_obj(obj_t obj, obj_t val)
     case TYPE_I64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
-        return find_raw(obj, val->i64);
+        return find_raw(obj, &val->i64);
     case TYPE_F64:
-        return find_raw(obj, *(i64_t *)&val->f64);
+        return find_raw(obj, &val->f64);
     case TYPE_CHAR:
-        return find_raw(obj, *(i64_t *)&val->schar);
+        return find_raw(obj, &val->schar);
     case TYPE_LIST:
-        return find_raw(obj, (i64_t)val);
+        return find_raw(obj, &val);
     default:
         panic(str_fmt(0, "find: invalid type: %d", obj->type));
     }
@@ -653,7 +651,7 @@ i64_t find_obj(obj_t obj, obj_t val)
 i64_t find_sym(obj_t obj, str_t str)
 {
     i64_t n = intern_symbol(str, strlen(str));
-    return find_raw(obj, n);
+    return find_raw(obj, &n);
 }
 
 obj_t cast(type_t type, obj_t obj)

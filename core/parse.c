@@ -566,14 +566,14 @@ obj_t parse_vector(parser_t *parser)
         else if (tok->type == -TYPE_F64)
         {
             if (vec->type == TYPE_F64)
-                join_raw(&vec, *(raw_t *)&tok->f64);
+                join_raw(&vec, &tok->f64);
             else if (vec->type == TYPE_I64)
             {
                 vec->type = TYPE_F64;
                 for (i = 0; i < (i32_t)vec->len; i++)
                     as_f64(vec)[i] = (f64_t)as_i64(vec)[i];
 
-                join_raw(&vec, *(raw_t *)&tok->f64);
+                join_raw(&vec, &tok->f64);
             }
             else
             {
@@ -589,7 +589,7 @@ obj_t parse_vector(parser_t *parser)
             if (vec->type == TYPE_SYMBOL || (vec->len == 0))
             {
                 vec->type = TYPE_SYMBOL;
-                join_raw(&vec, (raw_t)tok->i64);
+                join_raw(&vec, &tok->i64);
             }
             else
             {
@@ -604,7 +604,7 @@ obj_t parse_vector(parser_t *parser)
         {
             if (vec->type == TYPE_TIMESTAMP || (vec->len == 0))
             {
-                join_raw(&vec, (raw_t)tok);
+                join_raw(&vec, &tok->i64);
                 vec->type = TYPE_TIMESTAMP;
             }
             else

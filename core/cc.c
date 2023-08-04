@@ -42,13 +42,18 @@
 #define stack_malloc(size) alloca(size)
 #endif
 
-#define push_u8(c, x) join_raw((c), &x);
+#define push_u8(c, x)       \
+    {                       \
+        u8_t _x = x;        \
+        join_raw((c), &_x); \
+    }
 
 #define push_const(c, k)                        \
     {                                           \
+        obj_t _k = k;                           \
         lambda_t *_f = as_lambda((c)->lambda);  \
         push_u8(&_f->code, _f->constants->len); \
-        join_raw(&_f->constants, &k);     \
+        join_raw(&_f->constants, &_k);          \
     }
 
 #define push_opcode(c, k, v, x)                  \
@@ -70,7 +75,7 @@
         *(n *)_p = (n)x;                              \
     }
 
-#define push_u32(c, x) psuh_un(c, x, u32_t)
+#define push_u32(c, x) push_un(c, x, u32_t)
 
 #define push_u64(c, x) push_un(c, x, u64_t)
 
