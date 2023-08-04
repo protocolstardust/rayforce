@@ -165,7 +165,7 @@ extern nil_t drop(obj_t obj);
 // Checkers
 extern bool_t is_null(obj_t obj);
 #define is_error(obj)  (obj && (obj)->type == TYPE_ERROR)
-#define is_atom(obj) (obj && (obj)->type < 0)
+#define is_atom(obj)   (obj && (obj)->type < 0)
 #define is_vector(obj) (obj && (obj)->type >= 0 && (obj)->type < TYPE_TABLE)
 
 // Joins
