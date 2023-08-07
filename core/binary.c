@@ -32,6 +32,7 @@
 #include "format.h"
 #include "hash.h"
 #include "fs.h"
+#include "serde.h"
 
 obj_t call_binary(binary_f f, obj_t x, obj_t y)
 {
@@ -348,6 +349,39 @@ obj_t rf_set(obj_t x, obj_t y)
     default:
         raise(ERR_TYPE, "set: unsupported types: %d %d", x->type, y->type);
     }
+}
+
+obj_t rf_save(obj_t x, obj_t y)
+{
+    i64_t fd, c;
+    obj_t buf;
+
+    fd = fs_fopen(as_string(x), O_RDWR | O_CREAT | O_TRUNC);
+
+    if (fd == -1)
+        raise(ERR_IO, "write: failed to open file '%s': %s", as_string(x), strerror(errno));
+
+    buf = ser(y);
+
+    if (is_error(buf))
+    {
+        fs_fclose(fd);
+        return buf;
+    }
+
+    c = fs_fwrite(fd, as_byte(buf), buf->len);
+    fs_fclose(fd);
+    drop(buf);
+
+    if (c == -1)
+        raise(ERR_IO, "write: failed to write to file '%s': %s", as_string(x), strerror(errno));
+
+    return clone(y);
+}
+
+obj_t rf_write(obj_t x, obj_t y)
+{
+    raise(ERR_NOT_IMPLEMENTED, "write: not implemented");
 }
 
 obj_t rf_cast(obj_t x, obj_t y)
@@ -1988,11 +2022,4 @@ obj_t rf_xdesc(obj_t x, obj_t y)
     default:
         raise(ERR_TYPE, "xdesc: unsupported types: %d %d", x->type, y->type);
     }
-}
-
-obj_t rf_write(obj_t x, obj_t y)
-{
-    unused(x);
-    unused(y);
-    raise(ERR_NOT_IMPLEMENTED, "fs_write: not implemented");
 }

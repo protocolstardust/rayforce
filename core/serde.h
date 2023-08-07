@@ -26,17 +26,22 @@
 
 #include "rayforce.h"
 #include "util.h"
+
+#define SERDE_PREFIX 0xcefadefa
+
 typedef struct header_t
 {
+    u32_t prefix;
     u8_t version;
     u8_t flags;
     u16_t reserved;
-    u32_t padding;
     u64_t size;
 } header_t;
 
 CASSERT(sizeof(header_t) == 16, header_t);
 
-u64_t obj_size(obj_t obj);
+u64_t size_obj(obj_t obj);
+u64_t save_obj(byte_t *buf, u64_t len, obj_t obj);
+obj_t load_obj(byte_t **buf, u64_t len);
 
 #endif // SERDE_H

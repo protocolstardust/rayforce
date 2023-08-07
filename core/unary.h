@@ -29,6 +29,8 @@
 
 obj_t rf_call_unary(u8_t attrs, unary_f f, obj_t x);
 obj_t rf_get(obj_t x);
+obj_t rf_read(obj_t x);
+obj_t rf_load(obj_t x);
 obj_t rf_type(obj_t x);
 obj_t rf_count(obj_t x);
 obj_t rf_til(obj_t x);
@@ -49,7 +51,6 @@ obj_t rf_neg(obj_t x);
 obj_t rf_where(obj_t x);
 obj_t rf_key(obj_t x);
 obj_t rf_value(obj_t x);
-obj_t rf_read(obj_t x);
 obj_t rf_parse(obj_t x);
 obj_t rf_read_parse_compile(obj_t x);
 

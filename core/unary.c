@@ -35,6 +35,7 @@
 #include "fs.h"
 #include "cc.h"
 #include "util.h"
+#include "serde.h"
 
 // Atomic unary functions (iterates through list of argumen items down to atoms)
 obj_t rf_call_unary_atomic(unary_f f, obj_t x)
@@ -126,6 +127,85 @@ obj_t rf_get(obj_t x)
 
     default:
         raise(ERR_TYPE, "get: unsupported type: %d", x->type);
+    }
+}
+
+obj_t rf_load(obj_t x)
+{
+    i64_t fd;
+    obj_t res;
+    u64_t size;
+    header_t *header;
+    byte_t *buf;
+
+    switch (x->type)
+    {
+    case TYPE_CHAR:
+        fd = fs_fopen(as_string(x), O_RDONLY);
+
+        if (fd == -1)
+            raise(ERR_IO, "load: file '%s': %s", as_string(x), strerror(errno));
+
+        size = fs_fsize(fd);
+
+        if (size < sizeof(struct header_t))
+        {
+            fs_fclose(fd);
+            raise(ERR_IO, "load: file '%s': corrupted data", as_string(x));
+        }
+
+        header = (header_t *)mmap_file(fd, size);
+        buf = (byte_t *)(header + 1);
+        res = load_obj(&buf, header->size);
+        fs_fclose(fd);
+        mmap_free(header, size);
+
+        return res;
+
+    default:
+        raise(ERR_TYPE, "load: unsupported type: %d", x->type);
+    }
+}
+
+obj_t rf_read(obj_t x)
+{
+    i64_t fd, size, c = 0;
+    str_t fmsg, buf;
+    obj_t res, err;
+
+    switch (x->type)
+    {
+    case TYPE_CHAR:
+        fd = fs_fopen(as_string(x), O_RDONLY);
+
+        // error handling if file does not exist
+        if (fd == -1)
+        {
+            fmsg = str_fmt(0, "read: file '%s': %s", as_string(x), strerror(errno));
+            err = error(ERR_IO, fmsg);
+            heap_free(fmsg);
+            return err;
+        }
+
+        size = fs_fsize(fd);
+        res = string(size);
+        buf = as_string(res);
+
+        c = fs_fread(fd, buf, size);
+        fs_fclose(fd);
+
+        if (c != size)
+        {
+            fmsg = str_fmt(0, "read: file '%s': %s", as_string(x), strerror(errno));
+            err = error(ERR_IO, fmsg);
+            heap_free(fmsg);
+            drop(res);
+            return err;
+        }
+
+        return res;
+    default:
+        raise(ERR_TYPE, "read: unsupported type: %d", x->type);
     }
 }
 
@@ -547,48 +627,6 @@ obj_t rf_value(obj_t x)
         return clone(as_list(x)[1]);
     default:
         return clone(x);
-    }
-}
-
-obj_t rf_read(obj_t x)
-{
-    i64_t fd, size, c = 0;
-    str_t fmsg, buf;
-    obj_t res, err;
-
-    switch (x->type)
-    {
-    case TYPE_CHAR:
-        fd = fs_fopen(as_string(x), O_RDONLY);
-
-        // error handling if file does not exist
-        if (fd == -1)
-        {
-            fmsg = str_fmt(0, "read: file '%s': %s", as_string(x), strerror(errno));
-            err = error(ERR_IO, fmsg);
-            heap_free(fmsg);
-            return err;
-        }
-
-        size = fs_fsize(fd);
-        res = string(size);
-        buf = as_string(res);
-
-        c = fs_fread(fd, buf, size);
-        fs_fclose(fd);
-
-        if (c != size)
-        {
-            fmsg = str_fmt(0, "read: file '%s': %s", as_string(x), strerror(errno));
-            err = error(ERR_IO, fmsg);
-            heap_free(fmsg);
-            drop(res);
-            return err;
-        }
-
-        return res;
-    default:
-        raise(ERR_TYPE, "read: unsupported type: %d", x->type);
     }
 }
 

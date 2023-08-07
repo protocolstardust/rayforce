@@ -30,7 +30,7 @@
 /*
  * Returns size (in bytes) that an obj occupy in memory via serialization
  */
-u64_t obj_size(obj_t obj)
+u64_t size_obj(obj_t obj)
 {
     u64_t i, l, size;
     switch (obj->type)
@@ -69,14 +69,14 @@ u64_t obj_size(obj_t obj)
         l = obj->len;
         size = sizeof(type_t);
         for (i = 0; i < l; i++)
-            size += obj_size(as_list(obj)[i]);
+            size += size_obj(as_list(obj)[i]);
         return size;
     default:
-        panic(str_fmt(0, "obj_size: unsupported type: %d", obj->type));
+        panic(str_fmt(0, "size_obj: unsupported type: %d", obj->type));
     }
 }
 
-u64_t _ser(byte_t *buf, u64_t len, obj_t obj)
+u64_t save_obj(byte_t *buf, u64_t len, obj_t obj)
 {
     u64_t i, l;
     str_t s;
@@ -152,7 +152,7 @@ u64_t _ser(byte_t *buf, u64_t len, obj_t obj)
         memcpy(buf, &l, sizeof(u64_t));
         buf += sizeof(u64_t);
         for (i = 0; i < l; i++)
-            buf += _ser(buf, len, as_list(obj)[i]);
+            buf += save_obj(buf, len, as_list(obj)[i]);
         return sizeof(type_t) + sizeof(u64_t) + l * sizeof(obj_t);
     default:
         panic(str_fmt(0, "ser: unsupported type: %d", obj->type));
@@ -161,22 +161,22 @@ u64_t _ser(byte_t *buf, u64_t len, obj_t obj)
 
 obj_t ser(obj_t obj)
 {
-    u64_t size = obj_size(obj);
+    u64_t size = size_obj(obj);
     obj_t buf = vector(TYPE_BYTE, sizeof(struct header_t) + size);
     header_t *header = (header_t *)as_byte(buf);
 
+    header->prefix = SERDE_PREFIX;
     header->version = RAYFORCE_VERSION;
     header->flags = 0;
     header->reserved = 0;
-    header->padding = 0;
     header->size = size;
 
-    _ser(as_byte(buf) + sizeof(struct header_t), size, obj);
+    save_obj(as_byte(buf) + sizeof(struct header_t), size, obj);
 
     return buf;
 }
 
-obj_t _de(byte_t **buf, u64_t len)
+obj_t load_obj(byte_t **buf, u64_t len)
 {
     u64_t i, l;
     obj_t obj;
@@ -257,7 +257,7 @@ obj_t _de(byte_t **buf, u64_t len)
         (*buf) += sizeof(u64_t);
         obj = list(l);
         for (i = 0; i < l; i++)
-            as_list(obj)[i] = _de(buf, len);
+            as_list(obj)[i] = load_obj(buf, len);
         return obj;
     default:
         panic(str_fmt(0, "de: unsupported type: %d", *buf));
@@ -276,5 +276,5 @@ obj_t de(obj_t buf)
         return error(ERR_IO, "de: corrupted data in a buffer");
 
     b = as_byte(buf) + sizeof(struct header_t);
-    return _de(&b, header->size);
+    return load_obj(&b, header->size);
 }
