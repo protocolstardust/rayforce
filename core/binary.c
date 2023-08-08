@@ -37,10 +37,36 @@
 obj_t call_binary(binary_f f, obj_t x, obj_t y)
 {
     obj_t cst, res;
+    bool_t dropx = false, dropy = false;
+
+    if (x->type == TYPE_ENUM)
+    {
+        x = rf_value(x);
+        if (is_error(x))
+            return x;
+
+        dropx = true;
+    }
+
+    if (y->type == TYPE_ENUM)
+    {
+        y = rf_value(y);
+        if (is_error(y))
+        {
+            if (dropx)
+                drop(x);
+            return y;
+        }
+
+        dropy = true;
+    }
 
     // no need to cast
     if (x->type == y->type || x->type == -y->type)
-        return f(x, y);
+    {
+        res = f(x, y);
+        goto call;
+    }
 
     switch (mtype2(x->type, y->type))
     {
@@ -48,45 +74,53 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
         cst = f64(x->i64);
         res = f(cst, y);
         drop(cst);
-        return res;
+        goto call;
     case mtype2(-TYPE_F64, -TYPE_I64):
         cst = f64(y->i64);
         res = f(x, cst);
         drop(cst);
-        return res;
+        goto call;
     case mtype2(-TYPE_I64, TYPE_F64):
         cst = f64(x->i64);
         res = f(cst, y);
         drop(cst);
-        return res;
+        goto call;
     case mtype2(-TYPE_F64, TYPE_I64):
         cst = cast(TYPE_F64, y);
         res = f(x, cst);
         drop(cst);
-        return res;
+        goto call;
     case mtype2(TYPE_I64, -TYPE_F64):
         cst = cast(TYPE_I64, x);
         res = f(y, cst);
         drop(cst);
-        return res;
+        goto call;
     case mtype2(TYPE_F64, -TYPE_I64):
         cst = f64(y->i64);
         res = f(x, cst);
         drop(cst);
-        return res;
+        goto call;
     case mtype2(TYPE_I64, TYPE_F64):
         cst = cast(TYPE_F64, x);
         res = f(cst, y);
         drop(cst);
-        return res;
+        goto call;
     case mtype2(TYPE_F64, TYPE_I64):
         cst = cast(TYPE_F64, y);
         res = f(cst, x);
         drop(cst);
-        return res;
+        goto call;
     default:
-        return f(x, y);
+        res = f(x, y);
     }
+
+call:
+    if (dropx)
+        drop(x);
+    if (dropy)
+        drop(y);
+
+    return res;
 }
 
 obj_t rf_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
@@ -944,12 +978,16 @@ obj_t rf_eq(obj_t x, obj_t y)
         return (bool(x->bool == y->bool));
 
     case mtype2(-TYPE_I64, -TYPE_I64):
+    case mtype2(-TYPE_SYMBOL, -TYPE_SYMBOL):
+    case mtype2(-TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
         return (bool(x->i64 == y->i64));
 
     case mtype2(-TYPE_F64, -TYPE_F64):
         return (bool(x->f64 == y->f64));
 
     case mtype2(TYPE_I64, -TYPE_I64):
+    case mtype2(TYPE_SYMBOL, -TYPE_SYMBOL):
+    case mtype2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
         l = x->len;
         vec = vector_bool(l);
 
@@ -968,6 +1006,8 @@ obj_t rf_eq(obj_t x, obj_t y)
         return vec;
 
     case mtype2(-TYPE_I64, TYPE_I64):
+    case mtype2(-TYPE_SYMBOL, TYPE_SYMBOL):
+    case mtype2(-TYPE_TIMESTAMP, TYPE_TIMESTAMP):
         l = y->len;
         vec = vector_bool(l);
 
@@ -985,25 +1025,9 @@ obj_t rf_eq(obj_t x, obj_t y)
 
         return vec;
 
-    case mtype2(TYPE_SYMBOL, -TYPE_SYMBOL):
-        l = x->len;
-        vec = vector_bool(l);
-
-        for (i = 0; i < l; i++)
-            as_bool(vec)[i] = as_symbol(x)[i] == y->i64;
-
-        return vec;
-
-    case mtype2(-TYPE_SYMBOL, TYPE_SYMBOL):
-        l = y->len;
-        vec = vector_bool(l);
-
-        for (i = 0; i < l; i++)
-            as_bool(vec)[i] = x->i64 == as_symbol(y)[i];
-
-        return vec;
-
     case mtype2(TYPE_I64, TYPE_I64):
+    case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
+    case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
         if (x->len != y->len)
             return error(ERR_LENGTH, "eq: vectors of different length");
 
