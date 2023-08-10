@@ -99,7 +99,7 @@ obj_t rf_call_unary(u8_t attrs, unary_f f, obj_t x)
 obj_t rf_get(obj_t x)
 {
     i64_t fd;
-    obj_t res, col, keys, vals, val, s;
+    obj_t res, col, keys, vals, val, s, v;
     u64_t i, l, size;
 
     switch (x->type)
@@ -140,9 +140,11 @@ obj_t rf_get(obj_t x)
 
             for (i = 0; i < l; i++)
             {
-                s = cast(TYPE_CHAR, at_idx(keys, i));
+                v = at_idx(keys, i);
+                s = cast(TYPE_CHAR, v);
                 col = rf_concat(x, s);
                 val = rf_get(col);
+                drop(v);
                 drop(s);
                 drop(col);
 

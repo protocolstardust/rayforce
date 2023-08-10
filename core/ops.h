@@ -39,10 +39,10 @@
 #define ATTR_QUOTED 8
 
 // Memory modes
-#define MMOD_INTERNAL 0x00
-#define MMOD_EXTERNAL_SIMPLE 0xfe
-#define MMOD_EXTERNAL_COMPOUND 0xfd
-#define MMOD_EXTERNAL_SERIALIZED 0xff
+#define MMOD_INTERNAL 0
+#define MMOD_EXTERNAL_SIMPLE 1
+#define MMOD_EXTERNAL_COMPOUND 2
+#define MMOD_EXTERNAL_SERIALIZED 4
 
 #define align8(x) ((str_t)(((u64_t)x + 7) & ~7))
 

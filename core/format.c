@@ -34,6 +34,7 @@
 #include "lambda.h"
 #include "timestamp.h"
 #include "unary.h"
+#include "binary.h"
 
 #define MAX_ROW_WIDTH 80
 #define FORMAT_TRAILER_SIZE 4
@@ -235,7 +236,7 @@ i32_t guid_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, guid_t *
 
 i32_t raw_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, obj_t obj, i32_t i)
 {
-    obj_t s;
+    obj_t idx, res;
     i32_t n;
 
     switch (obj->type)
@@ -259,12 +260,11 @@ i32_t raw_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t li
     case TYPE_LIST:
         return obj_fmt_into(dst, len, offset, indent, limit, as_list(obj)[i]);
     case TYPE_ENUM:
-        s = rf_get(as_list(obj)[0]);
-        if (!s || s->type != TYPE_SYMBOL || as_i64(as_list(obj)[1])[i] >= (i64_t)s->len)
-            n = i64_fmt_into(dst, len, offset, limit, as_i64(as_list(obj)[1])[i]);
-        else
-            n = symbol_fmt_into(dst, len, offset, limit, as_symbol(s)[as_i64(as_list(obj)[1])[i]]);
-        drop(s);
+        idx = i64(i);
+        res = rf_at(obj, idx);
+        drop(idx);
+        n = obj_fmt_into(dst, len, offset, indent, limit, res);
+        drop(res);
         return n;
     default:
         return str_fmt_into(dst, len, offset, limit, "null");
@@ -350,6 +350,7 @@ i32_t enum_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     obj_t s, e;
 
     s = rf_key(obj);
+    // TODO: take only limit items instead of whole value
     e = rf_value(obj);
 
     n = str_fmt_into(dst, len, offset, limit, "'");

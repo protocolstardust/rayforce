@@ -71,7 +71,7 @@ u64_t size_of(obj_t obj)
     switch (obj->type)
     {
     case TYPE_ENUM:
-        size += PAGE_SIZE + obj->len * sizeof(i64_t);
+        size += obj->len * sizeof(i64_t);
         return size;
     default:
         panic(str_fmt(0, "sizeof: unknown type: %d", obj->type));

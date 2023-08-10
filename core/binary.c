@@ -421,67 +421,22 @@ obj_t rf_set(obj_t x, obj_t y)
             l = as_list(y)[0]->len;
 
             // find symbol columns
-            syms = heap_alloc(sizeof(obj_t) * l);
             for (i = 0, c = 0; i < l; i++)
             {
                 if (as_list(as_list(y)[1])[i]->type == TYPE_SYMBOL)
-                    syms[c++] = as_list(as_list(y)[1])[i];
+                    raise(ERR_TYPE, "set: table with symbol columns must be enumerated before saving\ntry to call enum on it");
             }
-
-            sym = distinct_syms(syms, c);
-            heap_free(syms);
-
-            if (sym->len > 0)
-            {
-                p = symbol("sym");
-                rf_set(p, sym);
-                s = string_from_str(".sym", 4);
-                col = rf_concat(x, s);
-                rf_save(col, sym);
-                drop(s);
-                drop(col);
-            }
-            else
-                drop(sym);
 
             // save columns data
             for (i = 0; i < l; i++)
             {
-                v = at_idx(as_list(y)[1], i);
+                v = at_idx(as_list(y)[0], i);
                 s = cast(TYPE_CHAR, v);
                 col = rf_concat(x, s);
+                drop(v);
+                v = at_idx(as_list(y)[1], i);
+                res = rf_set(col, v);
 
-                if (v->type == TYPE_SYMBOL)
-                {
-
-                    res = rf_find(sym, v);
-
-                    if (is_error(res))
-                    {
-                        drop(p);
-                        drop(v);
-                        drop(s);
-                        drop(col);
-                        return res;
-                    }
-
-                    res = rf_set(col, res);
-
-                    if (is_error(res))
-                    {
-                        drop(p);
-                        drop(v);
-                        drop(s);
-                        drop(col);
-                        return res;
-                    }
-                }
-                else
-                {
-                    res = rf_set(col, v);
-                }
-
-                drop(p);
                 drop(v);
                 drop(s);
                 drop(col);
@@ -524,27 +479,27 @@ obj_t rf_set(obj_t x, obj_t y)
             c = fs_fwrite(fd, (str_t)p, PAGE_SIZE);
             if (c == -1)
             {
-                fs_fclose(fd);
                 heap_free(p);
+                fs_fclose(fd);
                 raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
             }
 
             p->type = TYPE_ENUM;
             p->len = as_list(y)[1]->len;
 
-            c = fs_fwrite(fd, (str_t)p, sizeof(struct obj_t));
+            c = fs_fwrite(fd, p, sizeof(struct obj_t));
             if (c == -1)
             {
-                fs_fclose(fd);
                 heap_free(p);
+                fs_fclose(fd);
                 raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
             }
 
             size = as_list(y)[1]->len * sizeof(i64_t);
 
             c = fs_fwrite(fd, as_string(as_list(y)[1]), size);
-            fs_fclose(fd);
             heap_free(p);
+            fs_fclose(fd);
 
             if (c == -1)
                 raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
@@ -557,9 +512,24 @@ obj_t rf_set(obj_t x, obj_t y)
             if (fd == -1)
                 raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
 
-            size = size_of(y);
+            p = (obj_t)heap_alloc(sizeof(struct obj_t));
 
-            c = fs_fwrite(fd, (str_t)y, size);
+            memcpy(p, y, sizeof(struct obj_t));
+
+            p->mmod = MMOD_EXTERNAL_SIMPLE;
+
+            c = fs_fwrite(fd, (str_t)p, sizeof(struct obj_t));
+            if (c == -1)
+            {
+                heap_free(p);
+                fs_fclose(fd);
+                raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
+            }
+
+            size = size_of(y) - sizeof(struct obj_t);
+
+            c = fs_fwrite(fd, as_string(y), size);
+            heap_free(p);
             fs_fclose(fd);
 
             if (c == -1)
@@ -1373,127 +1343,150 @@ obj_t rf_or(obj_t x, obj_t y)
 
 obj_t rf_at(obj_t x, obj_t y)
 {
-    unused(x);
-    unused(y);
-    // i32_t i;
-    // i64_t yl, xl;
-    // obj_t vec;
+    i32_t i;
+    i64_t yl, xl;
+    obj_t res, k, s, v;
 
-    // switch (mtype2(x->type, y->type))
-    // {
-    // case mtype2(TYPE_BOOL, -TYPE_I64):
-    // case mtype2(TYPE_I64, -TYPE_I64):
-    // case mtype2(TYPE_F64, -TYPE_I64):
-    // case mtype2(TYPE_TIMESTAMP, -TYPE_I64):
-    // case mtype2(TYPE_GUID, -TYPE_I64):
-    // case mtype2(TYPE_CHAR, -TYPE_I64):
-    // case mtype2(TYPE_LIST, -TYPE_I64):
-    //     return vector_get(x, y->i64);
+    switch (mtype2(x->type, y->type))
+    {
+    case mtype2(TYPE_BOOL, -TYPE_I64):
+    case mtype2(TYPE_I64, -TYPE_I64):
+    case mtype2(TYPE_F64, -TYPE_I64):
+    case mtype2(TYPE_TIMESTAMP, -TYPE_I64):
+    case mtype2(TYPE_GUID, -TYPE_I64):
+    case mtype2(TYPE_CHAR, -TYPE_I64):
+    case mtype2(TYPE_LIST, -TYPE_I64):
+        return at_idx(x, y->i64);
 
-    // case mtype2(TYPE_TABLE, -TYPE_SYMBOL):
-    //     return dict_get(x, y);
+    case mtype2(TYPE_TABLE, -TYPE_SYMBOL):
+        return at_obj(x, y);
 
-    // case mtype2(TYPE_BOOL, TYPE_I64):
-    //     yl = y->len;
-    //     xl = x->len;
-    //     vec = vector_bool(yl);
-    //     for (i = 0; i < yl; i++)
-    //     {
-    //         if (as_bool(y)[i] >= xl)
-    //             as_bool(vec)[i] = false;
-    //         else
-    //             as_bool(vec)[i] = as_bool(x)[(i32_t)as_bool(y)[i]];
-    //     }
+    case mtype2(TYPE_BOOL, TYPE_I64):
+        yl = y->len;
+        xl = x->len;
+        res = vector_bool(yl);
+        for (i = 0; i < yl; i++)
+        {
+            if (as_bool(y)[i] >= xl)
+                as_bool(res)[i] = false;
+            else
+                as_bool(res)[i] = as_bool(x)[(i32_t)as_bool(y)[i]];
+        }
 
-    //     return vec;
+        return res;
 
-    // case mtype2(TYPE_I64, TYPE_I64):
-    //     yl = y->len;
-    //     xl = x->len;
-    //     vec = vector_i64(yl);
-    //     for (i = 0; i < yl; i++)
-    //     {
-    //         if (as_i64(y)[i] >= xl)
-    //             as_i64(vec)[i] = NULL_I64;
-    //         else
-    //             as_i64(vec)[i] = as_i64(x)[(i32_t)as_i64(y)[i]];
-    //     }
+    case mtype2(TYPE_I64, TYPE_I64):
+        yl = y->len;
+        xl = x->len;
+        res = vector_i64(yl);
+        for (i = 0; i < yl; i++)
+        {
+            if (as_i64(y)[i] >= xl)
+                as_i64(res)[i] = NULL_I64;
+            else
+                as_i64(res)[i] = as_i64(x)[(i32_t)as_i64(y)[i]];
+        }
 
-    //     return vec;
+        return res;
 
-    // case mtype2(TYPE_F64, TYPE_I64):
-    //     yl = y->len;
-    //     xl = x->len;
-    //     vec = vector_f64(yl);
-    //     for (i = 0; i < yl; i++)
-    //     {
-    //         if (as_i64(y)[i] >= xl)
-    //             as_f64(vec)[i] = NULL_F64;
-    //         else
-    //             as_f64(vec)[i] = as_f64(x)[(i32_t)as_i64(y)[i]];
-    //     }
+    case mtype2(TYPE_F64, TYPE_I64):
+        yl = y->len;
+        xl = x->len;
+        res = vector_f64(yl);
+        for (i = 0; i < yl; i++)
+        {
+            if (as_i64(y)[i] >= xl)
+                as_f64(res)[i] = NULL_F64;
+            else
+                as_f64(res)[i] = as_f64(x)[(i32_t)as_i64(y)[i]];
+        }
 
-    //     return vec;
+        return res;
 
-    // case mtype2(TYPE_TIMESTAMP, TYPE_I64):
-    //     yl = y->len;
-    //     xl = x->len;
-    //     vec = vector_timestamp(yl);
-    //     for (i = 0; i < yl; i++)
-    //     {
-    //         if (as_i64(y)[i] >= xl)
-    //             as_timestamp(vec)[i] = NULL_I64;
-    //         else
-    //             as_timestamp(vec)[i] = as_timestamp(x)[(i32_t)as_i64(y)[i]];
-    //     }
+    case mtype2(TYPE_TIMESTAMP, TYPE_I64):
+        yl = y->len;
+        xl = x->len;
+        res = vector_timestamp(yl);
+        for (i = 0; i < yl; i++)
+        {
+            if (as_i64(y)[i] >= xl)
+                as_timestamp(res)[i] = NULL_I64;
+            else
+                as_timestamp(res)[i] = as_timestamp(x)[(i32_t)as_i64(y)[i]];
+        }
 
-    //     return vec;
+        return res;
 
-    //     // case mtype2(TYPE_GUID, TYPE_I64):
-    //     //     yl = y->len;
-    //     //     xl = x->len;
-    //     //     vec = vector_guid(yl);
-    //     //     for (i = 0; i < yl; i++)
-    //     //     {
-    //     //         if (as_i64(y)[i] >= xl)
-    //     //             as_guid(vec)[i] = guid(NULL_GUID);
-    //     //         else
-    //     //             as_guid(vec)[i] = as_guid(x)[(i32_t)as_i64(y)[i]];
-    //     //     }
+        // case mtype2(TYPE_GUID, TYPE_I64):
+        //     yl = y->len;
+        //     xl = x->len;
+        //     vec = vector_guid(yl);
+        //     for (i = 0; i < yl; i++)
+        //     {
+        //         if (as_i64(y)[i] >= xl)
+        //             as_guid(vec)[i] = guid(NULL_GUID);
+        //         else
+        //             as_guid(vec)[i] = as_guid(x)[(i32_t)as_i64(y)[i]];
+        //     }
 
-    //     //     return vec;
+        //     return vec;
 
-    // case mtype2(TYPE_CHAR, TYPE_I64):
-    //     yl = y->len;
-    //     xl = x->len;
-    //     vec = string(yl);
-    //     for (i = 0; i < yl; i++)
-    //     {
-    //         if (as_i64(y)[i] >= xl)
-    //             as_string(vec)[i] = ' ';
-    //         else
-    //             as_string(vec)[i] = as_string(x)[(i32_t)as_i64(y)[i]];
-    //     }
+    case mtype2(TYPE_CHAR, TYPE_I64):
+        yl = y->len;
+        xl = x->len;
+        res = string(yl);
+        for (i = 0; i < yl; i++)
+        {
+            if (as_i64(y)[i] >= xl)
+                as_string(res)[i] = ' ';
+            else
+                as_string(res)[i] = as_string(x)[(i32_t)as_i64(y)[i]];
+        }
 
-    //     return vec;
+        return res;
 
-    // case mtype2(TYPE_LIST, TYPE_I64):
-    //     yl = y->len;
-    //     xl = x->len;
-    //     vec = list(yl);
-    //     for (i = 0; i < yl; i++)
-    //     {
-    //         if (as_i64(y)[i] >= xl)
-    //             as_list(vec)[i] = null(0);
-    //         else
-    //             as_list(vec)[i] = clone(as_list(x)[(i32_t)as_i64(y)[i]]);
-    //     }
+    case mtype2(TYPE_LIST, TYPE_I64):
+        yl = y->len;
+        xl = x->len;
+        res = list(yl);
+        for (i = 0; i < yl; i++)
+        {
+            if (as_i64(y)[i] >= xl)
+                as_list(res)[i] = null(0);
+            else
+                as_list(res)[i] = clone(as_list(x)[(i32_t)as_i64(y)[i]]);
+        }
 
-    //     return vec;
+        return res;
 
-    // default:
-    //     return error_type2(x->type, y->type, "get: unsupported types");
-    // }
+    case mtype2(TYPE_ENUM, -TYPE_I64):
+        k = rf_key(x);
+        s = rf_get(k);
+        drop(k);
+
+        if (is_error(s))
+            return s;
+
+        if (x->mmod & MMOD_EXTERNAL_COMPOUND)
+            v = x;
+        else
+            v = as_list(x)[1];
+
+        if (!s || s->type != TYPE_SYMBOL || as_i64(v)[y->i64] >= (i64_t)s->len)
+        {
+            drop(s);
+            return i64(as_i64(v)[y->i64]);
+        }
+
+        res = at_idx(s, as_i64(v)[y->i64]);
+
+        drop(s);
+
+        return res;
+
+    default:
+        raise(ERR_TYPE, "at: unsupported types: %d %d", x->type, y->type);
+    }
 
     return null(0);
 }

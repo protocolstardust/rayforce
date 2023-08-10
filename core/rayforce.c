@@ -846,7 +846,7 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     case TYPE_ENUM:
         if (rc == 0)
         {
-            if (obj->mmod & MMOD_EXTERNAL_SIMPLE)
+            if (obj->mmod & MMOD_EXTERNAL_COMPOUND)
                 mmap_free((str_t)obj - PAGE_SIZE, size_of(obj) + PAGE_SIZE);
             else
             {
