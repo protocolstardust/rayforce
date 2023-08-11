@@ -1464,18 +1464,21 @@ obj_t rf_at(obj_t x, obj_t y)
         s = rf_get(k);
         drop(k);
 
-        if (is_error(s))
-            return s;
-
         if (x->mmod & MMOD_EXTERNAL_COMPOUND)
             v = x;
         else
             v = as_list(x)[1];
 
-        if (!s || s->type != TYPE_SYMBOL || as_i64(v)[y->i64] >= (i64_t)s->len)
+        if (!s || is_error(s) || s->type != TYPE_SYMBOL)
         {
             drop(s);
             return i64(as_i64(v)[y->i64]);
+        }
+
+        if (as_i64(v)[y->i64] >= (i64_t)s->len)
+        {
+            drop(s);
+            raise(ERR_INDEX, "at: enum can not be resolved: index out of range");
         }
 
         res = at_idx(s, as_i64(v)[y->i64]);
@@ -1519,7 +1522,7 @@ obj_t rf_at(obj_t x, obj_t y)
             {
                 drop(s);
                 drop(res);
-                raise(ERR_INDEX, "at: index out of range");
+                raise(ERR_INDEX, "at: enum can not be resolved: index out of range");
             }
 
             as_symbol(res)[i] = as_i64(s)[as_i64(v)[y->i64]];

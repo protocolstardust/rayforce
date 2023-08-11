@@ -234,6 +234,12 @@ i32_t guid_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, guid_t *
     return n;
 }
 
+i32_t error_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, obj_t obj)
+{
+    return str_fmt_into(dst, len, offset, limit, "** [E%.3d] error: %s",
+                        (i32_t)as_list(obj)[0]->i64, as_string(as_list(obj)[1]));
+}
+
 i32_t raw_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, obj_t obj, i32_t i)
 {
     obj_t idx, res;
@@ -263,6 +269,11 @@ i32_t raw_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t li
         idx = i64(i);
         res = rf_at(obj, idx);
         drop(idx);
+        if (is_error(res))
+        {
+            drop(res);
+            return error_fmt_into(dst, len, offset, limit, res);
+        }
         n = obj_fmt_into(dst, len, offset, indent, limit, res);
         drop(res);
         return n;
@@ -477,12 +488,6 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, obj_t 
         str_fmt_into(dst, len, offset, 0, "\n..");
 
     return n;
-}
-
-i32_t error_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, obj_t obj)
-{
-    return str_fmt_into(dst, len, offset, limit, "** [E%.3d] error: %s",
-                        (i32_t)as_list(obj)[0]->i64, as_string(as_list(obj)[1]));
 }
 
 i32_t internal_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, obj_t obj)
