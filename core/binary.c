@@ -400,7 +400,7 @@ obj_t rf_set(obj_t x, obj_t y)
         switch (y->type)
         {
         case TYPE_SYMBOL:
-            fd = fs_fopen(as_string(x), ATTR_RDWR | ATTR_CREAT | ATTR_TRUNC);
+            fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
 
             if (fd == -1)
                 raise(ERR_IO, "write: failed to open file '%s': %s", as_string(x), get_os_error());
@@ -519,7 +519,7 @@ obj_t rf_set(obj_t x, obj_t y)
             return clone(x);
 
         case TYPE_ENUM:
-            fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
+            fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
 
             if (fd == -1)
                 raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
@@ -617,7 +617,7 @@ obj_t rf_set(obj_t x, obj_t y)
             drop(res);
 
             // save anymap
-            fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
+            fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
 
             if (fd == -1)
                 raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
@@ -664,7 +664,7 @@ obj_t rf_set(obj_t x, obj_t y)
         default:
             if (is_vector(y))
             {
-                fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
+                fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
 
                 if (fd == -1)
                     raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
