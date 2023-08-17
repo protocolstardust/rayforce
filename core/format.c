@@ -502,7 +502,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, bool_t
     if (table_width > TABLE_MAX_WIDTH)
         table_width = TABLE_MAX_WIDTH;
 
-    table_height = (as_list(columns)[0])->len;
+    table_height = columns->len > 0 ? as_list(columns)[0]->len : 0;
     if (table_height > TABLE_MAX_HEIGHT)
         table_height = TABLE_MAX_HEIGHT;
 
@@ -515,17 +515,21 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, bool_t
         n = strlen(symtostr(header[i]));
 
         // Then traverse column until maximum height limit
-        for (j = 0; j < table_height; j++)
+        if (table_height > 0)
         {
-            obj_t column = as_list(columns)[i];
-            s = NULL;
-            l = 0;
-            o = 0;
-            raw_fmt_into(&s, &l, &o, 0, 31, column, j);
-            formatted_columns[i][j] = s;
-            maxn(n, o);
-            as_i64(column_widths)[i] = n;
+            for (j = 0; j < table_height; j++)
+            {
+                obj_t column = as_list(columns)[i];
+                s = NULL;
+                l = 0;
+                o = 0;
+                raw_fmt_into(&s, &l, &o, 0, 31, column, j);
+                formatted_columns[i][j] = s;
+                maxn(n, o);
+            }
         }
+
+        as_i64(column_widths)[i] = n;
     }
 
     // Print table header
@@ -537,7 +541,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, bool_t
         str_fmt_into(dst, len, offset, 0, " %s%*.*s |", s, n, n, PADDING);
     }
 
-    if ((as_list(obj)[0])->len > TABLE_MAX_WIDTH)
+    if (as_list(obj)[0]->len > TABLE_MAX_WIDTH)
         str_fmt_into(dst, len, offset, 0, " ..");
 
     // Print table header separator
@@ -566,7 +570,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, bool_t
 
     drop(column_widths);
 
-    if (table_height < (i32_t)(as_list(columns)[0])->len)
+    if ((table_height > 0) && (table_height < as_list(columns)[0]->len))
         str_fmt_into(dst, len, offset, 0, "\n..");
 
     return n;

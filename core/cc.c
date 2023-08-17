@@ -580,6 +580,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
     key = symboli64(KW_BY);
     val = at_obj(params, key);
     drop(key);
+
     if (!is_null(val))
     {
         res = cc_compile_expr(true, cc, val);

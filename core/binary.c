@@ -764,7 +764,7 @@ obj_t rf_table(obj_t x, obj_t y)
         y = l;
     }
 
-    if (x->len != y->len)
+    if (x->len != y->len && y->len > 0)
     {
         drop(l);
         return error(ERR_LENGTH, "Keys and Values must have the same length");
