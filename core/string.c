@@ -46,89 +46,84 @@ obj_t string_from_str(str_t str, i32_t len)
  */
 bool_t str_match(str_t str, str_t pat)
 {
-    str_t end;
-    i8_t inv = 0, match = 0;
+    str_t last_str = NULL, last_pat = NULL;
 
-    while (*str != '\0')
+    while (*str)
     {
-        if (*pat == '*' && *(pat + 1) == '\0')
-            return 1;
-
-        // Any sequence of characters
+        if (*pat == '?' || *str == *pat)
+        {
+            str++;
+            pat++;
+        }
         else if (*pat == '*')
         {
-            pat++;
+            // Skip consecutive '*'
+            while (*pat == '*')
+                pat++;
 
-            while (*str != '\0')
-            {
-                if (str_match(pat, str))
-                    return 1;
-
-                str++;
-            }
+            last_str = str;
+            last_pat = pat;
         }
-
-        // Set of characters
         else if (*pat == '[')
         {
+            bool_t inv = false, match = false;
             pat++;
-
-            // Character '[' itself
-            if (*pat == '[')
-            {
-                if (*pat != *str)
-                    return 0;
-
-                pat++;
-                str++;
-                continue;
-            }
-
-            // Inverse characters set
             if (*pat == '^')
             {
-                inv = 1;
+                inv = true;
                 pat++;
             }
-
-            end = strchr(pat, ']');
-
-            if (end == NULL || end == pat)
-                return 0;
-
-            while (pat < end)
+            while (*pat != ']' && *pat != '\0')
             {
-                if (inv && *pat == *str)
-                    return 0;
-                else if (*pat == *str)
+                if (*str == *pat)
                 {
-                    match = 1;
-                    break;
+                    match = true;
                 }
-
                 pat++;
             }
-
-            if (!(match | inv))
-                return 0;
-
-            pat = end + 1;
-            str++;
-            inv = match = 0;
+            if (*pat == '\0')
+                return false; // unmatched '['
+            if (match == inv)
+            {
+                if (last_pat)
+                {
+                    str = ++last_str;
+                    pat = last_pat;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                str++;
+                pat++;
+            }
         }
-
-        // exact match
-        else if (*pat == '?' || *pat == *str)
+        else if (last_pat)
         {
-            pat++;
-            str++;
+            str = ++last_str;
+            pat = last_pat;
         }
-
         else
-            return 0;
+        {
+            return false;
+        }
     }
 
-    return (*pat == '\0');
+    // Check for trailing patterns
+    while (*pat)
+    {
+        if (*pat == '?')
+            return false;
+        if (*pat++ != '*')
+            return false;
+        while (*pat == '*')
+            pat++;
+    }
+
+    return true;
 }
 
 str_t str_dup(str_t str)
