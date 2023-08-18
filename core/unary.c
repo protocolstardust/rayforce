@@ -634,17 +634,23 @@ obj_t rf_where(obj_t x)
 {
     u64_t i, j, l;
     obj_t res;
+    i64_t *cur;
 
     switch (x->type)
     {
     case TYPE_BOOL:
         l = x->len;
-        res = vector_i64(l);
         for (i = 0, j = 0; i < l; i++)
-            if (as_bool(x)[i])
-                as_i64(res)[j++] = i;
+            j += as_bool(x)[i];
 
-        resize(&res, j);
+        res = vector_i64(j);
+        cur = as_i64(res);
+
+        for (i = 0; i < l; i++)
+        {
+            *cur = i;             // Always assign the value
+            cur += as_bool(x)[i]; // Move the pointer only if value is 1
+        }
 
         return res;
 
