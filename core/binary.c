@@ -1339,6 +1339,9 @@ obj_t rf_eq(obj_t x, obj_t y)
 
 obj_t rf_ne(obj_t x, obj_t y)
 {
+    i64_t i, l;
+    obj_t vec;
+
     switch (mtype2(x->type, y->type))
     {
     case mtype2(TYPE_BOOL, TYPE_BOOL):
@@ -1350,6 +1353,46 @@ obj_t rf_ne(obj_t x, obj_t y)
     case mtype2(-TYPE_F64, -TYPE_F64):
         return (bool(x->f64 != y->f64));
 
+    case mtype2(TYPE_I64, -TYPE_I64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] != y->i64;
+
+        return vec;
+
+    case mtype2(TYPE_I64, TYPE_I64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ne: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] != as_i64(y)[i];
+
+        return vec;
+
+    case mtype2(TYPE_F64, -TYPE_F64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] != y->f64;
+
+        return vec;
+
+    case mtype2(TYPE_F64, TYPE_F64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ne: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] != as_f64(y)[i];
+
+        return vec;
+
     default:
         raise(ERR_TYPE, "ne: unsupported types: %d %d", x->type, y->type);
     }
@@ -1357,6 +1400,9 @@ obj_t rf_ne(obj_t x, obj_t y)
 
 obj_t rf_lt(obj_t x, obj_t y)
 {
+    i64_t i, l;
+    obj_t vec;
+
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_I64, -TYPE_I64):
@@ -1365,6 +1411,46 @@ obj_t rf_lt(obj_t x, obj_t y)
     case mtype2(-TYPE_F64, -TYPE_F64):
         return (bool(x->f64 < y->f64));
 
+    case mtype2(TYPE_I64, -TYPE_I64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] < y->i64;
+
+        return vec;
+
+    case mtype2(TYPE_I64, TYPE_I64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "lt: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] < as_i64(y)[i];
+
+        return vec;
+
+    case mtype2(TYPE_F64, -TYPE_F64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] < y->f64;
+
+        return vec;
+
+    case mtype2(TYPE_F64, TYPE_F64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "lt: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] < as_f64(y)[i];
+
+        return vec;
+
     default:
         raise(ERR_TYPE, "lt: unsupported types: %d %d", x->type, y->type);
     }
@@ -1372,6 +1458,9 @@ obj_t rf_lt(obj_t x, obj_t y)
 
 obj_t rf_le(obj_t x, obj_t y)
 {
+    i64_t i, l;
+    obj_t vec;
+
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_I64, -TYPE_I64):
@@ -1379,6 +1468,46 @@ obj_t rf_le(obj_t x, obj_t y)
 
     case mtype2(-TYPE_F64, -TYPE_F64):
         return (bool(x->f64 <= y->f64));
+
+    case mtype2(TYPE_I64, -TYPE_I64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] <= y->i64;
+
+        return vec;
+
+    case mtype2(TYPE_I64, TYPE_I64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "le: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] <= as_i64(y)[i];
+
+        return vec;
+
+    case mtype2(TYPE_F64, -TYPE_F64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] <= y->f64;
+
+        return vec;
+
+    case mtype2(TYPE_F64, TYPE_F64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "le: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] <= as_f64(y)[i];
+
+        return vec;
 
     default:
         raise(ERR_TYPE, "le: unsupported types: %d %d", x->type, y->type);
@@ -1398,6 +1527,14 @@ obj_t rf_gt(obj_t x, obj_t y)
     case mtype2(-TYPE_F64, -TYPE_F64):
         return (bool(x->f64 > y->f64));
 
+    case mtype2(TYPE_I64, -TYPE_I64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] > y->i64;
+
+        return vec;
+
     case mtype2(TYPE_I64, TYPE_I64):
         if (x->len != y->len)
             return error(ERR_LENGTH, "gt: vectors of different length");
@@ -1410,6 +1547,26 @@ obj_t rf_gt(obj_t x, obj_t y)
 
         return vec;
 
+    case mtype2(TYPE_F64, -TYPE_F64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] > y->f64;
+
+        return vec;
+
+    case mtype2(TYPE_F64, TYPE_F64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "gt: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] > as_f64(y)[i];
+
+        return vec;
+
     default:
         raise(ERR_TYPE, "gt: unsupported types: %d %d", x->type, y->type);
     }
@@ -1417,6 +1574,9 @@ obj_t rf_gt(obj_t x, obj_t y)
 
 obj_t rf_ge(obj_t x, obj_t y)
 {
+    i64_t i, l;
+    obj_t vec;
+
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_I64, -TYPE_I64):
@@ -1424,6 +1584,46 @@ obj_t rf_ge(obj_t x, obj_t y)
 
     case mtype2(-TYPE_F64, -TYPE_F64):
         return (bool(x->f64 >= y->f64));
+
+    case mtype2(TYPE_I64, -TYPE_I64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] >= y->i64;
+
+        return vec;
+
+    case mtype2(TYPE_I64, TYPE_I64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ge: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_i64(x)[i] >= as_i64(y)[i];
+
+        return vec;
+
+    case mtype2(TYPE_F64, -TYPE_F64):
+        l = x->len;
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] >= y->f64;
+
+        return vec;
+
+    case mtype2(TYPE_F64, TYPE_F64):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ge: vectors of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] = as_f64(x)[i] >= as_f64(y)[i];
+
+        return vec;
 
     default:
         raise(ERR_TYPE, "ge: unsupported types: %d %d", x->type, y->type);

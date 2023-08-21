@@ -62,7 +62,7 @@ obj_t rf_map_vary(obj_t *x, u64_t n)
     u64_t i, j, l;
     vm_t *vm;
     obj_t v, *b, res;
-    i32_t bp;
+    i32_t bp, ip;
 
     if (n < 2)
         return null(0);
@@ -100,8 +100,6 @@ obj_t rf_map_vary(obj_t *x, u64_t n)
             l = 1;
 
         vm = &runtime_get()->vm;
-        bp = vm->bp;
-        vm->bp = vm->sp;
 
         // first item to get type of res
         for (j = 1; j < n; j++)
@@ -111,7 +109,10 @@ obj_t rf_map_vary(obj_t *x, u64_t n)
             vm->stack[vm->sp++] = v;
         }
 
+        ip = vm->ip;
+        bp = vm->bp;
         v = vm_exec(vm, *x);
+        vm->ip = ip;
         vm->bp = bp;
 
         if (is_error(v))
@@ -134,7 +135,10 @@ obj_t rf_map_vary(obj_t *x, u64_t n)
                 vm->stack[vm->sp++] = v;
             }
 
+            ip = vm->ip;
+            bp = vm->bp;
             v = vm_exec(vm, *x);
+            vm->ip = ip;
             vm->bp = bp;
 
             // drop args
