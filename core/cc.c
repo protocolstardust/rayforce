@@ -481,7 +481,10 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
             drop(v);
 
             if (k->i64 == KW_BY)
+            {
+                drop(k);
                 continue;
+            }
 
             join_obj(&cols, k);
             map = true;
