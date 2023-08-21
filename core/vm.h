@@ -32,8 +32,6 @@
 #include "nfo.h"
 
 #define VM_STACK_SIZE PAGE_SIZE * 4
-#define VM_STACK_STUB 0xFACE1E5500000000
-#define VM_SPILL_REGS 6
 
 typedef enum vm_opcode_t
 {
@@ -70,8 +68,8 @@ typedef struct vm_t
     i32_t sp;     // Stack pointer
     i32_t bp;     // Base pointer (beginning on stack frame)
     i32_t timer;  // Timer for execution time
-    obj_t *stack; // Stack of arguments
     jmp_buf jmp;  // Jump buffer for error handling.
+    obj_t *stack; // Stack of arguments
 } vm_t;
 
 vm_t vm_new(obj_t *stack);
