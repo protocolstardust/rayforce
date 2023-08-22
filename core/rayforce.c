@@ -271,7 +271,7 @@ obj_t resize(obj_t *obj, u64_t len)
     return *obj;
 }
 
-obj_t join_raw(obj_t *obj, raw_t val)
+obj_t push_raw(obj_t *obj, raw_t val)
 {
     i64_t off, occup, req;
     i32_t size = size_of_type((*obj)->type);
@@ -286,7 +286,7 @@ obj_t join_raw(obj_t *obj, raw_t val)
     return *obj;
 }
 
-obj_t join_obj(obj_t *obj, obj_t val)
+obj_t push_obj(obj_t *obj, obj_t val)
 {
     obj_t res, lst = NULL;
     u64_t i, l;
@@ -315,21 +315,21 @@ obj_t join_obj(obj_t *obj, obj_t val)
     case mtype2(TYPE_I64, -TYPE_I64):
     case mtype2(TYPE_SYMBOL, -TYPE_SYMBOL):
     case mtype2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-        res = join_raw(obj, &val->i64);
+        res = push_raw(obj, &val->i64);
         drop(val);
         return res;
     case mtype2(TYPE_F64, -TYPE_F64):
-        res = join_raw(obj, &val->f64);
+        res = push_raw(obj, &val->f64);
         drop(val);
         return res;
     case mtype2(TYPE_CHAR, -TYPE_CHAR):
-        res = join_raw(obj, &val->vchar);
+        res = push_raw(obj, &val->vchar);
         drop(val);
         return res;
     default:
         if ((*obj)->type == TYPE_LIST)
         {
-            res = join_raw(obj, &val);
+            res = push_raw(obj, &val);
             return res;
         }
 
@@ -337,10 +337,10 @@ obj_t join_obj(obj_t *obj, obj_t val)
     }
 }
 
-obj_t join_sym(obj_t *obj, str_t str)
+obj_t push_sym(obj_t *obj, str_t str)
 {
     i64_t sym = intern_symbol(str, strlen(str));
-    return join_raw(obj, &sym);
+    return push_raw(obj, &sym);
 }
 
 obj_t write_raw(obj_t *obj, u64_t idx, raw_t val)
@@ -550,11 +550,11 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
             i = find_obj(as_list(*obj)[0], idx);
             if (i == as_list(*obj)[0]->len)
             {
-                res = join_obj(&as_list(*obj)[0], clone(idx));
+                res = push_obj(&as_list(*obj)[0], clone(idx));
                 if (res->type == TYPE_ERROR)
                     return res;
 
-                res = join_obj(&as_list(*obj)[1], val);
+                res = push_obj(&as_list(*obj)[1], val);
 
                 if (res->type == TYPE_ERROR)
                     throw("set_obj: inconsistent update");

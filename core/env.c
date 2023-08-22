@@ -36,18 +36,18 @@
 #define regf(r, n, t, f, o)                      \
     {                                            \
         i64_t _k = intern_keyword(n, strlen(n)); \
-        join_raw(&as_list(r)[0], &_k);           \
+        push_raw(&as_list(r)[0], &_k);           \
         obj_t _o = atom(-t);                     \
         _o->attrs = f;                           \
         _o->i64 = (i64_t)o;                      \
-        join_raw(&as_list(r)[1], &_o);           \
+        push_raw(&as_list(r)[1], &_o);           \
     };
 
 #define regt(r, i, s)                  \
     {                                  \
         i64_t _i = i;                  \
-        join_raw(&as_list(r)[0], &_i); \
-        join_sym(&as_list(r)[1], s);   \
+        push_raw(&as_list(r)[0], &_i); \
+        push_sym(&as_list(r)[1], s);   \
     };
 
 obj_t rf_env()

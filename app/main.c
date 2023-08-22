@@ -75,11 +75,11 @@ obj_t parse_cmdline(i32_t argc, str_t argv[])
             if (argv[opt] == NULL)
                 usage();
 
-            join_sym(&keys, "file");
+            push_sym(&keys, "file");
             len = strlen(argv[opt]);
             str = string(len);
             strncpy(as_string(str), argv[opt], len);
-            join_obj(&vals, str);
+            push_obj(&vals, str);
             break;
         default:
             usage();

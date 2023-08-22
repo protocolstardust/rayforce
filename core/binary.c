@@ -447,7 +447,7 @@ obj_t rf_set(obj_t x, obj_t y)
             for (i = 0, c = 0; i < l; i++)
             {
                 if (as_list(as_list(y)[1])[i]->type == TYPE_SYMBOL)
-                    join_obj(&cols, clone(as_list(as_list(y)[1])[i]));
+                    push_obj(&cols, clone(as_list(as_list(y)[1])[i]));
             }
 
             sym = distinct_syms(as_list(cols), cols->len);
@@ -2561,6 +2561,16 @@ obj_t rf_take(obj_t x, obj_t y)
 
         for (i = 0; i < m; i++)
             as_string(res)[i] = as_string(y)[i % n];
+
+        return res;
+
+    case mtype2(-TYPE_I64, TYPE_LIST):
+        m = x->i64;
+        n = y->len;
+        res = vector(TYPE_LIST, m);
+
+        for (i = 0; i < m; i++)
+            as_list(res)[i] = clone(as_list(y)[i % n]);
 
         return res;
 

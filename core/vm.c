@@ -297,7 +297,7 @@ op_lset:
     arg[1] = stack_pop();
     arg[0] = stack_pop();
     if (f->locals->len == 0)
-        join_obj(&f->locals, dict(vector_symbol(0), list(0)));
+        push_obj(&f->locals, dict(vector_symbol(0), list(0)));
     set_obj(&as_list(f->locals)[f->locals->len - 1], arg[0], clone(arg[1]));
     drop(arg[0]);
     stack_push(arg[1]);
@@ -328,7 +328,7 @@ op_lpush:
         drop(arg[0]);
         unwrap(error(ERR_TYPE, "expected dict or table"), b);
     }
-    join_obj(&f->locals, arg[0]);
+    push_obj(&f->locals, arg[0]);
     dispatch();
 op_lpop:
     b = vm->ip++;

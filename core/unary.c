@@ -438,7 +438,7 @@ obj_t rf_min(obj_t x)
 
         for (i = 0; i < l; i++)
         {
-            v = (iv[i] == NULL_I64) ? INT64_MAX : iv[i];
+            v = (iv[i] == NULL_I64) ? MAX_I64 : iv[i];
             imin = v < imin ? v : imin;
         }
 

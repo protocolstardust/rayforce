@@ -45,7 +45,7 @@
 #define push_u8(c, x)       \
     {                       \
         u8_t _x = x;        \
-        join_raw((c), &_x); \
+        push_raw((c), &_x); \
     }
 
 #define push_const(c, k)                        \
@@ -53,7 +53,7 @@
         obj_t _k = k;                           \
         lambda_t *_f = as_lambda((c)->lambda);  \
         push_u8(&_f->code, _f->constants->len); \
-        join_raw(&_f->constants, &_k);          \
+        push_raw(&_f->constants, &_k);          \
     }
 
 #define push_opcode(c, k, v, x)                  \
@@ -408,7 +408,7 @@ nil_t find_used_symbols(obj_t lst, obj_t *syms)
     {
     case -TYPE_SYMBOL:
         if (lst->i64 > 0)
-            join_raw(syms, &lst->i64);
+            push_raw(syms, &lst->i64);
         return;
     case TYPE_LIST:
         l = lst->len;
@@ -464,9 +464,9 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
     {
         groupby = true;
         if (val->type == -TYPE_SYMBOL)
-            join_obj(&cols, clone(val));
+            push_obj(&cols, clone(val));
         else
-            join_sym(&cols, "x");
+            push_sym(&cols, "x");
     }
 
     dropn(2, key, val);
@@ -494,7 +494,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
                 continue;
             }
 
-            join_obj(&cols, k);
+            push_obj(&cols, k);
             drop(v);
             map = true;
         }
@@ -511,17 +511,6 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
     }
 
     drop(syms);
-
-    // compile take (if any)
-    if (!is_null(take))
-    {
-        push_opcode(cc, car, code, OP_PUSH);
-        push_const(cc, take);
-        push_opcode(cc, car, code, OP_SWAP);
-        push_opcode(cc, car, code, OP_CALL2);
-        push_u8(code, 0);
-        push_u64(code, rf_take);
-    }
 
     // compile filters
     key = symboli64(KW_WHERE);
@@ -592,6 +581,17 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         }
         else
             drop(k);
+    }
+
+    // compile take (if any)
+    if (!is_null(take))
+    {
+        push_opcode(cc, car, code, OP_PUSH);
+        push_const(cc, take);
+        push_opcode(cc, car, code, OP_SWAP);
+        push_opcode(cc, car, code, OP_CALL2);
+        push_u8(code, 0);
+        push_u64(code, rf_take);
     }
 
     if (map || groupby)

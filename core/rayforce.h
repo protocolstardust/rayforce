@@ -70,6 +70,7 @@ extern "C"
 
 #define NULL_I64 ((i64_t)0x8000000000000000LL)
 #define NULL_F64 ((f64_t)(0 / 0.0))
+#define MAX_I64  ((i64_t)0x7FFFFFFFFFFFFFFFLL)
 #define true     (char)1
 #define false    (char)0
 
@@ -185,14 +186,14 @@ extern bool_t is_null(obj_t obj);
 #define is_vector(obj) (obj && (obj)->type >= 0 && (obj)->type <= TYPE_CHAR)
 
 // Joins
-extern obj_t join_raw(obj_t *obj, raw_t val); // join raw value into a list
-extern obj_t join_obj(obj_t *obj, obj_t val); // join object to a list
-extern obj_t join_sym(obj_t *obj, str_t str); // join interned string to a symbol vector
+extern obj_t push_raw(obj_t *obj, raw_t val); // push raw value into a list
+extern obj_t push_obj(obj_t *obj, obj_t val); // push object to a list
+extern obj_t push_sym(obj_t *obj, str_t str); // push interned string to a symbol vector
 
 // Pop
 extern obj_t pop_obj(obj_t *obj); // pop object from a list
 
-// Writes
+// Writes (don't call a destructor)
 extern obj_t write_raw(obj_t *obj, u64_t idx, raw_t val); // write raw value into a list
 extern obj_t write_obj(obj_t *obj, u64_t idx, obj_t val); // write object to a list
 extern obj_t write_sym(obj_t *obj, u64_t idx, str_t str); // write interned string to a symbol vector

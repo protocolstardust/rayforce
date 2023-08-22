@@ -175,7 +175,7 @@ nil_t test_vector()
     as_i64(v)[0] = 1;
 
     for (i32_t i = 0; i < 1000000; i++)
-        join_raw(v, i);
+        push_raw(v, i);
 
     debug("testing vector done");
 
