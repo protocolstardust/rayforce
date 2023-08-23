@@ -158,6 +158,7 @@ i32_t main(i32_t argc, str_t argv[])
 
     if (sigaction(SIGINT, &sa, NULL) == -1)
         perror("Error: cannot handle SIGINT");
+
 #endif
 
     runtime_init(0);

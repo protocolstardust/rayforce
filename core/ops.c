@@ -287,60 +287,65 @@ obj_t distinct(obj_t x)
 
 obj_t group(obj_t x)
 {
-    i64_t i, j = 0, xl = x->len, idx, min, max, range;
-    obj_t keys, vals, v, ht;
+    i64_t i, j = 0, n, xl = x->len, idx, min, max, range, *iv, *hk, *hv, *kv;
+    obj_t keys, vals, v, ht, *vv;
 
     if (xl == 0)
         return dict(vector_i64(0), list(0));
 
-    min = max = as_i64(x)[0];
+    iv = as_i64(x);
+    min = max = iv[0];
 
     for (i = 0; i < xl; i++)
     {
-        if (as_i64(x)[i] < min)
-            min = as_i64(x)[i];
-        else if (as_i64(x)[i] > max)
-            max = as_i64(x)[i];
+        min = iv[i] < min ? iv[i] : min;
+        max = iv[i] > max ? iv[i] : max;
     }
 
     range = max - min + 1;
 
     ht = ht_tab(range < xl ? range : xl, TYPE_I64);
+    hk = as_i64(as_list(ht)[0]);
+    hv = as_i64(as_list(ht)[1]);
 
     // calculate counts for each key
     for (i = 0; i < xl; i++)
     {
-        idx = ht_tab_next(&ht, as_i64(x)[i] - min);
-        if (as_i64(as_list(ht)[0])[idx] == NULL_I64)
+        n = iv[i] - min;
+        idx = ht_tab_next(&ht, n);
+        if (hk[idx] == NULL_I64)
         {
-            as_i64(as_list(ht)[0])[idx] = as_i64(x)[i] - min;
-            as_i64(as_list(ht)[1])[idx] = 1;
+            hk[idx] = n;
+            hv[idx] = 1;
             j++;
         }
         else
-            as_i64(as_list(ht)[1])[idx] += 1;
+            hv[idx]++;
     }
 
     keys = vector_i64(j);
+    kv = as_i64(keys);
     vals = vector(TYPE_LIST, j);
+    vv = as_list(vals);
 
     // finally, fill vectors with positions
     for (i = 0, j = 0; i < xl; i++)
     {
-        idx = ht_tab_next(&ht, as_i64(x)[i] - min);
-        if (as_i64(as_list(ht)[1])[idx] & (1ll << 62))
+        n = iv[i] - min;
+        idx = ht_tab_next(&ht, n);
+        if (hv[idx] & (1ll << 62))
         {
-            v = (obj_t)(as_i64(as_list(ht)[1])[idx] & ~(1ll << 62));
+            v = (obj_t)(hv[idx] & ~(1ll << 62));
             as_i64(v)[v->len++] = i;
         }
         else
         {
-            as_i64(keys)[j] = as_i64(x)[i];
-            v = vector_i64(as_i64(as_list(ht)[1])[idx]);
+            kv[j] = iv[i];
+            v = vector_i64(hv[idx]);
             v->len = 1;
             as_i64(v)[0] = i;
-            as_list(vals)[j++] = v;
-            as_i64(as_list(ht)[1])[idx] = (i64_t)v | 1ll << 62;
+            vv[j++] = v;
+            hv[idx] = (i64_t)v | 1ll << 62;
         }
     }
 
