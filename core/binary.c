@@ -2951,7 +2951,23 @@ obj_t rf_enum(obj_t x, obj_t y, ctx_t *ctx)
 
 obj_t rf_vecmap(obj_t x, obj_t y, ctx_t *ctx)
 {
-    obj_t v = list(2, clone(x), clone(y));
-    v->type = TYPE_VECMAP;
-    return v;
+    u64_t i, l;
+    obj_t res;
+
+    switch (x->type)
+    {
+    case TYPE_TABLE:
+        l = as_list(x)[1]->len;
+        res = vector(TYPE_LIST, l);
+
+        for (i = 0; i < l; i++)
+            as_list(res)[i] = rf_vecmap(as_list(as_list(x)[1])[i], clone(y), NULL);
+
+        return table(clone(as_list(x)[0]), res);
+
+    default:
+        res = list(2, clone(x), clone(y));
+        res->type = TYPE_VECMAP;
+        return res;
+    }
 }

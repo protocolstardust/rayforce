@@ -532,6 +532,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
             dropn(2, cols, val);
             return CC_ERROR;
         }
+
         // TODO: optimize case when grouping used with filters
         push_opcode(cc, obj, code, OP_CALL1);
         push_u8(code, 0);
@@ -553,17 +554,24 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
             push_opcode(cc, val, code, OP_CALL2);
             push_u8(code, 0);
             push_u64(code, rf_at);
+
+            // create vecmaps over the table
+            push_opcode(cc, val, code, OP_SWAP);
+            push_opcode(cc, val, code, OP_CALL2);
+            push_u8(code, 0);
+            push_u64(code, rf_vecmap);
         }
         else
+        {
             drop(k);
+            push_opcode(cc, val, code, OP_SWAP);
 
-        push_opcode(cc, val, code, OP_SWAP);
-
-        // apply filters
-        push_opcode(cc, val, code, OP_CALL2);
-        push_u8(code, 0);
-        push_u64(code, rf_at);
-        drop(val);
+            // apply filters
+            push_opcode(cc, val, code, OP_CALL2);
+            push_u8(code, 0);
+            push_u64(code, rf_at);
+            drop(val);
+        }
     }
     else
     {
