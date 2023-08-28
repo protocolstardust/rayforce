@@ -317,7 +317,7 @@ op_lget:
             break;
     }
     if (is_null(arg[1]))
-        arg[1] = rf_get(arg[0]);
+        arg[1] = rf_get(arg[0], NULL);
     drop(arg[0]);
     unwrap(arg[1], b);
     stack_push(arg[1]);
@@ -341,9 +341,7 @@ op_try:
     b = vm->ip++;
     // load_u64(t, vm);
     // // save ctx
-    // ctx = (ctx_t){.addr = NULL, .ip = (i32_t)t, .bp = vm->bp};
     // vm->bp = vm->sp;
-    // ((ctx_t *)vm->stack)[vm->sp++] = ctx;
     //--
     dispatch();
 op_catch:

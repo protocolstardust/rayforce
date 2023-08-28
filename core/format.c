@@ -380,7 +380,7 @@ i32_t enum_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     i32_t n;
     obj_t s, e, idx;
 
-    s = rf_key(obj);
+    s = rf_key(obj, NULL);
     if (enum_val(obj)->len >= TABLE_MAX_HEIGHT)
     {
         limit = TABLE_MAX_HEIGHT;
@@ -389,7 +389,7 @@ i32_t enum_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
         drop(idx);
     }
     else
-        e = rf_value(obj);
+        e = rf_value(obj, NULL);
 
     n = str_fmt_into(dst, len, offset, limit, "'");
     n += obj_fmt_into(dst, len, offset, indent, limit, false, s);
@@ -415,7 +415,7 @@ i32_t anymap_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t
         drop(idx);
     }
     else
-        a = rf_value(obj);
+        a = rf_value(obj, NULL);
 
     n = obj_fmt_into(dst, len, offset, indent, limit, full, a);
 

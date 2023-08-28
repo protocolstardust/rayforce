@@ -113,7 +113,7 @@ obj_t rf_call_unary_atomic(unary_f f, obj_t x)
         return res;
 
     default:
-        return f(x);
+        return f(x, NULL);
     }
 }
 
@@ -127,11 +127,11 @@ obj_t rf_call_unary(u8_t attrs, unary_f f, obj_t x)
     case FLAG_ATOMIC:
         return rf_call_unary_atomic(f, x);
     default:
-        return f(x);
+        return f(x, NULL);
     }
 }
 
-obj_t rf_get(obj_t x)
+obj_t rf_get(obj_t x, ctx_t *ctx)
 {
     i64_t fd;
     obj_t res, col, keys, vals, val, s, v;
@@ -157,7 +157,7 @@ obj_t rf_get(obj_t x)
             // first try to read columns schema
             s = string_from_str(".d", 2);
             col = rf_concat(x, s);
-            keys = rf_get(col);
+            keys = rf_get(col, ctx);
             drop(s);
             drop(col);
 
@@ -178,7 +178,7 @@ obj_t rf_get(obj_t x)
                 v = at_idx(keys, i);
                 s = cast(TYPE_CHAR, v);
                 col = rf_concat(x, s);
-                val = rf_get(col);
+                val = rf_get(col, ctx);
 
                 drop(v);
                 drop(s);
@@ -199,7 +199,7 @@ obj_t rf_get(obj_t x)
             // read symbol data (if any)
             s = string_from_str("sym", 3);
             col = rf_concat(x, s);
-            v = rf_get(col);
+            v = rf_get(col, ctx);
 
             drop(s);
             drop(col);
@@ -249,7 +249,7 @@ obj_t rf_get(obj_t x)
             {
                 s = string_from_str("#", 1);
                 col = rf_concat(x, s);
-                keys = rf_get(col);
+                keys = rf_get(col, ctx);
                 drop(s);
                 drop(col);
 
@@ -273,7 +273,7 @@ obj_t rf_get(obj_t x)
     }
 }
 
-obj_t rf_read(obj_t x)
+obj_t rf_read(obj_t x, ctx_t *ctx)
 {
     i64_t fd, size, c = 0;
     str_t fmsg, buf;
@@ -315,7 +315,7 @@ obj_t rf_read(obj_t x)
     }
 }
 
-obj_t rf_type(obj_t x)
+obj_t rf_type(obj_t x, ctx_t *ctx)
 {
     type_t type;
     if (!x)
@@ -327,12 +327,12 @@ obj_t rf_type(obj_t x)
     return symboli64(t);
 }
 
-obj_t rf_count(obj_t x)
+obj_t rf_count(obj_t x, ctx_t *ctx)
 {
     return i64(count(x));
 }
 
-obj_t rf_til(obj_t x)
+obj_t rf_til(obj_t x, ctx_t *ctx)
 {
     if (x->type != -TYPE_I64)
         return error(ERR_TYPE, "til: expected i64");
@@ -350,7 +350,7 @@ obj_t rf_til(obj_t x)
     return vec;
 }
 
-obj_t rf_distinct(obj_t x)
+obj_t rf_distinct(obj_t x, ctx_t *ctx)
 {
     obj_t res = NULL;
 
@@ -367,7 +367,7 @@ obj_t rf_distinct(obj_t x)
     }
 }
 
-obj_t rf_group(obj_t x)
+obj_t rf_group(obj_t x, ctx_t *ctx)
 {
     if (!x || x->type != TYPE_I64)
         raise(ERR_TYPE, "group: expected vector_i64");
@@ -398,7 +398,7 @@ obj_t rf_group(obj_t x)
     return res;
 }
 
-obj_t rf_sum(obj_t x)
+obj_t rf_sum(obj_t x, ctx_t *ctx)
 {
     i32_t i;
     i64_t l, v, isum = 0, *indices, *values;
@@ -446,7 +446,7 @@ obj_t rf_sum(obj_t x)
     }
 }
 
-obj_t rf_avg(obj_t x)
+obj_t rf_avg(obj_t x, ctx_t *ctx)
 {
     u64_t i, l, n;
     i64_t isum;
@@ -484,7 +484,7 @@ obj_t rf_avg(obj_t x)
     }
 }
 
-obj_t rf_min(obj_t x)
+obj_t rf_min(obj_t x, ctx_t *ctx)
 {
     i32_t i;
     i64_t l, imin, *iv, v;
@@ -528,7 +528,7 @@ obj_t rf_min(obj_t x)
     }
 }
 
-obj_t rf_max(obj_t x)
+obj_t rf_max(obj_t x, ctx_t *ctx)
 {
     i32_t i;
     i64_t l, imax, *iv;
@@ -554,7 +554,7 @@ obj_t rf_max(obj_t x)
     }
 }
 
-obj_t rf_not(obj_t x)
+obj_t rf_not(obj_t x, ctx_t *ctx)
 {
     i32_t i;
     i64_t l;
@@ -578,7 +578,7 @@ obj_t rf_not(obj_t x)
     }
 }
 
-obj_t rf_iasc(obj_t x)
+obj_t rf_iasc(obj_t x, ctx_t *ctx)
 {
     switch (x->type)
     {
@@ -590,7 +590,7 @@ obj_t rf_iasc(obj_t x)
     }
 }
 
-obj_t rf_idesc(obj_t x)
+obj_t rf_idesc(obj_t x, ctx_t *ctx)
 {
     switch (x->type)
     {
@@ -602,7 +602,7 @@ obj_t rf_idesc(obj_t x)
     }
 }
 
-obj_t rf_asc(obj_t x)
+obj_t rf_asc(obj_t x, ctx_t *ctx)
 {
     obj_t idx = rf_sort_asc(x);
     i64_t l, i;
@@ -623,7 +623,7 @@ obj_t rf_asc(obj_t x)
     }
 }
 
-obj_t rf_desc(obj_t x)
+obj_t rf_desc(obj_t x, ctx_t *ctx)
 {
     obj_t idx = rf_sort_desc(x);
     i64_t l, i;
@@ -644,7 +644,7 @@ obj_t rf_desc(obj_t x)
     }
 }
 
-obj_t rf_guid_generate(obj_t x)
+obj_t rf_guid_generate(obj_t x, ctx_t *ctx)
 {
     i64_t i, count;
     obj_t vec;
@@ -667,7 +667,7 @@ obj_t rf_guid_generate(obj_t x)
     }
 }
 
-obj_t rf_neg(obj_t x)
+obj_t rf_neg(obj_t x, ctx_t *ctx)
 {
     obj_t res;
     i64_t i, l;
@@ -698,7 +698,7 @@ obj_t rf_neg(obj_t x)
     }
 }
 
-obj_t rf_where(obj_t x)
+obj_t rf_where(obj_t x, ctx_t *ctx)
 {
     u64_t i, j, l;
     obj_t res;
@@ -727,7 +727,7 @@ obj_t rf_where(obj_t x)
     }
 }
 
-obj_t rf_key(obj_t x)
+obj_t rf_key(obj_t x, ctx_t *ctx)
 {
     switch (x->type)
     {
@@ -743,7 +743,7 @@ obj_t rf_key(obj_t x)
     }
 }
 
-obj_t rf_value(obj_t x)
+obj_t rf_value(obj_t x, ctx_t *ctx)
 {
     obj_t sym, k, v, res, e;
     i64_t i, sl, xl;
@@ -752,7 +752,7 @@ obj_t rf_value(obj_t x)
     switch (x->type)
     {
     case TYPE_ENUM:
-        k = rf_key(x);
+        k = rf_key(x, ctx);
         sym = at_obj(runtime_get()->env.variables, k);
         drop(k);
 
@@ -830,7 +830,7 @@ obj_t rf_value(obj_t x)
     }
 }
 
-obj_t rf_parse(obj_t x)
+obj_t rf_parse(obj_t x, ctx_t *ctx)
 {
     parser_t parser;
     obj_t res;
@@ -847,7 +847,7 @@ obj_t rf_parse(obj_t x)
     }
 }
 
-obj_t rf_read_parse_compile(obj_t x)
+obj_t rf_read_parse_compile(obj_t x, ctx_t *ctx)
 {
     // parser_t parser;
     // obj_t red, par, com;

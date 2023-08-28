@@ -42,7 +42,7 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
 
     if (x->type == TYPE_ENUM)
     {
-        x = rf_value(x);
+        x = rf_value(x, NULL);
         if (is_error(x))
             return x;
 
@@ -51,7 +51,7 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
 
     if (y->type == TYPE_ENUM)
     {
-        y = rf_value(y);
+        y = rf_value(y, NULL);
         if (is_error(y))
         {
             if (dropx)
@@ -1938,8 +1938,8 @@ obj_t rf_at(obj_t x, obj_t y)
         return res;
 
     case mtype2(TYPE_ENUM, -TYPE_I64):
-        k = rf_key(x);
-        s = rf_get(k);
+        k = rf_key(x, NULL);
+        s = rf_get(k, NULL);
         drop(k);
 
         v = enum_val(x);
@@ -1969,10 +1969,10 @@ obj_t rf_at(obj_t x, obj_t y)
         return res;
 
     case mtype2(TYPE_ENUM, TYPE_I64):
-        k = rf_key(x);
+        k = rf_key(x, NULL);
         v = enum_val(x);
 
-        s = rf_get(k);
+        s = rf_get(k, NULL);
         drop(k);
 
         if (is_error(s))
@@ -2574,8 +2574,8 @@ obj_t rf_take(obj_t x, obj_t y)
         return res;
 
     case mtype2(-TYPE_I64, TYPE_ENUM):
-        k = rf_key(y);
-        s = rf_get(k);
+        k = rf_key(y, NULL);
+        s = rf_get(k, NULL);
         drop(k);
 
         if (is_error(s))
@@ -2784,7 +2784,7 @@ obj_t rf_except(obj_t x, obj_t y)
     case mtype2(TYPE_I64, TYPE_I64):
     case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
         mask = rf_in(x, y);
-        nmask = rf_not(mask);
+        nmask = rf_not(mask, NULL);
         drop(mask);
         res = rf_filter(x, nmask);
         drop(nmask);
@@ -2826,7 +2826,7 @@ obj_t rf_xasc(obj_t x, obj_t y)
         if (is_error(col))
             return col;
 
-        idx = rf_iasc(col);
+        idx = rf_iasc(col, NULL);
         drop(col);
 
         if (is_error(idx))
@@ -2854,7 +2854,7 @@ obj_t rf_xdesc(obj_t x, obj_t y)
         if (is_error(col))
             return col;
 
-        idx = rf_idesc(col);
+        idx = rf_idesc(col, NULL);
         drop(col);
 
         if (is_error(idx))
@@ -2877,7 +2877,7 @@ obj_t rf_enum(obj_t x, obj_t y)
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_SYMBOL, TYPE_SYMBOL):
-        s = rf_get(x);
+        s = rf_get(x, NULL);
 
         if (is_error(s))
             return s;

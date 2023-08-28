@@ -75,10 +75,16 @@
  */
 #define alignup(x, a) (((x) + (a)-1) & ~((a)-1))
 
+// Calling context
+typedef struct ctx_t
+{
+    i64_t *indices;
+} ctx_t;
+
 // Function types
 typedef u64_t (*hash_f)(i64_t);
 typedef i32_t (*cmp_f)(i64_t, i64_t);
-typedef obj_t (*unary_f)(obj_t);
+typedef obj_t (*unary_f)(obj_t, ctx_t *);
 typedef obj_t (*binary_f)(obj_t, obj_t);
 typedef obj_t (*vary_f)(obj_t *, i64_t n);
 
