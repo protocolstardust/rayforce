@@ -506,7 +506,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
             drop(k);
     }
 
-    k = rf_distinct(syms, NULL);
+    k = rf_distinct(syms);
 
     if (is_error(k))
     {
@@ -560,6 +560,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
             push_opcode(cc, val, code, OP_CALL2);
             push_u8(code, 0);
             push_u64(code, rf_vecmap);
+            drop(val);
         }
         else
         {

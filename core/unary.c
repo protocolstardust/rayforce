@@ -38,8 +38,24 @@
 #include "ops.h"
 #include "serde.h"
 
+obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
+{
+    obj_t res;
+
+    // If function is not lazy, i.e it does not support indexes types, then evaluate it first
+    if ((x->type == TYPE_VECMAP) && (attrs & FN_LAZY) != FN_LAZY)
+    {
+        x = rf_value(x);
+        res = f(x);
+        drop(x);
+        return res;
+    }
+
+    return f(x);
+}
+
 // Atomic unary functions (iterates through list of argument items down to atoms)
-obj_t rf_call_unary_atomic(unary_f f, obj_t x)
+obj_t rf_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
 {
     u64_t i, l;
     obj_t res = NULL, item = NULL, a, *v;
@@ -53,7 +69,7 @@ obj_t rf_call_unary_atomic(unary_f f, obj_t x)
             return null(0);
 
         v = as_list(x);
-        item = rf_call_unary_atomic(f, v[0]);
+        item = rf_call_unary_atomic(attrs, f, v[0]);
 
         if (is_error(item))
             return item;
@@ -64,7 +80,7 @@ obj_t rf_call_unary_atomic(unary_f f, obj_t x)
 
         for (i = 1; i < l; i++)
         {
-            item = rf_call_unary_atomic(f, v[i]);
+            item = rf_call_unary_atomic(attrs, f, v[i]);
 
             if (is_error(item))
             {
@@ -84,7 +100,7 @@ obj_t rf_call_unary_atomic(unary_f f, obj_t x)
             return null(0);
 
         a = at_idx(x, 0);
-        item = rf_call_unary_atomic(f, a);
+        item = rf_call_unary_atomic(attrs, f, a);
         drop(a);
 
         if (is_error(item))
@@ -97,7 +113,7 @@ obj_t rf_call_unary_atomic(unary_f f, obj_t x)
         for (i = 1; i < l; i++)
         {
             a = at_idx(x, i);
-            item = rf_call_unary_atomic(f, a);
+            item = rf_call_unary_atomic(attrs, f, a);
             drop(a);
 
             if (is_error(item))
@@ -113,7 +129,7 @@ obj_t rf_call_unary_atomic(unary_f f, obj_t x)
         return res;
 
     default:
-        return f(x, NULL);
+        return call_unary(attrs, f, x);
     }
 }
 
@@ -122,22 +138,13 @@ obj_t rf_call_unary(u8_t attrs, unary_f f, obj_t x)
     if (!x)
         return null(0);
 
-    switch (attrs)
-    {
-    case FLAG_ATOMIC:
-        return rf_call_unary_atomic(f, x);
-    default:
-        if (x->type == TYPE_VECMAP)
-        {
-            ctx_t ctx = {0};
-            ctx.indices[0] = as_list(x)[1];
-            return f(as_list(x)[0], &ctx);
-        }
-        return f(x, NULL);
-    }
+    if ((attrs & FN_ATOMIC) == FN_ATOMIC)
+        return rf_call_unary_atomic(attrs, f, x);
+
+    return call_unary(attrs, f, x);
 }
 
-obj_t rf_get(obj_t x, ctx_t *ctx)
+obj_t rf_get(obj_t x)
 {
     i64_t fd;
     obj_t res, col, keys, vals, val, s, v;
@@ -162,8 +169,8 @@ obj_t rf_get(obj_t x, ctx_t *ctx)
         {
             // first try to read columns schema
             s = string_from_str(".d", 2);
-            col = rf_concat(x, s, NULL);
-            keys = rf_get(col, ctx);
+            col = rf_concat(x, s);
+            keys = rf_get(col);
             drop(s);
             drop(col);
 
@@ -183,8 +190,8 @@ obj_t rf_get(obj_t x, ctx_t *ctx)
             {
                 v = at_idx(keys, i);
                 s = cast(TYPE_CHAR, v);
-                col = rf_concat(x, s, NULL);
-                val = rf_get(col, ctx);
+                col = rf_concat(x, s);
+                val = rf_get(col);
 
                 drop(v);
                 drop(s);
@@ -204,8 +211,8 @@ obj_t rf_get(obj_t x, ctx_t *ctx)
 
             // read symbol data (if any)
             s = string_from_str("sym", 3);
-            col = rf_concat(x, s, NULL);
-            v = rf_get(col, ctx);
+            col = rf_concat(x, s);
+            v = rf_get(col);
 
             drop(s);
             drop(col);
@@ -213,7 +220,7 @@ obj_t rf_get(obj_t x, ctx_t *ctx)
             if (!is_error(v))
             {
                 s = symbol("sym");
-                drop(rf_set(s, v, NULL));
+                drop(rf_set(s, v));
                 drop(s);
             }
 
@@ -254,8 +261,8 @@ obj_t rf_get(obj_t x, ctx_t *ctx)
             if (res->type == TYPE_ANYMAP)
             {
                 s = string_from_str("#", 1);
-                col = rf_concat(x, s, NULL);
-                keys = rf_get(col, ctx);
+                col = rf_concat(x, s);
+                keys = rf_get(col);
                 drop(s);
                 drop(col);
 
@@ -279,7 +286,7 @@ obj_t rf_get(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_read(obj_t x, ctx_t *ctx)
+obj_t rf_read(obj_t x)
 {
     i64_t fd, size, c = 0;
     str_t fmsg, buf;
@@ -321,7 +328,7 @@ obj_t rf_read(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_type(obj_t x, ctx_t *ctx)
+obj_t rf_type(obj_t x)
 {
     type_t type;
     if (!x)
@@ -333,12 +340,12 @@ obj_t rf_type(obj_t x, ctx_t *ctx)
     return symboli64(t);
 }
 
-obj_t rf_count(obj_t x, ctx_t *ctx)
+obj_t rf_count(obj_t x)
 {
     return i64(count(x));
 }
 
-obj_t rf_til(obj_t x, ctx_t *ctx)
+obj_t rf_til(obj_t x)
 {
     if (x->type != -TYPE_I64)
         return error(ERR_TYPE, "til: expected i64");
@@ -356,7 +363,7 @@ obj_t rf_til(obj_t x, ctx_t *ctx)
     return vec;
 }
 
-obj_t rf_distinct(obj_t x, ctx_t *ctx)
+obj_t rf_distinct(obj_t x)
 {
     obj_t res = NULL;
 
@@ -373,7 +380,7 @@ obj_t rf_distinct(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_group(obj_t x, ctx_t *ctx)
+obj_t rf_group(obj_t x)
 {
     if (!x || x->type != TYPE_I64)
         raise(ERR_TYPE, "group: expected vector_i64");
@@ -404,12 +411,13 @@ obj_t rf_group(obj_t x, ctx_t *ctx)
     return res;
 }
 
-obj_t rf_sum(obj_t x, ctx_t *ctx)
+obj_t rf_sum(obj_t x)
 {
     i32_t i;
-    i64_t l, v, isum = 0, *indices, *values;
-    f64_t fsum = 0.0;
+    i64_t l, v, isum = 0, *xids = NULL, *xivals = NULL;
+    f64_t fsum = 0.0, *xfvals = NULL;
 
+dispatch:
     switch (x->type)
     {
     case -TYPE_I64:
@@ -417,44 +425,64 @@ obj_t rf_sum(obj_t x, ctx_t *ctx)
     case -TYPE_F64:
         return clone(x);
     case TYPE_I64:
-        if (ctx == NULL)
+        if (xids)
         {
-            l = x->len;
-            values = as_i64(x);
-
+            xivals = as_i64(x);
             for (i = 0; i < l; i++)
             {
-                v = (values[i] == NULL_I64) ? 0 : values[i];
-                isum += v;
-            }
-        }
-        else
-        {
-            l = ctx->indices[0]->len;
-            indices = as_i64(ctx->indices[0]);
-            values = as_i64(x);
-            for (i = 0; i < l; i++)
-            {
-                v = values[indices[i]];
+                v = xivals[xids[i]];
                 v = (v == NULL_I64) ? 0 : v;
                 isum += v;
             }
+
+            return i64(isum);
+        }
+
+        l = x->len;
+        xivals = as_i64(x);
+
+        for (i = 0; i < l; i++)
+        {
+            v = (xivals[i] == NULL_I64) ? 0 : xivals[i];
+            isum += v;
         }
 
         return i64(isum);
     case TYPE_F64:
+        if (xids)
+        {
+            xfvals = as_f64(x);
+            for (i = 0; i < l; i++)
+            {
+                v = xfvals[xids[i]];
+                v = (v == NULL_I64) ? 0 : v;
+                fsum += v;
+            }
+
+            return f64(fsum);
+        }
+
         l = x->len;
+        xfvals = as_f64(x);
         for (i = 0; i < l; i++)
-            fsum += as_f64(x)[i];
+            fsum += xfvals[i];
 
         return f64(fsum);
 
     default:
+        if (x->type == TYPE_VECMAP)
+        {
+            xids = as_i64(as_list(x)[1]);
+            l = as_list(x)[1]->len;
+            x = as_list(x)[0];
+            goto dispatch;
+        }
+
         raise(ERR_TYPE, "sum: unsupported type: %d", x->type);
     }
 }
 
-obj_t rf_avg(obj_t x, ctx_t *ctx)
+obj_t rf_avg(obj_t x)
 {
     u64_t i, l, n;
     i64_t isum;
@@ -492,7 +520,7 @@ obj_t rf_avg(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_min(obj_t x, ctx_t *ctx)
+obj_t rf_min(obj_t x)
 {
     i32_t i;
     i64_t l, imin, *iv, v;
@@ -536,7 +564,7 @@ obj_t rf_min(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_max(obj_t x, ctx_t *ctx)
+obj_t rf_max(obj_t x)
 {
     i32_t i;
     i64_t l, imax, *iv;
@@ -562,7 +590,7 @@ obj_t rf_max(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_not(obj_t x, ctx_t *ctx)
+obj_t rf_not(obj_t x)
 {
     i32_t i;
     i64_t l;
@@ -586,7 +614,7 @@ obj_t rf_not(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_iasc(obj_t x, ctx_t *ctx)
+obj_t rf_iasc(obj_t x)
 {
     switch (x->type)
     {
@@ -598,7 +626,7 @@ obj_t rf_iasc(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_idesc(obj_t x, ctx_t *ctx)
+obj_t rf_idesc(obj_t x)
 {
     switch (x->type)
     {
@@ -610,7 +638,7 @@ obj_t rf_idesc(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_asc(obj_t x, ctx_t *ctx)
+obj_t rf_asc(obj_t x)
 {
     obj_t idx = rf_sort_asc(x);
     i64_t l, i;
@@ -631,7 +659,7 @@ obj_t rf_asc(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_desc(obj_t x, ctx_t *ctx)
+obj_t rf_desc(obj_t x)
 {
     obj_t idx = rf_sort_desc(x);
     i64_t l, i;
@@ -652,7 +680,7 @@ obj_t rf_desc(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_guid_generate(obj_t x, ctx_t *ctx)
+obj_t rf_guid_generate(obj_t x)
 {
     i64_t i, count;
     obj_t vec;
@@ -675,7 +703,7 @@ obj_t rf_guid_generate(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_neg(obj_t x, ctx_t *ctx)
+obj_t rf_neg(obj_t x)
 {
     obj_t res;
     i64_t i, l;
@@ -706,7 +734,7 @@ obj_t rf_neg(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_where(obj_t x, ctx_t *ctx)
+obj_t rf_where(obj_t x)
 {
     u64_t i, j, l;
     obj_t res;
@@ -735,7 +763,7 @@ obj_t rf_where(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_key(obj_t x, ctx_t *ctx)
+obj_t rf_key(obj_t x)
 {
     switch (x->type)
     {
@@ -751,7 +779,7 @@ obj_t rf_key(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_value(obj_t x, ctx_t *ctx)
+obj_t rf_value(obj_t x)
 {
     obj_t sym, k, v, res, e;
     i64_t i, sl, xl;
@@ -760,7 +788,7 @@ obj_t rf_value(obj_t x, ctx_t *ctx)
     switch (x->type)
     {
     case TYPE_ENUM:
-        k = rf_key(x, ctx);
+        k = rf_key(x);
         sym = at_obj(runtime_get()->env.variables, k);
         drop(k);
 
@@ -833,12 +861,25 @@ obj_t rf_value(obj_t x, ctx_t *ctx)
     case TYPE_TABLE:
     case TYPE_DICT:
         return clone(as_list(x)[1]);
+
+    case TYPE_VECMAP:
+        xl = as_list(x)[1]->len;
+        res = vector(as_list(x)[0]->type, xl);
+
+        for (i = 0; i < xl; i++)
+        {
+            k = at_idx(as_list(x)[0], as_i64(as_list(x)[1])[i]);
+            write_obj(&res, i, k);
+        }
+
+        return res;
+
     default:
         return clone(x);
     }
 }
 
-obj_t rf_parse(obj_t x, ctx_t *ctx)
+obj_t rf_parse(obj_t x)
 {
     parser_t parser;
     obj_t res;
@@ -855,7 +896,7 @@ obj_t rf_parse(obj_t x, ctx_t *ctx)
     }
 }
 
-obj_t rf_read_parse_compile(obj_t x, ctx_t *ctx)
+obj_t rf_read_parse_compile(obj_t x)
 {
     // parser_t parser;
     // obj_t red, par, com;

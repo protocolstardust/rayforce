@@ -74,8 +74,8 @@ obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
     str_t code = as_string(f->code);
     obj_t arg[4], e, r, *addr;
     u8_t n, attrs;
-    u64_t i, j, l;
-    i32_t b, sp, bp, ip;
+    register u64_t i, j, l;
+    register i32_t b, sp, bp, ip;
     volatile u64_t a;
 
     // init registers
@@ -317,7 +317,7 @@ op_lget:
             break;
     }
     if (is_null(arg[1]))
-        arg[1] = rf_get(arg[0], NULL);
+        arg[1] = rf_get(arg[0]);
     drop(arg[0]);
     unwrap(arg[1], b);
     stack_push(arg[1]);

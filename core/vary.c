@@ -50,7 +50,7 @@ obj_t rf_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 {
     switch (attrs)
     {
-    case FLAG_ATOMIC:
+    case FN_ATOMIC:
         return rf_call_vary_atomic(f, x, n);
     default:
         return f(x, n);
@@ -69,13 +69,13 @@ obj_t rf_map_vary_f(obj_t f, obj_t *x, u64_t n)
     case TYPE_UNARY:
         if (n != 1)
             raise(ERR_TYPE, "'map': unary call with wrong arguments count");
-        return rf_call_unary(FLAG_ATOMIC, (unary_f)f->i64, x[0]);
+        return rf_call_unary(FN_ATOMIC, (unary_f)f->i64, x[0]);
     case TYPE_BINARY:
         if (n != 2)
             raise(ERR_TYPE, "'map': binary call with wrong arguments count");
-        return rf_call_binary(FLAG_ATOMIC, (binary_f)f->i64, x[0], x[1]);
+        return rf_call_binary(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
     case TYPE_VARY:
-        return rf_call_vary(FLAG_ATOMIC, (vary_f)f->i64, x, n);
+        return rf_call_vary(FN_ATOMIC, (vary_f)f->i64, x, n);
     case TYPE_LAMBDA:
         if (n != as_lambda(f)->args->len)
             raise(ERR_TYPE, "'map': lambda call with wrong arguments count");

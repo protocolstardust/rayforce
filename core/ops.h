@@ -26,13 +26,14 @@
 
 #include "rayforce.h"
 
-// FLAGS
-#define FLAG_NONE 0
-#define FLAG_LEFT_ATOMIC 1
-#define FLAG_RIGHT_ATOMIC 2
-#define FLAG_ATOMIC 4
+// Function's attributes
+#define FN_NONE 0
+#define FN_LEFT_ATOMIC 1
+#define FN_RIGHT_ATOMIC 2
+#define FN_ATOMIC 4
+#define FN_LAZY 8
 
-// ATTRS
+// Object's attributes
 #define ATTR_DISTINCT 1
 #define ATTR_ASC 2
 #define ATTR_DESC 4
@@ -75,17 +76,11 @@
  */
 #define alignup(x, a) (((x) + (a)-1) & ~((a)-1))
 
-// Calling context
-typedef struct ctx_t
-{
-    obj_t indices[16];
-} ctx_t;
-
 // Function types
 typedef u64_t (*hash_f)(i64_t);
 typedef i32_t (*cmp_f)(i64_t, i64_t);
-typedef obj_t (*unary_f)(obj_t, ctx_t *);
-typedef obj_t (*binary_f)(obj_t, obj_t, ctx_t *);
+typedef obj_t (*unary_f)(obj_t);
+typedef obj_t (*binary_f)(obj_t, obj_t);
 typedef obj_t (*vary_f)(obj_t *, i64_t n);
 
 i32_t i64_cmp(i64_t a, i64_t b);

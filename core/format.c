@@ -268,7 +268,7 @@ i32_t raw_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t li
     case TYPE_ENUM:
     case TYPE_ANYMAP:
         idx = i64(i);
-        res = rf_at(obj, idx, NULL);
+        res = rf_at(obj, idx);
         drop(idx);
         if (is_error(res))
         {
@@ -380,16 +380,16 @@ i32_t enum_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     i32_t n;
     obj_t s, e, idx;
 
-    s = rf_key(obj, NULL);
+    s = rf_key(obj);
     if (enum_val(obj)->len >= TABLE_MAX_HEIGHT)
     {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
-        e = rf_take(idx, obj, NULL);
+        e = rf_take(idx, obj);
         drop(idx);
     }
     else
-        e = rf_value(obj, NULL);
+        e = rf_value(obj);
 
     n = str_fmt_into(dst, len, offset, limit, "'");
     n += obj_fmt_into(dst, len, offset, indent, limit, false, s);
@@ -411,36 +411,11 @@ i32_t anymap_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t
     {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
-        a = rf_take(idx, obj, NULL);
+        a = rf_take(idx, obj);
         drop(idx);
     }
     else
-        a = rf_value(obj, NULL);
-
-    n = obj_fmt_into(dst, len, offset, indent, limit, full, a);
-
-    drop(a);
-
-    return n;
-}
-
-i32_t vecmap_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, bool_t full, obj_t obj)
-{
-    i32_t n;
-    obj_t a, idx;
-
-    if (count(obj) >= TABLE_MAX_HEIGHT)
-    {
-        limit = TABLE_MAX_HEIGHT;
-        idx = i64(TABLE_MAX_HEIGHT);
-        a = rf_take(idx, obj, NULL);
-        drop(idx);
-    }
-    else
-    {
-
-        a = rf_value(obj, NULL);
-    }
+        a = rf_value(obj);
 
     n = obj_fmt_into(dst, len, offset, indent, limit, full, a);
 
