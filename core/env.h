@@ -73,7 +73,7 @@ str_t env_get_typename(type_t type);
 obj_t env_set(env_t *env, obj_t key, obj_t val);
 obj_t env_get(env_t *env, obj_t key);
 
-obj_t rf_env();
-obj_t rf_memstat();
+obj_t ray_env();
+obj_t ray_memstat();
 
 #endif

@@ -32,7 +32,7 @@
 #include "util.h"
 #include "runtime.h"
 
-obj_t rf_call_vary_atomic(vary_f f, obj_t *x, u64_t n)
+obj_t ray_call_vary_atomic(vary_f f, obj_t *x, u64_t n)
 {
     u64_t i, lists = 0;
 
@@ -46,18 +46,18 @@ obj_t rf_call_vary_atomic(vary_f f, obj_t *x, u64_t n)
         return f(x, n);
 }
 
-obj_t rf_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
+obj_t ray_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 {
     switch (attrs)
     {
     case FN_ATOMIC:
-        return rf_call_vary_atomic(f, x, n);
+        return ray_call_vary_atomic(f, x, n);
     default:
         return f(x, n);
     }
 }
 
-obj_t rf_map_vary_f(obj_t f, obj_t *x, u64_t n)
+obj_t ray_map_vary_f(obj_t f, obj_t *x, u64_t n)
 {
     u64_t i, j, l;
     vm_t *vm;
@@ -69,13 +69,13 @@ obj_t rf_map_vary_f(obj_t f, obj_t *x, u64_t n)
     case TYPE_UNARY:
         if (n != 1)
             raise(ERR_TYPE, "'map': unary call with wrong arguments count");
-        return rf_call_unary(FN_ATOMIC, (unary_f)f->i64, x[0]);
+        return ray_call_unary(FN_ATOMIC, (unary_f)f->i64, x[0]);
     case TYPE_BINARY:
         if (n != 2)
             raise(ERR_TYPE, "'map': binary call with wrong arguments count");
-        return rf_call_binary(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
+        return ray_call_binary(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
     case TYPE_VARY:
-        return rf_call_vary(FN_ATOMIC, (vary_f)f->i64, x, n);
+        return ray_call_vary(FN_ATOMIC, (vary_f)f->i64, x, n);
     case TYPE_LAMBDA:
         if (n != as_lambda(f)->args->len)
             raise(ERR_TYPE, "'map': lambda call with wrong arguments count");
@@ -159,15 +159,15 @@ obj_t rf_map_vary_f(obj_t f, obj_t *x, u64_t n)
     }
 }
 
-obj_t rf_map_vary(obj_t *x, u64_t n)
+obj_t ray_map_vary(obj_t *x, u64_t n)
 {
     if (n == 0)
         return list(0);
 
-    return rf_map_vary_f(x[0], x + 1, n - 1);
+    return ray_map_vary_f(x[0], x + 1, n - 1);
 }
 
-obj_t rf_list(obj_t *x, u64_t n)
+obj_t ray_list(obj_t *x, u64_t n)
 {
     u64_t i;
     obj_t lst = vector(TYPE_LIST, n);
@@ -178,7 +178,7 @@ obj_t rf_list(obj_t *x, u64_t n)
     return lst;
 }
 
-obj_t rf_enlist(obj_t *x, u64_t n)
+obj_t ray_enlist(obj_t *x, u64_t n)
 {
     if (n == 0)
         return list(0);
@@ -194,14 +194,14 @@ obj_t rf_enlist(obj_t *x, u64_t n)
     return lst;
 }
 
-obj_t rf_gc(obj_t *x, u64_t n)
+obj_t ray_gc(obj_t *x, u64_t n)
 {
     unused(x);
     unused(n);
     return i64(heap_gc());
 }
 
-obj_t rf_format(obj_t *x, u64_t n)
+obj_t ray_format(obj_t *x, u64_t n)
 {
     str_t s = obj_fmt_n(x, n);
     obj_t ret;
@@ -215,7 +215,7 @@ obj_t rf_format(obj_t *x, u64_t n)
     return ret;
 }
 
-obj_t rf_print(obj_t *x, u64_t n)
+obj_t ray_print(obj_t *x, u64_t n)
 {
     str_t s = obj_fmt_n(x, n);
 
@@ -228,7 +228,7 @@ obj_t rf_print(obj_t *x, u64_t n)
     return null(0);
 }
 
-obj_t rf_println(obj_t *x, u64_t n)
+obj_t ray_println(obj_t *x, u64_t n)
 {
     str_t s = obj_fmt_n(x, n);
 

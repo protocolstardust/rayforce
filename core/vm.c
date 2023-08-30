@@ -193,7 +193,7 @@ op_call1:
 made_call1:
     a = 1;
     arg[0] = stack_pop();
-    r = rf_call_unary(attrs, (unary_f)l, arg[0]);
+    r = ray_call_unary(attrs, (unary_f)l, arg[0]);
     drop(arg[0]);
     unwrap(r, b);
     stack_push(r);
@@ -206,7 +206,7 @@ made_call2:
     a = 2;
     arg[1] = stack_pop();
     arg[0] = stack_pop();
-    r = rf_call_binary(attrs, (binary_f)l, arg[0], arg[1]);
+    r = ray_call_binary(attrs, (binary_f)l, arg[0], arg[1]);
     drop(arg[0]);
     drop(arg[1]);
     unwrap(r, b);
@@ -220,7 +220,7 @@ op_calln:
 made_calln:
     a = 0;
     addr = (obj_t *)(&vm->stack[vm->sp - n]);
-    r = rf_call_vary(attrs, (vary_f)l, addr, n);
+    r = ray_call_vary(attrs, (vary_f)l, addr, n);
     for (i = 0; i < n; i++)
         drop(stack_pop()); // pop args
     unwrap(r, b);
@@ -317,7 +317,7 @@ op_lget:
             break;
     }
     if (is_null(arg[1]))
-        arg[1] = rf_get(arg[0]);
+        arg[1] = ray_get(arg[0]);
     drop(arg[0]);
     unwrap(arg[1], b);
     stack_push(arg[1]);

@@ -268,7 +268,7 @@ obj_t parse_timestamp(parser_t *parser)
 
     ts.nanos = nanos;
     shift(parser, end - parser->current);
-    res = timestamp(rf_timestamp_into_i64(ts));
+    res = timestamp(ray_timestamp_into_i64(ts));
 
     span_extend(parser, &span);
     nfo_insert(&parser->nfo, (i64_t)res, span);

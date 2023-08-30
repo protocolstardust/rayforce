@@ -269,7 +269,7 @@ nil_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i
     drop(mask);
 }
 
-obj_t rf_sort_asc(obj_t vec)
+obj_t ray_sort_asc(obj_t vec)
 {
     i64_t i, len = vec->len, out_of_order = 0, inrange = 0, min, max;
     obj_t indices = vector_i64(len);
@@ -350,7 +350,7 @@ obj_t rf_sort_asc(obj_t vec)
     return indices;
 }
 
-obj_t rf_sort_desc(obj_t vec)
+obj_t ray_sort_desc(obj_t vec)
 {
     i64_t i, len = vec->len, out_of_order = 0, inrange = 0, min, max;
     obj_t indices = vector_i64(len);

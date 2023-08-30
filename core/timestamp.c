@@ -138,7 +138,7 @@ i64_t date_into_days(date_t dt)
 }
 
 //
-timestamp_t rf_timestamp_from_i64(i64_t offset)
+timestamp_t ray_timestamp_from_i64(i64_t offset)
 {
     i64_t days = offset / NSECS_IN_DAY;
     i64_t span = offset % NSECS_IN_DAY;
@@ -166,7 +166,7 @@ timestamp_t rf_timestamp_from_i64(i64_t offset)
     return ts;
 }
 
-i64_t rf_timestamp_into_i64(timestamp_t ts)
+i64_t ray_timestamp_into_i64(timestamp_t ts)
 {
     date_t dt = {
         .year = ts.year,

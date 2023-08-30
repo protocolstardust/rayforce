@@ -146,7 +146,7 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity
 
     push_opcode(cc, car, code, OP_CALL2);
     push_u8(code, 0);
-    push_u64(code, rf_set);
+    push_u64(code, ray_set);
 
     if (!has_consumer)
         push_opcode(cc, car, code, OP_POP);
@@ -193,7 +193,7 @@ cc_result_t cc_compile_fn(cc_t *cc, obj_t obj, u32_t arity)
         cerr(cc, obj, ERR_LENGTH, "'fn' expects vector of symbols with lambda arguments and a list body");
 
     arity -= 1;
-    fun = cc_compile_lambda("anonymous", clone(*(as_list(obj) + 1)), rf_list(as_list(obj) + 2, arity), cc->nfo);
+    fun = cc_compile_lambda("anonymous", clone(*(as_list(obj) + 1)), ray_list(as_list(obj) + 2, arity), cc->nfo);
     if (fun->type == TYPE_ERROR)
     {
         drop(cc->lambda);
@@ -522,14 +522,14 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
 
         push_opcode(cc, obj, code, OP_CALL1);
         push_u8(code, 0);
-        push_u64(code, rf_where);
+        push_u64(code, ray_where);
         push_opcode(cc, val, code, OP_LPOP);
 
         // create vecmaps over the table
         push_opcode(cc, val, code, OP_SWAP);
         push_opcode(cc, val, code, OP_CALL2);
         push_u8(code, 0);
-        push_u64(code, rf_vecmap);
+        push_u64(code, ray_vecmap);
         drop(val);
     }
 
@@ -541,7 +541,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         push_opcode(cc, car, code, OP_SWAP);
         push_opcode(cc, car, code, OP_CALL2);
         push_u8(code, 0);
-        push_u64(code, rf_take);
+        push_u64(code, ray_take);
     }
 
     if (map || groupby)
@@ -565,40 +565,40 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
 
         push_opcode(cc, obj, code, OP_CALL1);
         push_u8(code, FN_LAZY);
-        push_u64(code, rf_group);
+        push_u64(code, ray_group);
 
         push_opcode(cc, obj, code, OP_DUP);
         push_opcode(cc, obj, code, OP_CALL1);
         push_u8(code, 0);
-        push_u64(code, rf_value);
+        push_u64(code, ray_value);
         push_opcode(cc, car, code, OP_LPOP);
 
         // remove column used for grouping from result
         push_opcode(cc, obj, code, OP_DUP);
         push_opcode(cc, car, code, OP_CALL1);
         push_u8(code, 0);
-        push_u64(code, rf_key);
+        push_u64(code, ray_key);
         push_opcode(cc, car, code, OP_PUSH);
         push_const(cc, at_idx(cols, 0));
         push_opcode(cc, car, code, OP_CALL2);
         push_u8(code, 0);
-        push_u64(code, rf_except);
+        push_u64(code, ray_except);
         push_opcode(cc, car, code, OP_CALL2);
         push_u8(code, 0);
-        push_u64(code, rf_at);
+        push_u64(code, ray_at);
 
         push_opcode(cc, car, code, OP_SWAP);
 
         // apply grouping
         push_opcode(cc, car, code, OP_CALL2);
         push_u8(code, 0);
-        push_u64(code, rf_listmap);
+        push_u64(code, ray_listmap);
 
         push_opcode(cc, car, code, OP_LPUSH);
 
         push_opcode(cc, obj, code, OP_CALL1);
         push_u8(code, 0);
-        push_u64(code, rf_key);
+        push_u64(code, ray_key);
 
         if (!map)
             push_opcode(cc, car, code, OP_LPOP);
@@ -632,11 +632,11 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         push_opcode(cc, car, code, OP_CALLN);
         push_u8(code, cols->len);
         push_u8(code, 0);
-        push_u64(code, rf_list);
+        push_u64(code, ray_list);
 
         push_opcode(cc, car, code, OP_CALL2);
         push_u8(code, FN_LAZY);
-        push_u64(code, rf_table);
+        push_u64(code, ray_table);
     }
     else
         drop(cols);

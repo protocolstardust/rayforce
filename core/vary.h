@@ -27,14 +27,14 @@
 #include "rayforce.h"
 #include "ops.h"
 
-obj_t rf_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n);
-obj_t rf_map_vary_f(obj_t f, obj_t *x, u64_t n);
-obj_t rf_map_vary(obj_t *x, u64_t n);
-obj_t rf_list(obj_t *x, u64_t n);
-obj_t rf_enlist(obj_t *x, u64_t n);
-obj_t rf_gc(obj_t *x, u64_t n);
-obj_t rf_format(obj_t *x, u64_t n);
-obj_t rf_print(obj_t *x, u64_t n);
-obj_t rf_println(obj_t *x, u64_t n);
+obj_t ray_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n);
+obj_t ray_map_vary_f(obj_t f, obj_t *x, u64_t n);
+obj_t ray_map_vary(obj_t *x, u64_t n);
+obj_t ray_list(obj_t *x, u64_t n);
+obj_t ray_enlist(obj_t *x, u64_t n);
+obj_t ray_gc(obj_t *x, u64_t n);
+obj_t ray_format(obj_t *x, u64_t n);
+obj_t ray_print(obj_t *x, u64_t n);
+obj_t ray_println(obj_t *x, u64_t n);
 
 #endif

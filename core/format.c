@@ -215,7 +215,7 @@ i32_t ts_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, i64_t val)
     if (val == NULL_I64)
         return str_fmt_into(dst, len, offset, limit, "0t");
 
-    timestamp_t ts = rf_timestamp_from_i64(val);
+    timestamp_t ts = ray_timestamp_from_i64(val);
     i32_t n = str_fmt_into(dst, len, offset, limit, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d",
                            ts.year, ts.month, ts.day, ts.hours, ts.mins, ts.secs, ts.nanos);
 
@@ -276,7 +276,7 @@ i32_t raw_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t li
     case TYPE_ENUM:
     case TYPE_ANYMAP:
         idx = i64(i);
-        res = rf_at(obj, idx);
+        res = ray_at(obj, idx);
         drop(idx);
         if (is_error(res))
         {
@@ -388,16 +388,16 @@ i32_t enum_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     i32_t n;
     obj_t s, e, idx;
 
-    s = rf_key(obj);
+    s = ray_key(obj);
     if (enum_val(obj)->len >= TABLE_MAX_HEIGHT)
     {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
-        e = rf_take(idx, obj);
+        e = ray_take(idx, obj);
         drop(idx);
     }
     else
-        e = rf_value(obj);
+        e = ray_value(obj);
 
     n = str_fmt_into(dst, len, offset, limit, "'");
     n += obj_fmt_into(dst, len, offset, indent, limit, false, s);
@@ -419,11 +419,11 @@ i32_t anymap_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t
     {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
-        a = rf_take(idx, obj);
+        a = ray_take(idx, obj);
         drop(idx);
     }
     else
-        a = rf_value(obj);
+        a = ray_value(obj);
 
     n = obj_fmt_into(dst, len, offset, indent, limit, full, a);
 

@@ -179,7 +179,7 @@ i32_t main(i32_t argc, str_t argv[])
     if (i < as_list(args)[0]->len)
     {
         filename = as_list(as_list(args)[1])[i];
-        file = rf_read(filename);
+        file = ray_read(filename);
         if (file->type == TYPE_ERROR)
             print_error(file, as_string(filename), NULL, 0);
         else

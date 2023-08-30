@@ -46,7 +46,7 @@ obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
     // If function is not lazy, i.e it does not support indexes types, then evaluate it first
     if ((x->type == TYPE_VECMAP) && (attrs & FN_LAZY) != FN_LAZY)
     {
-        x = rf_value(x);
+        x = ray_value(x);
         res = f(x);
         drop(x);
         return res;
@@ -103,7 +103,7 @@ obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
 }
 
 // Atomic unary functions (iterates through list of argument items down to atoms)
-obj_t rf_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
+obj_t ray_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
 {
     u64_t i, l;
     obj_t res = NULL, item = NULL, a, *v;
@@ -117,7 +117,7 @@ obj_t rf_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
             return null(0);
 
         v = as_list(x);
-        item = rf_call_unary_atomic(attrs, f, v[0]);
+        item = ray_call_unary_atomic(attrs, f, v[0]);
 
         if (is_error(item))
             return item;
@@ -128,7 +128,7 @@ obj_t rf_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
 
         for (i = 1; i < l; i++)
         {
-            item = rf_call_unary_atomic(attrs, f, v[i]);
+            item = ray_call_unary_atomic(attrs, f, v[i]);
 
             if (is_error(item))
             {
@@ -148,7 +148,7 @@ obj_t rf_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
             return null(0);
 
         a = at_idx(x, 0);
-        item = rf_call_unary_atomic(attrs, f, a);
+        item = ray_call_unary_atomic(attrs, f, a);
         drop(a);
 
         if (is_error(item))
@@ -161,7 +161,7 @@ obj_t rf_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
         for (i = 1; i < l; i++)
         {
             a = at_idx(x, i);
-            item = rf_call_unary_atomic(attrs, f, a);
+            item = ray_call_unary_atomic(attrs, f, a);
             drop(a);
 
             if (is_error(item))
@@ -181,18 +181,18 @@ obj_t rf_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
     }
 }
 
-obj_t rf_call_unary(u8_t attrs, unary_f f, obj_t x)
+obj_t ray_call_unary(u8_t attrs, unary_f f, obj_t x)
 {
     if (!x)
         return null(0);
 
     if ((attrs & FN_ATOMIC) == FN_ATOMIC)
-        return rf_call_unary_atomic(attrs, f, x);
+        return ray_call_unary_atomic(attrs, f, x);
 
     return call_unary(attrs, f, x);
 }
 
-obj_t rf_get(obj_t x)
+obj_t ray_get(obj_t x)
 {
     i64_t fd;
     obj_t res, col, keys, vals, val, s, v;
@@ -217,8 +217,8 @@ obj_t rf_get(obj_t x)
         {
             // first try to read columns schema
             s = string_from_str(".d", 2);
-            col = rf_concat(x, s);
-            keys = rf_get(col);
+            col = ray_concat(x, s);
+            keys = ray_get(col);
             drop(s);
             drop(col);
 
@@ -238,8 +238,8 @@ obj_t rf_get(obj_t x)
             {
                 v = at_idx(keys, i);
                 s = cast(TYPE_CHAR, v);
-                col = rf_concat(x, s);
-                val = rf_get(col);
+                col = ray_concat(x, s);
+                val = ray_get(col);
 
                 drop(v);
                 drop(s);
@@ -259,8 +259,8 @@ obj_t rf_get(obj_t x)
 
             // read symbol data (if any)
             s = string_from_str("sym", 3);
-            col = rf_concat(x, s);
-            v = rf_get(col);
+            col = ray_concat(x, s);
+            v = ray_get(col);
 
             drop(s);
             drop(col);
@@ -268,7 +268,7 @@ obj_t rf_get(obj_t x)
             if (!is_error(v))
             {
                 s = symbol("sym");
-                drop(rf_set(s, v));
+                drop(ray_set(s, v));
                 drop(s);
             }
 
@@ -309,8 +309,8 @@ obj_t rf_get(obj_t x)
             if (res->type == TYPE_ANYMAP)
             {
                 s = string_from_str("#", 1);
-                col = rf_concat(x, s);
-                keys = rf_get(col);
+                col = ray_concat(x, s);
+                keys = ray_get(col);
                 drop(s);
                 drop(col);
 
@@ -334,7 +334,7 @@ obj_t rf_get(obj_t x)
     }
 }
 
-obj_t rf_read(obj_t x)
+obj_t ray_read(obj_t x)
 {
     i64_t fd, size, c = 0;
     str_t fmsg, buf;
@@ -376,7 +376,7 @@ obj_t rf_read(obj_t x)
     }
 }
 
-obj_t rf_type(obj_t x)
+obj_t ray_type(obj_t x)
 {
     type_t type;
     if (!x)
@@ -388,12 +388,12 @@ obj_t rf_type(obj_t x)
     return symboli64(t);
 }
 
-obj_t rf_count(obj_t x)
+obj_t ray_count(obj_t x)
 {
     return i64(count(x));
 }
 
-obj_t rf_til(obj_t x)
+obj_t ray_til(obj_t x)
 {
     if (x->type != -TYPE_I64)
         return error(ERR_TYPE, "til: expected i64");
@@ -411,7 +411,7 @@ obj_t rf_til(obj_t x)
     return vec;
 }
 
-obj_t rf_distinct(obj_t x)
+obj_t ray_distinct(obj_t x)
 {
     obj_t res = NULL;
 
@@ -428,7 +428,7 @@ obj_t rf_distinct(obj_t x)
     }
 }
 
-obj_t rf_group(obj_t x)
+obj_t ray_group(obj_t x)
 {
 
     obj_t g, vals, *vi, res;
@@ -467,7 +467,7 @@ obj_t rf_group(obj_t x)
     return res;
 }
 
-obj_t rf_sum(obj_t x)
+obj_t ray_sum(obj_t x)
 {
     i32_t i;
     i64_t l = 0, v, isum = 0, *xids = NULL, *xivals = NULL;
@@ -542,7 +542,7 @@ dispatch:
     }
 }
 
-obj_t rf_avg(obj_t x)
+obj_t ray_avg(obj_t x)
 {
     u64_t i, l, n;
     i64_t isum;
@@ -580,7 +580,7 @@ obj_t rf_avg(obj_t x)
     }
 }
 
-obj_t rf_min(obj_t x)
+obj_t ray_min(obj_t x)
 {
     i32_t i;
     i64_t l, imin, *iv, v;
@@ -624,7 +624,7 @@ obj_t rf_min(obj_t x)
     }
 }
 
-obj_t rf_max(obj_t x)
+obj_t ray_max(obj_t x)
 {
     i32_t i;
     i64_t l, imax, *iv;
@@ -650,7 +650,7 @@ obj_t rf_max(obj_t x)
     }
 }
 
-obj_t rf_not(obj_t x)
+obj_t ray_not(obj_t x)
 {
     i32_t i;
     i64_t l;
@@ -674,33 +674,33 @@ obj_t rf_not(obj_t x)
     }
 }
 
-obj_t rf_iasc(obj_t x)
+obj_t ray_iasc(obj_t x)
 {
     switch (x->type)
     {
     case TYPE_I64:
-        return rf_sort_asc(x);
+        return ray_sort_asc(x);
 
     default:
         raise(ERR_TYPE, "iasc: unsupported type: %d", x->type);
     }
 }
 
-obj_t rf_idesc(obj_t x)
+obj_t ray_idesc(obj_t x)
 {
     switch (x->type)
     {
     case TYPE_I64:
-        return rf_sort_desc(x);
+        return ray_sort_desc(x);
 
     default:
         raise(ERR_TYPE, "idesc: unsupported type: %d", x->type);
     }
 }
 
-obj_t rf_asc(obj_t x)
+obj_t ray_asc(obj_t x)
 {
-    obj_t idx = rf_sort_asc(x);
+    obj_t idx = ray_sort_asc(x);
     i64_t l, i;
 
     switch (x->type)
@@ -719,9 +719,9 @@ obj_t rf_asc(obj_t x)
     }
 }
 
-obj_t rf_desc(obj_t x)
+obj_t ray_desc(obj_t x)
 {
-    obj_t idx = rf_sort_desc(x);
+    obj_t idx = ray_sort_desc(x);
     i64_t l, i;
 
     switch (x->type)
@@ -740,7 +740,7 @@ obj_t rf_desc(obj_t x)
     }
 }
 
-obj_t rf_guid_generate(obj_t x)
+obj_t ray_guid_generate(obj_t x)
 {
     i64_t i, count;
     obj_t vec;
@@ -763,7 +763,7 @@ obj_t rf_guid_generate(obj_t x)
     }
 }
 
-obj_t rf_neg(obj_t x)
+obj_t ray_neg(obj_t x)
 {
     obj_t res;
     i64_t i, l;
@@ -794,7 +794,7 @@ obj_t rf_neg(obj_t x)
     }
 }
 
-obj_t rf_where(obj_t x)
+obj_t ray_where(obj_t x)
 {
     u64_t i, j, l;
     obj_t res;
@@ -823,7 +823,7 @@ obj_t rf_where(obj_t x)
     }
 }
 
-obj_t rf_key(obj_t x)
+obj_t ray_key(obj_t x)
 {
     switch (x->type)
     {
@@ -839,7 +839,7 @@ obj_t rf_key(obj_t x)
     }
 }
 
-obj_t rf_value(obj_t x)
+obj_t ray_value(obj_t x)
 {
     obj_t sym, k, v, res, e;
     i64_t i, sl, xl;
@@ -848,7 +848,7 @@ obj_t rf_value(obj_t x)
     switch (x->type)
     {
     case TYPE_ENUM:
-        k = rf_key(x);
+        k = ray_key(x);
         sym = at_obj(runtime_get()->env.variables, k);
         drop(k);
 
@@ -939,7 +939,7 @@ obj_t rf_value(obj_t x)
     }
 }
 
-obj_t rf_parse(obj_t x)
+obj_t ray_parse(obj_t x)
 {
     parser_t parser;
     obj_t res;
@@ -956,7 +956,7 @@ obj_t rf_parse(obj_t x)
     }
 }
 
-obj_t rf_read_parse_compile(obj_t x)
+obj_t ray_read_parse_compile(obj_t x)
 {
     // parser_t parser;
     // obj_t red, par, com;
@@ -964,7 +964,7 @@ obj_t rf_read_parse_compile(obj_t x)
     switch (x->type)
     {
     // case TYPE_CHAR:
-    //     red = rf_read(x);
+    //     red = ray_read(x);
     //     if (red->type == TYPE_ERROR)
     //         return red;
 
