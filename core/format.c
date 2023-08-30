@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <math.h>
 #include "string.h"
 #include "format.h"
 #include "rayforce.h"
@@ -189,7 +190,7 @@ i32_t f64_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, f64_t val
         return str_fmt_into(dst, len, offset, limit, "0f");
 
     // Find the order of magnitude of the number to select the appropriate format
-    order = __builtin_log10(val);
+    order = log10(val);
     if (val && (order > 6 || order < -4))
         return str_fmt_into(dst, len, offset, limit, "%.*e", 2 * F64_PRECISION, val);
 

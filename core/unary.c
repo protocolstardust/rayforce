@@ -422,7 +422,7 @@ obj_t rf_group(obj_t x)
 obj_t rf_sum(obj_t x)
 {
     i32_t i;
-    i64_t l, v, isum = 0, *xids = NULL, *xivals = NULL;
+    i64_t l = 0, v, isum = 0, *xids = NULL, *xivals = NULL;
     f64_t fsum = 0.0, *xfvals = NULL;
 
 dispatch:
