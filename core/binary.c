@@ -1402,11 +1402,32 @@ obj_t ray_like(obj_t x, obj_t y)
             e = as_list(x)[i];
             if (!e || e->type != TYPE_CHAR)
             {
+                res->len = i;
                 drop(res);
                 raise(ERR_TYPE, "like: unsupported types: %d %d", e->type, y->type);
             }
 
             as_bool(res)[i] = str_match(as_string(e), as_string(y));
+        }
+
+        return res;
+
+    case mtype2(TYPE_ANYMAP, TYPE_CHAR):
+        l = x->len;
+        res = vector_bool(l);
+        for (i = 0; i < l; i++)
+        {
+            e = at_idx(x, i);
+            if (!e || e->type != TYPE_CHAR)
+            {
+                res->len = i;
+                drop(res);
+                drop(e);
+                raise(ERR_TYPE, "like: unsupported types: %d %d", e->type, y->type);
+            }
+
+            as_bool(res)[i] = str_match(as_string(e), as_string(y));
+            drop(e);
         }
 
         return res;
