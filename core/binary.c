@@ -2989,7 +2989,7 @@ obj_t ray_vecmap(obj_t x, obj_t y)
 obj_t ray_listmap(obj_t x, obj_t y)
 {
     u64_t i, l;
-    obj_t res;
+    obj_t v, res;
 
     switch (x->type)
     {
@@ -2997,7 +2997,18 @@ obj_t ray_listmap(obj_t x, obj_t y)
         l = as_list(x)[1]->len;
         res = vector(TYPE_LIST, l);
         for (i = 0; i < l; i++)
-            as_list(res)[i] = ray_listmap(as_list(as_list(x)[1])[i], y);
+        {
+            v = as_list(as_list(x)[1])[i];
+            switch (v->type)
+            {
+            case TYPE_VECMAP:
+                as_list(res)[i] = ray_listmap(as_list(v)[0], y);
+                break;
+            default:
+                as_list(res)[i] = ray_listmap(v, y);
+                break;
+            }
+        }
 
         return table(clone(as_list(x)[0]), res);
 

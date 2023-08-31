@@ -508,13 +508,8 @@ dispatch:
         if (xids)
         {
             xfvals = as_f64(x);
-            // debug("----------------");
-            // debug_obj(x);
             for (i = 0; i < l; i++)
-            {
-                debug("xids[%lld]: %lld", i, xids[i]);
                 fsum += xfvals[xids[i]];
-            }
 
             return f64(fsum);
         }
@@ -529,12 +524,9 @@ dispatch:
     default:
         if (x->type == TYPE_VECMAP)
         {
-            debug("----------------");
-            debug_obj(as_list(x)[1]);
             xids = as_i64(as_list(x)[1]);
             l = as_list(x)[1]->len;
             x = as_list(x)[0];
-            debug("XT: %d", x->type);
             goto dispatch;
         }
 

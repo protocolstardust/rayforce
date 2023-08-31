@@ -192,7 +192,7 @@ i32_t f64_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, f64_t val
     // Find the order of magnitude of the number to select the appropriate format
     order = log10(val);
     if (val && (order > 6 || order < -4))
-        return str_fmt_into(dst, len, offset, limit, "%.*e", 2 * F64_PRECISION, val);
+        return str_fmt_into(dst, len, offset, limit, "%.*e", 3 * F64_PRECISION, val);
 
     return str_fmt_into(dst, len, offset, limit, "%.*f", F64_PRECISION, val);
 }
