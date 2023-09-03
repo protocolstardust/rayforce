@@ -84,9 +84,9 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "type",      TYPE_UNARY,    FN_NONE,           ray_type);
     regf(functions,  "til",       TYPE_UNARY,    FN_NONE,           ray_til);
     regf(functions,  "distinct",  TYPE_UNARY,    FN_NONE,           ray_distinct);
-    regf(functions,  "group",     TYPE_UNARY,    FN_NONE | FN_LAZY, ray_group);
-    regf(functions,  "sum",       TYPE_UNARY,    FN_NONE | FN_LAZY, ray_sum);
-    regf(functions,  "avg",       TYPE_UNARY,    FN_NONE | FN_LAZY, ray_avg);
+    regf(functions,  "group",     TYPE_UNARY,    FN_NONE,           ray_group);
+    regf(functions,  "sum",       TYPE_UNARY,    FN_ATOMIC,         ray_sum);
+    regf(functions,  "avg",       TYPE_UNARY,    FN_NONE,           ray_avg);
     regf(functions,  "min",       TYPE_UNARY,    FN_ATOMIC,         ray_min);
     regf(functions,  "max",       TYPE_UNARY,    FN_ATOMIC,         ray_max);
     regf(functions,  "count",     TYPE_UNARY,    FN_NONE,           ray_count);
@@ -115,7 +115,7 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "!=",        TYPE_BINARY,   FN_ATOMIC,         ray_ne);
     regf(functions,  "and",       TYPE_BINARY,   FN_ATOMIC,         ray_and);
     regf(functions,  "or",        TYPE_BINARY,   FN_ATOMIC,         ray_or);
-    regf(functions,  "+",         TYPE_BINARY,   FN_ATOMIC | FN_LAZY,         ray_add);
+    regf(functions,  "+",         TYPE_BINARY,   FN_ATOMIC,         ray_add);
     regf(functions,  "-",         TYPE_BINARY,   FN_ATOMIC,         ray_sub);
     regf(functions,  "*",         TYPE_BINARY,   FN_ATOMIC,         ray_mul);
     regf(functions,  "%",         TYPE_BINARY,   FN_ATOMIC,         ray_mod);
@@ -136,8 +136,6 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "xasc",      TYPE_BINARY,   FN_NONE,           ray_xasc);
     regf(functions,  "xdesc",     TYPE_BINARY,   FN_NONE,           ray_xdesc);
     regf(functions,  "enum",      TYPE_BINARY,   FN_NONE,           ray_enum);
-    regf(functions,  "vecmap",      TYPE_BINARY,   FN_NONE,         ray_vecmap);
-    regf(functions,  "listmap",      TYPE_BINARY,   FN_NONE,         ray_listmap);
     
     // Lambdas       
     // regf(function s, "env",        ray_env);

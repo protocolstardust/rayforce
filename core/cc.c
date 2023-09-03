@@ -564,7 +564,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         }
 
         push_opcode(cc, obj, code, OP_CALL1);
-        push_u8(code, FN_LAZY);
+        push_u8(code, 0);
         push_u64(code, ray_group);
 
         push_opcode(cc, obj, code, OP_DUP);
@@ -635,7 +635,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         push_u64(code, ray_list);
 
         push_opcode(cc, car, code, OP_CALL2);
-        push_u8(code, FN_LAZY);
+        push_u8(code, 0);
         push_u64(code, ray_table);
     }
     else

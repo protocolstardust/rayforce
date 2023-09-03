@@ -28,7 +28,6 @@
 #include "binary.h"
 #include "vary.h"
 #include "util.h"
-#include "util.h"
 #include "format.h"
 #include "hash.h"
 #include "fs.h"
@@ -36,7 +35,118 @@
 #include "ops.h"
 #include "ariph.c"
 
-// TODO: optimize getting items in case of lists to avoid alloc/drops of an nodes
+obj_t call_binary(binary_f f, obj_t x, obj_t y)
+{
+    u64_t i, l;
+    obj_t res, item, a, b;
+    type_t xt, yt;
+
+    xt = x->type;
+    yt = y->type;
+
+    if (xt == TYPE_LISTMAP && yt == TYPE_LISTMAP)
+    {
+        l = count(x);
+
+        if (l != count(y))
+            return error(ERR_LENGTH, "binary: vectors must be of the same length");
+
+        a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[0]);
+        b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[0]);
+
+        item = call_binary(f, a, b);
+
+        if (is_error(item))
+            return item;
+
+        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+
+        write_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[i]);
+            b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[i]);
+            item = call_binary(f, a, b);
+
+            if (is_error(item))
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
+
+            write_obj(&res, i, item);
+        }
+
+        return res;
+    }
+    else if (xt == TYPE_LISTMAP)
+    {
+        l = count(x);
+        a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[0]);
+
+        item = call_binary(f, a, y);
+
+        if (is_error(item))
+            return item;
+
+        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+
+        write_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[i]);
+            item = call_binary(f, a, y);
+
+            if (is_error(item))
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
+
+            write_obj(&res, i, item);
+        }
+
+        return res;
+    }
+    else if (yt == TYPE_LISTMAP)
+    {
+        l = count(y);
+        b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[0]);
+
+        item = call_binary(f, x, b);
+
+        if (is_error(item))
+            return item;
+
+        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+
+        write_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[i]);
+            item = call_binary(f, x, b);
+
+            if (is_error(item))
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
+
+            write_obj(&res, i, item);
+        }
+
+        return res;
+    }
+
+    return f(x, y);
+}
+
 obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
 {
     u64_t i, l;
@@ -104,6 +214,35 @@ obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
 
         return res;
 
+    case TYPE_LISTMAP:
+        l = count(x);
+        a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[0]);
+        item = ray_call_binary_left_atomic(f, a, y);
+
+        if (is_error(item))
+            return item;
+
+        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+
+        write_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[i]);
+            item = ray_call_binary_left_atomic(f, a, y);
+
+            if (is_error(item))
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
+
+            write_obj(&res, i, item);
+        }
+
+        return res;
+
     default:
         return f(x, y);
     }
@@ -151,7 +290,7 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
         item = ray_call_binary_right_atomic(f, x, b);
         drop(b);
 
-        if (item->type == TYPE_ERROR)
+        if (is_error(item))
             return item;
 
         res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
@@ -176,8 +315,37 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
 
         return res;
 
+    case TYPE_LISTMAP:
+        l = count(y);
+        b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[0]);
+        item = ray_call_binary_right_atomic(f, x, b);
+
+        if (is_error(item))
+            return item;
+
+        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+
+        write_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[i]);
+            item = ray_call_binary_right_atomic(f, x, b);
+
+            if (is_error(item))
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
+
+            write_obj(&res, i, item);
+        }
+
+        return res;
+
     default:
-        return f(x, y);
+        return call_binary(f, x, y);
     }
 }
 
@@ -309,12 +477,12 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         return res;
     }
 
-    return f(x, y);
+    return call_binary(f, x, y);
 }
 
 obj_t ray_call_binary(u8_t attrs, binary_f f, obj_t x, obj_t y)
 {
-    switch (attrs & FN_ATOMIC_MASK)
+    switch (attrs)
     {
     case FN_ATOMIC:
         return ray_call_binary_atomic(f, x, y);
@@ -323,7 +491,7 @@ obj_t ray_call_binary(u8_t attrs, binary_f f, obj_t x, obj_t y)
     case FN_RIGHT_ATOMIC:
         return ray_call_binary_right_atomic(f, x, y);
     default:
-        return f(x, y);
+        return call_binary(f, x, y);
     }
 }
 

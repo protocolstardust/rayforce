@@ -21,6 +21,9 @@
  *   SOFTWARE.
  */
 
+#include "util.h"
+#include "ops.h"
+
 obj_t ray_add(obj_t x, obj_t y)
 {
     u64_t i, l = 0;

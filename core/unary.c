@@ -43,15 +43,7 @@ obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
     u64_t i, l;
     obj_t res, item, vmap;
 
-    // If function is not lazy, i.e it does not support indexes types, then evaluate it first
-    if ((x->type == TYPE_VECMAP) && (attrs & FN_LAZY) != FN_LAZY)
-    {
-        x = ray_value(x);
-        res = f(x);
-        drop(x);
-        return res;
-    }
-    else if (x->type == TYPE_LISTMAP)
+    if (x->type == TYPE_LISTMAP)
     {
         l = as_list(x)[1]->len;
 
@@ -186,10 +178,13 @@ obj_t ray_call_unary(u8_t attrs, unary_f f, obj_t x)
     if (!x)
         return null(0);
 
-    if ((attrs & FN_ATOMIC) == FN_ATOMIC)
+    switch (attrs)
+    {
+    case FN_ATOMIC:
         return ray_call_unary_atomic(attrs, f, x);
-
-    return call_unary(attrs, f, x);
+    default:
+        return call_unary(attrs, f, x);
+    }
 }
 
 obj_t ray_get(obj_t x)
