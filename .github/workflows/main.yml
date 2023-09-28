@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - '*'
+      - 'v*.*'
 
 jobs:
   build:
@@ -15,11 +15,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install dependencies (Ubuntu)
+    - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
       run: sudo apt-get install -y build-essential
 
-    - name: Make (Ubuntu)
+    - name: Make (Linux)
       if: runner.os == 'Linux'
       run: make
 
@@ -29,27 +29,26 @@ jobs:
         choco install make mingw -y
         Invoke-WebRequest -Uri "https://github.com/jmeubank/tdm-gcc/releases/download/v10.3.0-tdm64-2/tdm64-gcc-10.3.0-2.exe" -OutFile "tdm-gcc-installer.exe"
         Start-Process "tdm-gcc-installer.exe" -ArgumentList "/S" -NoNewWindow -Wait
-        
 
     - name: Make (Windows)
       if: runner.os == 'Windows'
       run: mingw32-make.exe CC="gcc" release 
-
-    - name: Set artifact extension
-      id: artifact_ext
-      if: runner.os == 'Windows'
-      run: echo "::set-output name=ext::.exe"
-
-    - name: Set zip alias
-      if: runner.os == 'Windows'
-      run: Set-Alias -Name zip -Value "C:\Program Files\7-Zip\7z.exe"
-
-    - name: Create build directory and copy binary
+    
+    - name: Create build directory and copy binary (Linux)
+      if: runner.os == 'Linux'
       run: |
         mkdir build
-        cp ./rayforce${{ steps.artifact_ext.outputs.ext }} ./build/  
+        cp ./rayforce ./build/
         cd build
-        zip -r ../rayforce.zip .
+        zip -r ../rayforce.zip .  
+
+    - name: Create build directory and copy binary (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        mkdir build
+        cp ./rayforce.exe ./build/
+        cd build
+        7z -r ../rayforce.zip .
 
     - name: Create Release
       id: create_release
