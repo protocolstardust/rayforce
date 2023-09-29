@@ -47,7 +47,7 @@ jobs:
 
     - name: Make (Windows)
       if: runner.os == 'Windows'
-      run: mingw32-make.exe CC="${{ github.workspace }}/mingw/bin/gcc" release 
+      run: mingw32-make.exe CC="${{ github.workspace }}/mingw/mingw64/bin/gcc" release 
     
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
