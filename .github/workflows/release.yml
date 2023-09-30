@@ -27,7 +27,7 @@ jobs:
 
     - name: Make (Linux)
       if: runner.os == 'Linux'
-      run: make CC="gcc" release
+      run: make CC="gcc" RELEASE_CFLAGS="-fPIC -Wall -Wextra -std=c17 -Ofast -march=x86-64 -msse -msse2 -mavx -mavx2 -fassociative-math -ftree-vectorize -m64" release
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
@@ -54,15 +54,14 @@ jobs:
 
     - name: Make (macOS)
       if: runner.os == 'macOS'
-      run: make release
+      run: make RELEASE_CFLAGS="-fPIC -Wall -Wextra -std=c17 -Ofast -march=x86-64 -msse -msse2 -mavx -mavx2 -fassociative-math -ftree-vectorize -m64" release
 
     - name: Create build directory and copy binary (Linux)
       if: runner.os == 'Linux'
       run: |
         mkdir build
         cp ./rayforce ./build/
-        cd build
-        zip -r ../${{ matrix.os }}.zip .  
+        tar -cvpzf ../${{ matrix.os }}.tar.gz ./build
 
     - name: Create build directory and copy binary (Windows)
       if: runner.os == 'Windows'
@@ -78,14 +77,28 @@ jobs:
       run: |
         mkdir build
         cp ./rayforce ./build/
-        cd build
-        zip -r ../${{ matrix.os }}.zip .
+        tar -cvpzf ../${{ matrix.os }}.tar.gz ./build
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
+      if: runner.os == 'Linux'
+      with:
+        name: ${{ matrix.os }}.tar.gz
+        path: ${{ matrix.os }}.tar.gz
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      if: runner.os == 'Windows'
       with:
         name: ${{ matrix.os }}.zip
         path: ${{ matrix.os }}.zip
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      if: runner.os == 'macOS'
+      with:
+        name: ${{ matrix.os }}.tar.gz
+        path: ${{ matrix.os }}.tar.gz
   
   create-release:
     needs: build
@@ -112,9 +125,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.PAT }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/ubuntu-latest.zip/ubuntu-latest.zip
-        asset_name: linux.zip
-        asset_content_type: application/zip
+        asset_path: ${{ github.workspace }}/ubuntu-latest.zip/ubuntu-latest.tar.gz
+        asset_name: linux.tar.gz
+        asset_content_type: application/gzip
 
     - name: Upload Release Asset (Windows)
       uses: actions/upload-release-asset@v1
@@ -132,6 +145,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.PAT }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/macos-latest.zip/macos-latest.zip
-        asset_name: macos.zip
-        asset_content_type: application/zip
+        asset_path: ${{ github.workspace }}/macos-latest.zip/macos-latest.tar.gz
+        asset_name: macos.tar.gz
+        asset_content_type: application/gzip
