@@ -21,36 +21,21 @@
  *   SOFTWARE.
  */
 
-#ifndef RUNTIME_H
-#define RUNTIME_H
-
 #include "rayforce.h"
-#include "heap.h"
-#include "env.h"
-#include "parse.h"
-#include "vm.h"
-#include "poll.h"
-#include "sock.h"
 
-/*
- * Runtime structure.
- */
-typedef struct runtime_t
+typedef struct freelist_t
 {
-    u16_t slaves;       // Number of slave threads.
-    env_t env;          // Environment.
-    parser_t parser;    // Parser.
-    vm_t vm;            // Virtual machine.
-    poll_t poll;        // I/O event loop handle.
-    obj_t args;         // Command line arguments.
-    symbols_t *symbols; // vector_symbols pool.
-    sock_addr_t addr;   // Socket address that a process listen.
-} *runtime_t;
+    i64_t data_size;
+    i64_t data_pos;
+    i64_t *data;
+    i64_t free_size;
+    i64_t free_pos;
+    i64_t *free;
+} *freelist_t;
 
-extern nil_t runtime_init(i32_t argc, str_t argv[]);
-extern i32_t runtime_run();
-extern nil_t runtime_cleanup();
-extern runtime_t runtime_get();
-extern obj_t runtime_get_arg(str_t key);
+freelist_t freelist_new(i64_t data_size);
+nil_t freelist_free(freelist_t freelist);
 
-#endif
+i64_t freelist_push(freelist_t freelist, i64_t val);
+i64_t freelist_pop(freelist_t freelist, i64_t val);
+i64_t freelist_get(freelist_t freelist, i64_t idx);

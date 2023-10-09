@@ -33,6 +33,7 @@
 #include "serde.h"
 #include "format.h"
 #include "queue.h"
+#include "freelist.h"
 
 #define MAX_EVENTS 1024
 #define BUF_SIZE 2048
@@ -43,10 +44,14 @@
 #define MSG_TYPE_RESP 2
 
 #define TX_QUEUE_SIZE 16
+#define SELECTOR_ID_OFFSET 3 // shifts all selector ids by 2 to avoid 0, 1 ,2 ids (stdin, stdout, stderr)
 
-#define POLL_ERROR -1
-#define POLL_READY 0
-#define POLL_PENDING 1
+typedef enum poll_result_t
+{
+    POLL_DONE = 0,
+    POLL_PENDING = 1,
+    POLL_ERROR = 2,
+} poll_result_t;
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 
@@ -73,33 +78,33 @@ typedef struct ipc_data_t
         queue_t queue; // queue for async messages waiting to be sent
     } tx;
 
-    struct ipc_data_t *next;
 } *ipc_data_t;
 
 #else
-typedef struct ipc_data_t
+typedef struct selector_t
 {
-    i64_t fd;
-    u8_t msgtype;
+    i64_t fd; // socket fd
+    i64_t id; // selector id
+    u8_t version;
 
     struct
     {
-        u8_t version;
-        i64_t read_size;
+        i64_t bytes_transfered;
+        u8_t msgtype;
         i64_t size;
         u8_t *buf;
     } rx;
 
     struct
     {
-        i64_t write_size;
+        i64_t bytes_transfered;
+        u8_t msgtype;
         i64_t size;
         u8_t *buf;
         queue_t queue; // queue for async messages waiting to be sent
     } tx;
 
-    struct ipc_data_t *next;
-} *ipc_data_t;
+} *selector_t;
 
 #endif
 
@@ -107,23 +112,19 @@ typedef struct poll_t
 {
     i64_t poll_fd;
     i64_t ipc_fd;
-    ipc_data_t data;
+    freelist_t selectors; // freelist of selectors
 } *poll_t;
 
 nil_t prompt();
-nil_t del_data(ipc_data_t *head, i64_t fd);
-ipc_data_t add_data(ipc_data_t *head, i32_t fd, i32_t size);
-ipc_data_t find_data(ipc_data_t *head, i64_t fd);
-nil_t ipc_enqueue_msg(ipc_data_t data, obj_t obj, i8_t msg_type);
 
 poll_t poll_init(i64_t port);
-i64_t poll_recv(poll_t poll, ipc_data_t data, bool_t block);
-i64_t poll_send(poll_t poll, ipc_data_t data, bool_t block);
 nil_t poll_cleanup(poll_t poll);
-obj_t ipc_send_sync(poll_t poll, i64_t fd, obj_t obj);
-obj_t ipc_send_async(poll_t poll, i64_t fd, obj_t obj);
-i64_t poll_dispatch(poll_t poll);
-ipc_data_t poll_add(poll_t poll, i64_t fd);
-i64_t poll_del(poll_t poll, i64_t fd);
+i64_t poll_run(poll_t poll);
+i64_t poll_register(poll_t poll, i64_t fd, u8_t version);
+nil_t poll_deregister(poll_t poll, i64_t id);
+
+// send ipc messages
+obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg);
+obj_t ipc_send_async(poll_t poll, i64_t id, obj_t msg);
 
 #endif // POLL_H

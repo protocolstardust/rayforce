@@ -34,10 +34,9 @@
 obj_t ray_hopen(obj_t x)
 {
     i64_t fd;
-    u8_t handshake[2] = {0, RAYFORCE_VERSION};
-    ipc_data_t data;
     sock_addr_t addr;
     obj_t err;
+    u8_t handshake[2] = {0x00, RAYFORCE_VERSION};
 
     if (x->type != TYPE_CHAR)
         emit(ERR_TYPE, "hopen: expected char");
@@ -64,17 +63,13 @@ obj_t ray_hopen(obj_t x)
         return err;
     }
 
-    data = poll_add(runtime_get()->select, fd);
-    data->rx.version = handshake[1];
-
     sock_set_nonblocking(fd, true);
-
-    return i64(fd);
+    return i64(poll_register(runtime_get()->poll, fd, RAYFORCE_VERSION));
 }
 
 obj_t ray_hclose(obj_t x)
 {
-    sock_close(x->i64);
+    poll_deregister(runtime_get()->poll, x->i64);
 
     return null(0);
 }
@@ -137,9 +132,9 @@ obj_t ray_write(obj_t x, obj_t y)
 
         // send ipc msg
         if (x->i64 > 2)
-            return ipc_send_sync(runtime_get()->select, x->i64, y);
+            return ipc_send_sync(runtime_get()->poll, x->i64, y);
         else
-            return ipc_send_async(runtime_get()->select, -x->i64, y);
+            return ipc_send_async(runtime_get()->poll, -x->i64, y);
     }
 
     emit(ERR_NOT_IMPLEMENTED, "write: not implemented");

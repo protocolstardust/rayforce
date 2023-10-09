@@ -513,7 +513,7 @@ i64_t poll_recv_block(poll_t poll, ipc_data_t data)
         }
     }
 
-    return POLL_READY;
+    return POLL_DONE;
 }
 
 i64_t poll_recv_nonblock(poll_t poll, ipc_data_t data)
@@ -569,7 +569,7 @@ i64_t poll_recv_nonblock(poll_t poll, ipc_data_t data)
         return POLL_PENDING;
     }
 
-    return POLL_READY;
+    return POLL_DONE;
 }
 
 i64_t poll_recv(poll_t poll, ipc_data_t data, bool_t block)
@@ -636,7 +636,7 @@ send:
     data->tx.write_size = 0;
     data->tx.size = 0;
 
-    return POLL_READY;
+    return POLL_DONE;
 }
 
 i64_t poll_send_nonblock(poll_t poll, ipc_data_t data)
@@ -690,7 +690,7 @@ send:
     data->tx.write_size = 0;
     data->tx.size = 0;
 
-    return POLL_READY;
+    return POLL_DONE;
 }
 
 i64_t poll_send(poll_t poll, ipc_data_t data, bool_t block)

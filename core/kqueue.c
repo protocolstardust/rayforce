@@ -390,7 +390,7 @@ i64_t poll_recv(poll_t poll, ipc_data_t data, bool_t block)
         data->rx.read_size += size;
     }
 
-    return POLL_READY;
+    return POLL_DONE;
 }
 
 i64_t poll_send(poll_t poll, ipc_data_t data, bool_t block)
@@ -455,7 +455,7 @@ send:
     if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
         perror("epollctl");
 
-    return POLL_READY;
+    return POLL_DONE;
 }
 
 ipc_data_t add_data(ipc_data_t *head, i32_t fd, i32_t size)

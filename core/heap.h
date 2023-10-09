@@ -31,8 +31,8 @@
 #define MIN_ORDER       6                   // 2^6  = 64 bytes
 #define MAX_ORDER       25                  // 2^25 = 32MB
 #define MAX_POOL_ORDER  36                  // 2^36 = 64GB
-#define MIN_HEAP        (1ull << MIN_ORDER) // 64 bytes
-#define MAX_HEAP        (1ull << MAX_ORDER) // 32MB
+#define MIN__HEAP        (1ull << MIN_ORDER) // 64 bytes
+#define MAX__HEAP        (1ull << MAX_ORDER) // 32MB
 #define POOL_SIZE       (1ull << MAX_ORDER) // 32MB
 #define NUM_16_BLOCKS   1024 * 1024 * 32    // 32M blocks
 

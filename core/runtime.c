@@ -31,7 +31,7 @@
 #include "io.h"
 
 // Global runtime reference
-__thread runtime_t _RUNTIME = NULL;
+__thread runtime_t __RUNTIME = NULL;
 
 nil_t usage()
 {
@@ -86,20 +86,20 @@ nil_t runtime_init(i32_t argc, str_t argv[])
     str_t fmt;
 
     heap_init();
-    _RUNTIME = mmap_malloc(sizeof(struct runtime_t));
-    _RUNTIME->symbols = symbols_new();
-    _RUNTIME->env = create_env();
-    _RUNTIME->parser = parser_new();
-    _RUNTIME->vm = vm_new(NULL);
-    _RUNTIME->addr = (sock_addr_t){0};
-    _RUNTIME->slaves = 0;
+    __RUNTIME = mmap_malloc(sizeof(struct runtime_t));
+    __RUNTIME->symbols = symbols_new();
+    __RUNTIME->env = create_env();
+    __RUNTIME->parser = parser_new();
+    __RUNTIME->vm = vm_new(NULL);
+    __RUNTIME->addr = (sock_addr_t){0};
+    __RUNTIME->slaves = 0;
 
     if (argc)
     {
-        _RUNTIME->args = parse_cmdline(argc, argv);
-        i = find_sym(as_list(_RUNTIME->args)[0], "port");
-        if (i < (i64_t)as_list(_RUNTIME->args)[0]->len)
-            _RUNTIME->addr.port = atoi(as_string(as_list(as_list(_RUNTIME->args)[1])[i]));
+        __RUNTIME->args = parse_cmdline(argc, argv);
+        i = find_sym(as_list(__RUNTIME->args)[0], "port");
+        if (i < (i64_t)as_list(__RUNTIME->args)[0]->len)
+            __RUNTIME->addr.port = atoi(as_string(as_list(as_list(__RUNTIME->args)[1])[i]));
 
         // load file
         filename = runtime_get_arg("file");
@@ -122,43 +122,43 @@ nil_t runtime_init(i32_t argc, str_t argv[])
 
         drop(filename);
 
-        _RUNTIME->select = poll_init(_RUNTIME->addr.port);
+        __RUNTIME->poll = poll_init(__RUNTIME->addr.port);
     }
     else
     {
-        _RUNTIME->select = NULL;
+        __RUNTIME->poll = NULL;
     }
 }
 
 i32_t runtime_run()
 {
-    return poll_dispatch(_RUNTIME->select);
+    return poll_run(__RUNTIME->poll);
 }
 
 nil_t runtime_cleanup()
 {
-    drop(_RUNTIME->args);
-    if (_RUNTIME->select)
-        poll_cleanup(_RUNTIME->select);
-    symbols_free(_RUNTIME->symbols);
-    mmap_free(_RUNTIME->symbols, sizeof(symbols_t));
-    free_env(&_RUNTIME->env);
-    parser_free(&_RUNTIME->parser);
-    vm_free(&_RUNTIME->vm);
-    mmap_free(_RUNTIME, sizeof(struct runtime_t));
+    drop(__RUNTIME->args);
+    if (__RUNTIME->poll)
+        poll_cleanup(__RUNTIME->poll);
+    symbols_free(__RUNTIME->symbols);
+    mmap_free(__RUNTIME->symbols, sizeof(symbols_t));
+    free_env(&__RUNTIME->env);
+    parser_free(&__RUNTIME->parser);
+    vm_free(&__RUNTIME->vm);
+    mmap_free(__RUNTIME, sizeof(struct runtime_t));
     heap_cleanup();
-    _RUNTIME = NULL;
+    __RUNTIME = NULL;
 }
 
 runtime_t runtime_get()
 {
-    return _RUNTIME;
+    return __RUNTIME;
 }
 
 obj_t runtime_get_arg(str_t key)
 {
-    i64_t i = find_sym(as_list(_RUNTIME->args)[0], key);
-    if (i < (i64_t)as_list(_RUNTIME->args)[0]->len)
-        return at_idx(as_list(_RUNTIME->args)[1], i);
+    i64_t i = find_sym(as_list(__RUNTIME->args)[0], key);
+    if (i < (i64_t)as_list(__RUNTIME->args)[0]->len)
+        return at_idx(as_list(__RUNTIME->args)[1], i);
     return null(0);
 }
