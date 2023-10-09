@@ -55,30 +55,32 @@ typedef enum poll_result_t
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 
-typedef struct ipc_data_t
+typedef struct selector_t
 {
-    i64_t fd;
+    i64_t fd; // socket fd
+    i64_t id; // selector id
     u8_t msgtype;
+    u8_t version;
 
     struct
     {
-        u8_t version;
+        u8_t msgtype;
         OVERLAPPED overlapped;
-        i64_t read_size;
-        i64_t size;
-        u8_t *buf;
+        DWORD flags;
+        DWORD bytes_transfered;
+        WSABUF wsa_buf;
     } rx;
 
     struct
     {
         OVERLAPPED overlapped;
-        i64_t write_size;
-        i64_t size;
-        u8_t *buf;
+        DWORD flags;
+        DWORD bytes_transfered;
+        WSABUF wsa_buf;
         queue_t queue; // queue for async messages waiting to be sent
     } tx;
 
-} *ipc_data_t;
+} *selector_t;
 
 #else
 typedef struct selector_t
@@ -89,8 +91,8 @@ typedef struct selector_t
 
     struct
     {
-        i64_t bytes_transfered;
         u8_t msgtype;
+        i64_t bytes_transfered;
         i64_t size;
         u8_t *buf;
     } rx;
