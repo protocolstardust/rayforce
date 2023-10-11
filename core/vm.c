@@ -118,24 +118,25 @@ obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
-#define unwrap(x, y)                                                                        \
-    {                                                                                       \
-        obj_t _o = x, _v;                                                                   \
-        if (_o && _o->type == TYPE_ERROR)                                                   \
-        {                                                                                   \
-            if (!as_list(_o)[2])                                                            \
-            {                                                                               \
-                span_t span = nfo_get(&f->nfo, (i64_t)y);                                   \
-                *(span_t *)&as_list(_o)[2] = span;                                          \
-                as_list(_o)[3] = string_from_str(f->nfo.filename, strlen(f->nfo.filename)); \
-            }                                                                               \
-            while (vm->sp != vm->bp)                                                        \
-            {                                                                               \
-                _v = stack_pop();                                                           \
-                drop(_v);                                                                   \
-            }                                                                               \
-            return _o;                                                                      \
-        }                                                                                   \
+#define unwrap(x, y)                                                                            \
+    {                                                                                           \
+        obj_t _o = x, _v;                                                                       \
+        if (_o && _o->type == TYPE_ERROR)                                                       \
+        {                                                                                       \
+            if (!as_list(_o)[2])                                                                \
+            {                                                                                   \
+                span_t span = nfo_get(&f->nfo, (i64_t)y);                                       \
+                *(span_t *)&as_list(_o)[2] = span;                                              \
+                if (is_null(as_list(_o)[3]))                                                    \
+                    as_list(_o)[3] = string_from_str(f->nfo.filename, strlen(f->nfo.filename)); \
+            }                                                                                   \
+            while (vm->sp != vm->bp)                                                            \
+            {                                                                                   \
+                _v = stack_pop();                                                               \
+                drop(_v);                                                                       \
+            }                                                                                   \
+            return _o;                                                                          \
+        }                                                                                       \
     }
 
 #define load_u64(x, v)                                    \

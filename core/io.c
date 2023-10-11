@@ -118,7 +118,7 @@ obj_t ray_write(obj_t x, obj_t y)
             if (y->type == TYPE_CHAR)
                 return eval_str(0, "ipc", as_string(y));
             else
-                return eval_obj(0, "ipc", y);
+                return eval_obj(0, "ipc", clone(y));
         }
 
         // stdout || stderr

@@ -494,7 +494,7 @@ obj_t parse_symbol(parser_t *parser)
     do
     {
         pos++;
-    } while (is_alphanum(*pos) || is_op(*pos));
+    } while (*pos && (is_alphanum(*pos) || is_op(*pos)));
 
     id = intern_symbol(parser->current, pos - parser->current);
     res = i64(id);

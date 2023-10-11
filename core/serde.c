@@ -225,8 +225,9 @@ u64_t save_obj(u8_t *buf, u64_t len, obj_t obj)
     case TYPE_ERROR:
         buf[0] = (i8_t)as_list(obj)[0]->i64;
         buf++;
-        memcpy(buf, as_string(as_list(obj)[1]), as_list(obj)[1]->len + 1);
-        return sizeof(i8_t) + 1 + as_list(obj)[1]->len;
+        memcpy(buf, as_string(as_list(obj)[1]), as_list(obj)[1]->len);
+        buf[as_list(obj)[1]->len] = '\0';
+        return sizeof(i8_t) + as_list(obj)[1]->len + 1;
 
     default:
         return 0;
