@@ -153,6 +153,7 @@ i64_t poll_register(poll_t poll, i64_t fd, u8_t version)
     selector->id = id;
     selector->version = version;
     selector->fd = fd;
+    selector->tx.events = EPOLLIN | EPOLLERR | EPOLLHUP;
     selector->rx.buf = NULL;
     selector->rx.size = 0;
     selector->rx.bytes_transfered = 0;
@@ -284,10 +285,15 @@ send:
             return POLL_ERROR;
         else if (size == 0)
         {
-            ev.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP;
-            ev.data.ptr = selector;
-            if (epoll_ctl(poll->poll_fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
-                return POLL_ERROR;
+            // setup epoll for EPOLLOUT only if it's not already set
+            if ((selector->tx.events & EPOLLOUT) == 0)
+            {
+                selector->tx.events |= EPOLLOUT;
+                ev.events = selector->tx.events;
+                ev.data.ptr = selector;
+                if (epoll_ctl(poll->poll_fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
+                    return POLL_ERROR;
+            }
 
             return POLL_PENDING;
         }
@@ -316,10 +322,15 @@ send:
         goto send;
     }
 
-    ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
-    ev.data.ptr = selector;
-    if (epoll_ctl(poll->poll_fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
-        return POLL_ERROR;
+    // remove EPOLLOUT only if it's set
+    if ((selector->tx.events & EPOLLOUT) != 0)
+    {
+        selector->tx.events &= ~EPOLLOUT;
+        ev.events = selector->tx.events;
+        ev.data.ptr = selector;
+        if (epoll_ctl(poll->poll_fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
+            return POLL_ERROR;
+    }
 
     return POLL_DONE;
 }
