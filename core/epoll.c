@@ -327,7 +327,7 @@ send:
 i64_t poll_run(poll_t poll)
 {
     i64_t epoll_fd = poll->poll_fd, listen_fd = poll->ipc_fd,
-          n, nfds, len;
+          n, nfds, len, sock;
     obj_t res, v;
     str_t fmt;
     bool_t running = true;
@@ -364,7 +364,13 @@ i64_t poll_run(poll_t poll)
             }
             // accept new connections
             else if (ev.data.fd == listen_fd)
-                poll_register(poll, sock_accept(listen_fd), 0);
+            {
+                sock = sock_accept(listen_fd);
+                if (sock == -1)
+                    continue;
+
+                poll_register(poll, sock, 0);
+            }
             // shutdown
             else if (ev.data.fd == __EVENT_FD)
                 running = false;
@@ -399,7 +405,11 @@ i64_t poll_run(poll_t poll)
                     selector->rx.bytes_transfered = 0;
                     selector->rx.size = 0;
 
-                    if (res->type == TYPE_CHAR)
+                    if (is_error(res))
+                    {
+                        v = res;
+                    }
+                    else if (res->type == TYPE_CHAR)
                     {
                         v = eval_str(0, "ipc", as_string(res));
                         drop(res);
