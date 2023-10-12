@@ -218,8 +218,13 @@ i32_t ts_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, i64_t val)
         return str_fmt_into(dst, len, offset, limit, "0t");
 
     timestamp_t ts = ray_timestamp_from_i64(val);
-    i32_t n = str_fmt_into(dst, len, offset, limit, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d",
-                           ts.year, ts.month, ts.day, ts.hours, ts.mins, ts.secs, ts.nanos);
+    i32_t n;
+
+    if (!ts.hours && !ts.mins && !ts.secs && !ts.nanos)
+        n = str_fmt_into(dst, len, offset, limit, "%.4d.%.2d.%.2d", ts.year, ts.month, ts.day);
+    else
+        n = str_fmt_into(dst, len, offset, limit, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d",
+                         ts.year, ts.month, ts.day, ts.hours, ts.mins, ts.secs, ts.nanos);
 
     if (n > limit)
         n += str_fmt_into(dst, len, offset, 3, "..");

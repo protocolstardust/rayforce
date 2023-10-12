@@ -181,7 +181,16 @@ obj_t parse_timestamp(parser_t *parser)
     {
         ts.month = (*current - '0') * 10 +
                    (*(current + 1) - '0');
+
         current += 2;
+
+        if (ts.month > 12)
+        {
+            span.start_column = current - parser->current - 2;
+            span.end_column += current - parser->current - 1;
+            nfo_insert(&parser->nfo, parser->count, span);
+            return parse_error(parser, parser->count++, str_fmt(0, "Month is out of range"));
+        }
     }
     else
         return null(0);
@@ -198,14 +207,31 @@ obj_t parse_timestamp(parser_t *parser)
     {
         ts.day = (*current - '0') * 10 +
                  (*(current + 1) - '0');
+
         current += 2;
+
+        if (ts.day > 31)
+        {
+            span.start_column = current - parser->current - 2;
+            span.end_column += current - parser->current - 1;
+            nfo_insert(&parser->nfo, parser->count, span);
+            return parse_error(parser, parser->count++, str_fmt(0, "Day is out of range"));
+        }
     }
     else
         return null(0);
 
-    // skip D
+    // just date passed
     if (*current != 'D')
-        return null(0);
+    {
+        shift(parser, current - parser->current);
+        res = timestamp(ray_timestamp_into_i64(ts));
+
+        span_extend(parser, &span);
+        nfo_insert(&parser->nfo, (i64_t)res, span);
+
+        return res;
+    }
 
     current++;
 
@@ -215,7 +241,16 @@ obj_t parse_timestamp(parser_t *parser)
     {
         ts.hours = (*current - '0') * 10 +
                    (*(current + 1) - '0');
+
         current += 2;
+
+        if (ts.hours > 23)
+        {
+            span.start_column = current - parser->current - 2;
+            span.end_column += current - parser->current - 1;
+            nfo_insert(&parser->nfo, parser->count, span);
+            return parse_error(parser, parser->count++, str_fmt(0, "Hour is out of range"));
+        }
     }
     else
         return null(0);
@@ -232,7 +267,16 @@ obj_t parse_timestamp(parser_t *parser)
     {
         ts.mins = (*current - '0') * 10 +
                   (*(current + 1) - '0');
+
         current += 2;
+
+        if (ts.mins > 59)
+        {
+            span.start_column = current - parser->current - 2;
+            span.end_column += current - parser->current - 1;
+            nfo_insert(&parser->nfo, parser->count, span);
+            return parse_error(parser, parser->count++, str_fmt(0, "Minute is out of range"));
+        }
     }
     else
         return null(0);
@@ -249,7 +293,16 @@ obj_t parse_timestamp(parser_t *parser)
     {
         ts.secs = (*current - '0') * 10 +
                   (*(current + 1) - '0');
+
         current += 2;
+
+        if (ts.secs > 59)
+        {
+            span.start_column = current - parser->current - 2;
+            span.end_column += current - parser->current - 1;
+            nfo_insert(&parser->nfo, parser->count, span);
+            return parse_error(parser, parser->count++, str_fmt(0, "Second is out of range"));
+        }
     }
     else
         return null(0);
