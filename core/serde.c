@@ -119,6 +119,10 @@ u64_t save_obj(u8_t *buf, u64_t len, obj_t obj)
         memcpy(buf, &obj->i64, sizeof(i64_t));
         return sizeof(type_t) + sizeof(i64_t);
 
+    case -TYPE_F64:
+        memcpy(buf, &obj->f64, sizeof(f64_t));
+        return sizeof(type_t) + sizeof(f64_t);
+
     case -TYPE_SYMBOL:
         s = symtostr(obj->i64);
         return sizeof(type_t) + str_cpy((str_t)buf, s) + 1;
@@ -316,6 +320,12 @@ obj_t load_obj(u8_t **buf, u64_t len)
         memcpy(&obj->i64, *buf, sizeof(i64_t));
         *buf += sizeof(i64_t);
         obj->type = type;
+        return obj;
+
+    case -TYPE_F64:
+        obj = f64(0);
+        memcpy(&obj->f64, *buf, sizeof(f64_t));
+        *buf += sizeof(f64_t);
         return obj;
 
     case -TYPE_SYMBOL:
