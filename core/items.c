@@ -580,6 +580,7 @@ obj_t ray_filter(obj_t x, obj_t y)
 
 obj_t ray_take(obj_t x, obj_t y)
 {
+    i64_t *idxs;
     u64_t i, l, m, n;
     obj_t k, s, v, res;
     u8_t *buf;
@@ -850,6 +851,19 @@ obj_t ray_take(obj_t x, obj_t y)
 
         return table(clone(as_list(y)[0]), res);
 
+    case mtype2(-TYPE_I64, TYPE_VECMAP):
+        idxs = as_i64(as_list(y)[1]); // idxs
+        l = as_list(y)[1]->len;       // idxs len
+        v = as_list(y)[0];            // vals
+        n = x->i64;                   // take count
+
+        res = vector(v->type, n);
+
+        for (i = 0; i < n; i++)
+            ins_obj(&res, i, at_idx(v, idxs[i % l]));
+
+        return res;
+
     default:
         emit(ERR_TYPE, "take: unsupported types: %d %d", x->type, y->type);
     }
@@ -1001,7 +1015,7 @@ obj_t ray_key(obj_t x)
 obj_t ray_value(obj_t x)
 {
     obj_t sym, k, v, res, e;
-    i64_t i, sl, xl, *ids;
+    i64_t i, l, sl, xl, *ids;
     u8_t *buf;
 
     switch (x->type)
@@ -1078,6 +1092,21 @@ obj_t ray_value(obj_t x)
         return res;
 
     case TYPE_TABLE:
+        l = as_list(x)[1]->len;
+        v = vector(TYPE_LIST, l);
+        for (i = 0; i < l; i++)
+        {
+            res = ray_value(as_list(as_list(x)[1])[i]);
+            if (is_error(res))
+            {
+                drop(v);
+                return res;
+            }
+
+            as_list(v)[i] = res;
+        }
+        return table(clone(as_list(x)[0]), v);
+
     case TYPE_DICT:
         return clone(as_list(x)[1]);
 
