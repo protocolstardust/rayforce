@@ -673,6 +673,16 @@ obj_t pop_obj(obj_t *obj)
     }
 }
 
+obj_t remove_idx(obj_t *obj, i64_t idx)
+{
+    return *obj;
+}
+
+obj_t remove_obj(obj_t *obj, obj_t idx)
+{
+    return *obj;
+}
+
 bool_t is_null(obj_t obj)
 {
     return (obj == NULL) ||
@@ -933,6 +943,7 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     u32_t rc;
     u64_t i, l;
     u16_t slaves = runtime_get()->slaves;
+    obj_t id, k;
 
     if (slaves)
         rc = __atomic_sub_fetch(&((obj)->rc), 1, __ATOMIC_RELAXED);
@@ -997,7 +1008,19 @@ nil_t __attribute__((hot)) drop(obj_t obj)
         return;
     default:
         if (is_external_simple(obj))
+        {
             mmap_free(obj, size_of(obj));
+            id = i64((i64_t)obj);
+            k = at_obj(runtime_get()->fds, id);
+            if (!is_null(k))
+            {
+                fs_fclose(k->i64);
+                drop(k);
+                set_obj(&runtime_get()->fds, id, null(TYPE_I64));
+            }
+
+            drop(id);
+        }
         else
             heap_free(obj);
     }
@@ -1018,11 +1041,33 @@ nil_t dropn(u64_t n, ...)
 
 obj_t cow(obj_t obj)
 {
-    // i64_t i, l;
-    // obj_t new = NULL;
+    obj_t id, fd, res;
+
+    if (!is_internal(obj))
+    {
+        id = i64((i64_t)obj);
+        fd = at_obj(runtime_get()->fds, id);
+        if (is_null(fd))
+        {
+            printf("cow: invalid fd");
+            exit(1);
+        }
+
+        res = mmap_file(fd->i64, size_of(obj));
+        res->rc = 1;
+        drop(id);
+        id = i64((i64_t)res);
+
+        // insert fd into runtime fds
+        set_obj(&runtime_get()->fds, id, fd);
+
+        drop(id);
+
+        return res;
+    }
 
     // TODO: implement copy on write
-    return obj;
+    return clone(obj);
 }
 
 u32_t rc(obj_t obj)

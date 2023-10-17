@@ -93,6 +93,7 @@ nil_t runtime_init(i32_t argc, str_t argv[])
     __RUNTIME->vm = vm_new(NULL);
     __RUNTIME->addr = (sock_addr_t){0};
     __RUNTIME->slaves = 0;
+    __RUNTIME->fds = dict(vector_i64(0), vector_i64(0));
 
     if (argc)
     {
@@ -143,6 +144,7 @@ nil_t runtime_cleanup()
     symbols_free(__RUNTIME->symbols);
     mmap_free(__RUNTIME->symbols, sizeof(symbols_t));
     free_env(&__RUNTIME->env);
+    drop(__RUNTIME->fds);
     parser_free(&__RUNTIME->parser);
     vm_free(&__RUNTIME->vm);
     mmap_free(__RUNTIME, sizeof(struct runtime_t));

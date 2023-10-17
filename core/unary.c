@@ -193,7 +193,7 @@ obj_t ray_call_unary(u8_t attrs, unary_f f, obj_t x)
 obj_t ray_get(obj_t x)
 {
     i64_t fd;
-    obj_t res, col, keys, vals, val, s, v;
+    obj_t res, col, keys, vals, val, s, v, id;
     u64_t i, l, size;
 
     switch (x->type)
@@ -291,13 +291,20 @@ obj_t ray_get(obj_t x)
             }
 
             res = (obj_t)mmap_file(fd, size);
-            fs_fclose(fd);
 
             if (is_external_serialized(res))
             {
                 v = de_raw((u8_t *)res, size);
                 mmap_free(res, size);
+                fs_fclose(fd);
                 return v;
+            }
+            else
+            {
+                // insert fd into runtime fds
+                id = i64((i64_t)res);
+                set_obj(&runtime_get()->fds, id, i64(fd));
+                drop(id);
             }
 
             if (is_external_compound(res))

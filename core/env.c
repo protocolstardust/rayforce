@@ -40,6 +40,7 @@
 #include "order.h"
 #include "misc.h"
 #include "io.h"
+#include "amend.h"
 
 #define regf(r, n, t, f, o)                      \
     {                                            \
@@ -159,6 +160,9 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "println",   TYPE_VARY,     FN_NONE,           ray_println);
     regf(functions,  "map",       TYPE_VARY,     FN_NONE,           ray_map_vary);
     regf(functions,  "args",      TYPE_VARY,     FN_NONE,           ray_args);
+    regf(functions,  "amend",     TYPE_VARY,     FN_NONE,           ray_amend);
+    regf(functions,  "dmend",     TYPE_VARY,     FN_NONE,           ray_dmend);
+    regf(functions,  "csv",       TYPE_VARY,     FN_NONE,           ray_csv);
 }    
     
 nil_t init_typenames(obj_t typenames)    

@@ -139,3 +139,48 @@ obj_t ray_write(obj_t x, obj_t y)
 
     emit(ERR_NOT_IMPLEMENTED, "write: not implemented");
 }
+
+obj_t ray_csv(obj_t *x, i64_t n)
+{
+    i64_t i, l, fd, size;
+    obj_t types, res;
+
+    switch (n)
+    {
+    case 2:
+        // expect vector of types as 1st arg:
+        if (x[0]->type != TYPE_SYMBOL)
+            emit(ERR_TYPE, "csv: expected vector of types as 1st argument, got: %d", x[0]->type);
+
+        // check that all symbols are valid typenames and convert them to types
+        l = x[0]->len;
+        types = vector(TYPE_BYTE, l);
+        // for (i = 0; i < l; i++)
+        // {
+        //     if (x[0]->data[i].type != TYPE_SYMBOL)
+        //         emit(ERR_TYPE, "csv: expected vector of types as 1st argument, got: %d", x[0]->data[i].type);
+
+        //     if (x[0]->data[i].i64 < 0 || x[0]->data[i].i64 >= TYPE_MAX)
+        //         emit(ERR_TYPE, "csv: invalid type: %d", x[0]->data[i].i64);
+        // }
+
+        // fd = fs_fopen(as_string(x), ATTR_RDWR);
+
+        // if (fd == -1)
+        //     return sys_error(ERROR_TYPE_SYS, as_string(x));
+
+        // size = fs_fsize(fd);
+
+        // if (size < sizeof(struct obj_t))
+        // {
+        //     fs_fclose(fd);
+        //     emit(ERR_LENGTH, "get: file '%s': invalid size: %d", as_string(x), size);
+        // }
+
+        // res = (obj_t)mmap_file(fd, size);
+        // return csv_read(as_string(x[0]));
+        emit(ERR_NOT_IMPLEMENTED, "csv: not implemented");
+    default:
+        emit(ERR_LENGTH, "csv: expected 1 or 2 arguments, got %d", n);
+    }
+}

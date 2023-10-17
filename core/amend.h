@@ -21,37 +21,12 @@
  *   SOFTWARE.
  */
 
-#ifndef RUNTIME_H
-#define RUNTIME_H
+#ifndef AMEND_H
+#define AMEND_H
 
 #include "rayforce.h"
-#include "heap.h"
-#include "env.h"
-#include "parse.h"
-#include "vm.h"
-#include "poll.h"
-#include "sock.h"
 
-/*
- * Runtime structure.
- */
-typedef struct runtime_t
-{
-    u16_t slaves;       // Number of slave threads.
-    env_t env;          // Environment.
-    parser_t parser;    // Parser.
-    vm_t vm;            // Virtual machine.
-    poll_t poll;        // I/O event loop handle.
-    obj_t args;         // Command line arguments.
-    symbols_t *symbols; // vector_symbols pool.
-    sock_addr_t addr;   // Socket address that a process listen.
-    obj_t fds;          // File descriptors.
-} *runtime_t;
+obj_t ray_amend(obj_t *x, u64_t n);
+obj_t ray_dmend(obj_t *x, u64_t n);
 
-extern nil_t runtime_init(i32_t argc, str_t argv[]);
-extern i32_t runtime_run();
-extern nil_t runtime_cleanup();
-extern runtime_t runtime_get();
-extern obj_t runtime_get_arg(str_t key);
-
-#endif
+#endif // AMEND_H

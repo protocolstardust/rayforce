@@ -21,37 +21,24 @@
  *   SOFTWARE.
  */
 
-#ifndef RUNTIME_H
-#define RUNTIME_H
-
-#include "rayforce.h"
+#include "amend.h"
 #include "heap.h"
-#include "env.h"
-#include "parse.h"
-#include "vm.h"
-#include "poll.h"
-#include "sock.h"
+#include "util.h"
 
-/*
- * Runtime structure.
- */
-typedef struct runtime_t
+obj_t ray_amend(obj_t *x, u64_t n)
 {
-    u16_t slaves;       // Number of slave threads.
-    env_t env;          // Environment.
-    parser_t parser;    // Parser.
-    vm_t vm;            // Virtual machine.
-    poll_t poll;        // I/O event loop handle.
-    obj_t args;         // Command line arguments.
-    symbols_t *symbols; // vector_symbols pool.
-    sock_addr_t addr;   // Socket address that a process listen.
-    obj_t fds;          // File descriptors.
-} *runtime_t;
+    obj_t obj;
 
-extern nil_t runtime_init(i32_t argc, str_t argv[]);
-extern i32_t runtime_run();
-extern nil_t runtime_cleanup();
-extern runtime_t runtime_get();
-extern obj_t runtime_get_arg(str_t key);
+    if (n != 4)
+        emit(ERR_LENGTH, "amend");
 
-#endif
+    obj = cow(x[0]);
+    obj = set_obj(&obj, x[1], clone(x[3]));
+
+    return obj;
+}
+
+obj_t ray_dmend(obj_t *x, u64_t n)
+{
+    emit(ERR_NOT_IMPLEMENTED, "ray_dmend");
+}

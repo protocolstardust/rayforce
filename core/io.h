@@ -30,5 +30,6 @@ obj_t ray_hopen(obj_t x);
 obj_t ray_hclose(obj_t x);
 obj_t ray_read(obj_t x);
 obj_t ray_write(obj_t x, obj_t y);
+obj_t ray_csv(obj_t *x, i64_t n);
 
 #endif // IO_H
