@@ -40,5 +40,8 @@ obj_t ray_amend(obj_t *x, u64_t n)
 
 obj_t ray_dmend(obj_t *x, u64_t n)
 {
+    unused(x);
+    unused(n);
+
     emit(ERR_NOT_IMPLEMENTED, "ray_dmend");
 }

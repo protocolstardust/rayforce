@@ -675,11 +675,15 @@ obj_t pop_obj(obj_t *obj)
 
 obj_t remove_idx(obj_t *obj, i64_t idx)
 {
+    unused(idx);
+
     return *obj;
 }
 
 obj_t remove_obj(obj_t *obj, obj_t idx)
 {
+    unused(idx);
+
     return *obj;
 }
 

@@ -21,6 +21,8 @@
  *   SOFTWARE.
  */
 
+#include <errno.h>
+#include <limits.h>
 #include "io.h"
 #include "fs.h"
 #include "util.h"
@@ -140,10 +142,138 @@ obj_t ray_write(obj_t x, obj_t y)
     emit(ERR_NOT_IMPLEMENTED, "write: not implemented");
 }
 
+obj_t parse_csv_field(type_t type, str_t start, str_t end, i64_t row, obj_t out)
+{
+    i64_t inum;
+    f64_t fnum;
+
+    switch (type)
+    {
+    case TYPE_I64:
+        if (start == NULL || end == NULL)
+        {
+            as_i64(out)[row] = NULL_I64;
+            break;
+        }
+        inum = strtoll(start, &end, 10);
+        if ((inum == LONG_MAX || inum == LONG_MIN) && errno == ERANGE)
+            as_i64(out)[row] = NULL_I64;
+        else
+            as_i64(out)[row] = inum;
+        break;
+        // TODO: parse timestamp literals
+    case TYPE_TIMESTAMP:
+        if (start == NULL || end == NULL)
+        {
+            as_timestamp(out)[row] = NULL_I64;
+            break;
+        }
+        inum = strtoll(start, &end, 10);
+        if ((inum == LONG_MAX || inum == LONG_MIN) && errno == ERANGE)
+            as_timestamp(out)[row] = NULL_I64;
+        else
+            as_timestamp(out)[row] = inum;
+        break;
+    case TYPE_F64:
+        if (start == NULL || end == NULL)
+        {
+            as_f64(out)[row] = NULL_F64;
+            break;
+        }
+        fnum = strtod(start, &end);
+        if (errno == ERANGE)
+            as_f64(out)[row] = NULL_F64;
+        else
+            as_f64(out)[row] = fnum;
+        break;
+    case TYPE_SYMBOL:
+        if (start == NULL || end == NULL)
+        {
+            as_symbol(out)[row] = NULL_I64;
+            break;
+        }
+        as_symbol(out)[row] = intern_symbol(start, end - start);
+        break;
+    case TYPE_CHAR:
+        as_list(out)[row] = string_from_str(start, end - start);
+        break;
+    default:
+        emit(ERR_TYPE, "csv: unsupported type: %d", type);
+    }
+
+    return null(0);
+}
+
+obj_t parse_csv_line(type_t types[], i64_t cnt, str_t start, str_t end, i64_t row, obj_t cols)
+{
+    i64_t i, len;
+    str_t prev, pos;
+    obj_t res;
+
+    for (i = 0, pos = start; i < cnt; i++)
+    {
+        if (pos == NULL || end == NULL)
+        {
+            res = parse_csv_field(types[i], NULL, NULL, row, as_list(cols)[i]);
+
+            if (!is_null(res))
+                return res;
+
+            continue;
+        }
+
+        len = end - pos;
+        prev = pos;
+
+        // quoted field?
+        if (len > 0 && *prev == '"')
+        {
+            prev++;
+            pos = memchr(prev, '"', len - 1);
+
+            if (pos == NULL)
+                emit(ERR_LENGTH, "csv: invalid field: %s", prev);
+
+            res = parse_csv_field(types[i], prev, pos, row, as_list(cols)[i]);
+            pos += 2; // skip quote and comma
+
+            if (!is_null(res))
+                return res;
+
+            continue;
+        }
+
+        if (len == 0)
+        {
+            res = parse_csv_field(types[i], NULL, NULL, row, as_list(cols)[i]);
+
+            if (!is_null(res))
+                return res;
+
+            continue;
+        }
+
+        pos = memchr(pos, ',', len);
+        if (pos == NULL)
+            pos = end;
+
+        res = parse_csv_field(types[i], prev, pos, row, as_list(cols)[i]);
+
+        if (!is_null(res))
+            return res;
+
+        pos++;
+    }
+
+    return null(0);
+}
+
 obj_t ray_csv(obj_t *x, i64_t n)
 {
-    i64_t i, l, fd, size;
-    obj_t types, res;
+    i64_t i, j, l, fd, len, lines, size;
+    str_t buf, prev, pos, line;
+    obj_t types, names, cols, res;
+    type_t type;
 
     switch (n)
     {
@@ -152,34 +282,138 @@ obj_t ray_csv(obj_t *x, i64_t n)
         if (x[0]->type != TYPE_SYMBOL)
             emit(ERR_TYPE, "csv: expected vector of types as 1st argument, got: %d", x[0]->type);
 
+        // expect string as 2nd arg:
+        if (x[1]->type != TYPE_CHAR)
+            emit(ERR_TYPE, "csv: expected string as 2nd argument, got: %d", x[1]->type);
+
         // check that all symbols are valid typenames and convert them to types
         l = x[0]->len;
-        types = vector(TYPE_BYTE, l);
-        // for (i = 0; i < l; i++)
-        // {
-        //     if (x[0]->data[i].type != TYPE_SYMBOL)
-        //         emit(ERR_TYPE, "csv: expected vector of types as 1st argument, got: %d", x[0]->data[i].type);
+        types = string(l);
+        for (i = 0; i < l; i++)
+        {
+            type = env_get_type_by_typename(&runtime_get()->env, as_symbol(x[0])[i]);
+            if (type == TYPE_ERROR)
+            {
+                drop(types);
+                emit(ERR_TYPE, "csv: invalid type: %s", symtostr(as_symbol(x[0])[i]));
+            }
 
-        //     if (x[0]->data[i].i64 < 0 || x[0]->data[i].i64 >= TYPE_MAX)
-        //         emit(ERR_TYPE, "csv: invalid type: %d", x[0]->data[i].i64);
-        // }
+            if (type < 0)
+                type = -type;
 
-        // fd = fs_fopen(as_string(x), ATTR_RDWR);
+            as_string(types)[i] = type;
+        }
 
-        // if (fd == -1)
-        //     return sys_error(ERROR_TYPE_SYS, as_string(x));
+        fd = fs_fopen(as_string(x[1]), ATTR_RDONLY);
 
-        // size = fs_fsize(fd);
+        if (fd == -1)
+        {
+            drop(types);
+            return sys_error(ERROR_TYPE_SYS, as_string(x[1]));
+        }
 
-        // if (size < sizeof(struct obj_t))
-        // {
-        //     fs_fclose(fd);
-        //     emit(ERR_LENGTH, "get: file '%s': invalid size: %d", as_string(x), size);
-        // }
+        size = fs_fsize(fd);
 
-        // res = (obj_t)mmap_file(fd, size);
-        // return csv_read(as_string(x[0]));
-        emit(ERR_NOT_IMPLEMENTED, "csv: not implemented");
+        if (size == -1)
+        {
+            drop(types);
+            fs_fclose(fd);
+            emit(ERR_LENGTH, "get: file '%s': invalid size: %d", as_string(x[1]), size);
+        }
+
+        buf = (str_t)mmap_file(fd, size);
+
+        if (buf == NULL)
+        {
+            drop(types);
+            fs_fclose(fd);
+            emit(ERR_IO, "csv: mmap failed");
+        }
+
+        pos = buf;
+        lines = 0;
+
+        while ((pos = memchr(pos, '\n', buf + size - pos)))
+        {
+            ++lines;
+            ++pos; // Move past the newline character
+        }
+
+        if (lines == 0)
+        {
+            drop(types);
+            fs_fclose(fd);
+            mmap_free(buf, size);
+            emit(ERR_LENGTH, "csv: file '%s': invalid size: %d", as_string(x[1]), size);
+        }
+
+        // Adjust for the file not ending with a newline
+        if (size > 0 && buf[size - 1] != '\n')
+            ++lines;
+
+        // parse header
+        pos = memchr(buf, '\n', size);
+        len = pos - buf;
+        line = pos + 1;
+
+        names = vector_symbol(l);
+        pos = buf;
+        for (i = 0; i < l; i++)
+        {
+            prev = pos;
+            pos = memchr(pos, ',', len);
+            if (pos == NULL)
+                pos = prev + len;
+            as_symbol(names)[i] = intern_symbol(prev, pos - prev);
+            pos++;
+            len -= (pos - prev);
+        }
+
+        if (i != l)
+        {
+            drop(types);
+            drop(names);
+            fs_fclose(fd);
+            mmap_free(buf, size);
+            emit(ERR_LENGTH, "csv: file '%s': invalid header (number of fields is less then csv contains)", as_string(x[1]));
+        }
+
+        // exclude header
+        lines--;
+
+        // allocate columns
+        cols = vector(TYPE_LIST, l);
+        for (i = 0; i < l; i++)
+        {
+            if (as_string(types)[i] == TYPE_CHAR)
+                as_list(cols)[i] = vector(TYPE_LIST, lines);
+            else
+                as_list(cols)[i] = vector(as_string(types)[i], lines);
+        }
+
+        // parse lines
+        for (j = 0, prev = line; j < lines; j++)
+        {
+            line = memchr(prev, '\n', size);
+            res = parse_csv_line((type_t *)as_string(types), l, prev, line, j, cols);
+            if (!is_null(res))
+            {
+                drop(types);
+                drop(names);
+                drop(cols);
+                fs_fclose(fd);
+                mmap_free(buf, size);
+                return res;
+            }
+            size -= ((++line) - prev);
+            prev = line;
+        }
+
+        drop(types);
+        fs_fclose(fd);
+        mmap_free(buf, size);
+
+        return table(names, cols);
     default:
         emit(ERR_LENGTH, "csv: expected 1 or 2 arguments, got %d", n);
     }
