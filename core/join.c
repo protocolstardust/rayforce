@@ -100,7 +100,7 @@ u64_t hash_row(i64_t row, nil_t *seed)
 
     for (i = 0; i < n; i++)
     {
-        val = as_u64(as_list(cols)[i], row) * 2654435761 % (1ll << 32);
+        val = (as_u64(as_list(cols)[i], row) * 2654435761ll) & 0xFFFFFFFF;
         res ^= val;
     }
 
