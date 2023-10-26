@@ -45,12 +45,12 @@ obj_t lj_column(obj_t left_col, obj_t right_col, i64_t ids[])
     if (is_null(right_col))
         return clone(left_col);
 
-    l = right_col->len;
+    l = left_col->len;
 
     if ((!is_null(left_col)) && (right_col->type != left_col->type))
         emit(ERR_TYPE, "join_column: incompatible types");
 
-    res = vector(right_col->type, l);
+    res = vector(left_col->type, l);
 
     for (i = 0; i < l; i++)
     {
@@ -126,7 +126,7 @@ i32_t cmp_row(i64_t row1, i64_t row2, nil_t *seed)
 
 obj_t build_idx(obj_t lcols, obj_t rcols)
 {
-    u64_t i, l;
+    u64_t i, ll, rl;
     obj_t ht, res;
     i64_t idx;
     lj_ctx_t ctx;
@@ -134,20 +134,21 @@ obj_t build_idx(obj_t lcols, obj_t rcols)
     switch (lcols->type)
     {
     case TYPE_LIST:
-        l = as_list(rcols)[0]->len;
-        ht = ht_tab(l, -1);
+        ll = as_list(lcols)[0]->len;
+        rl = as_list(rcols)[0]->len;
+        ht = ht_tab(maxi64(ll, rl), -1);
 
         ctx = (lj_ctx_t){rcols, rcols};
-        for (i = 0; i < l; i++)
+        for (i = 0; i < rl; i++)
         {
             idx = ht_tab_next_with(&ht, i, &hash_row, &cmp_row, &ctx);
             if (as_i64(as_list(ht)[0])[idx] == NULL_I64)
                 as_i64(as_list(ht)[0])[idx] = i;
         }
 
-        res = vector(TYPE_I64, l);
+        res = vector(TYPE_I64, ll);
         ctx = (lj_ctx_t){rcols, lcols};
-        for (i = 0; i < l; i++)
+        for (i = 0; i < ll; i++)
         {
             idx = ht_tab_get_with(ht, i, &hash_row, &cmp_row, &ctx);
             as_i64(res)[i] = (idx == NULL_I64) ? NULL_I64 : as_i64(as_list(ht)[0])[idx];
