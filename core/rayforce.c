@@ -703,52 +703,88 @@ bool_t is_null(obj_t obj)
            (obj->type == -TYPE_CHAR && obj->vchar == '\0');
 }
 
-bool_t equal(obj_t a, obj_t b)
+i32_t objcmp(obj_t a, obj_t b)
 {
-    i64_t i, l;
+    i64_t i, l, d;
 
     if (a == b)
-        return true;
-
-    if (a->type != b->type)
         return 0;
 
-    if (a->type == -TYPE_I64 || a->type == -TYPE_SYMBOL || a->type == TYPE_UNARY || a->type == TYPE_BINARY || a->type == TYPE_VARY)
-        return a->i64 == b->i64;
-    else if (a->type == -TYPE_F64)
-        return a->f64 == b->f64;
-    else if (a->type == TYPE_I64 || a->type == TYPE_SYMBOL)
+    if (a->type != b->type)
+        return a->type - b->type;
+
+    switch (a->type)
     {
-        if (as_i64(a) == as_i64(b))
-            return true;
+    case -TYPE_BOOL:
+        return a->bool - b->bool;
+    case -TYPE_BYTE:
+    case -TYPE_CHAR:
+        return (i32_t)a->u8 - (i32_t)b->u8;
+    case -TYPE_I64:
+    case -TYPE_SYMBOL:
+    case -TYPE_TIMESTAMP:
+    case TYPE_UNARY:
+    case TYPE_BINARY:
+    case TYPE_VARY:
+        return a->i64 - b->i64;
+    case -TYPE_F64:
+        return a->f64 - b->f64;
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
         if (a->len != b->len)
-            return false;
+            return a->len - b->len;
 
         l = a->len;
         for (i = 0; i < l; i++)
         {
-            if (as_i64(a)[i] != as_i64(b)[i])
-                return false;
+            d = as_i64(a)[i] - as_i64(b)[i];
+            if (d != 0)
+                return d;
         }
-        return 1;
-    }
-    else if (a->type == TYPE_F64)
-    {
-        if (as_f64(a) == as_f64(b))
-            return 1;
+        return 0;
+    case TYPE_F64:
         if (a->len != b->len)
-            return false;
+            return a->len - b->len;
 
         l = a->len;
         for (i = 0; i < l; i++)
         {
-            if (as_f64(a)[i] != as_f64(b)[i])
-                return false;
+            d = as_f64(a)[i] - as_f64(b)[i];
+            if (d != 0)
+                return d;
         }
-        return true;
-    }
 
-    return false;
+        return 0;
+    case TYPE_CHAR:
+        if (a->len != b->len)
+            return a->len - b->len;
+
+        l = a->len;
+        for (i = 0; i < l; i++)
+        {
+            d = as_string(a)[i] - as_string(b)[i];
+            if (d != 0)
+                return d;
+        }
+
+        return 0;
+
+    case TYPE_LIST:
+        if (a->len != b->len)
+            return a->len - b->len;
+
+        l = a->len;
+        for (i = 0; i < l; i++)
+        {
+            d = objcmp(as_list(a)[i], as_list(b)[i]);
+            if (d != 0)
+                return d;
+        }
+
+    default:
+        return -1;
+    }
 }
 
 i64_t find_raw(obj_t obj, raw_t val)
@@ -783,7 +819,7 @@ i64_t find_raw(obj_t obj, raw_t val)
     case TYPE_LIST:
         l = obj->len;
         for (i = 0; i < l; i++)
-            if (equal(as_list(obj)[i], *(obj_t *)val))
+            if (objcmp(as_list(obj)[i], *(obj_t *)val) == 0)
                 return i;
         return l;
     default:

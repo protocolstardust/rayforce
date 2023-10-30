@@ -118,7 +118,7 @@ obj_t ray_eq(obj_t x, obj_t y)
         vec = vector_bool(l);
 
         for (i = 0; i < l; i++)
-            as_bool(vec)[i] = equal(as_list(x)[i], as_list(y)[i]);
+            as_bool(vec)[i] = (objcmp(as_list(x)[i], as_list(y)[i]) == 0);
 
         return vec;
 
@@ -183,6 +183,19 @@ obj_t ray_ne(obj_t x, obj_t y)
 
         return vec;
 
+    case mtype2(TYPE_LIST, TYPE_LIST):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ne: lists of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] =
+                (objcmp(as_list(x)[i], as_list(y)[i]) != 0);
+
+        return vec;
+
     default:
         emit(ERR_TYPE, "ne: unsupported types: %d %d", x->type, y->type);
     }
@@ -238,6 +251,19 @@ obj_t ray_lt(obj_t x, obj_t y)
 
         for (i = 0; i < l; i++)
             as_bool(vec)[i] = as_f64(x)[i] < as_f64(y)[i];
+
+        return vec;
+
+    case mtype2(TYPE_LIST, TYPE_LIST):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ne: lists of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] =
+                (objcmp(as_list(x)[i], as_list(y)[i]) < 0);
 
         return vec;
 
@@ -299,6 +325,19 @@ obj_t ray_le(obj_t x, obj_t y)
 
         return vec;
 
+    case mtype2(TYPE_LIST, TYPE_LIST):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ne: lists of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] =
+                (objcmp(as_list(x)[i], as_list(y)[i]) <= 0);
+
+        return vec;
+
     default:
         emit(ERR_TYPE, "le: unsupported types: %d %d", x->type, y->type);
     }
@@ -357,6 +396,19 @@ obj_t ray_gt(obj_t x, obj_t y)
 
         return vec;
 
+    case mtype2(TYPE_LIST, TYPE_LIST):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ne: lists of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] =
+                (objcmp(as_list(x)[i], as_list(y)[i]) > 0);
+
+        return vec;
+
     default:
         emit(ERR_TYPE, "gt: unsupported types: %d %d", x->type, y->type);
     }
@@ -412,6 +464,19 @@ obj_t ray_ge(obj_t x, obj_t y)
 
         for (i = 0; i < l; i++)
             as_bool(vec)[i] = as_f64(x)[i] >= as_f64(y)[i];
+
+        return vec;
+
+    case mtype2(TYPE_LIST, TYPE_LIST):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "ne: lists of different length");
+
+        l = x->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_bool(vec)[i] =
+                (objcmp(as_list(x)[i], as_list(y)[i]) >= 0);
 
         return vec;
 

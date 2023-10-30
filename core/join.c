@@ -98,6 +98,27 @@ u64_t hash_row(i64_t row, nil_t *seed)
     return h;
 }
 
+inline __attribute__((always_inline)) bool_t __eq(obj_t a, i64_t ai, obj_t b, i64_t bi)
+{
+    switch (a->type)
+    {
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        return as_i64(a)[ai] == as_i64(b)[bi];
+    case TYPE_F64:
+        return as_f64(a)[ai] == as_f64(b)[bi];
+    case TYPE_CHAR:
+        return as_string(a)[ai] == as_string(b)[bi];
+    case TYPE_GUID:
+        return memcmp(as_guid(a) + ai, as_guid(b) + bi, sizeof(guid_t)) == 0;
+    case TYPE_LIST:
+        return objcmp(as_list(a)[ai], as_list(b)[bi]) == 0;
+    default:
+        return false;
+    }
+}
+
 i32_t cmp_row(i64_t row1, i64_t row2, nil_t *seed)
 {
     u64_t i, l;
@@ -108,7 +129,7 @@ i32_t cmp_row(i64_t row1, i64_t row2, nil_t *seed)
     l = lcols->len;
 
     for (i = 0; i < l; i++)
-        if (hash_idx(as_list(lcols)[i], row1) != hash_idx(as_list(rcols)[i], row2))
+        if (__eq(as_list(lcols)[i], row1, as_list(rcols)[i], row2))
             return 1;
 
     return 0;

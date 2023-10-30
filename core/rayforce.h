@@ -219,7 +219,7 @@ extern i64_t find_sym(obj_t obj, str_t str); // find interned string in a symbol
 extern obj_t cast(type_t type, obj_t obj);   // cast object x o a type
 
 // Comparison
-extern bool_t equal(obj_t a, obj_t b);
+extern i32_t objcmp(obj_t a, obj_t b);
 
 // Serialization
 extern obj_t ser(obj_t obj);
