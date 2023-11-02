@@ -46,47 +46,7 @@ bool_t ops_is_nan(f64_t x)
 {
     u64_t bits;
     memcpy(&bits, &x, sizeof(x));
-    return (bits & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (bits & 0x000FFFFFFFFFFFFFULL) != 0;
-}
-
-bool_t ops_eq(obj_t x, obj_t y)
-{
-    if (x->type != y->type)
-        return false;
-
-    switch (x->type)
-    {
-    case -TYPE_BOOL:
-        return x->bool == y->bool;
-    case -TYPE_I64:
-        return x->i64 == y->i64;
-    case -TYPE_F64:
-        return x->f64 == y->f64;
-    case TYPE_CHAR:
-        return strcmp(as_string(x), as_string(y)) == 0;
-    default:
-        return false;
-    }
-}
-
-bool_t ops_lt(obj_t x, obj_t y)
-{
-    if (x->type != y->type)
-        return false;
-
-    switch (x->type)
-    {
-    case -TYPE_BOOL:
-        return x->bool - y->bool;
-    case -TYPE_I64:
-        return x->i64 < y->i64;
-    case -TYPE_F64:
-        return x->f64 < y->f64;
-    case TYPE_CHAR:
-        return strcmp(as_string(x), as_string(y)) < 0;
-    default:
-        return 0;
-    }
+    return (bits & 0x7ff0000000000000ull) == 0x7ff0000000000000ull && (bits & 0x000fffffffffffffull) != 0;
 }
 
 i64_t ops_round_f64(f64_t x)

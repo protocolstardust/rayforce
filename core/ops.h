@@ -87,8 +87,6 @@ typedef enum
 } os_error_type_t;
 
 bool_t ops_is_nan(f64_t x);
-bool_t ops_eq(obj_t x, obj_t y);
-bool_t ops_lt(obj_t x, obj_t y);
 bool_t ops_as_bool(obj_t x);
 i64_t ops_round_f64(f64_t x);
 i64_t ops_floor_f64(f64_t x);
