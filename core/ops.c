@@ -321,10 +321,10 @@ nil_t ops_hash_list(obj_t obj, u64_t out[], u64_t len)
     return;
 }
 
-obj_t ops_find(i64_t x[], u64_t xl, i64_t y[], u64_t yl, bool_t allow_null)
+obj_t ops_find(i64_t x[], u64_t xl, i64_t y[], u64_t yl)
 {
     u64_t i, range;
-    i64_t max = 0, min = 0, n, p, *k, *v, *r, *f;
+    i64_t max = 0, min = 0, n, p, *r, *f;
     obj_t vec, ht;
 
     if (xl == 0)

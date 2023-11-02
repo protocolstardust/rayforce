@@ -115,7 +115,7 @@ obj_t build_idx(obj_t lcols, obj_t rcols, u64_t len)
     __join_ctx_t ctx;
 
     if (len == 1)
-        return ray_call_binary(0, ray_find, rcols, lcols);
+        return ray_find(rcols, lcols);
 
     ll = as_list(lcols)[0]->len;
     rl = as_list(rcols)[0]->len;
@@ -251,12 +251,16 @@ obj_t ray_lj(obj_t *x, u64_t n)
         as_list(vals)[i] = col;
     }
 
+    // Cleanup and assemble result table
     drop(idx);
     rescols = ray_concat(x[0], cols);
     drop(cols);
-    resvals = ray_concat(k1, vals);
+    l = rescols->len;
+    resvals = vector(TYPE_LIST, l);
+    as_list(resvals)[0] = k1;
+    for (i = 1; i < l; i++)
+        as_list(resvals)[i] = clone(as_list(vals)[i - 1]);
     drop(vals);
-    drop(k1);
 
     return table(rescols, resvals);
 }

@@ -381,7 +381,7 @@ obj_t ray_find(obj_t x, obj_t y)
     case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
         if (x->len != y->len)
             return error(ERR_LENGTH, "find: vectors must be of same length");
-        return ops_find(as_i64(x), x->len, as_i64(y), y->len, true);
+        return ops_find(as_i64(x), x->len, as_i64(y), y->len);
     case mtype2(TYPE_LIST, TYPE_LIST):
         xl = x->len;
         yl = y->len;
