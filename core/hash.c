@@ -108,15 +108,18 @@ i64_t ht_tab_next(obj_t *obj, i64_t key)
 {
     u64_t i, size;
 
+    size = as_list(*obj)[0]->len;
+
     while (true)
     {
-        size = as_list(*obj)[0]->len;
-
         for (i = (u64_t)key & (size - 1); i < size; i++)
+        {
             if ((as_i64(as_list(*obj)[0])[i] == NULL_I64) || (as_i64(as_list(*obj)[0])[i] == key))
                 return i;
+        }
 
         rehash(obj, NULL, NULL);
+        size = as_list(*obj)[0]->len;
     }
 }
 
@@ -124,9 +127,9 @@ i64_t ht_tab_next_with(obj_t *obj, i64_t key, hash_f hash, cmp_f cmp, nil_t *see
 {
     u64_t i, size;
 
+    size = as_list(*obj)[0]->len;
     while (true)
     {
-        size = as_list(*obj)[0]->len;
         for (i = hash(key, seed) & (size - 1); i < size; i++)
         {
             if (as_i64(as_list(*obj)[0])[i] == NULL_I64 || cmp(as_i64(as_list(*obj)[0])[i], key, seed) == 0)
@@ -134,13 +137,15 @@ i64_t ht_tab_next_with(obj_t *obj, i64_t key, hash_f hash, cmp_f cmp, nil_t *see
         }
 
         rehash(obj, hash, seed);
+        size = as_list(*obj)[0]->len;
     }
 }
 
 i64_t ht_tab_get(obj_t obj, i64_t key)
 {
-    u64_t i, size = as_list(obj)[0]->len;
+    u64_t i, size;
 
+    size = as_list(obj)[0]->len;
     for (i = (u64_t)key & (size - 1); i < size; i++)
     {
         if (as_i64(as_list(obj)[0])[i] == NULL_I64)
@@ -155,8 +160,9 @@ i64_t ht_tab_get(obj_t obj, i64_t key)
 
 i64_t ht_tab_get_with(obj_t obj, i64_t key, hash_f hash, cmp_f cmp, nil_t *seed)
 {
-    u64_t i, size = as_list(obj)[0]->len;
+    u64_t i, size;
 
+    size = as_list(obj)[0]->len;
     for (i = hash(key, seed) & (size - 1); i < size; i++)
     {
         if (as_i64(as_list(obj)[0])[i] == NULL_I64)
@@ -172,22 +178,20 @@ i64_t ht_tab_get_with(obj_t obj, i64_t key, hash_f hash, cmp_f cmp, nil_t *seed)
 u64_t kmh_hash(i64_t key, nil_t *seed)
 {
     unused(seed);
-#define LARGE_PRIME 6364136223846793005ULL
-    return (key * LARGE_PRIME) >> 32;
+    return (key * 6364136223846793005ull) >> 32;
 }
 
 u64_t fnv1a_hash_64(i64_t key, nil_t *seed)
 {
     unused(seed);
-#define FNV_OFFSET_64 14695981039346656037ULL
-#define FNV_PRIME_64 1099511628211ULL
-    u64_t hash = FNV_OFFSET_64;
+    u64_t hash = 14695981039346656037ull;
     i32_t i;
+
     for (i = 0; i < 8; i++)
     {
         u8_t byte = (key >> (i * 8)) & 0xff;
         hash ^= byte;
-        hash *= FNV_PRIME_64;
+        hash *= 1099511628211ull;
     }
 
     return hash;

@@ -50,14 +50,9 @@
 #define is_external_compound(x) ((((x)->mmod) & MMOD_EXTERNAL_COMPOUND) == (x)->mmod)
 #define is_external_serialized(x) ((((x)->mmod) & MMOD_EXTERNAL_SERIALIZED) == (x)->mmod)
 
-/*
- * Aligns x to the nearest multiple of a
- */
 #define alignup(x, a) (((x) + (a)-1) & ~((a)-1))
 #define align8(x) ((str_t)(((u64_t)x + 7) & ~7))
-
 #define mtype2(x, y) ((u8_t)(x) | ((u8_t)(y) << 8))
-
 #define absi64(x) ((x) == NULL_I64 ? 0 : (((x) < 0 ? -(x) : (x))))
 #define addi64(x, y) (((x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : (x) + (y))
 #define addf64(x, y) ((x) + (y))
@@ -84,6 +79,12 @@ typedef i32_t (*cmp_f)(i64_t, i64_t, nil_t *);
 typedef obj_t (*unary_f)(obj_t);
 typedef obj_t (*binary_f)(obj_t, obj_t);
 typedef obj_t (*vary_f)(obj_t *, i64_t n);
+typedef enum
+{
+    ERROR_TYPE_OS,
+    ERROR_TYPE_SYS,
+    ERROR_TYPE_SOCK
+} os_error_type_t;
 
 bool_t ops_is_nan(f64_t x);
 bool_t ops_eq(obj_t x, obj_t y);
@@ -97,14 +98,7 @@ obj_t ops_distinct(obj_t x);
 obj_t ops_group(i64_t values[], i64_t indices[], i64_t len);
 u64_t ops_count(obj_t x);
 u64_t ops_hash_obj(obj_t obj);
-
-typedef enum
-{
-    ERROR_TYPE_OS,
-    ERROR_TYPE_SYS,
-    ERROR_TYPE_SOCK
-} os_error_type_t;
-
+obj_t ops_find(i64_t x[], u64_t xl, i64_t y[], u64_t yl, bool_t allow_null);
 obj_t sys_error(os_error_type_t, str_t msg);
 
 #endif

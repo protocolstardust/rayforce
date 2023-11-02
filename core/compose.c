@@ -321,7 +321,7 @@ obj_t ray_enum(obj_t x, obj_t y)
             emit(ERR_TYPE, "enum: expected vector symbol");
         }
 
-        v = ray_find_vector_i64_vector_i64(s, y, false);
+        v = ops_find(as_i64(s), s->len, as_i64(y), y->len, false);
         drop(s);
 
         if (is_error(v))

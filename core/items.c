@@ -335,9 +335,9 @@ obj_t ray_at(obj_t x, obj_t y)
     return null(0);
 }
 
-obj_t ray_find_vector_i64_vector_i64(obj_t x, obj_t y, bool_t allow_null)
+obj_t ops_find(i64_t x[], u64_t xl, i64_t y[], u64_t yl, bool_t allow_null)
 {
-    u64_t i, range, xl = x->len, yl = y->len;
+    u64_t i, range;
     i64_t n;
     i64_t max = 0, min = 0, p;
     obj_t vec, found, ht;
@@ -345,78 +345,70 @@ obj_t ray_find_vector_i64_vector_i64(obj_t x, obj_t y, bool_t allow_null)
     if (xl == 0)
         return vector_i64(0);
 
-    max = min = as_i64(x)[0];
+    max = min = x[0];
 
     for (i = 0; i < xl; i++)
     {
-        if (as_i64(x)[i] > max)
-            max = as_i64(x)[i];
-        else if (as_i64(x)[i] < min)
-            min = as_i64(x)[i];
+        if (x[i] > max)
+            max = x[i];
+        else if (x[i] < min)
+            min = x[i];
     }
 
     vec = vector_i64(yl);
 
     range = max - min + 1;
 
-    if (range <= yl)
-    {
-        found = vector_i64(range);
+    // if (range <= yl)
+    // {
+    //     found = vector_i64(range);
 
-        for (i = 0; i < range; i++)
-            as_i64(found)[i] = NULL_I64;
+    //     for (i = 0; i < range; i++)
+    //         as_i64(found)[i] = NULL_I64;
 
-        for (i = 0; i < xl; i++)
-        {
-            n = as_i64(x)[i] - min;
-            if (as_i64(found)[n] == NULL_I64)
-                as_i64(found)[n] = i;
-        }
+    //     for (i = 0; i < xl; i++)
+    //     {
+    //         n = x[i] - min;
+    //         if (as_i64(found)[n] == NULL_I64)
+    //             as_i64(found)[n] = i;
+    //     }
 
-        for (i = 0; i < yl; i++)
-        {
-            n = as_i64(y)[i] - min;
-            if (as_i64(y)[i] < min || as_i64(y)[i] > max)
-            {
-                if (allow_null)
-                    as_i64(vec)[i] = NULL_I64;
-                else
-                    emit(ERR_INDEX, "find: index out of range");
-            }
-            else
-                as_i64(vec)[i] = as_i64(found)[n];
-        }
+    //     for (i = 0; i < yl; i++)
+    //     {
+    //         n = y[i] - min;
+    //         if (y[i] < min || y[i] > max)
+    //         {
+    //             if (allow_null)
+    //                 as_i64(vec)[i] = NULL_I64;
+    //             else
+    //                 emit(ERR_INDEX, "find: index out of range");
+    //         }
+    //         else
+    //             as_i64(vec)[i] = as_i64(found)[n];
+    //     }
 
-        drop(found);
+    //     drop(found);
 
-        return vec;
-    }
+    //     return vec;
+    // }
 
     // otherwise, use a hash table
     ht = ht_tab(xl, TYPE_I64);
 
     for (i = 0; i < xl; i++)
     {
-        p = ht_tab_next(&ht, as_i64(x)[i] - min);
+        p = ht_tab_next(&ht, x[i] - min);
         if (as_i64(as_list(ht)[0])[p] == NULL_I64)
         {
-            as_i64(as_list(ht)[0])[p] = as_i64(x)[i] - min;
+            as_i64(as_list(ht)[0])[p] = x[i] - min;
             as_i64(as_list(ht)[1])[p] = i;
         }
     }
 
     for (i = 0; i < yl; i++)
     {
-        p = ht_tab_next(&ht, as_i64(y)[i] - min);
-        if (as_i64(as_list(ht)[0])[p] == NULL_I64)
-        {
-            if (allow_null)
-                as_i64(vec)[i] = NULL_I64;
-            else
-                emit(ERR_INDEX, "find: index out of range");
-        }
-        else
-            as_i64(vec)[i] = as_i64(as_list(ht)[1])[p];
+        p = ht_tab_get(ht, y[i] - min);
+        as_i64(vec)[i] = p == NULL_I64 ? NULL_I64 : as_i64(as_list(ht)[1])[p];
     }
 
     drop(ht);
@@ -446,7 +438,7 @@ obj_t ray_find(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_I64):
     case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
-        return ray_find_vector_i64_vector_i64(x, y, true);
+        return ops_find(as_i64(x), x->len, as_i64(y), y->len, true);
 
     default:
         emit(ERR_TYPE, "find: unsupported types: %d %d", x->type, y->type);

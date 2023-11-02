@@ -26,9 +26,6 @@
 
 #include "rayforce.h"
 
-// TODO: refactor this function
-obj_t ray_find_vector_i64_vector_i64(obj_t x, obj_t y, bool_t allow_null);
-
 obj_t ray_at(obj_t x, obj_t y);
 obj_t ray_find(obj_t x, obj_t y);
 obj_t ray_filter(obj_t x, obj_t y);
