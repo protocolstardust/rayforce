@@ -209,6 +209,118 @@ obj_t ops_distinct(obj_t x)
     return vec;
 }
 
+bool_t ops_eq_idx(obj_t a, i64_t ai, obj_t b, i64_t bi)
+{
+    switch (a->type)
+    {
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        return as_i64(a)[ai] == as_i64(b)[bi];
+    case TYPE_F64:
+        return as_f64(a)[ai] == as_f64(b)[bi];
+    case TYPE_CHAR:
+        return as_string(a)[ai] == as_string(b)[bi];
+    case TYPE_GUID:
+        return memcmp(as_guid(a) + ai, as_guid(b) + bi, sizeof(guid_t)) == 0;
+    case TYPE_LIST:
+        return objcmp(as_list(a)[ai], as_list(b)[bi]) == 0;
+    default:
+        return false;
+    }
+}
+
+inline __attribute__((always_inline)) u64_t hashu64(u64_t h, u64_t k)
+{
+    u64_t a, b;
+
+    a = (h ^ k) * 0x9ddfea08eb382d69ull;
+    a ^= (a >> 47);
+    b = (roti64(k, 31) ^ a) * 0x9ddfea08eb382d69ull;
+    b ^= (b >> 47);
+    b *= 0x9ddfea08eb382d69ull;
+
+    return b;
+}
+
+u64_t ops_hash_obj(obj_t obj)
+{
+    u64_t hash, len, i;
+    str_t str;
+
+    switch (obj->type)
+    {
+    case -TYPE_I64:
+    case -TYPE_SYMBOL:
+    case -TYPE_TIMESTAMP:
+        return (u64_t)obj->i64;
+    case -TYPE_F64:
+        return (u64_t)obj->f64;
+    case TYPE_CHAR:
+        len = obj->len;
+        hash = 0xcbf29ce484222325ull;
+        str = as_string(obj);
+        for (i = 0; i < len; i++)
+        {
+            hash ^= (u64_t)str[i];
+            hash *= 0x100000001b3ull;
+        }
+
+        return hash;
+    // TODO: implement hash for other types
+    default:
+        return (u64_t)obj;
+    }
+}
+
+nil_t ops_hash_list(obj_t obj, u64_t out[], u64_t len)
+{
+    u8_t *u8v;
+    f64_t *f64v;
+    guid_t *g64v;
+    u64_t i, *u64v;
+
+    switch (obj->type)
+    {
+    case TYPE_BOOL:
+    case TYPE_BYTE:
+    case TYPE_CHAR:
+        u8v = as_u8(obj);
+        for (i = 0; i < len; i++)
+            out[i] = hashu64((u64_t)u8v[i], out[i]);
+        break;
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        u64v = (u64_t *)as_i64(obj);
+        for (i = 0; i < len; i++)
+            out[i] = hashu64(u64v[i], out[i]);
+        break;
+    case TYPE_F64:
+        f64v = as_f64(obj);
+        for (i = 0; i < len; i++)
+            out[i] = hashu64((u64_t)f64v[i], out[i]);
+        break;
+    case TYPE_GUID:
+        g64v = as_guid(obj);
+        for (i = 0; i < len; i++)
+        {
+            out[i] = hashu64(*(u64_t *)&g64v[i], out[i]);
+            out[i] = hashu64(*((u64_t *)&g64v[i] + 1), out[i]);
+        }
+        break;
+    case TYPE_LIST:
+        for (i = 0; i < len; i++)
+            out[i] = hashu64(ops_hash_obj(as_list(obj)[i]), out[i]);
+        break;
+    default:
+        // TODO: error
+        break;
+    }
+
+    return;
+}
+
 obj_t ops_find(i64_t x[], u64_t xl, i64_t y[], u64_t yl, bool_t allow_null)
 {
     u64_t i, range;
@@ -580,27 +692,3 @@ obj_t sys_error(os_error_type_t type, str_t msg)
 }
 
 #endif
-
-u64_t ops_hash_obj(obj_t obj)
-{
-    u64_t hash, len, i;
-    str_t str;
-
-    switch (obj->type)
-    {
-    case TYPE_CHAR:
-        len = obj->len;
-        hash = 0xcbf29ce484222325ULL;
-        str = as_string(obj);
-        for (i = 0; i < len; i++)
-        {
-            hash ^= (u64_t)str[i];
-            hash *= 0x100000001b3ULL;
-        }
-
-        return hash;
-    // TODO: implement hash for other types
-    default:
-        return (u64_t)obj;
-    }
-}

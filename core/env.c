@@ -141,7 +141,7 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "like",      TYPE_BINARY,   FN_NONE,           ray_like);
     regf(functions,  "dict",      TYPE_BINARY,   FN_NONE,           ray_dict);
     regf(functions,  "table",     TYPE_BINARY,   FN_NONE,           ray_table);
-    regf(functions,  "find",      TYPE_BINARY,   FN_ATOMIC,         ray_find);
+    regf(functions,  "find",      TYPE_BINARY,   FN_NONE,           ray_find);
     regf(functions,  "concat",    TYPE_BINARY,   FN_NONE,           ray_concat);
     regf(functions,  "filter",    TYPE_BINARY,   FN_ATOMIC,         ray_filter);
     regf(functions,  "take",      TYPE_BINARY,   FN_NONE,           ray_take);

@@ -335,9 +335,31 @@ obj_t ray_at(obj_t x, obj_t y)
     return null(0);
 }
 
+typedef struct __items_find_ctx_t
+{
+    obj_t lobj;
+    obj_t robj;
+    u64_t *hashes;
+} __items_find_ctx_t;
+
+u64_t __items_hash_get(i64_t row, nil_t *seed)
+{
+    __items_find_ctx_t *ctx = (__items_find_ctx_t *)seed;
+    return ctx->hashes[row];
+}
+
+i32_t __items_cmp_idx(i64_t row1, i64_t row2, nil_t *seed)
+{
+    __items_find_ctx_t *ctx = (__items_find_ctx_t *)seed;
+    return ops_eq_idx(ctx->lobj, row1, ctx->robj, row2) == 0;
+}
+
 obj_t ray_find(obj_t x, obj_t y)
 {
-    u64_t l, i;
+    u64_t i, l, xl, yl;
+    obj_t ht, res;
+    i64_t idx;
+    __items_find_ctx_t ctx;
 
     switch (mtype2(x->type, y->type))
     {
@@ -357,8 +379,46 @@ obj_t ray_find(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_I64):
     case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
+        if (x->len != y->len)
+            return error(ERR_LENGTH, "find: vectors must be of same length");
         return ops_find(as_i64(x), x->len, as_i64(y), y->len, true);
+    case mtype2(TYPE_LIST, TYPE_LIST):
+        xl = x->len;
+        yl = y->len;
 
+        // calc hashes
+        res = vector_i64(maxi64(xl, yl));
+        ht = ht_tab(maxi64(xl, yl) * 2, -1);
+
+        // initialize hashes
+        for (i = 0; i < xl; i++)
+            as_i64(res)[i] = 0xa5b6c7d8e9f01234ull;
+
+        ops_hash_list(x, (u64_t *)as_i64(res), xl);
+        ctx = (__items_find_ctx_t){.lobj = x, .robj = x, .hashes = (u64_t *)as_i64(res)};
+        for (i = 0; i < xl; i++)
+        {
+            idx = ht_tab_next_with(&ht, i, &__items_hash_get, &__items_cmp_idx, &ctx);
+            if (as_i64(as_list(ht)[0])[idx] == NULL_I64)
+                as_i64(as_list(ht)[0])[idx] = i;
+        }
+
+        // (re)initialize hashes
+        for (i = 0; i < yl; i++)
+            as_i64(res)[i] = 0xa5b6c7d8e9f01234ull;
+
+        ops_hash_list(y, (u64_t *)as_i64(res), yl);
+        ctx = (__items_find_ctx_t){.lobj = x, .robj = y, .hashes = (u64_t *)as_i64(res)};
+        for (i = 0; i < yl; i++)
+        {
+            idx = ht_tab_get_with(ht, i, &__items_hash_get, &__items_cmp_idx, &ctx);
+            as_i64(res)[i] = (idx == NULL_I64) ? NULL_I64 : as_i64(as_list(ht)[0])[idx];
+        }
+
+        drop(ht);
+        resize(&res, yl);
+
+        return res;
     default:
         emit(ERR_TYPE, "find: unsupported types: %d %d", x->type, y->type);
     }
