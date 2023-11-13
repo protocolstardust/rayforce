@@ -41,10 +41,10 @@
 #include "items.h"
 #include "compose.h"
 
-obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
+obj_t call_unary(unary_f f, obj_t x)
 {
     u64_t i, l;
-    obj_t res, item, vmap;
+    obj_t res, item, v;
 
     if (x->type == TYPE_GROUPMAP)
     {
@@ -53,43 +53,33 @@ obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
         if (l == 0)
             return null(0);
 
-        vmap = list(2, as_list(x)[0], as_list(as_list(x)[1])[0]);
-        vmap->type = TYPE_FILTERMAP;
+        v = at_obj(as_list(x)[0], as_list(as_list(x)[1])[0]);
 
-        item = f(vmap);
+        item = f(v);
+        drop(v);
 
         if (is_error(item))
-        {
-            vmap->len = 0;
-            drop(vmap);
             return item;
-        }
 
         res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
         ins_obj(&res, 0, item);
 
         for (i = 1; i < l; i++)
         {
-            // reuse obj_t node for next vmap
-            as_list(vmap)[0] = as_list(x)[0];
-            as_list(vmap)[1] = as_list(as_list(x)[1])[i];
 
-            item = f(vmap);
+            v = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
+            item = f(v);
+            drop(v);
 
             if (is_error(item))
             {
                 res->len = i;
                 drop(res);
-                vmap->len = 0;
-                drop(vmap);
                 return item;
             }
 
             ins_obj(&res, i, item);
         }
-
-        vmap->len = 0;
-        drop(vmap);
 
         return res;
     }
@@ -172,7 +162,7 @@ obj_t ray_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
         return res;
 
     default:
-        return call_unary(attrs, f, x);
+        return call_unary(f, x);
     }
 }
 
@@ -186,7 +176,7 @@ obj_t ray_call_unary(u8_t attrs, unary_f f, obj_t x)
     case FN_ATOMIC:
         return ray_call_unary_atomic(attrs, f, x);
     default:
-        return call_unary(attrs, f, x);
+        return call_unary(f, x);
     }
 }
 

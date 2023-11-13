@@ -2288,10 +2288,9 @@ dispatch:
 obj_t ray_sum(obj_t x)
 {
     i32_t i;
-    i64_t l = 0, v, isum = 0, *xids = NULL, *xivals = NULL;
+    i64_t l = 0, isum = 0, *xivals = NULL;
     f64_t fsum = 0.0, *xfvals = NULL;
 
-dispatch:
     switch (x->type)
     {
     case -TYPE_I64:
@@ -2299,39 +2298,13 @@ dispatch:
     case -TYPE_F64:
         return clone(x);
     case TYPE_I64:
-        if (xids)
-        {
-            xivals = as_i64(x);
-            for (i = 0; i < l; i++)
-            {
-                v = xivals[xids[i]];
-                v = (v == NULL_I64) ? 0 : v;
-                isum += v;
-            }
-
-            return i64(isum);
-        }
-
         l = x->len;
         xivals = as_i64(x);
-
         for (i = 0; i < l; i++)
-        {
-            v = (xivals[i] == NULL_I64) ? 0 : xivals[i];
-            isum += v;
-        }
+            isum += (xivals[i] == NULL_I64) ? 0 : xivals[i];
 
         return i64(isum);
     case TYPE_F64:
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            for (i = 0; i < l; i++)
-                fsum += xfvals[xids[i]];
-
-            return f64(fsum);
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         for (i = 0; i < l; i++)
@@ -2340,14 +2313,6 @@ dispatch:
         return f64(fsum);
 
     default:
-        if (x->type == TYPE_FILTERMAP)
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-            goto dispatch;
-        }
-
         throw(ERR_TYPE, "sum: unsupported type: '%s", typename(x->type));
     }
 }

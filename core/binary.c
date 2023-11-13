@@ -53,10 +53,11 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
         if (l != ops_count(y))
             return error(ERR_LENGTH, "binary: vectors must be of the same length");
 
-        a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[0]);
-        b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[0]);
+        a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[0]);
+        b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[0]);
 
-        item = call_binary(f, a, b);
+        item = f(a, b);
+        dropn(2, a, b);
 
         if (is_error(item))
             return item;
@@ -67,9 +68,11 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[i]);
-            b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[i]);
-            item = call_binary(f, a, b);
+            a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
+            b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[i]);
+
+            item = f(a, b);
+            dropn(2, a, b);
 
             if (is_error(item))
             {
@@ -86,9 +89,10 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
     else if (xt == TYPE_GROUPMAP)
     {
         l = ops_count(x);
-        a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[0]);
+        a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[0]);
 
-        item = call_binary(f, a, y);
+        item = f(a, y);
+        drop(a);
 
         if (is_error(item))
             return item;
@@ -99,8 +103,9 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[i]);
-            item = call_binary(f, a, y);
+            a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
+            item = f(a, y);
+            drop(a);
 
             if (is_error(item))
             {
@@ -117,9 +122,10 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
     else if (yt == TYPE_GROUPMAP)
     {
         l = ops_count(y);
-        b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[0]);
+        b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[0]);
 
-        item = call_binary(f, x, b);
+        item = f(x, b);
+        drop(b);
 
         if (is_error(item))
             return item;
@@ -130,8 +136,9 @@ obj_t call_binary(binary_f f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[i]);
-            item = call_binary(f, x, b);
+            b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[i]);
+            item = f(x, b);
+            drop(b);
 
             if (is_error(item))
             {
@@ -218,8 +225,9 @@ obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
 
     case TYPE_GROUPMAP:
         l = ops_count(x);
-        a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[0]);
+        a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[0]);
         item = ray_call_binary_left_atomic(f, a, y);
+        drop(a);
 
         if (is_error(item))
             return item;
@@ -230,8 +238,9 @@ obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            a = ray_vecmap(as_list(x)[0], as_list(as_list(x)[1])[i]);
+            a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
             item = ray_call_binary_left_atomic(f, a, y);
+            drop(a);
 
             if (is_error(item))
             {
@@ -319,8 +328,9 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
 
     case TYPE_GROUPMAP:
         l = ops_count(y);
-        b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[0]);
+        b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[0]);
         item = ray_call_binary_right_atomic(f, x, b);
+        drop(b);
 
         if (is_error(item))
             return item;
@@ -331,8 +341,9 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
 
         for (i = 1; i < l; i++)
         {
-            b = ray_vecmap(as_list(y)[0], as_list(as_list(y)[1])[i]);
+            b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[i]);
             item = ray_call_binary_right_atomic(f, x, b);
+            drop(b);
 
             if (is_error(item))
             {

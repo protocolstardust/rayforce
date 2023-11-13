@@ -561,23 +561,7 @@ dispatch:
         return null(0);
 
     case TYPE_GROUPMAP:
-        k = as_list(as_list(obj)[1])[idx];
-        l = k->len;
-        if (l == 0)
-            return null(0);
-
-        ids = as_i64(k);
-        v = at_idx(as_list(obj)[0], ids[0]);
-        res = v->type < 0 ? vector(v->type, l) : vector(TYPE_LIST, l);
-        ins_obj(&res, 0, v);
-
-        for (i = 1; i < l; i++)
-        {
-            v = at_idx(as_list(obj)[0], ids[i]);
-            ins_obj(&res, i, v);
-        }
-
-        return res;
+        return at_obj(as_list(obj)[0], as_list(as_list(obj)[1])[idx]);
 
     default:
         throw(ERR_TYPE, "at_idx: invalid type: '%s", typename(obj->type));
