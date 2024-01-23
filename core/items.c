@@ -33,6 +33,8 @@
 #include "compose.h"
 #include "order.h"
 #include "misc.h"
+#include "error.h"
+#include "aggr.h"
 
 obj_t ray_at(obj_t x, obj_t y)
 {
@@ -346,7 +348,7 @@ u64_t __items_hash_get(i64_t row, nil_t *seed)
     return ctx->hashes[row];
 }
 
-i32_t __items_cmp_idx(i64_t row1, i64_t row2, nil_t *seed)
+i64_t __items_cmp_idx(i64_t row1, i64_t row2, nil_t *seed)
 {
     __items_find_ctx_t *ctx = (__items_find_ctx_t *)seed;
     return ops_eq_idx(ctx->lobj, row1, ctx->robj, row2) == 0;
@@ -378,7 +380,7 @@ obj_t ray_find(obj_t x, obj_t y)
     case mtype2(TYPE_I64, TYPE_I64):
     case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "find: vectors must be of same length");
+            return error_str(ERR_LENGTH, "find: vectors must be of same length");
         return ops_find(as_i64(x), x->len, as_i64(y), y->len);
     case mtype2(TYPE_LIST, TYPE_LIST):
         xl = x->len;
@@ -423,7 +425,7 @@ obj_t ray_filter(obj_t x, obj_t y)
     {
     case mtype2(TYPE_BOOL, TYPE_BOOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+            return error_str(ERR_LENGTH, "filter: vector and filter vector must be of same length");
 
         l = x->len;
         res = vector_bool(l);
@@ -437,7 +439,7 @@ obj_t ray_filter(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_BOOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+            return error_str(ERR_LENGTH, "filter: vector and filter vector must be of same length");
 
         l = x->len;
         res = vector_i64(l);
@@ -451,7 +453,7 @@ obj_t ray_filter(obj_t x, obj_t y)
 
     case mtype2(TYPE_SYMBOL, TYPE_BOOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+            return error_str(ERR_LENGTH, "filter: vector and filter vector must be of same length");
 
         l = x->len;
         res = vector_symbol(l);
@@ -465,7 +467,7 @@ obj_t ray_filter(obj_t x, obj_t y)
 
     case mtype2(TYPE_F64, TYPE_BOOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+            return error_str(ERR_LENGTH, "filter: vector and filter vector must be of same length");
 
         l = x->len;
         res = vector_f64(l);
@@ -479,7 +481,7 @@ obj_t ray_filter(obj_t x, obj_t y)
 
     case mtype2(TYPE_TIMESTAMP, TYPE_BOOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+            return error_str(ERR_LENGTH, "filter: vector and filter vector must be of same length");
 
         l = x->len;
         res = vector_timestamp(l);
@@ -493,7 +495,7 @@ obj_t ray_filter(obj_t x, obj_t y)
 
     case mtype2(TYPE_GUID, TYPE_BOOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+            return error_str(ERR_LENGTH, "filter: vector and filter vector must be of same length");
 
         l = x->len;
         res = vector_guid(l);
@@ -507,7 +509,7 @@ obj_t ray_filter(obj_t x, obj_t y)
 
     case mtype2(TYPE_CHAR, TYPE_BOOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+            return error_str(ERR_LENGTH, "filter: vector and filter vector must be of same length");
 
         l = x->len;
         res = string(l);
@@ -521,10 +523,10 @@ obj_t ray_filter(obj_t x, obj_t y)
 
     case mtype2(TYPE_LIST, TYPE_BOOL):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+            return error_str(ERR_LENGTH, "filter: vector and filter vector must be of same length");
 
         l = x->len;
-        res = list(l);
+        res = vn_list(l);
         for (i = 0; i < l; i++)
             if (as_bool(y)[i])
                 as_list(res)[j++] = clone(as_list(x)[i]);
@@ -536,7 +538,7 @@ obj_t ray_filter(obj_t x, obj_t y)
     case mtype2(TYPE_TABLE, TYPE_BOOL):
         vals = as_list(x)[1];
         l = vals->len;
-        res = list(l);
+        res = vn_list(l);
 
         for (i = 0; i < l; i++)
         {
@@ -965,8 +967,10 @@ obj_t ray_first(obj_t x)
         return clone(x);
     if (is_vector(x))
         return at_idx(x, 0);
-    if (x->type == TYPE_ANYMAP || x->type == TYPE_FILTERMAP || x->type == TYPE_GROUPMAP)
+    if (x->type == TYPE_ANYMAP || x->type == TYPE_FILTERMAP)
         return at_idx(x, 0);
+    if (x->type == TYPE_GROUPMAP)
+        return aggr_first(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
 
     return clone(x);
 }
@@ -979,8 +983,10 @@ obj_t ray_last(obj_t x)
         return clone(x);
     if (is_vector(x))
         return at_idx(x, -1);
-    if (x->type == TYPE_ANYMAP || x->type == TYPE_FILTERMAP || x->type == TYPE_GROUPMAP)
+    if (x->type == TYPE_ANYMAP || x->type == TYPE_FILTERMAP)
         return at_idx(x, -1);
+    if (x->type == TYPE_GROUPMAP)
+        return aggr_last(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
 
     return clone(x);
 }
@@ -1007,7 +1013,7 @@ obj_t ray_key(obj_t x)
 obj_t ray_value(obj_t x)
 {
     obj_t sym, k, v, res, e;
-    i64_t i, l, sl, xl, *ids;
+    i64_t i, l, sl, xl;
     u8_t *buf;
 
     switch (x->type)
@@ -1103,23 +1109,17 @@ obj_t ray_value(obj_t x)
         return clone(as_list(x)[1]);
 
     case TYPE_FILTERMAP:
+        if (as_list(x)[2])
+            return clone(as_list(x)[2]);
+
         xl = as_list(x)[1]->len;
         if (xl == 0)
             return null(0);
 
-        return at_obj(as_list(x)[0], as_list(x)[1]);
+        v = at_obj(as_list(x)[0], as_list(x)[1]);
+        as_list(x)[2] = v;
 
-    case TYPE_GROUPMAP:
-        xl = as_list(x)[1]->len;
-        res = vector(TYPE_LIST, xl);
-
-        for (i = 0; i < xl; i++)
-        {
-            v = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
-            ins_obj(&res, i, v);
-        }
-
-        return res;
+        return clone(v);
 
     default:
         return clone(x);

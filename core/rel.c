@@ -25,6 +25,7 @@
 #include "util.h"
 #include "heap.h"
 #include "ops.h"
+#include "error.h"
 
 obj_t ray_eq(obj_t x, obj_t y)
 {
@@ -88,7 +89,7 @@ obj_t ray_eq(obj_t x, obj_t y)
     case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
     case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "eq: vectors of different length");
+            return error_str(ERR_LENGTH, "eq: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -100,7 +101,7 @@ obj_t ray_eq(obj_t x, obj_t y)
 
     case mtype2(TYPE_F64, TYPE_F64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "eq: vectors of different length");
+            return error_str(ERR_LENGTH, "eq: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -112,7 +113,7 @@ obj_t ray_eq(obj_t x, obj_t y)
 
     case mtype2(TYPE_LIST, TYPE_LIST):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "eq: lists of different length");
+            return error_str(ERR_LENGTH, "eq: lists of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -153,7 +154,7 @@ obj_t ray_ne(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_I64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ne: vectors of different length");
+            return error_str(ERR_LENGTH, "ne: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -173,7 +174,7 @@ obj_t ray_ne(obj_t x, obj_t y)
 
     case mtype2(TYPE_F64, TYPE_F64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ne: vectors of different length");
+            return error_str(ERR_LENGTH, "ne: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -185,7 +186,7 @@ obj_t ray_ne(obj_t x, obj_t y)
 
     case mtype2(TYPE_LIST, TYPE_LIST):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ne: lists of different length");
+            return error_str(ERR_LENGTH, "ne: lists of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -224,7 +225,7 @@ obj_t ray_lt(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_I64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "lt: vectors of different length");
+            return error_str(ERR_LENGTH, "lt: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -244,7 +245,7 @@ obj_t ray_lt(obj_t x, obj_t y)
 
     case mtype2(TYPE_F64, TYPE_F64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "lt: vectors of different length");
+            return error_str(ERR_LENGTH, "lt: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -256,7 +257,7 @@ obj_t ray_lt(obj_t x, obj_t y)
 
     case mtype2(TYPE_LIST, TYPE_LIST):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ne: lists of different length");
+            return error_str(ERR_LENGTH, "ne: lists of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -295,7 +296,7 @@ obj_t ray_le(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_I64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "le: vectors of different length");
+            return error_str(ERR_LENGTH, "le: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -315,7 +316,7 @@ obj_t ray_le(obj_t x, obj_t y)
 
     case mtype2(TYPE_F64, TYPE_F64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "le: vectors of different length");
+            return error_str(ERR_LENGTH, "le: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -327,7 +328,7 @@ obj_t ray_le(obj_t x, obj_t y)
 
     case mtype2(TYPE_LIST, TYPE_LIST):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ne: lists of different length");
+            return error_str(ERR_LENGTH, "ne: lists of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -366,7 +367,7 @@ obj_t ray_gt(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_I64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "gt: vectors of different length");
+            return error_str(ERR_LENGTH, "gt: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -386,7 +387,7 @@ obj_t ray_gt(obj_t x, obj_t y)
 
     case mtype2(TYPE_F64, TYPE_F64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "gt: vectors of different length");
+            return error_str(ERR_LENGTH, "gt: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -398,7 +399,7 @@ obj_t ray_gt(obj_t x, obj_t y)
 
     case mtype2(TYPE_LIST, TYPE_LIST):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ne: lists of different length");
+            return error_str(ERR_LENGTH, "ne: lists of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -437,7 +438,7 @@ obj_t ray_ge(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_I64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ge: vectors of different length");
+            return error_str(ERR_LENGTH, "ge: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -457,7 +458,7 @@ obj_t ray_ge(obj_t x, obj_t y)
 
     case mtype2(TYPE_F64, TYPE_F64):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ge: vectors of different length");
+            return error_str(ERR_LENGTH, "ge: vectors of different length");
 
         l = x->len;
         vec = vector_bool(l);
@@ -469,7 +470,7 @@ obj_t ray_ge(obj_t x, obj_t y)
 
     case mtype2(TYPE_LIST, TYPE_LIST):
         if (x->len != y->len)
-            return error(ERR_LENGTH, "ne: lists of different length");
+            return error_str(ERR_LENGTH, "ne: lists of different length");
 
         l = x->len;
         vec = vector_bool(l);

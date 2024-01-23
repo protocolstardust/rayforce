@@ -1,0 +1,59 @@
+/*
+ *   Copyright (c) 2023 Anton Kundenko <singaraiona@gmail.com>
+ *   All rights reserved.
+
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
+
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ */
+
+#include <stdarg.h>
+#include "error.h"
+#include "heap.h"
+#include "util.h"
+
+obj_t error_obj(i8_t code, obj_t msg)
+{
+    obj_t obj = heap_alloc(sizeof(struct obj_t) + sizeof(error_t));
+    error_t *e = (error_t *)obj->arr;
+
+    e->code = code;
+    e->msg = msg;
+    e->locs = null(0);
+
+    obj->rc = 1;
+    obj->type = TYPE_ERROR;
+
+    return obj;
+}
+
+obj_t error_str(i8_t code, str_t msg)
+{
+    return error_obj(code, string_from_str(msg, strlen(msg)));
+}
+
+obj_t error(i8_t code, str_t fmt, ...)
+{
+    obj_t e;
+    va_list args;
+
+    va_start(args, fmt);
+    e = vn_vstring(fmt, args);
+    va_end(args);
+
+    return error_obj(code, e);
+}

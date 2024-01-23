@@ -27,8 +27,7 @@
 #include "rayforce.h"
 #include "heap.h"
 #include "env.h"
-#include "parse.h"
-#include "vm.h"
+#include "eval.h"
 #include "poll.h"
 #include "sock.h"
 
@@ -37,10 +36,7 @@
  */
 typedef struct runtime_t
 {
-    bool_t sync;        // Synchronization flag (use atomics on rc operations).
     obj_t args;         // Command line arguments.
-    parser_t parser;    // Parser.
-    vm_t vm;            // Virtual machine.
     env_t env;          // Environment.
     symbols_t *symbols; // vector_symbols pool.
     poll_t poll;        // I/O event loop handle.

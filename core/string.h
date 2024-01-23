@@ -25,6 +25,7 @@
 #define STRING_H
 
 #include <string.h>
+#include <stdarg.h>
 #include "rayforce.h"
 
 str_t str_chk_from_end(str_t pat);
@@ -35,5 +36,6 @@ obj_t string_from_str(str_t str, i32_t len);
 str_t str_dup(str_t str);
 u64_t str_cpy(str_t dst, str_t src);
 u64_t str_len(str_t s, u64_t n);
+obj_t vn_vstring(str_t fmt, va_list args);
 
 #endif

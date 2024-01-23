@@ -32,18 +32,20 @@
  */
 typedef struct parser_t
 {
-    nfo_t nfo;     // debug info for current parser
-    i64_t count;   // counter for spans without objects
-    str_t input;   // input string
-    str_t current; // current character
-    i64_t line;    // current line
-    i64_t column;  // current column
+    obj_t nfo;              // debug info for current parser
+    i64_t count;            // counter for spans without objects
+    str_t input;            // input string
+    str_t current;          // current character
+    i64_t line;             // current line
+    i64_t column;           // current column
+    bool_t replace_symbols; // replace symbols if they are internal functions
 } __attribute__((aligned(16))) parser_t;
 
 obj_t advance(parser_t *parser);
 
 parser_t parser_new();
 nil_t parser_free(parser_t *parser);
-obj_t parse(parser_t *parser, str_t filename, str_t input);
+obj_t parse_do(parser_t *parser);
+obj_t parse(str_t input, obj_t nfo);
 
 #endif

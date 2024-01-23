@@ -86,23 +86,13 @@
         printf("\n");                                            \
     }
 #define printbits_32(x) printbits_n(x, 32)
+#define printbits_64(x) printbits_n(x, 64)
 
 #define timeit(x)                                                           \
     {                                                                       \
         i64_t timer = clock();                                              \
         x;                                                                  \
         printf("%f\n", ((f64_t)(clock() - timer)) / CLOCKS_PER_SEC * 1000); \
-    }
-
-/*
- * Create a new error object and return it
- */
-#define throw(t, ...)                       \
-    {                                       \
-        str_t _m = str_fmt(0, __VA_ARGS__); \
-        obj_t _e = error(t, _m);            \
-        heap_free(_m);                      \
-        return _e;                          \
     }
 
 #define enum_key(x) (x->mmod == MMOD_INTERNAL ? symtostr(as_list(x)[0]->i64) : as_string((obj_t)((str_t)x - PAGE_SIZE)))
@@ -114,6 +104,5 @@
 bool_t is_valid(obj_t obj);
 u32_t next_power_of_two_u32(u32_t n);
 u64_t next_power_of_two_u64(u64_t n);
-nil_t __attribute__((noreturn)) panic(str_t fmt, ...);
 
 #endif

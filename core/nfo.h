@@ -30,27 +30,21 @@
 /*
  * Points to a actual error position in a source code
  */
-typedef struct span_t
+typedef union span_t
 {
-    u16_t start_line;
-    u16_t end_line;
-    u16_t start_column;
-    u16_t end_column;
+    i64_t id;
+    struct
+    {
+        u16_t start_line;
+        u16_t end_line;
+        u16_t start_column;
+        u16_t end_column;
+    };
+
 } span_t;
 
-/*
- * Debuginfo structure
- */
-typedef struct nfo_t
-{
-    str_t filename;
-    str_t lambda;
-    obj_t spans;
-} nfo_t;
-
-nfo_t nfo_new(str_t filename, str_t lambda);
-nil_t nfo_free(nfo_t *nfo);
-nil_t nfo_insert(nfo_t *nfo, i64_t index, span_t span);
-span_t nfo_get(nfo_t *nfo, i64_t index);
+obj_t nfo(obj_t filename, obj_t source);
+nil_t nfo_insert(obj_t nfo, i64_t index, span_t span);
+span_t nfo_get(obj_t nfo, i64_t index);
 
 #endif

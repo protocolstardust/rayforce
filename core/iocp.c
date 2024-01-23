@@ -530,12 +530,11 @@ i64_t poll_run(poll_t poll)
     i64_t key, poll_result, idx;
     obj_t res;
     str_t fmt;
-    bool_t running = true;
     selector_t selector;
 
     prompt();
 
-    while (running)
+    while (poll->code == NULL_I64)
     {
         success = GetQueuedCompletionStatusEx(
             hPollFd,
@@ -559,7 +558,7 @@ i64_t poll_run(poll_t poll)
                 case STDIN_WAKER_ID:
                     if (size == 0)
                     {
-                        running = false;
+                        poll->code = 0;
                         break;
                     }
                     res = eval_str(0, "stdin", __STDIN_BUF);

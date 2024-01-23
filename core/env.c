@@ -42,6 +42,10 @@
 #include "io.h"
 #include "amend.h"
 #include "join.h"
+#include "query.h"
+#include "cond.h"
+#include "iter.h"
+#include "dynlib.h"
 
 #define regf(r, n, t, f, o)                      \
     {                                            \
@@ -90,93 +94,105 @@ obj_t ray_memstat()
 nil_t init_functions(obj_t functions)
 {
     // Unary
-    regf(functions,  "get",       TYPE_UNARY,    FN_NONE,           ray_get);
-    regf(functions,  "read",      TYPE_UNARY,    FN_NONE,           ray_read);
-    regf(functions,  "parse",     TYPE_UNARY,    FN_NONE,           ray_parse);
-    regf(functions,  "eval",      TYPE_UNARY,    FN_NONE,           ray_eval);
-    regf(functions,  "exec",      TYPE_UNARY,    FN_NONE,           ray_exec);
-    regf(functions,  "load",      TYPE_UNARY,    FN_NONE,           ray_load);
-    regf(functions,  "type",      TYPE_UNARY,    FN_NONE,           ray_type);
-    regf(functions,  "til",       TYPE_UNARY,    FN_NONE,           ray_til);
-    regf(functions,  "reverse",   TYPE_UNARY,    FN_NONE,           ray_reverse);
-    regf(functions,  "distinct",  TYPE_UNARY,    FN_NONE,           ray_distinct);
-    regf(functions,  "group",     TYPE_UNARY,    FN_NONE,           ray_group);
-    regf(functions,  "sum",       TYPE_UNARY,    FN_ATOMIC,         ray_sum);
-    regf(functions,  "avg",       TYPE_UNARY,    FN_NONE,           ray_avg);
-    regf(functions,  "min",       TYPE_UNARY,    FN_ATOMIC,         ray_min);
-    regf(functions,  "max",       TYPE_UNARY,    FN_ATOMIC,         ray_max);
-    regf(functions,  "round",     TYPE_UNARY,    FN_ATOMIC,         ray_round);
-    regf(functions,  "floor",     TYPE_UNARY,    FN_ATOMIC,         ray_floor);
-    regf(functions,  "ceil",      TYPE_UNARY,    FN_ATOMIC,         ray_ceil);
-    regf(functions,  "first",     TYPE_UNARY,    FN_NONE,           ray_first);
-    regf(functions,  "last",      TYPE_UNARY,    FN_NONE,           ray_last);
-    regf(functions,  "count",     TYPE_UNARY,    FN_NONE,           ray_count);
-    regf(functions,  "not",       TYPE_UNARY,    FN_ATOMIC,         ray_not);
-    regf(functions,  "iasc",      TYPE_UNARY,    FN_ATOMIC,         ray_iasc);
-    regf(functions,  "idesc",     TYPE_UNARY,    FN_ATOMIC,         ray_idesc);
-    regf(functions,  "asc",       TYPE_UNARY,    FN_ATOMIC,         ray_asc);
-    regf(functions,  "desc",      TYPE_UNARY,    FN_ATOMIC,         ray_desc);
-    regf(functions,  "guid",      TYPE_UNARY,    FN_ATOMIC,         ray_guid);
-    regf(functions,  "neg",       TYPE_UNARY,    FN_ATOMIC,         ray_neg);
-    regf(functions,  "where",     TYPE_UNARY,    FN_ATOMIC,         ray_where);
-    regf(functions,  "key",       TYPE_UNARY,    FN_NONE,           ray_key);
-    regf(functions,  "value",     TYPE_UNARY,    FN_NONE,           ray_value);
-    regf(functions,  "parse",     TYPE_UNARY,    FN_NONE,           ray_parse);
-    regf(functions,  "ser",       TYPE_UNARY,    FN_NONE,           ser);
-    regf(functions,  "de",        TYPE_UNARY,    FN_NONE,           de);
-    regf(functions,  "hopen",     TYPE_UNARY,    FN_NONE,           ray_hopen);
-    regf(functions,  "hclose",    TYPE_UNARY,    FN_NONE,           ray_hclose);
-    regf(functions,  "rc",        TYPE_UNARY,    FN_NONE,           ray_rc);
+    regf(functions,  "get",       TYPE_UNARY,    FN_NONE,                   ray_get);
+    regf(functions,  "raise",     TYPE_UNARY,    FN_NONE,                   ray_raise);
+    regf(functions,  "read",      TYPE_UNARY,    FN_NONE,                   ray_read);
+    regf(functions,  "parse",     TYPE_UNARY,    FN_NONE,                   ray_parse);
+    regf(functions,  "eval",      TYPE_UNARY,    FN_NONE,                   ray_eval);
+    regf(functions,  "exec",      TYPE_UNARY,    FN_NONE,                   ray_exec);
+    regf(functions,  "load",      TYPE_UNARY,    FN_NONE,                   ray_load);
+    regf(functions,  "type",      TYPE_UNARY,    FN_NONE,                   ray_type);
+    regf(functions,  "til",       TYPE_UNARY,    FN_NONE,                   ray_til);
+    regf(functions,  "reverse",   TYPE_UNARY,    FN_NONE,                   ray_reverse);
+    regf(functions,  "distinct",  TYPE_UNARY,    FN_NONE,                   ray_distinct);
+    regf(functions,  "group",     TYPE_UNARY,    FN_NONE,                   ray_group);
+    regf(functions,  "sum",       TYPE_UNARY,    FN_ATOMIC | FN_AGGR,       ray_sum);
+    regf(functions,  "avg",       TYPE_UNARY,    FN_ATOMIC | FN_AGGR,       ray_avg);
+    regf(functions,  "min",       TYPE_UNARY,    FN_ATOMIC,                 ray_min);
+    regf(functions,  "max",       TYPE_UNARY,    FN_ATOMIC,                 ray_max);
+    regf(functions,  "round",     TYPE_UNARY,    FN_ATOMIC,                 ray_round);
+    regf(functions,  "floor",     TYPE_UNARY,    FN_ATOMIC,                 ray_floor);
+    regf(functions,  "ceil",      TYPE_UNARY,    FN_ATOMIC,                 ray_ceil);
+    regf(functions,  "first",     TYPE_UNARY,    FN_NONE | FN_AGGR,         ray_first);
+    regf(functions,  "last",      TYPE_UNARY,    FN_NONE | FN_AGGR,         ray_last);
+    regf(functions,  "count",     TYPE_UNARY,    FN_NONE,                   ray_count);
+    regf(functions,  "not",       TYPE_UNARY,    FN_ATOMIC,                 ray_not);
+    regf(functions,  "iasc",      TYPE_UNARY,    FN_ATOMIC,                 ray_iasc);
+    regf(functions,  "idesc",     TYPE_UNARY,    FN_ATOMIC,                 ray_idesc);
+    regf(functions,  "asc",       TYPE_UNARY,    FN_ATOMIC,                 ray_asc);
+    regf(functions,  "desc",      TYPE_UNARY,    FN_ATOMIC,                 ray_desc);
+    regf(functions,  "guid",      TYPE_UNARY,    FN_ATOMIC,                 ray_guid);
+    regf(functions,  "neg",       TYPE_UNARY,    FN_ATOMIC,                 ray_neg);
+    regf(functions,  "where",     TYPE_UNARY,    FN_ATOMIC,                 ray_where);
+    regf(functions,  "key",       TYPE_UNARY,    FN_NONE,                   ray_key);
+    regf(functions,  "value",     TYPE_UNARY,    FN_NONE,                   ray_value);
+    regf(functions,  "parse",     TYPE_UNARY,    FN_NONE,                   ray_parse);
+    regf(functions,  "ser",       TYPE_UNARY,    FN_NONE,                   ser);
+    regf(functions,  "de",        TYPE_UNARY,    FN_NONE,                   de);
+    regf(functions,  "hopen",     TYPE_UNARY,    FN_NONE,                   ray_hopen);
+    regf(functions,  "hclose",    TYPE_UNARY,    FN_NONE,                   ray_hclose);
+    regf(functions,  "rc",        TYPE_UNARY,    FN_NONE,                   ray_rc);
+    regf(functions,  "select",    TYPE_UNARY,    FN_NONE,                   ray_select);
+    regf(functions,  "time",      TYPE_UNARY,    FN_NONE | FN_SPECIAL_FORM, ray_time);
+    regf(functions,  "bins",      TYPE_UNARY,    FN_NONE,                   ray_bins);
     
     // Binary           
-    regf(functions,  "write",     TYPE_BINARY,   FN_NONE,           ray_write);
-    regf(functions,  "at",        TYPE_BINARY,   FN_RIGHT_ATOMIC,   ray_at);
-    regf(functions,  "==",        TYPE_BINARY,   FN_ATOMIC,         ray_eq);
-    regf(functions,  "<",         TYPE_BINARY,   FN_ATOMIC,         ray_lt);
-    regf(functions,  ">",         TYPE_BINARY,   FN_ATOMIC,         ray_gt);
-    regf(functions,  "<=",        TYPE_BINARY,   FN_ATOMIC,         ray_le);
-    regf(functions,  ">=",        TYPE_BINARY,   FN_ATOMIC,         ray_ge);
-    regf(functions,  "!=",        TYPE_BINARY,   FN_ATOMIC,         ray_ne);
-    regf(functions,  "and",       TYPE_BINARY,   FN_ATOMIC,         ray_and);
-    regf(functions,  "or",        TYPE_BINARY,   FN_ATOMIC,         ray_or);
-    regf(functions,  "+",         TYPE_BINARY,   FN_ATOMIC,         ray_add);
-    regf(functions,  "-",         TYPE_BINARY,   FN_ATOMIC,         ray_sub);
-    regf(functions,  "*",         TYPE_BINARY,   FN_ATOMIC,         ray_mul);
-    regf(functions,  "%",         TYPE_BINARY,   FN_ATOMIC,         ray_mod);
-    regf(functions,  "/",         TYPE_BINARY,   FN_ATOMIC,         ray_div);
-    regf(functions,  "div",       TYPE_BINARY,   FN_ATOMIC,         ray_fdiv);
-    regf(functions,  "like",      TYPE_BINARY,   FN_NONE,           ray_like);
-    regf(functions,  "dict",      TYPE_BINARY,   FN_NONE,           ray_dict);
-    regf(functions,  "table",     TYPE_BINARY,   FN_NONE,           ray_table);
-    regf(functions,  "find",      TYPE_BINARY,   FN_NONE,           ray_find);
-    regf(functions,  "concat",    TYPE_BINARY,   FN_NONE,           ray_concat);
-    regf(functions,  "filter",    TYPE_BINARY,   FN_ATOMIC,         ray_filter);
-    regf(functions,  "take",      TYPE_BINARY,   FN_NONE,           ray_take);
-    regf(functions,  "in",        TYPE_BINARY,   FN_ATOMIC,         ray_in);
-    regf(functions,  "sect",      TYPE_BINARY,   FN_ATOMIC,         ray_sect);
-    regf(functions,  "except",    TYPE_BINARY,   FN_ATOMIC,         ray_except);
-    regf(functions,  "rand",      TYPE_BINARY,   FN_ATOMIC,         ray_rand);
-    regf(functions,  "as",        TYPE_BINARY,   FN_NONE,           ray_as);
-    regf(functions,  "xasc",      TYPE_BINARY,   FN_NONE,           ray_xasc);
-    regf(functions,  "xdesc",     TYPE_BINARY,   FN_NONE,           ray_xdesc);
-    regf(functions,  "enum",      TYPE_BINARY,   FN_NONE,           ray_enum);
-    
-    // Vary       
-    regf(functions,  "env",       TYPE_VARY,     FN_NONE,           ray_env);
-    regf(functions,  "memstat",   TYPE_VARY,     FN_NONE,           ray_memstat);
-    regf(functions,  "gc",        TYPE_VARY,     FN_NONE,           ray_gc);
-    regf(functions,  "list",      TYPE_VARY,     FN_NONE,           ray_list);
-    regf(functions,  "enlist",    TYPE_VARY,     FN_NONE,           ray_enlist);
-    regf(functions,  "format",    TYPE_VARY,     FN_NONE,           ray_format);
-    regf(functions,  "print",     TYPE_VARY,     FN_NONE,           ray_print);
-    regf(functions,  "println",   TYPE_VARY,     FN_NONE,           ray_println);
-    regf(functions,  "map",       TYPE_VARY,     FN_NONE,           ray_map_vary);
-    regf(functions,  "fold",      TYPE_VARY,     FN_NONE,           ray_fold_vary);
-    regf(functions,  "args",      TYPE_VARY,     FN_NONE,           ray_args);
-    regf(functions,  "amend",     TYPE_VARY,     FN_NONE,           ray_amend);
-    regf(functions,  "dmend",     TYPE_VARY,     FN_NONE,           ray_dmend);
-    regf(functions,  "csv",       TYPE_VARY,     FN_NONE,           ray_csv);
-    regf(functions,  "lj",        TYPE_VARY,     FN_NONE,           ray_lj);
+    regf(functions,  "try",       TYPE_BINARY,   FN_NONE | FN_SPECIAL_FORM, try_obj);
+    regf(functions,  "set",       TYPE_BINARY,   FN_NONE | FN_SPECIAL_FORM, ray_set);
+    regf(functions,  "let",       TYPE_BINARY,   FN_NONE | FN_SPECIAL_FORM, ray_let);
+    regf(functions,  "write",     TYPE_BINARY,   FN_NONE,                   ray_write);
+    regf(functions,  "at",        TYPE_BINARY,   FN_RIGHT_ATOMIC,           ray_at);
+    regf(functions,  "==",        TYPE_BINARY,   FN_ATOMIC,                 ray_eq);
+    regf(functions,  "<",         TYPE_BINARY,   FN_ATOMIC,                 ray_lt);
+    regf(functions,  ">",         TYPE_BINARY,   FN_ATOMIC,                 ray_gt);
+    regf(functions,  "<=",        TYPE_BINARY,   FN_ATOMIC,                 ray_le);
+    regf(functions,  ">=",        TYPE_BINARY,   FN_ATOMIC,                 ray_ge);
+    regf(functions,  "!=",        TYPE_BINARY,   FN_ATOMIC,                 ray_ne);
+    regf(functions,  "and",       TYPE_BINARY,   FN_ATOMIC,                 ray_and);
+    regf(functions,  "or",        TYPE_BINARY,   FN_ATOMIC,                 ray_or);
+    regf(functions,  "+",         TYPE_BINARY,   FN_ATOMIC,                 ray_add);
+    regf(functions,  "-",         TYPE_BINARY,   FN_ATOMIC,                 ray_sub);
+    regf(functions,  "*",         TYPE_BINARY,   FN_ATOMIC,                 ray_mul);
+    regf(functions,  "%",         TYPE_BINARY,   FN_ATOMIC,                 ray_mod);
+    regf(functions,  "/",         TYPE_BINARY,   FN_ATOMIC,                 ray_div);
+    regf(functions,  "div",       TYPE_BINARY,   FN_ATOMIC,                 ray_fdiv);
+    regf(functions,  "like",      TYPE_BINARY,   FN_NONE,                   ray_like);
+    regf(functions,  "dict",      TYPE_BINARY,   FN_NONE,                   ray_dict);
+    regf(functions,  "table",     TYPE_BINARY,   FN_NONE,                   ray_table);
+    regf(functions,  "find",      TYPE_BINARY,   FN_NONE,                   ray_find);
+    regf(functions,  "concat",    TYPE_BINARY,   FN_NONE,                   ray_concat);
+    regf(functions,  "filter",    TYPE_BINARY,   FN_ATOMIC,                 ray_filter);
+    regf(functions,  "take",      TYPE_BINARY,   FN_NONE,                   ray_take);
+    regf(functions,  "in",        TYPE_BINARY,   FN_ATOMIC,                 ray_in);
+    regf(functions,  "sect",      TYPE_BINARY,   FN_ATOMIC,                 ray_sect);
+    regf(functions,  "except",    TYPE_BINARY,   FN_ATOMIC,                 ray_except);
+    regf(functions,  "rand",      TYPE_BINARY,   FN_ATOMIC,                 ray_rand);
+    regf(functions,  "as",        TYPE_BINARY,   FN_NONE,                   ray_as);
+    regf(functions,  "xasc",      TYPE_BINARY,   FN_NONE,                   ray_xasc);
+    regf(functions,  "xdesc",     TYPE_BINARY,   FN_NONE,                   ray_xdesc);
+    regf(functions,  "enum",      TYPE_BINARY,   FN_NONE,                   ray_enum);
+        
+    // Vary               
+    regf(functions,  "do",        TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_do);
+    regf(functions,  "env",       TYPE_VARY,     FN_NONE,                   ray_env);
+    regf(functions,  "memstat",   TYPE_VARY,     FN_NONE,                   ray_memstat);
+    regf(functions,  "gc",        TYPE_VARY,     FN_NONE,                   ray_gc);
+    regf(functions,  "list",      TYPE_VARY,     FN_NONE,                   ray_list);
+    regf(functions,  "enlist",    TYPE_VARY,     FN_NONE,                   ray_enlist);
+    regf(functions,  "format",    TYPE_VARY,     FN_NONE,                   ray_format);
+    regf(functions,  "print",     TYPE_VARY,     FN_NONE,                   ray_print);
+    regf(functions,  "println",   TYPE_VARY,     FN_NONE,                   ray_println);
+    regf(functions,  "map",       TYPE_VARY,     FN_NONE,                   ray_map);
+    regf(functions,  "fold",      TYPE_VARY,     FN_NONE,                   ray_fold);
+    regf(functions,  "args",      TYPE_VARY,     FN_NONE,                   ray_args);
+    regf(functions,  "amend",     TYPE_VARY,     FN_NONE,                   ray_amend);
+    regf(functions,  "dmend",     TYPE_VARY,     FN_NONE,                   ray_dmend);
+    regf(functions,  "csv",       TYPE_VARY,     FN_NONE,                   ray_csv);
+    regf(functions,  "lj",        TYPE_VARY,     FN_NONE,                   ray_lj);
+    regf(functions,  "if",        TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_cond);
+    regf(functions,  "return",    TYPE_VARY,     FN_NONE,                   ray_return);
+    regf(functions,  "exit",      TYPE_VARY,     FN_NONE,                   ray_exit);
+    regf(functions,  "loadfn",    TYPE_VARY,     FN_NONE,                   ray_loadfn);
 }    
     
 nil_t init_typenames(obj_t typenames)    
@@ -239,8 +255,8 @@ nil_t init_kw_symbols()
 
 env_t create_env()
 {
-    obj_t functions = dict(vector_symbol(0), list(0));
-    obj_t variables = dict(vector_symbol(0), list(0));
+    obj_t functions = dict(vector_symbol(0), vn_list(0));
+    obj_t variables = dict(vector_symbol(0), vn_list(0));
     obj_t typenames = dict(vector_i64(0), vector_symbol(0));
 
     init_kw_symbols();
@@ -318,7 +334,7 @@ str_t env_get_internal_name(obj_t obj)
     if (sym)
         return symtostr(sym);
 
-    return "unknown internal function";
+    return "@fn";
 }
 
 obj_t env_get_internal_function(str_t name)
@@ -326,6 +342,18 @@ obj_t env_get_internal_function(str_t name)
     i64_t i;
 
     i = find_sym(as_list(runtime_get()->env.functions)[0], name);
+
+    if (i < (i64_t)as_list(runtime_get()->env.functions)[0]->len)
+        return clone(as_list(as_list(runtime_get()->env.functions)[1])[i]);
+
+    return null(0);
+}
+
+obj_t env_get_internal_function_by_id(i64_t id)
+{
+    i64_t i;
+
+    i = find_raw(as_list(runtime_get()->env.functions)[0], &id);
 
     if (i < (i64_t)as_list(runtime_get()->env.functions)[0]->len)
         return clone(as_list(as_list(runtime_get()->env.functions)[1])[i]);

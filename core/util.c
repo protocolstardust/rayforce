@@ -24,7 +24,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "vm.h"
 #include "util.h"
 #include "format.h"
 #include "heap.h"
@@ -62,26 +61,7 @@ bool_t is_valid(obj_t obj)
            || obj->type == TYPE_LAMBDA      || obj->type == TYPE_UNARY 
            || obj->type == TYPE_BINARY      || obj->type == TYPE_VARY   
            || obj->type == TYPE_ENUM        || obj->type == TYPE_ANYMAP       
-           || obj->type == TYPE_FILTERMAP      || obj->type == TYPE_GROUPMAP 
+           || obj->type == TYPE_FILTERMAP   || obj->type == TYPE_GROUPMAP 
            || obj->type == TYPE_ERROR;
     // clang-format on
-}
-
-nil_t panic(str_t fmt, ...)
-{
-    vm_t *vm = &runtime_get()->vm;
-    obj_t err;
-    str_t err_msg;
-
-    va_list args;
-    va_start(args, fmt);
-    err_msg = str_fmt(0, fmt, args);
-    va_end(args);
-
-    err = error(ERR_THROW, err_msg);
-    heap_free(err_msg);
-
-    vm->stack[vm->sp++] = err;
-
-    longjmp(vm->jmp, vm->sp);
 }

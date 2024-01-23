@@ -1,0 +1,80 @@
+/*
+ *   Copyright (c) 2024 Anton Kundenko <singaraiona@gmail.com>
+ *   All rights reserved.
+
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+
+ *   The above copyright notice and this permission notice shall be included in all
+ *   copies or substantial portions of the Software.
+
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *   SOFTWARE.
+ */
+
+#include <stdio.h>
+#include "dynlib.h"
+#include "error.h"
+#include <dlfcn.h>
+
+obj_t dynlib_loadfn(str_t path, str_t func, i64_t nargs)
+{
+    raw_t handle, dsym;
+    obj_t fn;
+    str_t error;
+
+    handle = dlopen(path, RTLD_NOW);
+    if (!handle)
+        throw(ERR_SYS, "Failed to load shared library: %s", dlerror());
+
+    dsym = dlsym(handle, func);
+    if ((error = dlerror()) != NULL)
+        throw(ERR_SYS, "Failed to load symbol from shared library: %s", error);
+
+    switch (nargs)
+    {
+    case 1:
+        fn = atom(-TYPE_UNARY);
+        break;
+    case 2:
+        fn = atom(-TYPE_BINARY);
+        break;
+    default:
+        fn = atom(-TYPE_VARY);
+        break;
+    }
+
+    fn->i64 = (i64_t)dsym;
+    fn->attrs = FN_NONE;
+
+    return fn;
+}
+
+obj_t ray_loadfn(obj_t *args, u64_t n)
+{
+    if (n != 3)
+        throw(ERR_ARITY, "Expected 3 arguments, got %llu", n);
+
+    if (!args[0] || !args[1] || !args[2])
+        throw(ERR_TYPE, "Null is not a valid argument");
+
+    if (args[0]->type != TYPE_CHAR)
+        throw(ERR_TYPE, "Expected 'string path, got %s", typename(args[0]->type));
+
+    if (args[1]->type != TYPE_CHAR)
+        throw(ERR_TYPE, "Expected 'string fname, got %s", typename(args[1]->type));
+
+    if (args[2]->type != -TYPE_I64)
+        throw(ERR_TYPE, "Expected 'i64 arguments, got %s", typename(args[2]->type));
+
+    return dynlib_loadfn(as_string(args[0]), as_string(args[1]), args[2]->i64);
+}

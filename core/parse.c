@@ -34,7 +34,14 @@
 #include "nfo.h"
 #include "runtime.h"
 #include "ops.h"
+#include "eval.h"
 #include "timestamp.h"
+#include "error.h"
+
+#define COMMANDS_LIST "\
+  \\?  - Displays help.\n\
+  \\t  - Measures the execution time of an expression.\n\
+  \\\\  - Exits the application."
 
 span_t span_start(parser_t *parser)
 {
@@ -58,9 +65,20 @@ nil_t span_extend(parser_t *parser, span_t *span)
 
 obj_t parse_error(parser_t *parser, i64_t id, str_t msg)
 {
-    obj_t obj = error(ERR_PARSE, msg);
-    span_t span = nfo_get(&parser->nfo, id);
-    *(span_t *)(&as_list(obj)[2]) = span;
+    span_t span;
+    obj_t obj = error_str(ERR_PARSE, msg);
+
+    if (parser->nfo)
+    {
+        span = nfo_get(parser->nfo, id);
+        as_error(obj)->locs = vn_list(1,
+                                      vn_list(4,
+                                              i64(span.id),                   // span
+                                              clone(as_list(parser->nfo)[0]), // file
+                                              null(0),                        // function
+                                              clone(as_list(parser->nfo)[1])  // source
+                                              ));
+    }
 
     heap_free(msg);
 
@@ -114,10 +132,12 @@ bool_t is_at_term(obj_t token)
 
 i8_t shift(parser_t *parser, i32_t num)
 {
+    i8_t res;
+
     if (at_eof(*parser->current))
         return 0;
 
-    i8_t res = *parser->current;
+    res = *parser->current;
     parser->current += num;
     parser->column += num;
 
@@ -128,7 +148,7 @@ obj_t to_token(parser_t *parser)
 {
     obj_t tok = vchar(*parser->current);
     tok->type = -TYPE_CHAR;
-    nfo_insert(&parser->nfo, (i64_t)tok, span_start(parser));
+    nfo_insert(parser->nfo, (i64_t)tok, span_start(parser));
 
     return tok;
 }
@@ -148,7 +168,7 @@ obj_t parse_timestamp(parser_t *parser)
         {
             shift(parser, 2);
             res = timestamp(NULL_I64);
-            nfo_insert(&parser->nfo, (i64_t)res, span);
+            nfo_insert(parser->nfo, (i64_t)res, span);
 
             return res;
         }
@@ -188,7 +208,7 @@ obj_t parse_timestamp(parser_t *parser)
         {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             return parse_error(parser, parser->count++, str_fmt(0, "Month is out of range"));
         }
     }
@@ -214,7 +234,7 @@ obj_t parse_timestamp(parser_t *parser)
         {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             return parse_error(parser, parser->count++, str_fmt(0, "Day is out of range"));
         }
     }
@@ -228,7 +248,7 @@ obj_t parse_timestamp(parser_t *parser)
         res = timestamp(ray_timestamp_into_i64(ts));
 
         span_extend(parser, &span);
-        nfo_insert(&parser->nfo, (i64_t)res, span);
+        nfo_insert(parser->nfo, (i64_t)res, span);
 
         return res;
     }
@@ -248,7 +268,7 @@ obj_t parse_timestamp(parser_t *parser)
         {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             return parse_error(parser, parser->count++, str_fmt(0, "Hour is out of range"));
         }
     }
@@ -274,7 +294,7 @@ obj_t parse_timestamp(parser_t *parser)
         {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             return parse_error(parser, parser->count++, str_fmt(0, "Minute is out of range"));
         }
     }
@@ -300,7 +320,7 @@ obj_t parse_timestamp(parser_t *parser)
         {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             return parse_error(parser, parser->count++, str_fmt(0, "Second is out of range"));
         }
     }
@@ -324,7 +344,7 @@ obj_t parse_timestamp(parser_t *parser)
     res = timestamp(ray_timestamp_into_i64(ts));
 
     span_extend(parser, &span);
-    nfo_insert(&parser->nfo, (i64_t)res, span);
+    nfo_insert(parser->nfo, (i64_t)res, span);
 
     return res;
 }
@@ -344,7 +364,7 @@ obj_t parse_number(parser_t *parser)
         {
             shift(parser, 2);
             num = i64(NULL_I64);
-            nfo_insert(&parser->nfo, (i64_t)num, span);
+            nfo_insert(parser->nfo, (i64_t)num, span);
 
             return num;
         }
@@ -353,7 +373,7 @@ obj_t parse_number(parser_t *parser)
         {
             shift(parser, 2);
             num = f64(NULL_F64);
-            nfo_insert(&parser->nfo, (i64_t)num, span);
+            nfo_insert(parser->nfo, (i64_t)num, span);
 
             return num;
         }
@@ -362,7 +382,7 @@ obj_t parse_number(parser_t *parser)
         {
             shift(parser, 2);
             num = timestamp(NULL_I64);
-            nfo_insert(&parser->nfo, (i64_t)num, span);
+            nfo_insert(parser->nfo, (i64_t)num, span);
 
             return num;
         }
@@ -371,7 +391,7 @@ obj_t parse_number(parser_t *parser)
         {
             shift(parser, 2);
             num = guid(NULL_GUID);
-            nfo_insert(&parser->nfo, (i64_t)num, span);
+            nfo_insert(parser->nfo, (i64_t)num, span);
 
             return num;
         }
@@ -384,12 +404,12 @@ obj_t parse_number(parser_t *parser)
     if ((num_i64 == LONG_MAX || num_i64 == LONG_MIN) && errno == ERANGE)
     {
         span.end_column += (end - parser->current - 1);
-        nfo_insert(&parser->nfo, parser->count, span);
+        nfo_insert(parser->nfo, parser->count, span);
         return parse_error(parser, parser->count++, str_fmt(0, "Number is out of range"));
     }
 
     if (end == parser->current)
-        return error(ERR_PARSE, "Invalid number");
+        return error_str(ERR_PARSE, "Invalid number");
 
     // try double instead
     if (*end == '.')
@@ -399,7 +419,7 @@ obj_t parse_number(parser_t *parser)
         if (errno == ERANGE)
         {
             span.end_column += (end - parser->current);
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             return parse_error(parser, parser->count++, str_fmt(0, "Number is out of range"));
         }
 
@@ -410,7 +430,7 @@ obj_t parse_number(parser_t *parser)
 
     shift(parser, end - parser->current);
     span_extend(parser, &span);
-    nfo_insert(&parser->nfo, (i64_t)num, span);
+    nfo_insert(parser->nfo, (i64_t)num, span);
 
     return num;
 }
@@ -427,7 +447,7 @@ obj_t parse_char(parser_t *parser)
     {
         shift(parser, pos - parser->current);
         span_extend(parser, &span);
-        nfo_insert(&parser->nfo, (i64_t)res, span);
+        nfo_insert(parser->nfo, (i64_t)res, span);
 
         res = null(TYPE_SYMBOL);
         res->attrs = ATTR_QUOTED;
@@ -446,7 +466,7 @@ obj_t parse_char(parser_t *parser)
         if (*pos == '\'')
         {
             span.end_column += (pos - parser->current);
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             return parse_error(parser, parser->count++, str_fmt(0, "Invalid literal: char can not contain more than one symbol"));
         }
 
@@ -456,7 +476,7 @@ obj_t parse_char(parser_t *parser)
         res->attrs = ATTR_QUOTED;
         shift(parser, pos - parser->current);
         span_extend(parser, &span);
-        nfo_insert(&parser->nfo, (i64_t)res, span);
+        nfo_insert(parser->nfo, (i64_t)res, span);
 
         return res;
     }
@@ -465,7 +485,7 @@ obj_t parse_char(parser_t *parser)
 
     shift(parser, 3);
     span_extend(parser, &span);
-    nfo_insert(&parser->nfo, (i64_t)res, span);
+    nfo_insert(parser->nfo, (i64_t)res, span);
 
     return res;
 }
@@ -474,34 +494,65 @@ obj_t parse_string(parser_t *parser)
 {
     span_t span = span_start(parser);
     str_t pos = parser->current + 1; // skip '"'
-    i32_t len;
+    i32_t len = 0;
     obj_t str, err;
+    char_t nl = '\0', lf = '\n', cr = '\r', tb = '\t';
+
+    str = string(0);
 
     while (!at_eof(*pos) && *pos != '\n')
     {
-        if (*(pos - 1) == '\\' && *pos == '"')
-            pos++;
+        if (*pos == '\\')
+        {
+            switch (*++pos)
+            {
+            case '"':
+                push_raw(&str, pos++);
+                break;
+            case 'n':
+                push_raw(&str, &lf);
+                pos++;
+                break;
+            case 'r':
+                push_raw(&str, &cr);
+                pos++;
+                break;
+            case 't':
+                push_raw(&str, &tb);
+                pos++;
+                break;
+            default:
+                drop(str);
+                span.end_column += (pos - parser->current);
+                nfo_insert(parser->nfo, parser->count, span);
+                err = parse_error(parser, parser->count++, str_fmt(0, "Invalid escape sequence"));
+            }
+
+            continue;
+        }
         else if (*pos == '"')
             break;
 
-        pos++;
+        push_raw(&str, pos++);
     }
 
     if ((*pos++) != '"')
     {
+        drop(str);
         span.end_column += (pos - parser->current);
-        nfo_insert(&parser->nfo, parser->count, span);
+        nfo_insert(parser->nfo, parser->count, span);
         err = parse_error(parser, parser->count++, str_fmt(0, "Expected '\"'"));
 
         return err;
     }
 
     len = pos - parser->current - 2;
-    str = string_from_str(parser->current + 1, len);
 
     shift(parser, len + 2);
     span_extend(parser, &span);
-    nfo_insert(&parser->nfo, (i64_t)str, span);
+    nfo_insert(parser->nfo, (i64_t)str, span);
+
+    push_raw(&str, &nl);
 
     return str;
 }
@@ -509,7 +560,7 @@ obj_t parse_string(parser_t *parser)
 obj_t parse_symbol(parser_t *parser)
 {
     str_t pos = parser->current;
-    obj_t res;
+    obj_t res = NULL;
     span_t span = span_start(parser);
     i64_t id;
 
@@ -518,7 +569,7 @@ obj_t parse_symbol(parser_t *parser)
         shift(parser, 4);
         span_extend(parser, &span);
         res = bool(true);
-        nfo_insert(&parser->nfo, (i64_t)res, span);
+        nfo_insert(parser->nfo, (i64_t)res, span);
 
         return res;
     }
@@ -528,7 +579,7 @@ obj_t parse_symbol(parser_t *parser)
         shift(parser, 5);
         span_extend(parser, &span);
         res = bool(false);
-        nfo_insert(&parser->nfo, (i64_t)res, span);
+        nfo_insert(parser->nfo, (i64_t)res, span);
 
         return res;
     }
@@ -538,7 +589,7 @@ obj_t parse_symbol(parser_t *parser)
         shift(parser, 4);
         span_extend(parser, &span);
         res = null(0);
-        nfo_insert(&parser->nfo, (i64_t)res, span);
+        nfo_insert(parser->nfo, (i64_t)res, span);
 
         return res;
     }
@@ -550,11 +601,16 @@ obj_t parse_symbol(parser_t *parser)
     } while (*pos && (is_alphanum(*pos) || is_op(*pos)));
 
     id = intern_symbol(parser->current, pos - parser->current);
-    res = i64(id);
-    res->type = -TYPE_SYMBOL;
+
+    if (parser->replace_symbols)
+        res = env_get_internal_function_by_id(id);
+
+    if (!res)
+        res = symboli64(id);
+
     shift(parser, pos - parser->current);
     span_extend(parser, &span);
-    nfo_insert(&parser->nfo, (i64_t)res, span);
+    nfo_insert(parser->nfo, (i64_t)res, span);
 
     return res;
 }
@@ -566,7 +622,9 @@ obj_t parse_vector(parser_t *parser)
     span_t span = span_start(parser);
 
     shift(parser, 1); // skip '['
+    parser->replace_symbols = false;
     tok = advance(parser);
+    parser->replace_symbols = true;
 
     while (!is_at(tok, ']'))
     {
@@ -680,27 +738,81 @@ obj_t parse_vector(parser_t *parser)
 
         drop(tok);
         span_extend(parser, &span);
+        parser->replace_symbols = false;
         tok = advance(parser);
+        parser->replace_symbols = true;
     }
 
     drop(tok);
     span_extend(parser, &span);
-    nfo_insert(&parser->nfo, (i64_t)vec, span);
+    nfo_insert(parser->nfo, (i64_t)vec, span);
 
     return vec;
 }
 
 obj_t parse_list(parser_t *parser)
 {
-    obj_t lst = list(0), tok, err;
+    obj_t lst = NULL, tok, args, body, err;
     span_t span = span_start(parser);
 
     shift(parser, 1); // skip '('
     tok = advance(parser);
 
+    // parse lambda
+    if (tok->type == -TYPE_SYMBOL && tok->i64 == KW_FN)
+    {
+        drop(tok);
+
+        args = advance(parser);
+        if (is_error(args))
+            return args;
+
+        if (args->type != TYPE_SYMBOL)
+        {
+            if (args->type != TYPE_I64 || args->len != 0)
+            {
+                err = parse_error(parser, (i64_t)args, str_fmt(0, "fn: expected type 'Symbol as arguments."));
+                drop(args);
+                return err;
+            }
+
+            // empty args
+            args->type = TYPE_SYMBOL;
+        }
+
+        body = parse_do(parser);
+        if (is_error(body))
+        {
+            drop(args);
+            return body;
+        }
+
+        tok = advance(parser);
+
+        if (!is_at(tok, ')'))
+        {
+            span_extend(parser, &span);
+            nfo_insert(parser->nfo, parser->count, span);
+            err = parse_error(parser, parser->count++, str_fmt(0, "fn: expected ')'"));
+            drop(args);
+            drop(body);
+            drop(tok);
+
+            return err;
+        }
+
+        span_extend(parser, &span);
+        lst = lambda(args, body, clone(parser->nfo));
+        nfo_insert(parser->nfo, (i64_t)lst, span);
+        // insert self into nfo
+        nfo_insert(as_lambda(lst)->nfo, (i64_t)lst, span);
+        drop(tok);
+
+        return lst;
+    }
+
     while (!is_at(tok, ')'))
     {
-
         if (is_error(tok))
         {
             drop(lst);
@@ -709,7 +821,7 @@ obj_t parse_list(parser_t *parser)
 
         if (at_eof(*parser->current))
         {
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             err = parse_error(parser, parser->count++, str_fmt(0, "Expected ')'"));
             drop(lst);
             drop(tok);
@@ -726,14 +838,17 @@ obj_t parse_list(parser_t *parser)
             return err;
         }
 
-        push_obj(&lst, tok);
+        if (!lst)
+            lst = vn_list(1, tok);
+        else
+            push_obj(&lst, tok);
 
         span_extend(parser, &span);
         tok = advance(parser);
     }
 
     span_extend(parser, &span);
-    nfo_insert(&parser->nfo, (i64_t)lst, span);
+    nfo_insert(parser->nfo, (i64_t)lst, span);
     drop(tok);
 
     return lst;
@@ -741,11 +856,13 @@ obj_t parse_list(parser_t *parser)
 
 obj_t parse_dict(parser_t *parser)
 {
-    obj_t tok, keys = list(0), vals = list(0), d, err;
+    obj_t tok, keys = NULL, vals = list(0), d, err;
     span_t span = span_start(parser);
 
     shift(parser, 1); // skip '{'
+    parser->replace_symbols = false;
     tok = advance(parser);
+    parser->replace_symbols = true;
 
     while (!is_at(tok, '}'))
     {
@@ -758,7 +875,7 @@ obj_t parse_dict(parser_t *parser)
 
         if (at_eof(*parser->current) || is_at_term(tok))
         {
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             err = parse_error(parser, parser->count++, str_fmt(0, "Expected '}'"));
             drop(keys);
             drop(vals);
@@ -766,6 +883,9 @@ obj_t parse_dict(parser_t *parser)
 
             return err;
         }
+
+        if (!keys)
+            keys = vector(tok->type, 0);
 
         push_obj(&keys, tok);
 
@@ -802,9 +922,9 @@ obj_t parse_dict(parser_t *parser)
             return tok;
         }
 
-        if (at_eof(*parser->current) || is_at_term(tok))
+        if (is_at_term(tok))
         {
-            nfo_insert(&parser->nfo, parser->count, span);
+            nfo_insert(parser->nfo, parser->count, span);
             err = parse_error(parser, parser->count++, str_fmt(0, "Expected value folowing ':'"));
             drop(keys);
             drop(vals);
@@ -816,44 +936,104 @@ obj_t parse_dict(parser_t *parser)
         push_obj(&vals, tok);
 
         span_extend(parser, &span);
+        parser->replace_symbols = false;
         tok = advance(parser);
+        parser->replace_symbols = true;
     }
 
     drop(tok);
-    d = dict(keys, vals);
 
+    d = dict(keys, vals);
     span_extend(parser, &span);
-    nfo_insert(&parser->nfo, (i64_t)d, span);
+    nfo_insert(parser->nfo, (i64_t)d, span);
 
     return d;
+}
+
+obj_t parse_command(parser_t *parser)
+{
+    obj_t v, err;
+    span_t span = span_start(parser);
+
+    shift(parser, 1); // skip '\'
+
+    if ((*parser->current) == '?')
+    {
+        shift(parser, 1);
+        printf("%s** Commands list:\n%s%s\n", YELLOW, COMMANDS_LIST, RESET);
+        return null(0);
+    }
+    if ((*parser->current) == 't')
+    {
+        shift(parser, 1);
+        v = parse_do(parser);
+        if (is_error(v))
+            return v;
+
+        return vn_list(2, env_get_internal_function("time"), v);
+    }
+    if ((*parser->current) == '\\')
+    {
+        shift(parser, 1);
+        return vn_list(1, env_get_internal_function("exit"));
+    }
+
+    nfo_insert(parser->nfo, parser->count, span);
+    err = parse_error(parser, parser->count++, str_fmt(0, "Invalid command. Type '\\?' for commands list."));
+    return err;
+}
+
+nil_t skip_whitespaces(parser_t *parser)
+{
+    while (true)
+    {
+        if (at_eof(*parser->current))
+            break;
+
+        // Skip shebang
+        if (*parser->current == '#' && *(parser->current + 1) == '!')
+        {
+            while (*parser->current != '\n' && !at_eof(*parser->current))
+                parser->current++;
+
+            parser->line++;
+            parser->column = 0;
+        }
+
+        // Handle whitespace characters
+        if (is_whitespace(*parser->current))
+        {
+            if (*parser->current == '\n')
+            {
+                parser->line++;
+                parser->column = 0;
+            }
+            else
+                parser->column++;
+
+            parser->current++;
+        }
+
+        // Handle comments
+        else if (*parser->current == ';')
+        {
+            while (*parser->current != '\n' && !at_eof(*parser->current))
+            {
+                parser->current++;
+                parser->column++;
+            }
+        }
+
+        else
+            break;
+    }
 }
 
 obj_t advance(parser_t *parser)
 {
     obj_t tok = NULL, err = NULL;
 
-    // Skip all whitespaces
-    while (is_whitespace(*parser->current))
-    {
-        // Update line and column (if next line is not empty)
-        if (*parser->current == '\n')
-        {
-            parser->line++;
-            parser->column = 0;
-            parser->current++;
-        }
-        else
-            shift(parser, 1);
-    }
-
-    // Skip comments
-    if ((*parser->current) == ';')
-    {
-        while (!at_eof(*parser->current) && (*parser->current) != '\n')
-            shift(parser, 1);
-
-        return advance(parser);
-    }
+    skip_whitespaces(parser);
 
     if (at_eof(*parser->current))
         return to_token(parser);
@@ -888,6 +1068,9 @@ obj_t advance(parser_t *parser)
     if ((*parser->current) == '"')
         return parse_string(parser);
 
+    if ((*parser->current) == '\\')
+        return parse_command(parser);
+
     if (at_term(*parser->current))
     {
         tok = to_token(parser);
@@ -896,19 +1079,16 @@ obj_t advance(parser_t *parser)
         return tok;
     }
 
-    nfo_insert(&parser->nfo, (i64_t)tok, span_start(parser));
+    nfo_insert(parser->nfo, (i64_t)tok, span_start(parser));
     err = parse_error(parser, (i64_t)tok, str_fmt(0, "Unexpected token: '%c'", *parser->current));
     drop(tok);
 
     return err;
 }
 
-obj_t parse_program(parser_t *parser)
+obj_t parse_do(parser_t *parser)
 {
-    obj_t tok, lst = list(0), err;
-    span_t span;
-
-    span = span_start(parser);
+    obj_t tok, car = NULL, lst = NULL;
 
     while (!at_eof(*parser->current))
     {
@@ -916,16 +1096,9 @@ obj_t parse_program(parser_t *parser)
 
         if (is_error(tok))
         {
+            drop(car);
             drop(lst);
             return tok;
-        }
-
-        if (is_at_term(tok))
-        {
-            err = parse_error(parser, (i64_t)tok, str_fmt(0, "Unexpected end of expression: '%c'", tok->vchar));
-            drop(lst);
-            drop(tok);
-            return err;
         }
 
         if (is_at(tok, '\0'))
@@ -934,47 +1107,54 @@ obj_t parse_program(parser_t *parser)
             break;
         }
 
-        span_extend(parser, &span);
-        push_obj(&lst, tok);
+        if (is_at_term(tok))
+        {
+            drop(tok);
+            // roll back one token
+            parser->current--;
+            parser->column--;
+            break;
+        }
+
+        if (car == NULL)
+            car = tok;
+        else if (lst == NULL)
+            lst = vn_list(3, env_get_internal_function("do"), car, tok);
+        else
+            push_obj(&lst, tok);
     }
 
-    nfo_insert(&parser->nfo, (i64_t)lst, span);
-
-    return lst;
+    return lst ? lst : car;
 }
 
-obj_t parse(parser_t *parser, str_t filename, str_t input)
+obj_t parse(str_t input, obj_t nfo)
 {
-    obj_t res;
+    obj_t res, err;
+    span_t span;
+    parser_t parser = {
+        .input = input,
+        .current = input,
+        .line = 0,
+        .column = 0,
+        .nfo = nfo,
+        .replace_symbols = true,
+    };
 
-    parser->nfo.lambda = "";
-    parser->nfo.filename = filename;
-    parser->input = input;
-    parser->current = input;
-    parser->line = 0;
-    parser->column = 0;
-
-    res = parse_program(parser);
+    res = parse_do(&parser);
 
     if (is_error(res))
         return res;
 
-    res->attrs |= ATTR_MULTIEXPR;
+    if (!at_eof(*parser.current))
+    {
+        span = nfo_get(parser.nfo, (i64_t)res);
+        span.start_column = span.end_column + 1;
+        span.end_column = span.start_column;
+        nfo_insert(parser.nfo, parser.count, span);
+        err = parse_error(&parser, parser.count++, str_fmt(0, "Unparsed input remains"));
+        drop(res);
+        return err;
+    }
 
     return res;
-}
-
-parser_t parser_new()
-{
-    parser_t parser = {
-        .nfo = nfo_new("", ""),
-        .input = "",
-    };
-
-    return parser;
-}
-
-void parser_free(parser_t *parser)
-{
-    nfo_free(&parser->nfo);
 }

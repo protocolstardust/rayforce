@@ -39,6 +39,8 @@
 #include "util.h"
 #include "sock.h"
 #include "heap.h"
+#include "io.h"
+#include "error.h"
 
 __thread i32_t __EVENT_FD; // eventfd to notify epoll loop of shutdown
 __thread u8_t __STDIN_BUF[BUF_SIZE + 1];
@@ -113,9 +115,11 @@ poll_t poll_init(i64_t port)
     }
 
     poll = (poll_t)heap_alloc(sizeof(struct poll_t));
-
+    poll->code = NULL_I64;
     poll->poll_fd = epoll_fd;
     poll->ipc_fd = listen_fd;
+    poll->replfile = string_from_str("repl", 4);
+    poll->ipcfile = string_from_str("ipc", 3);
     poll->selectors = freelist_new(128);
 
     return poll;
@@ -135,6 +139,9 @@ nil_t poll_cleanup(poll_t poll)
         if (poll->selectors->data[i] != NULL_I64)
             poll_deregister(poll, i + SELECTOR_ID_OFFSET);
     }
+
+    drop(poll->replfile);
+    drop(poll->ipcfile);
 
     freelist_free(poll->selectors);
 
@@ -363,11 +370,14 @@ nil_t process_request(poll_t poll, selector_t selector)
         v = res;
     else if (res->type == TYPE_CHAR)
     {
-        v = eval_str(0, "ipc", as_string(res));
+        v = eval_str(0, res, poll->ipcfile);
         drop(res);
     }
     else
-        v = eval_obj(0, "ipc", res);
+    {
+        v = eval_obj(0, res);
+        drop(res);
+    }
 
     // sync request
     if (selector->rx.msgtype == MSG_TYPE_SYNC)
@@ -386,16 +396,14 @@ i64_t poll_run(poll_t poll)
 {
     i64_t epoll_fd = poll->poll_fd, listen_fd = poll->ipc_fd,
           n, nfds, len, sock;
-    obj_t res;
-    str_t fmt;
-    bool_t running = true;
+    obj_t str, res;
     poll_result_t poll_result;
     selector_t selector;
     struct epoll_event ev, events[MAX_EVENTS];
 
     prompt();
 
-    while (running)
+    while (poll->code == NULL_I64)
     {
         nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
         if (nfds == -1)
@@ -409,13 +417,12 @@ i64_t poll_run(poll_t poll)
             if (ev.data.fd == STDIN_FILENO)
             {
                 len = read(STDIN_FILENO, __STDIN_BUF, BUF_SIZE);
-                __STDIN_BUF[len] = '\0';
-                res = eval_str(0, "stdin", (str_t)__STDIN_BUF);
-                if (res)
+                if (len > 1)
                 {
-                    fmt = obj_fmt(res);
-                    printf("%s\n", fmt);
-                    heap_free(fmt);
+                    str = string_from_str((str_t)__STDIN_BUF, len - 1);
+                    res = eval_str(0, str, poll->replfile);
+                    drop(str);
+                    io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
                     drop(res);
                 }
                 prompt();
@@ -429,7 +436,7 @@ i64_t poll_run(poll_t poll)
             }
             // shutdown
             else if (ev.data.fd == __EVENT_FD)
-                running = false;
+                poll->code = 0;
             // tcp socket event
             else
             {
@@ -469,7 +476,7 @@ i64_t poll_run(poll_t poll)
         }
     }
 
-    return 0;
+    return poll->code;
 }
 
 obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)

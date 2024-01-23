@@ -35,5 +35,6 @@ obj_t ray_parse(obj_t x);
 obj_t ray_eval(obj_t x);
 obj_t ray_exec(obj_t x);
 obj_t ray_load(obj_t x);
+obj_t io_write(i64_t fd, u8_t msg_type, obj_t obj);
 
 #endif // IO_H

@@ -21,6 +21,7 @@
  *   SOFTWARE.
  */
 
+// clang-format off
 #ifndef RAYFORCE_H
 #define RAYFORCE_H
 
@@ -55,18 +56,21 @@ extern "C"
 #define OK 0
 #define ERR_INIT 1
 #define ERR_PARSE 2
-#define ERR_FORMAT 3
-#define ERR_TYPE 4
-#define ERR_LENGTH 5
-#define ERR_INDEX 6
-#define ERR_HEAP 7
-#define ERR_IO 8
-#define ERR_NOT_FOUND 9
-#define ERR_NOT_EXIST 10
-#define ERR_NOT_IMPLEMENTED 11
-#define ERR_NOT_SUPPORTED 12
-#define ERR_STACK_OVERFLOW 13
-#define ERR_THROW 14
+#define ERR_EVAL 3
+#define ERR_FORMAT 4
+#define ERR_TYPE 5
+#define ERR_LENGTH 6
+#define ERR_ARITY 7
+#define ERR_INDEX 8
+#define ERR_HEAP 9
+#define ERR_IO 10
+#define ERR_SYS 11
+#define ERR_NOT_FOUND 12
+#define ERR_NOT_EXIST 13
+#define ERR_NOT_IMPLEMENTED 14
+#define ERR_NOT_SUPPORTED 15
+#define ERR_STACK_OVERFLOW 16
+#define ERR_RAISE 17
 #define ERR_UNKNOWN 127
 
 #define NULL_I64  ((i64_t)0x8000000000000000LL)
@@ -130,8 +134,10 @@ extern u8_t version(); // get version as u8_t (major - 5 bits, minor - 3 bits)
 // Constructors
 extern obj_t null(type_t type);                             // create null of type
 extern obj_t atom(type_t type);                             // create atom of type
-extern obj_t list(u64_t len, ...);                          // create list
+extern obj_t list(u64_t len);                               // create list
+extern obj_t vn_list(u64_t len, ...);                       // create list from values
 extern obj_t vector(type_t type, u64_t len);                // create vector of type
+extern obj_t vn_symbol(u64_t len, ...);                     // create vector symbols from strings
 extern obj_t bool(bool_t val);                              // bool atom
 extern obj_t u8(u8_t val);                                  // byte atom
 extern obj_t i64(i64_t val);                                // i64 atom
@@ -142,6 +148,7 @@ extern obj_t timestamp(i64_t val);                          // timestamp
 extern obj_t guid(u8_t buf[16]);                            // GUID
 extern obj_t vchar(char_t c);                               // char
 extern obj_t string(u64_t len);                             // string 
+extern obj_t vn_string(str_t fmt, ...);                     // string from format
 extern obj_t venum(obj_t sym, obj_t vec);                   // enum
 extern obj_t anymap(obj_t sym, obj_t vec);                  // anymap
 
@@ -161,12 +168,11 @@ extern obj_t clone(obj_t obj); // clone
 extern obj_t cow(obj_t   obj); // clone if refcount > 1
 extern u32_t rc(obj_t    obj); // get refcount
 
-// Error
-extern obj_t error(i8_t code, str_t msg);
+// Errors
+extern obj_t error(i8_t code, str_t fmt, ...);       // Creates an error object
 
 // Destructor
 extern nil_t drop(obj_t obj);
-extern nil_t dropn(u64_t n, ...);
 
 // Accessors
 #define as_string(obj)    ((str_t)__builtin_assume_aligned((obj + 1), sizeof(struct obj_t)))
@@ -200,9 +206,13 @@ extern obj_t ins_obj(obj_t *obj, i64_t idx, obj_t val); // write object to a lis
 extern obj_t ins_sym(obj_t *obj, i64_t idx, str_t str); // write interned string to a symbol vector
 
 // Read
-extern obj_t at_idx(obj_t obj, i64_t idx); // read raw value from an obj at index
-extern obj_t at_obj(obj_t obj, obj_t idx); // read from obj indexed by obj
-extern str_t symtostr(i64_t id);           // return interned string by interned id
+extern obj_t at_idx(obj_t obj, i64_t idx);              // read value from an obj at index
+extern obj_t at_ids(obj_t obj, i64_t ids[], u64_t len); // read values from an obj at indexes
+extern obj_t at_obj(obj_t obj, obj_t idx);              // read from obj indexed by obj
+extern str_t symtostr(i64_t id);                        // return interned string by interned id
+
+// Initialize obj with zeroed memory
+extern nil_t zero_obj(obj_t obj);
 
 // Set
 extern obj_t set_idx(obj_t *obj, i64_t idx, obj_t val); // set obj at index
@@ -226,6 +236,9 @@ extern i32_t objcmp(obj_t a, obj_t b);
 extern obj_t ser(obj_t obj);
 extern obj_t de(obj_t buf);
 
+// Parse
+extern obj_t parse_str(i64_t fd, obj_t str, obj_t file);
+
 /* 
 * Evaluate into an instance, drived by handle fd:
 * = 0: self process
@@ -233,9 +246,9 @@ extern obj_t de(obj_t buf);
 * < 0: async evaluate string str into an instance, drived by handle -fd
 * Moves ownership of an obj, so don't call drop() on it after
 */
-extern obj_t eval_str(i64_t fd, str_t name, str_t str);
-extern obj_t eval_obj(i64_t fd, str_t name, obj_t obj);
-
+extern obj_t eval_str(i64_t fd, obj_t str, obj_t file);
+extern obj_t eval_obj(i64_t fd, obj_t obj);
+extern obj_t try_obj(obj_t obj, obj_t catch);
 
 #ifdef __cplusplus
 }

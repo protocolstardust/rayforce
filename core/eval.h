@@ -21,31 +21,49 @@
  *   SOFTWARE.
  */
 
-#ifndef CC_H
-#define CC_H
+#ifndef EVAL_H
+#define EVAL_H
 
+#include <setjmp.h>
+#include <time.h>
 #include "rayforce.h"
+#include "lambda.h"
+#include "mmap.h"
 #include "nfo.h"
 
-typedef enum cc_result_t
+#define EVAL_STACK_SIZE 1024
+
+typedef struct ctx_t
 {
-    CC_OK,
-    CC_ERROR,
-    CC_NULL,
-} cc_result_t;
+    i64_t sp;     // Stack pointer.
+    obj_t lambda; // Lambda being evaluated.
+    jmp_buf jmp;  // Jump buffer.
+} ctx_t;
 
-/*
- * Context for compiling lambda
- */
-typedef struct cc_t
+typedef struct interpreter_t
 {
-    obj_t body;   // body of lambda being compiled (list of expressions)
-    obj_t lambda; // lambda being compiled
-    nfo_t *nfo;   // nfo from parse phase
-} cc_t;
+    i64_t sp;        // Stack pointer.
+    obj_t *stack;    // Stack.
+    i64_t cp;        // Context pointer.
+    ctx_t *ctxstack; // Stack of contexts.
+} *interpreter_t;
 
-cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, obj_t obj);
-obj_t cc_compile_lambda(str_t name, obj_t args, obj_t body, nfo_t *nfo);
-obj_t cc_compile(obj_t body, nfo_t *nfo);
+interpreter_t interpreter_new();
+nil_t interpreter_free();
+obj_t call(obj_t obj, u64_t arity);
+obj_t get_symbol(obj_t sym);
+obj_t set_symbol(obj_t sym, obj_t val);
+obj_t mount_env(obj_t obj);
+obj_t unmount_env(u64_t n);
+obj_t eval(obj_t obj);
+obj_t ray_raise(obj_t obj);
+obj_t try(obj_t obj, obj_t catch);
+obj_t ray_return(obj_t *x, u64_t n);
+nil_t stack_push(obj_t val);
+obj_t stack_pop();
+obj_t *stack_peek(i64_t n);
+obj_t stack_at(i64_t n);
+bool_t stack_enough(u64_t n);
+obj_t unwrap(obj_t obj, i64_t id);
 
-#endif
+#endif // EVAL_H

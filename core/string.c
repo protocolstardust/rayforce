@@ -31,9 +31,14 @@
  */
 obj_t string_from_str(str_t str, i32_t len)
 {
-    obj_t s = string(len);
-    if (len > 0)
-        strncpy(as_string(s), str, len);
+    obj_t s;
+
+    if (len == 0)
+        return string(0);
+
+    s = string(len + 1);
+    memcpy(as_string(s), str, len);
+    as_string(s)[len] = '\0';
 
     return s;
 }
@@ -250,4 +255,34 @@ u64_t str_cpy(str_t dst, str_t src)
     dst[i] = '\0';
 
     return i;
+}
+
+obj_t vn_vstring(str_t fmt, va_list args)
+{
+    obj_t res = string(0);
+    str_t dst = (str_t)res;
+    i32_t n, len = sizeof(struct obj_t), offset = sizeof(struct obj_t);
+
+    n = str_vfmt_into(&dst, &len, &offset, 0, fmt, args);
+
+    res = (obj_t)dst;
+
+    if (res == NULL)
+        return res;
+
+    res->len = n + 1; // + 1 for '\0'
+
+    return res;
+}
+
+obj_t vn_string(str_t fmt, ...)
+{
+    obj_t res;
+    va_list args;
+
+    va_start(args, fmt);
+    res = vn_vstring(fmt, args);
+    va_end(args);
+
+    return res;
 }

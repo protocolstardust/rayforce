@@ -167,10 +167,9 @@ heap_t heap_get()
 
 nil_t *__attribute__((hot)) heap_alloc(u64_t size)
 {
-    u32_t i, order;
+    u64_t i, order, capacity, block_size;
     nil_t *block, *base;
     node_t *node;
-    u64_t capacity, block_size;
 
     if (size == 0)
         return NULL;
@@ -252,7 +251,7 @@ nil_t __attribute__((hot)) heap_free(nil_t *block)
 {
     nil_t *buddy;
     node_t *node, **n;
-    u32_t order;
+    u64_t order;
 
     if (block == NULL)
         return;
@@ -271,7 +270,7 @@ nil_t __attribute__((hot)) heap_free(nil_t *block)
     order = orderof(node->size);
 
     // return large blocks back to the system
-    // if (order >= MAX_ORDER)
+    // if (order > MAX_ORDER)
     // {
     //     __HEAP->memstat.system -= blocksize(order);
     //     mmap_free(block, blocksize(order));
@@ -283,6 +282,7 @@ nil_t __attribute__((hot)) heap_free(nil_t *block)
         // node is the root block, so just insert it into list
         if (order == blockorder(node->base))
         {
+
             node->next = __HEAP->freelist[order];
             __HEAP->freelist[order] = node;
             __HEAP->avail |= blocksize(order);
@@ -435,7 +435,7 @@ i64_t heap_gc()
 
 memstat_t heap_memstat()
 {
-    i32_t i = 0;
+    u64_t i = 0;
     node_t *node;
     __HEAP->memstat.free = 0;
 

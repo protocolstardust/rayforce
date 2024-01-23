@@ -30,6 +30,8 @@
 #include "serde.h"
 #include "items.h"
 #include "unary.h"
+#include "eval.h"
+#include "error.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
@@ -81,8 +83,17 @@ bool_t ops_is_nan(f64_t x)
 
 u64_t ops_rand_u64()
 {
-    __RND_SEED__ += time(0);
-    __RND_SEED__ = (6364136223846793005ull * __RND_SEED__ + 1442695040888963407ull) % (1ull << 63);
+    if (__RND_SEED__ == 0)
+    {
+        // Use a more robust seeding strategy
+        __RND_SEED__ = time(NULL) ^ (u64_t)&ops_rand_u64 ^ (u64_t)&time;
+    }
+
+    // XORShift algorithm for better randomness
+    __RND_SEED__ ^= __RND_SEED__ << 13;
+    __RND_SEED__ ^= __RND_SEED__ >> 7;
+    __RND_SEED__ ^= __RND_SEED__ << 17;
+
     return __RND_SEED__;
 }
 
@@ -99,7 +110,58 @@ inline __attribute__((always_inline)) u64_t hashu64(u64_t h, u64_t k)
     return b;
 }
 
-obj_t ops_distinct_raw(i64_t values[], i64_t indices[], u64_t len)
+i64_t __obj_cmp(i64_t a, i64_t b, nil_t *seed)
+{
+    unused(seed);
+    return objcmp((obj_t)a, (obj_t)b);
+}
+
+u64_t __obj_hash(i64_t a, nil_t *seed)
+{
+    unused(seed);
+    return ops_hash_obj((obj_t)a);
+}
+
+i64_t __guid_cmp(i64_t a, i64_t b, nil_t *seed)
+{
+    unused(seed);
+    guid_t *g1 = (guid_t *)a, *g2 = (guid_t *)b;
+    i64_t i;
+
+    for (i = 0; i < 16; i++)
+    {
+        if (g1->buf[i] < g2->buf[i])
+            return -1;
+        if (g1->buf[i] > g2->buf[i])
+            return 1;
+    }
+
+    return 0;
+}
+
+u64_t __guid_hash(i64_t a, nil_t *seed)
+{
+    unused(seed);
+    guid_t *g = (guid_t *)a;
+    u64_t upper_part, lower_part;
+
+    // Cast the first and second halves of the GUID to u64_t
+    memcpy(&upper_part, g->buf, sizeof(u64_t));
+    memcpy(&lower_part, g->buf + 8, sizeof(u64_t));
+
+    // Combine the two parts
+    return upper_part ^ lower_part;
+}
+
+obj_t ops_distinct_i8(i8_t values[], i64_t indices[], u64_t len)
+{
+    unused(values);
+    unused(indices);
+    unused(len);
+    throw(ERR_NOT_IMPLEMENTED, "ops_distinct_i8 not implemented");
+}
+
+obj_t ops_distinct_i64(i64_t values[], i64_t indices[], u64_t len)
 {
     u64_t i, j, range;
     i64_t p, min, max, k, *out;
@@ -185,20 +247,47 @@ obj_t ops_distinct_raw(i64_t values[], i64_t indices[], u64_t len)
     return vec;
 }
 
-i32_t __obj_cmp(i64_t a, i64_t b, nil_t *seed)
+obj_t ops_distinct_guid(guid_t values[], i64_t indices[], u64_t len)
 {
-    unused(seed);
-    return objcmp((obj_t)a, (obj_t)b);
-}
+    unused(indices);
+    u64_t i, j;
+    i64_t p, *out;
+    obj_t vec, set;
+    guid_t *g;
 
-u64_t __obj_hash(i64_t a, nil_t *seed)
-{
-    unused(seed);
-    return ops_hash_obj((obj_t)a);
+    set = ht_tab(len, -1);
+
+    for (i = 0, j = 0; i < len; i++)
+    {
+        p = ht_tab_next_with(&set, (i64_t)&values[i], &__guid_hash, &__guid_cmp, NULL);
+        out = as_i64(as_list(set)[0]);
+        if (out[p] == NULL_I64)
+        {
+            out[p] = (i64_t)&values[i];
+            j++;
+        }
+    }
+
+    vec = vector_guid(j);
+    g = as_guid(vec);
+
+    out = as_i64(as_list(set)[0]);
+    len = as_list(set)[0]->len;
+    for (i = 0, j = 0; i < len; i++)
+    {
+        if (out[i] != NULL_I64)
+            memcpy(&g[j++], (guid_t *)out[i], sizeof(guid_t));
+    }
+
+    vec->attrs |= ATTR_DISTINCT;
+    drop(set);
+
+    return vec;
 }
 
 obj_t ops_distinct_obj(obj_t values[], i64_t indices[], u64_t len)
 {
+    unused(indices);
     u64_t i, j;
     i64_t p, *out;
     obj_t vec, set;
@@ -254,13 +343,15 @@ bool_t ops_eq_idx(obj_t a, i64_t ai, obj_t b, i64_t bi)
         lv = at_idx(a, ai);
         rv = at_idx(b, bi);
         eq = lv->i64 == rv->i64;
-        dropn(2, lv, rv);
+        drop(lv);
+        drop(rv);
         return eq;
     case TYPE_ANYMAP:
         lv = at_idx(a, ai);
         rv = at_idx(b, bi);
         eq = objcmp(lv, rv) == 0;
-        dropn(2, lv, rv);
+        drop(lv);
+        drop(rv);
         return eq;
     default:
         panic("hash: unsupported type: %d", a->type);
@@ -269,7 +360,7 @@ bool_t ops_eq_idx(obj_t a, i64_t ai, obj_t b, i64_t bi)
 
 u64_t ops_hash_obj(obj_t obj)
 {
-    u64_t hash, len, i;
+    u64_t hash, len, i, c;
     str_t str;
 
     switch (obj->type)
@@ -280,17 +371,22 @@ u64_t ops_hash_obj(obj_t obj)
         return (u64_t)obj->i64;
     case -TYPE_F64:
         return (u64_t)obj->f64;
+    case -TYPE_GUID:
+        return hashu64(*(u64_t *)as_guid(obj), *((u64_t *)as_guid(obj) + 1));
     case TYPE_CHAR:
-        len = obj->len;
-        hash = 0xcbf29ce484222325ull;
         str = as_string(obj);
-        for (i = 0; i < len; i++)
-        {
-            hash ^= (u64_t)str[i];
-            hash *= 0x100000001b3ull;
-        }
-        return hash;
+        hash = 5381;
+        while ((c = *str++))
+            hash = ((hash << 5) + hash) + c;
 
+        return hash;
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        len = obj->len;
+        for (i = 0, hash = 0xcbf29ce484222325ull; i < len; i++)
+            hash = hashu64((u64_t)as_i64(obj)[i], hash);
+        return hash;
     default:
         panic("hash: unsupported type: %d", obj->type);
     }
@@ -476,13 +572,94 @@ obj_t ops_find(i64_t x[], u64_t xl, i64_t y[], u64_t yl)
     return vec;
 }
 
-obj_t ops_group_raw(i64_t values[], i64_t indices[], i64_t len)
+obj_t ops_group_i8(i8_t values[], i64_t indices[], u64_t len)
 {
-    i64_t i, j, n, m, l, idx, min, max, range, *hk, *hv;
-    obj_t keys, vals, ht, *vv;
+    u64_t i, j, n, k, range;
+    i64_t idx, min, *hk, *hv;
+    obj_t keys, vals;
 
-    if (len == 0)
-        return dict(vector_i64(0), list(0));
+    min = -128;
+    range = 256;
+
+    keys = vector_i64(range);
+    hk = as_i64(keys);
+
+    for (i = 0; i < range; i++)
+        hk[i] = 0;
+
+    // count occurrences
+    if (indices)
+    {
+        for (i = 0; i < len; i++)
+            hk[values[indices[i]] - min]++;
+    }
+    else
+    {
+        for (i = 0; i < len; i++)
+            hk[values[i] - min]++;
+    }
+
+    // allocate result vector for index positions
+    vals = vector_i64(len);
+    hv = as_i64(vals);
+
+    // calculate offsets
+    for (i = 0, j = 0; i < range; i++)
+    {
+        if (hk[i])
+        {
+            n = hk[i];
+            hk[i] = j;
+            j += n;
+        }
+    }
+
+    // fill positions
+    if (indices)
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = values[indices[i]] - min;
+            idx = hk[n]++;
+            hv[idx] = indices[i];
+        }
+    }
+    else
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = values[i] - min;
+            idx = hk[n]++;
+            hv[idx] = i;
+        }
+    }
+
+    // compact offsets/counts
+    for (i = 0, j = 0, n = 0; i < range; i++)
+    {
+        if (hk[i])
+        {
+            k = hk[i];
+            hk[j++] = k - n;
+            n = k;
+        }
+    }
+
+    resize(&keys, j);
+
+    return vn_list(3, keys, vals, NULL);
+}
+
+i64_t i64_cmp(i64_t a, i64_t b, nil_t *seed)
+{
+    unused(seed);
+    return a - b;
+}
+
+i64_t ops_range(i64_t *pmin, i64_t *pmax, i64_t values[], i64_t indices[], u64_t len)
+{
+    u64_t i;
+    i64_t min, max;
 
     if (indices)
     {
@@ -503,71 +680,380 @@ obj_t ops_group_raw(i64_t values[], i64_t indices[], i64_t len)
         }
     }
 
-    range = max - min + 1;
+    *pmin = min;
+    *pmax = max;
 
-    // use open addressing if range is small
+    return max - min + 1;
+}
+
+obj_t ops_bins_i8(i8_t values[], i64_t indices[], u64_t len)
+{
+    u64_t i, j, n, range;
+    i64_t min, *hk, *hv;
+    obj_t keys, vals;
+
+    min = -128;
+    range = 256;
+
+    keys = vector_i64(range);
+    hk = as_i64(keys);
+
+    vals = vector_i64(len);
+    hv = as_i64(vals);
+
+    for (i = 0; i < range; i++)
+        hk[i] = NULL_I64;
+
+    // distribute bins
+    if (indices)
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = values[indices[i]] - min;
+            if (hk[n] == NULL_I64)
+                hk[n] = j++;
+
+            hv[i] = hk[n];
+        }
+    }
+    else
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = values[i] - min;
+            if (hk[n] == NULL_I64)
+                hk[n] = j++;
+
+            hv[i] = hk[n];
+        }
+    }
+
+    drop(keys);
+
+    return vn_list(2, i64(j), vals);
+}
+
+obj_t ops_bins_i64(i64_t values[], i64_t indices[], u64_t len)
+{
+    u64_t i, j, n, range;
+    i64_t idx, min, max, *hk, *hv, *hp;
+    obj_t keys, vals, ht;
+
+    range = ops_range(&min, &max, values, indices, len);
+
+    // use open addressing if range is compatible with the input length
     if (range <= len)
     {
         keys = vector_i64(range);
-        vals = vector(TYPE_LIST, range);
-
         hk = as_i64(keys);
-        vv = as_list(vals);
+
+        vals = vector_i64(len);
+        hv = as_i64(vals);
+
+        for (i = 0; i < range; i++)
+            hk[i] = NULL_I64;
+
+        // distribute bins
+        if (indices)
+        {
+            for (i = 0, j = 0; i < len; i++)
+            {
+                n = values[indices[i]] - min;
+                if (hk[n] == NULL_I64)
+                    hk[n] = j++;
+
+                hv[i] = hk[n];
+            }
+        }
+        else
+        {
+            for (i = 0, j = 0; i < len; i++)
+            {
+                n = values[i] - min;
+                if (hk[n] == NULL_I64)
+                    hk[n] = j++;
+
+                hv[i] = hk[n];
+            }
+        }
+
+        drop(keys);
+
+        return vn_list(2, i64(j), vals);
+    }
+
+    // use hash table if range is large
+    ht = ht_tab(len, TYPE_I64);
+
+    // distribute bins
+    if (indices)
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = values[indices[i]] - min;
+            idx = ht_tab_next_with(&ht, n, &fnv1a_hash_64, &i64_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = n;
+                hv[idx] = j++;
+            }
+        }
+    }
+    else
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = values[i] - min;
+            idx = ht_tab_next_with(&ht, n, &fnv1a_hash_64, &i64_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = n;
+                hv[idx] = j++;
+            }
+        }
+    }
+
+    vals = vector_i64(len);
+    hp = as_i64(vals);
+
+    if (indices)
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = values[indices[i]] - min;
+            idx = ht_tab_get_with(ht, n, &fnv1a_hash_64, &i64_cmp, NULL);
+            hp[i] = hv[idx];
+        }
+    }
+    else
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = values[i] - min;
+            idx = ht_tab_get_with(ht, n, &fnv1a_hash_64, &i64_cmp, NULL);
+            hp[i] = hv[idx];
+        }
+    }
+
+    drop(ht);
+
+    return vn_list(2, i64(j), vals);
+}
+
+obj_t ops_bins_guid(guid_t values[], i64_t indices[], u64_t len)
+{
+    u64_t i, j, n;
+    i64_t idx, *hk, *hv, *hp;
+    obj_t vals, ht;
+
+    ht = ht_tab(len, TYPE_I64);
+
+    // distribute bins
+    if (indices)
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            idx = ht_tab_next_with(&ht, (i64_t)&values[indices[i]], &__guid_hash, &__guid_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = (i64_t)&values[indices[i]];
+                hv[idx] = j++;
+            }
+        }
+    }
+    else
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            idx = ht_tab_next_with(&ht, (i64_t)&values[i], &__guid_hash, &__guid_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = (i64_t)&values[i];
+                hv[idx] = j++;
+            }
+        }
+    }
+
+    vals = vector_i64(len);
+    hp = as_i64(vals);
+
+    if (indices)
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = (i64_t)&values[indices[i]];
+            idx = ht_tab_get_with(ht, n, &__guid_hash, &__guid_cmp, NULL);
+            hp[i] = hv[idx];
+        }
+    }
+    else
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = (i64_t)&values[i];
+            idx = ht_tab_get_with(ht, n, &__guid_hash, &__guid_cmp, NULL);
+            hp[i] = hv[idx];
+        }
+    }
+
+    drop(ht);
+
+    return vn_list(2, i64(j), vals);
+}
+
+obj_t ops_bins_obj(obj_t values[], i64_t indices[], u64_t len)
+{
+    u64_t i, j, n;
+    i64_t idx, *hk, *hv, *hp;
+    obj_t vals, ht;
+
+    ht = ht_tab(len, TYPE_I64);
+
+    // distribute bins
+    if (indices)
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = (i64_t)values[indices[i]];
+            idx = ht_tab_next_with(&ht, n, &__obj_hash, &__obj_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = n;
+                hv[idx] = j++;
+            }
+        }
+    }
+    else
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = (i64_t)values[i];
+            idx = ht_tab_next_with(&ht, n, &__obj_hash, &__obj_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = n;
+                hv[idx] = j++;
+            }
+        }
+    }
+
+    vals = vector_i64(len);
+    hp = as_i64(vals);
+
+    if (indices)
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = (i64_t)values[indices[i]];
+            idx = ht_tab_get_with(ht, n, &__obj_hash, &__obj_cmp, NULL);
+            hp[i] = hv[idx];
+        }
+    }
+    else
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = (i64_t)values[i];
+            idx = ht_tab_get_with(ht, n, &__obj_hash, &__obj_cmp, NULL);
+            hp[i] = hv[idx];
+        }
+    }
+
+    drop(ht);
+
+    return vn_list(2, i64(j), vals);
+}
+
+obj_t ops_group_i64(i64_t values[], i64_t indices[], u64_t len)
+{
+    u64_t i, j, n, k, l, range;
+    i64_t idx, min, max, *hk, *hv, *hp;
+    obj_t keys, vals, ht;
+
+    range = ops_range(&min, &max, values, indices, len);
+
+    // use open addressing if range is compatible with the input length
+    if (range <= len)
+    {
+        keys = vector_i64(range);
+        hk = as_i64(keys);
 
         for (i = 0; i < range; i++)
             hk[i] = 0;
 
+        // count occurrences
         if (indices)
         {
             for (i = 0; i < len; i++)
                 hk[values[indices[i]] - min]++;
-
-            for (i = 0; i < range; i++)
-            {
-                vv[i] = hk[i] ? vector_i64(hk[i]) : null(0);
-                hk[i] = 0;
-            }
-
-            // fill up positions
-            for (i = 0; i < len; i++)
-            {
-                idx = values[indices[i]] - min;
-                as_i64(vv[idx])[hk[idx]++] = indices[i];
-            }
         }
         else
         {
             for (i = 0; i < len; i++)
                 hk[values[i] - min]++;
-
-            for (i = 0; i < range; i++)
-            {
-                vv[i] = hk[i] ? vector_i64(hk[i]) : null(0);
-                hk[i] = 0;
-            }
-
-            // fill up positions
-            for (i = 0; i < len; i++)
-            {
-                idx = values[i] - min;
-                as_i64(vv[idx])[hk[idx]++] = i;
-            }
         }
 
-        // compact keys/vals
+        // allocate result vector for index positions
+        vals = vector_i64(len);
+        hv = as_i64(vals);
+
+        // calculate offsets
         for (i = 0, j = 0; i < range; i++)
         {
             if (hk[i])
             {
-                hk[j] = i + min;
-                vv[j++] = vv[i];
+                n = hk[i];
+                hk[i] = j;
+                j += n;
+            }
+        }
+
+        // fill positions
+        if (indices)
+        {
+            for (i = 0; i < len; i++)
+            {
+                n = values[indices[i]] - min;
+                idx = hk[n]++;
+                hv[idx] = indices[i];
+            }
+        }
+        else
+        {
+            for (i = 0; i < len; i++)
+            {
+                n = values[i] - min;
+                idx = hk[n]++;
+                hv[idx] = i;
+            }
+        }
+
+        // compact offsets/counts
+        for (i = 0, j = 0, n = 0; i < range; i++)
+        {
+            if (hk[i])
+            {
+                k = hk[i];
+                hk[j++] = k - n;
+                n = k;
             }
         }
 
         resize(&keys, j);
-        resize(&vals, j);
 
-        return dict(keys, vals);
+        return vn_list(2, keys, vals);
     }
 
     // use hash table if range is large
@@ -576,16 +1062,17 @@ obj_t ops_group_raw(i64_t values[], i64_t indices[], i64_t len)
     // count occurrences
     if (indices)
     {
-        for (i = 0; i < len; i++)
+        for (i = 0, j = 0; i < len; i++)
         {
-            n = values[indices[i]];
-            idx = ht_tab_next(&ht, n);
+            n = values[indices[i]] - min;
+            idx = ht_tab_next_with(&ht, n, &fnv1a_hash_64, &i64_cmp, NULL);
             hk = as_i64(as_list(ht)[0]);
             hv = as_i64(as_list(ht)[1]);
             if (hk[idx] == NULL_I64)
             {
                 hk[idx] = n;
                 hv[idx] = 1;
+                j++;
             }
             else
                 hv[idx]++;
@@ -593,34 +1080,39 @@ obj_t ops_group_raw(i64_t values[], i64_t indices[], i64_t len)
     }
     else
     {
-        for (i = 0; i < len; i++)
+        for (i = 0, j = 0; i < len; i++)
         {
-            n = values[i];
-            idx = ht_tab_next(&ht, n);
+            n = values[i] - min;
+            idx = ht_tab_next_with(&ht, n, &fnv1a_hash_64, &i64_cmp, NULL);
             hk = as_i64(as_list(ht)[0]);
             hv = as_i64(as_list(ht)[1]);
             if (hk[idx] == NULL_I64)
             {
                 hk[idx] = n;
                 hv[idx] = 1;
+                j++;
             }
             else
                 hv[idx]++;
         }
     }
 
+    vals = vector_i64(len);
+    hp = as_i64(vals);
+
+    // calculate offsets
     hk = as_i64(as_list(ht)[0]);
     hv = as_i64(as_list(ht)[1]);
-    vv = as_list(as_list(ht)[1]);
-    m = as_list(ht)[0]->len;
+    range = as_list(ht)[0]->len;
 
-    // allocate positions
-    for (i = 0; i < m; i++)
+    for (i = 0, j = 0; i < range; i++)
     {
         if (hk[i] != NULL_I64)
         {
-            vv[i] = vector_i64(hv[i]);
-            vv[i]->len = 0;
+            n = hv[i];
+            hv[i] = j;
+            hp[j] = n; // set length
+            j += n;
         }
     }
 
@@ -629,38 +1121,252 @@ obj_t ops_group_raw(i64_t values[], i64_t indices[], i64_t len)
     {
         for (i = 0; i < len; i++)
         {
-            n = values[indices[i]];
-            idx = ht_tab_get(ht, n);
-            l = vv[idx]->len++;
-            as_i64(vv[idx])[l] = indices[i];
+            n = values[indices[i]] - min;
+            idx = ht_tab_get_with(ht, n, &fnv1a_hash_64, &i64_cmp, NULL);
+            l = hv[idx]++;
+            hp[l] = indices[i];
         }
     }
     else
     {
         for (i = 0; i < len; i++)
         {
-            n = values[i];
-            idx = ht_tab_get(ht, n);
-            l = vv[idx]->len++;
-            as_i64(vv[idx])[l] = i;
+            n = values[i] - min;
+            idx = ht_tab_get_with(ht, n, &fnv1a_hash_64, &i64_cmp, NULL);
+            l = hv[idx]++;
+            hp[l] = i;
         }
     }
 
-    // pack offsets and fill keys
-    for (i = 0, j = 0; i < m; i++)
+    // compact offsets/counts
+    for (i = 0, j = 0, n = 0; i < range; i++)
     {
         if (hk[i] != NULL_I64)
         {
-            hk[j] = hk[i];
-            vv[j++] = vv[i];
+            k = hv[i];
+            hk[j++] = k - n;
+            n = k;
         }
     }
 
-    resize(&as_list(ht)[0], j);
-    resize(&as_list(ht)[1], j);
-    as_list(ht)[1]->type = TYPE_LIST;
+    keys = as_list(ht)[0];
+    resize(&keys, j);
+    as_list(ht)[0] = null(0);
+    drop(ht);
 
-    return ht;
+    return vn_list(2, keys, vals);
+}
+
+obj_t ops_group_guid(guid_t values[], i64_t indices[], u64_t len)
+{
+    u64_t i, j, n, k, l, range;
+    i64_t idx, *hk, *hv, *hp;
+    obj_t keys, vals, ht;
+
+    ht = ht_tab(len, TYPE_I64);
+
+    // count occurrences
+    if (indices)
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = (i64_t)&values[indices[i]];
+            idx = ht_tab_next_with(&ht, n, &__guid_hash, &__guid_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = n;
+                hv[idx] = 1;
+                j++;
+            }
+            else
+                hv[idx]++;
+        }
+    }
+    else
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = (i64_t)&values[i];
+            idx = ht_tab_next_with(&ht, n, &__guid_hash, &__guid_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = n;
+                hv[idx] = 1;
+                j++;
+            }
+            else
+                hv[idx]++;
+        }
+    }
+
+    vals = vector_i64(len);
+    hp = as_i64(vals);
+
+    // calculate offsets
+    hk = as_i64(as_list(ht)[0]);
+    hv = as_i64(as_list(ht)[1]);
+    range = as_list(ht)[0]->len;
+
+    for (i = 0, j = 0; i < range; i++)
+    {
+        if (hk[i] != NULL_I64)
+        {
+            n = hv[i];
+            hv[i] = j;
+            hp[j] = n; // set length
+            j += n;
+        }
+    }
+
+    // fill positions
+    if (indices)
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = (i64_t)&values[indices[i]];
+            idx = ht_tab_get_with(ht, n, &__guid_hash, &__guid_cmp, NULL);
+            l = hv[idx]++;
+            hp[l] = indices[i];
+        }
+    }
+    else
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = (i64_t)&values[i];
+            idx = ht_tab_get_with(ht, n, &__guid_hash, &__guid_cmp, NULL);
+            l = hv[idx]++;
+            hp[l] = i;
+        }
+    }
+
+    // compact offsets/counts
+    for (i = 0, j = 0, n = 0; i < range; i++)
+    {
+        if (hk[i] != NULL_I64)
+        {
+            k = hv[i];
+            hk[j++] = k - n;
+            n = k;
+        }
+    }
+
+    keys = as_list(ht)[0];
+    resize(&keys, j);
+    as_list(ht)[0] = null(0);
+    drop(ht);
+
+    return vn_list(2, keys, vals);
+}
+
+obj_t ops_group_obj(obj_t values[], i64_t indices[], u64_t len)
+{
+    u64_t i, j, n, k, l, range;
+    i64_t idx, *hk, *hv, *hp;
+    obj_t keys, vals, ht;
+
+    ht = ht_tab(len, TYPE_I64);
+
+    // count occurrences
+    if (indices)
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = (i64_t)values[indices[i]];
+            idx = ht_tab_next_with(&ht, n, &__obj_hash, &__obj_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = n;
+                hv[idx] = 1;
+                j++;
+            }
+            else
+                hv[idx]++;
+        }
+    }
+    else
+    {
+        for (i = 0, j = 0; i < len; i++)
+        {
+            n = (i64_t)values[i];
+            idx = ht_tab_next_with(&ht, n, &__obj_hash, &__obj_cmp, NULL);
+            hk = as_i64(as_list(ht)[0]);
+            hv = as_i64(as_list(ht)[1]);
+            if (hk[idx] == NULL_I64)
+            {
+                hk[idx] = n;
+                hv[idx] = 1;
+                j++;
+            }
+            else
+                hv[idx]++;
+        }
+    }
+
+    vals = vector_i64(len);
+    hp = as_i64(vals);
+
+    // calculate offsets
+    hk = as_i64(as_list(ht)[0]);
+    hv = as_i64(as_list(ht)[1]);
+    range = as_list(ht)[0]->len;
+
+    for (i = 0, j = 0; i < range; i++)
+    {
+        if (hk[i] != NULL_I64)
+        {
+            n = hv[i];
+            hv[i] = j;
+            hp[j] = n; // set length
+            j += n;
+        }
+    }
+
+    // fill positions
+    if (indices)
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = (i64_t)values[indices[i]];
+            idx = ht_tab_get_with(ht, n, &__obj_hash, &__obj_cmp, NULL);
+            l = hv[idx]++;
+            hp[l] = indices[i];
+        }
+    }
+    else
+    {
+        for (i = 0; i < len; i++)
+        {
+            n = (i64_t)values[i];
+            idx = ht_tab_get_with(ht, n, &__obj_hash, &__obj_cmp, NULL);
+            l = hv[idx]++;
+            hp[l] = i;
+        }
+    }
+
+    // compact offsets/counts
+    for (i = 0, j = 0, n = 0; i < range; i++)
+    {
+        if (hk[i] != NULL_I64)
+        {
+            k = hv[i];
+            hk[j++] = k - n;
+            n = k;
+        }
+    }
+
+    keys = as_list(ht)[0];
+    resize(&keys, j);
+    as_list(ht)[0] = null(0);
+    drop(ht);
+
+    return vn_list(2, keys, vals);
 }
 
 u64_t ops_count(obj_t x)
@@ -670,8 +1376,10 @@ u64_t ops_count(obj_t x)
 
     switch (x->type)
     {
+    case TYPE_CHAR:
+        return x->len ? x->len - 1 : x->len;
     case TYPE_TABLE:
-        return as_list(as_list(x)[1])[0]->len;
+        return as_list(x)[1]->len ? ops_count(as_list(as_list(x)[1])[0]) : 0;
     case TYPE_DICT:
         return as_list(x)[0]->len;
     case TYPE_ENUM:
@@ -679,8 +1387,9 @@ u64_t ops_count(obj_t x)
     case TYPE_ANYMAP:
         return anymap_val(x)->len;
     case TYPE_FILTERMAP:
-    case TYPE_GROUPMAP:
         return as_list(x)[1]->len;
+    case TYPE_GROUPMAP:
+        return as_list(as_list(x)[1])[0]->i64;
     default:
         return x->len;
     }
@@ -699,7 +1408,7 @@ obj_t sys_error(os_error_type_t type, str_t msg)
     {
     case ERROR_TYPE_OS:
         emsg = str_fmt(0, "%s: %s", msg, strerror(errno));
-        err = error(ERR_IO, emsg);
+        err = error_str(ERR_IO, emsg);
         heap_free(emsg);
         return err;
 
@@ -721,7 +1430,7 @@ obj_t sys_error(os_error_type_t type, str_t msg)
         0, NULL);
 
     emsg = str_fmt(0, "%s: %s", msg, lpMsgBuf);
-    err = error(ERR_IO, emsg);
+    err = error_str(ERR_IO, emsg);
     heap_free(emsg);
 
     LocalFree(lpMsgBuf);
@@ -734,13 +1443,7 @@ obj_t sys_error(os_error_type_t type, str_t msg)
 obj_t sys_error(os_error_type_t type, str_t msg)
 {
     unused(type);
-    str_t emsg;
-    obj_t err;
-
-    emsg = str_fmt(0, "%s: %s", msg, strerror(errno));
-    err = error(ERR_IO, emsg);
-    heap_free(emsg);
-    return err;
+    return error(ERR_IO, "%s: %s", msg, strerror(errno));
 }
 
 #endif

@@ -28,8 +28,9 @@
 #include "string.h"
 #include "heap.h"
 #include "lambda.h"
-#include "cc.h"
 #include "env.h"
+#include "eval.h"
+#include "error.h"
 
 u64_t size_of_type(type_t type)
 {
@@ -499,21 +500,21 @@ obj_t load_obj(u8_t **buf, u64_t len)
         else
             return dict(k, v);
 
-    case TYPE_LAMBDA:
-        k = load_obj(buf, len);
+        // case TYPE_LAMBDA:
+        //     k = load_obj(buf, len);
 
-        if (is_error(k))
-            return k;
+        //     if (is_error(k))
+        //         return k;
 
-        v = load_obj(buf, len);
+        //     v = load_obj(buf, len);
 
-        if (is_error(v))
-        {
-            drop(k);
-            return v;
-        }
+        //     if (is_error(v))
+        //     {
+        //         drop(k);
+        //         return v;
+        //     }
 
-        return cc_compile_lambda("repl", k, v, NULL);
+        //     return cc_compile_lambda("repl", k, v, NULL);
 
     case TYPE_UNARY:
     case TYPE_BINARY:
@@ -526,7 +527,7 @@ obj_t load_obj(u8_t **buf, u64_t len)
     case TYPE_ERROR:
         code = **buf;
         (*buf)++;
-        obj = error(code, (str_t)*buf);
+        obj = error_str(code, (str_t)*buf);
         *buf += as_list(obj)[1]->len + 1;
 
         return obj;
@@ -544,7 +545,7 @@ obj_t de_raw(u8_t *buf, u64_t len)
         throw(ERR_NOT_SUPPORTED, "de: version '%d' is higher than supported", header->version);
 
     if (header->size + sizeof(struct header_t) != len)
-        return error(ERR_IO, "de: corrupted data in a buffer");
+        return error_str(ERR_IO, "de: corrupted data in a buffer");
 
     buf += sizeof(struct header_t);
     return load_obj(&buf, header->size);

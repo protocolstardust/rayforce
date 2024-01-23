@@ -27,38 +27,36 @@
 #include "ops.h"
 #include "util.h"
 
-nfo_t nfo_new(str_t filename, str_t lambda)
+obj_t nfo(obj_t filename, obj_t source)
 {
-    nfo_t nfo = {
-        .filename = filename,
-        .lambda = lambda,
-        .spans = ht_tab(32, TYPE_I64),
-    };
-
-    return nfo;
+    return vn_list(3, filename, source, ht_tab(32, TYPE_I64));
 }
 
-nil_t nfo_insert(nfo_t *nfo, i64_t index, span_t span)
+nil_t nfo_insert(obj_t nfo, i64_t index, span_t span)
 {
-    i64_t i = ht_tab_next(&nfo->spans, index);
-    as_i64(as_list(nfo->spans)[0])[i] = index;
-    memcpy(&as_i64(as_list(nfo->spans)[1])[i], &span, sizeof(span_t));
+    i64_t i;
+
+    if (!nfo)
+        return;
+
+    i = ht_tab_next(&as_list(nfo)[2], index);
+    as_i64(as_list(as_list(nfo)[2])[0])[i] = index;
+    memcpy(&as_i64(as_list(as_list(nfo)[2])[1])[i], &span, sizeof(span_t));
 }
 
-span_t nfo_get(nfo_t *nfo, i64_t index)
+span_t nfo_get(obj_t nfo, i64_t index)
 {
-    i64_t i = ht_tab_next(&nfo->spans, index);
+    i64_t i;
     span_t span = {0};
 
-    if (as_i64(as_list(nfo->spans)[0])[i] == NULL_I64)
+    if (!nfo)
         return span;
 
-    memcpy(&span, &as_i64(as_list(nfo->spans)[1])[i], sizeof(span_t));
+    i = ht_tab_next(&as_list(nfo)[2], index);
+    if (as_i64(as_list(as_list(nfo)[2])[0])[i] == NULL_I64)
+        return span;
+
+    memcpy(&span, &as_i64(as_list(as_list(nfo)[2])[1])[i], sizeof(span_t));
 
     return span;
-}
-
-nil_t nfo_free(nfo_t *nfo)
-{
-    drop(nfo->spans);
 }

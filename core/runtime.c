@@ -25,7 +25,6 @@
 #include "mmap.h"
 #include "heap.h"
 #include "util.h"
-#include "cc.h"
 #include "poll.h"
 #include "unary.h"
 #include "io.h"
@@ -35,46 +34,66 @@ __thread runtime_t __RUNTIME = NULL;
 
 nil_t usage()
 {
-    printf("%s%s%s", BOLD, YELLOW, "Usage: rayforce [-f file...] [-p port]\n");
+    printf("%s%s%s", BOLD, YELLOW, "Usage: rayforce [-f file...] [-p port] [file]\n");
     exit(EXIT_FAILURE);
 }
 
 obj_t parse_cmdline(i32_t argc, str_t argv[])
 {
     i32_t opt;
-    obj_t keys = vector_symbol(0), vals = list(0), str;
+    obj_t keys = vector_symbol(0), vals = vn_list(0), str;
+    bool_t file_handled = false; // flag to indicate if the file has been handled
 
-    for (opt = 1; opt < argc && argv[opt][0] == '-'; opt++)
+    for (opt = 1; opt < argc; opt++)
     {
-        switch (argv[opt][1])
+        if (argv[opt][0] == '-')
         {
-        case 'f':
-            opt++;
+            switch (argv[opt][1])
+            {
+            case 'f':
+                opt++;
 
-            if (argv[opt] == NULL)
+                if (argv[opt] == NULL)
+                    usage();
+
+                push_sym(&keys, "file");
+                str = string_from_str(argv[opt], strlen(argv[opt]));
+                push_obj(&vals, str);
+                file_handled = true;
+                break;
+
+            case 'p':
+                opt++;
+
+                if (argv[opt] == NULL)
+                    usage();
+
+                push_sym(&keys, "port");
+                str = string_from_str(argv[opt], strlen(argv[opt]));
+                push_obj(&vals, str);
+                break;
+
+            default:
                 usage();
-
-            push_sym(&keys, "file");
-            str = string_from_str(argv[opt], strlen(argv[opt]));
-            push_obj(&vals, str);
-            break;
-
-        case 'p':
-            opt++;
-
-            if (argv[opt] == NULL)
+            }
+        }
+        else
+        {
+            // Handle non-option argument (file path)
+            if (!file_handled)
+            {
+                push_sym(&keys, "file");
+                str = string_from_str(argv[opt], strlen(argv[opt]));
+                push_obj(&vals, str);
+                file_handled = true;
+            }
+            else
+            {
+                // If a file path has already been handled, treat as an error
                 usage();
-
-            push_sym(&keys, "port");
-            str = string_from_str(argv[opt], strlen(argv[opt]));
-            push_obj(&vals, str);
-            break;
-        default:
-            usage();
+            }
         }
     }
-
-    argv += opt;
 
     return dict(keys, vals);
 }
@@ -86,15 +105,15 @@ nil_t runtime_init(i32_t argc, str_t argv[])
     str_t fmt;
 
     heap_init();
+
     __RUNTIME = mmap_malloc(sizeof(struct runtime_t));
-    __RUNTIME->sync = false;
     __RUNTIME->symbols = symbols_new();
     __RUNTIME->env = create_env();
-    __RUNTIME->parser = parser_new();
-    __RUNTIME->vm = vm_new(NULL);
     __RUNTIME->addr = (sock_addr_t){0};
     __RUNTIME->slaves = 0;
     __RUNTIME->fds = dict(vector_i64(0), vector_i64(0));
+
+    interpreter_new();
 
     if (argc)
     {
@@ -103,23 +122,26 @@ nil_t runtime_init(i32_t argc, str_t argv[])
         if (i < (i64_t)as_list(__RUNTIME->args)[0]->len)
             __RUNTIME->addr.port = atoi(as_string(as_list(as_list(__RUNTIME->args)[1])[i]));
 
+        __RUNTIME->poll = poll_init(__RUNTIME->addr.port);
+
         // load file
         file = runtime_get_arg("file");
         if (!is_null(file))
         {
             res = ray_load(file);
-            fmt = obj_fmt(res);
-            printf("%s\n", fmt);
-            heap_free(fmt);
-            dropn(2, file, res);
-        }
+            drop(file);
 
-        __RUNTIME->poll = poll_init(__RUNTIME->addr.port);
+            if (res)
+            {
+                fmt = obj_fmt(res);
+                printf("%s\n", fmt);
+                heap_free(fmt);
+                drop(res);
+            }
+        }
     }
     else
-    {
         __RUNTIME->poll = NULL;
-    }
 }
 
 i32_t runtime_run()
@@ -136,14 +158,13 @@ nil_t runtime_cleanup()
     mmap_free(__RUNTIME->symbols, sizeof(symbols_t));
     free_env(&__RUNTIME->env);
     drop(__RUNTIME->fds);
-    parser_free(&__RUNTIME->parser);
-    vm_free(&__RUNTIME->vm);
+    interpreter_free();
     mmap_free(__RUNTIME, sizeof(struct runtime_t));
     heap_cleanup();
     __RUNTIME = NULL;
 }
 
-runtime_t runtime_get()
+inline __attribute__((always_inline)) runtime_t runtime_get()
 {
     return __RUNTIME;
 }

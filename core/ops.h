@@ -31,13 +31,15 @@
 #define FN_LEFT_ATOMIC 1
 #define FN_RIGHT_ATOMIC 2
 #define FN_ATOMIC 4
+#define FN_AGGR 8
+#define FN_SPECIAL_FORM 16
+#define FN_ATOMIC_MASK (FN_LEFT_ATOMIC | FN_RIGHT_ATOMIC | FN_ATOMIC)
 
 // Object's attributes
 #define ATTR_DISTINCT 1
 #define ATTR_ASC 2
 #define ATTR_DESC 4
 #define ATTR_QUOTED 8
-#define ATTR_MULTIEXPR 16
 
 // Memory modes
 #define MMOD_INTERNAL 0xff
@@ -78,7 +80,7 @@
 
 // Function types
 typedef u64_t (*hash_f)(i64_t, nil_t *);
-typedef i32_t (*cmp_f)(i64_t, i64_t, nil_t *);
+typedef i64_t (*cmp_f)(i64_t, i64_t, nil_t *);
 typedef obj_t (*unary_f)(obj_t);
 typedef obj_t (*binary_f)(obj_t, obj_t);
 typedef obj_t (*vary_f)(obj_t *, i64_t n);
@@ -92,9 +94,20 @@ typedef enum
 bool_t ops_as_bool(obj_t x);
 bool_t ops_is_nan(f64_t x);
 u64_t ops_rand_u64();
-obj_t ops_distinct_raw(i64_t values[], i64_t indices[], u64_t len);
+i64_t i64_cmp(i64_t a, i64_t b, nil_t *seed);
+i64_t ops_range(i64_t *pmin, i64_t *pmax, i64_t values[], i64_t indices[], u64_t len);
+obj_t ops_bins_i8(i8_t values[], i64_t indices[], u64_t len);
+obj_t ops_bins_i64(i64_t values[], i64_t indices[], u64_t len);
+obj_t ops_bins_guid(guid_t values[], i64_t indices[], u64_t len);
+obj_t ops_bins_obj(obj_t values[], i64_t indices[], u64_t len);
+obj_t ops_distinct_i8(i8_t values[], i64_t indices[], u64_t len);
+obj_t ops_distinct_i64(i64_t values[], i64_t indices[], u64_t len);
+obj_t ops_distinct_guid(guid_t values[], i64_t indices[], u64_t len);
 obj_t ops_distinct_obj(obj_t values[], i64_t indices[], u64_t len);
-obj_t ops_group_raw(i64_t values[], i64_t indices[], i64_t len);
+obj_t ops_group_i8(i8_t values[], i64_t indices[], u64_t len);
+obj_t ops_group_i64(i64_t values[], i64_t indices[], u64_t len);
+obj_t ops_group_guid(guid_t values[], i64_t indices[], u64_t len);
+obj_t ops_group_obj(obj_t values[], i64_t indices[], u64_t len);
 u64_t ops_count(obj_t x);
 bool_t ops_eq_idx(obj_t a, i64_t ai, obj_t b, i64_t bi);
 u64_t ops_hash_obj(obj_t obj);

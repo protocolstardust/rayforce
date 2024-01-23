@@ -21,11 +21,12 @@
  *   SOFTWARE.
  */
 
+#include <time.h>
 #include "unary.h"
 #include "binary.h"
 #include "runtime.h"
 #include "heap.h"
-#include "vm.h"
+#include "eval.h"
 #include "util.h"
 #include "format.h"
 #include "sort.h"
@@ -33,62 +34,17 @@
 #include "env.h"
 #include "parse.h"
 #include "fs.h"
-#include "cc.h"
 #include "util.h"
 #include "ops.h"
 #include "serde.h"
 #include "sock.h"
 #include "items.h"
 #include "compose.h"
-
-obj_t call_unary(unary_f f, obj_t x)
-{
-    u64_t i, l;
-    obj_t res, item, v;
-
-    if (x->type == TYPE_GROUPMAP)
-    {
-        l = as_list(x)[1]->len;
-
-        if (l == 0)
-            return null(0);
-
-        v = at_obj(as_list(x)[0], as_list(as_list(x)[1])[0]);
-
-        item = f(v);
-        drop(v);
-
-        if (is_error(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-
-            v = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
-            item = f(v);
-            drop(v);
-
-            if (is_error(item))
-            {
-                res->len = i;
-                drop(res);
-                return item;
-            }
-
-            ins_obj(&res, i, item);
-        }
-
-        return res;
-    }
-
-    return f(x);
-}
+#include "error.h"
+#include "query.h"
 
 // Atomic unary functions (iterates through list of argument items down to atoms)
-obj_t ray_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
+obj_t call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
 {
     u64_t i, l;
     obj_t res = NULL, item = NULL, a, *v;
@@ -102,7 +58,7 @@ obj_t ray_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
             return null(0);
 
         v = as_list(x);
-        item = ray_call_unary_atomic(attrs, f, v[0]);
+        item = call_unary_atomic(attrs, f, v[0]);
 
         if (is_error(item))
             return item;
@@ -113,7 +69,7 @@ obj_t ray_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
 
         for (i = 1; i < l; i++)
         {
-            item = ray_call_unary_atomic(attrs, f, v[i]);
+            item = call_unary_atomic(attrs, f, v[i]);
 
             if (is_error(item))
             {
@@ -133,7 +89,7 @@ obj_t ray_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
             return null(0);
 
         a = at_idx(x, 0);
-        item = ray_call_unary_atomic(attrs, f, a);
+        item = call_unary_atomic(attrs, f, a);
         drop(a);
 
         if (is_error(item))
@@ -146,7 +102,7 @@ obj_t ray_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
         for (i = 1; i < l; i++)
         {
             a = at_idx(x, i);
-            item = ray_call_unary_atomic(attrs, f, a);
+            item = call_unary_atomic(attrs, f, a);
             drop(a);
 
             if (is_error(item))
@@ -162,7 +118,7 @@ obj_t ray_call_unary_atomic(u8_t attrs, unary_f f, obj_t x)
         return res;
 
     default:
-        return call_unary(f, x);
+        return f(x);
     }
 }
 
@@ -171,13 +127,10 @@ obj_t ray_call_unary(u8_t attrs, unary_f f, obj_t x)
     if (!x)
         return null(0);
 
-    switch (attrs)
-    {
-    case FN_ATOMIC:
-        return ray_call_unary_atomic(attrs, f, x);
-    default:
-        return call_unary(f, x);
-    }
+    if (attrs & FN_ATOMIC)
+        return call_unary_atomic(attrs, f, x);
+
+    return f(x);
 }
 
 obj_t ray_get(obj_t x)
@@ -189,19 +142,17 @@ obj_t ray_get(obj_t x)
     switch (x->type)
     {
     case -TYPE_SYMBOL:
-        res = at_obj(runtime_get()->env.variables, x);
-
-        if (is_null(res))
-            throw(ERR_NOT_EXIST, "variable '%s' does not exist", symtostr(x->i64));
-
-        return res;
-
+        v = get_symbol(x);
+        if (!is_error(v))
+            return clone(v);
+        else
+            return v;
     case TYPE_CHAR:
         if (x->len == 0)
             throw(ERR_LENGTH, "get: empty string path");
 
         // get splayed table
-        if (as_string(x)[x->len - 1] == '/')
+        if (x->len > 1 && as_string(x)[x->len - 2] == '/')
         {
             // first try to read columns schema
             s = string_from_str(".d", 2);
@@ -220,7 +171,7 @@ obj_t ray_get(obj_t x)
             }
 
             l = keys->len;
-            vals = vector(TYPE_LIST, l);
+            vals = list(l);
 
             for (i = 0; i < l; i++)
             {
@@ -327,4 +278,52 @@ obj_t ray_get(obj_t x)
     default:
         throw(ERR_TYPE, "get: unsupported type: '%s", typename(x->type));
     }
+}
+
+obj_t ray_time(obj_t x)
+{
+    u64_t timer;
+
+    timer = clock();
+    x = eval(x);
+    if (is_error(x))
+        return x;
+    drop(x);
+
+    return f64((((f64_t)(clock() - timer)) / CLOCKS_PER_SEC) * 1000);
+}
+
+obj_t ray_bins(obj_t x)
+{
+    obj_t bins, res;
+
+    switch (x->type)
+    {
+    case TYPE_BOOL:
+    case TYPE_BYTE:
+    case TYPE_CHAR:
+        bins = ops_bins_i8((i8_t *)as_u8(x), NULL, x->len);
+        break;
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        bins = ops_bins_i64(as_i64(x), NULL, x->len);
+        break;
+    case TYPE_F64:
+        bins = ops_bins_i64((i64_t *)as_f64(x), NULL, x->len);
+        break;
+    case TYPE_LIST:
+        bins = ops_bins_obj(as_list(x), NULL, x->len);
+        break;
+    case TYPE_GUID:
+        bins = ops_bins_guid(as_guid(x), NULL, x->len);
+        break;
+    default:
+        throw(ERR_TYPE, "bins: unsupported type: '%s", typename(x->type));
+    }
+
+    res = clone(as_list(bins)[1]);
+    drop(bins);
+
+    return res;
 }

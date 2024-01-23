@@ -25,6 +25,7 @@
 #include "util.h"
 #include "heap.h"
 #include "ops.h"
+#include "error.h"
 
 obj_t ray_and(obj_t x, obj_t y)
 {

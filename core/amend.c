@@ -25,6 +25,7 @@
 #include "heap.h"
 #include "util.h"
 #include "runtime.h"
+#include "error.h"
 
 obj_t ray_amend(obj_t *x, u64_t n)
 {

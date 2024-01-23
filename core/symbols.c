@@ -78,7 +78,7 @@ u64_t string_hash(i64_t val, nil_t *seed)
  * a: raw C string already stored in a hash
  * b: str_slice_t string to be inserted
  */
-i32_t string_str_cmp(i64_t a, i64_t b, nil_t *seed)
+i64_t string_str_cmp(i64_t a, i64_t b, nil_t *seed)
 {
     unused(seed);
     str_t str_a = (str_t)a;

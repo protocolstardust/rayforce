@@ -30,6 +30,8 @@
 #include "rayforce.h"
 #include "heap.h"
 #include "util.h"
+#include "eval.h"
+#include "error.h"
 
 obj_t ht_tab(u64_t size, type_t vals)
 {

@@ -27,6 +27,7 @@
 #include "items.h"
 #include "heap.h"
 #include "sort.h"
+#include "error.h"
 
 obj_t ray_iasc(obj_t x)
 {

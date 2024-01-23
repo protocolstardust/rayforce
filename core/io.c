@@ -32,6 +32,7 @@
 #include "serde.h"
 #include "poll.h"
 #include "runtime.h"
+#include "error.h"
 
 obj_t ray_hopen(obj_t x)
 {
@@ -110,36 +111,57 @@ obj_t ray_read(obj_t x)
     }
 }
 
-obj_t ray_write(obj_t x, obj_t y)
+obj_t io_write(i64_t fd, u8_t msg_type, obj_t obj)
 {
     str_t fmt;
 
+    if (!obj)
+        return null(0);
+
+    // don't write to a stdin
+    switch (fd)
+    {
+    case 0:
+        if (obj->type == TYPE_CHAR)
+            return eval_str(0, obj, NULL);
+        else
+            return eval_obj(0, obj);
+    case 1:
+        fmt = obj_fmt(obj);
+        fprintf(stdout, "%s\n", fmt);
+        heap_free(fmt);
+        return null(0);
+    case 2:
+        fmt = obj_fmt(obj);
+        fprintf(stderr, "%s\n", fmt);
+        heap_free(fmt);
+        return null(0);
+    default:
+        // send ipc msg
+        switch (msg_type)
+        {
+        case MSG_TYPE_RESP:
+            return ipc_send_async(runtime_get()->poll, fd, clone(obj));
+        case MSG_TYPE_ASYN:
+            return ipc_send_async(runtime_get()->poll, fd, clone(obj));
+        case MSG_TYPE_SYNC:
+            return ipc_send_sync(runtime_get()->poll, fd, clone(obj));
+        default:
+            throw(ERR_TYPE, "write: unsupported msg type: '%d", msg_type);
+        }
+    }
+}
+
+obj_t ray_write(obj_t x, obj_t y)
+{
     // send to sock handle
     if (x->type == -TYPE_I64)
     {
-        // don't write to a stdin
-        if (x->i64 == 0)
-        {
-            if (y->type == TYPE_CHAR)
-                return eval_str(0, "ipc", as_string(y));
-            else
-                return eval_obj(0, "ipc", clone(y));
-        }
-
-        // stdout || stderr
-        if (x->i64 == 1 || x->i64 == 2)
-        {
-            fmt = obj_fmt(x);
-            fprintf((FILE *)x->i64, "%s\n", fmt);
-            heap_free(fmt);
-            return null(0);
-        }
-
         // send ipc msg
-        if (x->i64 > 2)
-            return ipc_send_sync(runtime_get()->poll, x->i64, clone(y));
+        if (x->i64 < 0)
+            return io_write(-x->i64, MSG_TYPE_ASYN, y);
         else
-            return ipc_send_async(runtime_get()->poll, -x->i64, clone(y));
+            return io_write(x->i64, MSG_TYPE_SYNC, y);
     }
 
     throw(ERR_NOT_IMPLEMENTED, "write: not implemented");
@@ -427,7 +449,7 @@ obj_t ray_parse(obj_t x)
     if (!x || x->type != TYPE_CHAR)
         throw(ERR_TYPE, "parse: expected string");
 
-    return parse(&runtime_get()->parser, "repl", as_string(x));
+    return parse_str(0, x, NULL);
 }
 
 obj_t ray_eval(obj_t x)
@@ -435,12 +457,12 @@ obj_t ray_eval(obj_t x)
     if (!x || x->type != TYPE_CHAR)
         throw(ERR_TYPE, "eval: expected string");
 
-    return eval_str(0, "repl", as_string(x));
+    return eval_str(0, x, NULL);
 }
 
 obj_t ray_exec(obj_t x)
 {
-    return eval_obj(0, "repl", x);
+    return eval_obj(0, x);
 }
 
 obj_t ray_load(obj_t x)
@@ -454,7 +476,7 @@ obj_t ray_load(obj_t x)
     if (is_error(file))
         return file;
 
-    res = eval_str(0, as_string(x), as_string(file));
+    res = eval_str(0, file, x);
     drop(file);
 
     return res;

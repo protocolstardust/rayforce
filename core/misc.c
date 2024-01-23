@@ -29,6 +29,7 @@
 #include "fs.h"
 #include "items.h"
 #include "unary.h"
+#include "error.h"
 
 obj_t ray_type(obj_t x)
 {
@@ -60,17 +61,21 @@ dispatch:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
         l = indices == NULL ? x->len : l;
-        res = ops_distinct_raw(as_i64(x), indices, l);
+        res = ops_distinct_i64(as_i64(x), indices, l);
         res->type = x->type;
         return res;
     case TYPE_ENUM:
         l = indices == NULL ? ops_count(x) : l;
-        res = ops_distinct_raw(as_i64(enum_val(x)), indices, l);
+        res = ops_distinct_i64(as_i64(enum_val(x)), indices, l);
         res = venum(ray_key(x), res);
         return res;
     case TYPE_LIST:
         l = indices == NULL ? ops_count(x) : l;
         res = ops_distinct_obj(as_list(x), indices, l);
+        return res;
+    case TYPE_GUID:
+        l = indices == NULL ? x->len : l;
+        res = ops_distinct_guid(as_guid(x), indices, l);
         return res;
     case TYPE_FILTERMAP:
         l = as_list(x)[1]->len;
@@ -84,32 +89,133 @@ dispatch:
 
 obj_t ray_group(obj_t x)
 {
-    obj_t res;
-    u64_t l;
-    i64_t *indices = NULL;
+    obj_t g, k, v, p;
+    u64_t i, j, n, l;
 
-dispatch:
     switch (x->type)
     {
+    case TYPE_BYTE:
+    case TYPE_BOOL:
+    case TYPE_CHAR:
+        g = ops_group_i8((i8_t *)as_u8(x), NULL, ops_count(x));
+        l = as_list(g)[0]->len; // count groups
+        k = vector(x->type, l);
+        v = list(l);
+
+        for (i = 0, j = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[0])[i];
+            as_u8(k)[i] = as_u8(x)[as_i64(as_list(g)[1])[j]];
+            p = vector_i64(n);
+            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
+            as_list(v)[i] = p;
+            j += n;
+        }
+
+        drop(g);
+
+        return dict(k, v);
     case TYPE_I64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
-        l = indices == NULL ? x->len : l;
-        res = ops_group_raw(as_i64(x), indices, l);
-        as_list(res)[0]->type = x->type;
-        return res;
+        g = ops_group_i64(as_i64(x), NULL, ops_count(x));
+        l = as_list(g)[0]->len; // count groups
+        k = vector(x->type, l);
+        v = list(l);
+
+        for (i = 0, j = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[0])[i];
+            as_i64(k)[i] = as_i64(x)[as_i64(as_list(g)[1])[j]];
+            p = vector_i64(n);
+            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
+            as_list(v)[i] = p;
+            j += n;
+        }
+
+        drop(g);
+
+        return dict(k, v);
+
+    case TYPE_F64:
+        g = ops_group_i64((i64_t *)as_f64(x), NULL, ops_count(x));
+        l = as_list(g)[0]->len; // count groups
+        k = vector_f64(l);
+        v = list(l);
+
+        for (i = 0, j = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[0])[i];
+            as_f64(k)[i] = as_f64(x)[as_i64(as_list(g)[1])[j]];
+            p = vector_i64(n);
+            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
+            as_list(v)[i] = p;
+            j += n;
+        }
+
+        drop(g);
+
+        return dict(k, v);
+
     case TYPE_ENUM:
-        l = indices == NULL ? ops_count(x) : l;
-        res = ops_group_raw(as_i64(enum_val(x)), indices, l);
-        as_list(res)[0] = venum(ray_key(x), as_list(res)[0]);
-        return res;
-    case TYPE_FILTERMAP:
-        l = as_list(x)[1]->len;
-        indices = as_i64(as_list(x)[1]);
-        x = as_list(x)[0];
-        goto dispatch;
+        g = ops_group_i64(as_i64(enum_val(x)), NULL, ops_count(x));
+        l = as_list(g)[0]->len; // count groups
+        k = vector_i64(l);
+        v = list(l);
+
+        for (i = 0, j = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[0])[i];
+            as_i64(k)[i] = as_i64(enum_val(x))[as_i64(as_list(g)[1])[j]];
+            p = vector_i64(n);
+            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
+            as_list(v)[i] = p;
+            j += n;
+        }
+
+        drop(g);
+
+        return dict(k, v);
+    case TYPE_GUID:
+        g = ops_group_guid(as_guid(x), NULL, ops_count(x));
+        l = as_list(g)[0]->len; // count groups
+        k = vector_guid(l);
+        v = list(l);
+
+        for (i = 0, j = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[0])[i];
+            as_guid(k)[i] = as_guid(x)[as_i64(as_list(g)[1])[j]];
+            p = vector_i64(n);
+            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
+            as_list(v)[i] = p;
+            j += n;
+        }
+
+        drop(g);
+
+        return dict(k, v);
+    case TYPE_LIST:
+        g = ops_group_obj(as_list(x), NULL, ops_count(x));
+        l = as_list(g)[0]->len; // count groups
+        k = list(l);
+        v = list(l);
+
+        for (i = 0, j = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[0])[i];
+            as_list(k)[i] = clone(as_list(x)[as_i64(as_list(g)[1])[j]]);
+            p = vector_i64(n);
+            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
+            as_list(v)[i] = p;
+            j += n;
+        }
+
+        drop(g);
+
+        return dict(k, v);
     default:
-        throw(ERR_TYPE, "group: invalid type: '%s", typename(x->type));
+        throw(ERR_TYPE, "group: unsupported type: '%s", typename(x->type));
     }
 }
 

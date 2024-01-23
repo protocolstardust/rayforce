@@ -29,6 +29,7 @@
 #include "ops.h"
 #include "binary.h"
 #include "compose.h"
+#include "error.h"
 
 typedef struct __join_ctx_t
 {
@@ -87,7 +88,7 @@ u64_t __join_hash_get(i64_t row, nil_t *seed)
     return ctx->hashes[row];
 }
 
-i32_t __join_cmp_row(i64_t row1, i64_t row2, nil_t *seed)
+i64_t __join_cmp_row(i64_t row1, i64_t row2, nil_t *seed)
 {
     u64_t i, l;
     __join_ctx_t *ctx = (__join_ctx_t *)seed;
@@ -198,7 +199,8 @@ obj_t ray_lj(obj_t *x, u64_t n)
 
     if (is_error(cols))
     {
-        dropn(2, k1, idx);
+        drop(k1);
+        drop(idx);
         return cols;
     }
 
@@ -206,7 +208,9 @@ obj_t ray_lj(obj_t *x, u64_t n)
 
     if (l == 0)
     {
-        dropn(3, k1, idx, cols);
+        drop(k1);
+        drop(idx);
+        drop(cols);
         throw(ERR_LENGTH, "lj: no columns to join on");
     }
 
@@ -240,7 +244,10 @@ obj_t ray_lj(obj_t *x, u64_t n)
         col = select_column(c1, c2, as_i64(idx), ll);
         if (is_error(col))
         {
-            dropn(4, k1, cols, idx, vals);
+            drop(k1);
+            drop(cols);
+            drop(idx);
+            drop(vals);
             return col;
         }
 
@@ -265,7 +272,8 @@ obj_t ray_lj(obj_t *x, u64_t n)
     else
     {
         resvals = ray_concat(k1, vals);
-        dropn(2, k1, vals);
+        drop(k1);
+        drop(vals);
     }
 
     return table(rescols, resvals);

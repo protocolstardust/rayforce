@@ -24,6 +24,7 @@
 #ifndef FORMAT_H
 #define FORMAT_H
 
+#include <stdarg.h>
 #include "rayforce.h"
 
 #define RED "\033[1;31m"
@@ -45,8 +46,11 @@
 #define BOLD "\033[1m"
 #define RESET "\033[0m"
 
+extern i32_t str_vfmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt, va_list vargs);
 extern i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt, ...);
 extern str_t str_fmt(i32_t limit, str_t fmt, ...);
+extern str_t str_vfmt(i32_t limit, str_t fmt, va_list args);
+extern obj_t obj_stringify(obj_t obj);
 extern str_t obj_fmt(obj_t obj);
 extern i32_t obj_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, bool_t full, obj_t obj);
 extern str_t obj_fmt_n(obj_t *obj, u64_t n);

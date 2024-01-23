@@ -37,7 +37,6 @@
 
 #define MAX_EVENTS 1024
 #define BUF_SIZE 2048
-#define PROMPT "> "
 
 #define MSG_TYPE_ASYN 0
 #define MSG_TYPE_SYNC 1
@@ -118,8 +117,11 @@ typedef struct selector_t
 
 typedef struct poll_t
 {
+    i64_t code;
     i64_t poll_fd;
     i64_t ipc_fd;
+    obj_t replfile;
+    obj_t ipcfile;
     freelist_t selectors; // freelist of selectors
 } *poll_t;
 
@@ -132,5 +134,9 @@ nil_t poll_deregister(poll_t poll, i64_t id);
 // send ipc messages
 obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg);
 obj_t ipc_send_async(poll_t poll, i64_t id, obj_t msg);
+
+// Exit the app
+nil_t poll_exit(poll_t poll, i64_t code);
+nil_t prompt();
 
 #endif // POLL_H

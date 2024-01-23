@@ -36,125 +36,7 @@
 #include "sock.h"
 #include "items.h"
 #include "compose.h"
-
-obj_t call_binary(binary_f f, obj_t x, obj_t y)
-{
-    u64_t i, l;
-    obj_t res, item, a, b;
-    type_t xt, yt;
-
-    xt = x->type;
-    yt = y->type;
-
-    if (xt == TYPE_GROUPMAP && yt == TYPE_GROUPMAP)
-    {
-        l = ops_count(x);
-
-        if (l != ops_count(y))
-            return error(ERR_LENGTH, "binary: vectors must be of the same length");
-
-        a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[0]);
-        b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[0]);
-
-        item = f(a, b);
-        dropn(2, a, b);
-
-        if (is_error(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
-            b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[i]);
-
-            item = f(a, b);
-            dropn(2, a, b);
-
-            if (is_error(item))
-            {
-                res->len = i;
-                drop(res);
-                return item;
-            }
-
-            ins_obj(&res, i, item);
-        }
-
-        return res;
-    }
-    else if (xt == TYPE_GROUPMAP)
-    {
-        l = ops_count(x);
-        a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[0]);
-
-        item = f(a, y);
-        drop(a);
-
-        if (is_error(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
-            item = f(a, y);
-            drop(a);
-
-            if (is_error(item))
-            {
-                res->len = i;
-                drop(res);
-                return item;
-            }
-
-            ins_obj(&res, i, item);
-        }
-
-        return res;
-    }
-    else if (yt == TYPE_GROUPMAP)
-    {
-        l = ops_count(y);
-        b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[0]);
-
-        item = f(x, b);
-        drop(b);
-
-        if (is_error(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[i]);
-            item = f(x, b);
-            drop(b);
-
-            if (is_error(item))
-            {
-                res->len = i;
-                drop(res);
-                return item;
-            }
-
-            ins_obj(&res, i, item);
-        }
-
-        return res;
-    }
-
-    return f(x, y);
-}
+#include "error.h"
 
 obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
 {
@@ -358,7 +240,7 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
         return res;
 
     default:
-        return call_binary(f, x, y);
+        return f(x, y);
     }
 }
 
@@ -380,7 +262,7 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         l = ops_count(x);
 
         if (l != ops_count(y))
-            return error(ERR_LENGTH, "binary: vectors must be of the same length");
+            return error_str(ERR_LENGTH, "binary: vectors must be of the same length");
 
         a = xt == TYPE_LIST ? as_list(x)[0] : at_idx(x, 0);
         b = yt == TYPE_LIST ? as_list(y)[0] : at_idx(y, 0);
@@ -490,12 +372,12 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         return res;
     }
 
-    return call_binary(f, x, y);
+    return f(x, y);
 }
 
 obj_t ray_call_binary(u8_t attrs, binary_f f, obj_t x, obj_t y)
 {
-    switch (attrs)
+    switch (attrs & FN_ATOMIC_MASK)
     {
     case FN_ATOMIC:
         return ray_call_binary_atomic(f, x, y);
@@ -504,7 +386,7 @@ obj_t ray_call_binary(u8_t attrs, binary_f f, obj_t x, obj_t y)
     case FN_RIGHT_ATOMIC:
         return ray_call_binary_right_atomic(f, x, y);
     default:
-        return call_binary(f, x, y);
+        return f(x, y);
     }
 }
 
@@ -551,19 +433,25 @@ obj_t distinct_syms(obj_t *x, u64_t n)
     return vec;
 }
 
-obj_t ray_set(obj_t x, obj_t y)
+obj_t __ray_set(obj_t x, obj_t y)
 {
-    obj_t res, col, s, p, k, v, e, cols, sym, buf;
     i64_t fd, c = 0;
     u64_t i, l, sz, size;
     u8_t *b, mmod;
+    obj_t res, col, s, p, k, v, e, cols, sym, buf;
 
     switch (x->type)
     {
     case -TYPE_SYMBOL:
         res = set_obj(&runtime_get()->env.variables, x, clone(y));
 
-        if (res->type == TYPE_ERROR)
+        if (y && y->type == TYPE_LAMBDA)
+        {
+            if (is_null(as_lambda(y)->name))
+                as_lambda(y)->name = clone(x);
+        }
+
+        if (is_error(res))
             return res;
 
         return clone(y);
@@ -594,7 +482,7 @@ obj_t ray_set(obj_t x, obj_t y)
 
             return clone(x);
         case TYPE_TABLE:
-            if (as_string(x)[x->len - 1] != '/')
+            if (x->len < 2 || as_string(x)[x->len - 2] != '/')
                 throw(ERR_TYPE, "set: table path must be a directory");
 
             // save columns schema
@@ -612,7 +500,7 @@ obj_t ray_set(obj_t x, obj_t y)
 
             l = as_list(y)[0]->len;
 
-            cols = list(0);
+            cols = vn_list(0);
 
             // find symbol columns
             for (i = 0, c = 0; i < l; i++)
@@ -769,7 +657,7 @@ obj_t ray_set(obj_t x, obj_t y)
                     drop(buf);
                     drop(k);
 
-                    throw(ERR_NOT_SUPPORTED, "set: unsupported type: %d", y->type);
+                    throw(ERR_NOT_SUPPORTED, "set: unsupported type: %s", typename(y->type));
                 }
 
                 as_i64(k)[i] = size;
@@ -867,10 +755,43 @@ obj_t ray_set(obj_t x, obj_t y)
                 return clone(x);
             }
 
-            throw(ERR_TYPE, "set: unsupported types: %d %d", typename(x->type), typename(y->type));
+            throw(ERR_TYPE, "set: unsupported types: %s %s", typename(x->type), typename(y->type));
         }
 
     default:
-        throw(ERR_TYPE, "set: unsupported types: %d %d", typename(x->type), typename(y->type));
+        throw(ERR_TYPE, "set: unsupported types: %s %s", typename(x->type), typename(y->type));
+    }
+}
+
+obj_t ray_set(obj_t x, obj_t y)
+{
+    obj_t e, res;
+
+    e = eval(y);
+    if (is_error(e))
+        return e;
+
+    res = __ray_set(x, e);
+    drop(e);
+
+    return res;
+}
+
+obj_t ray_let(obj_t x, obj_t y)
+{
+    obj_t e;
+
+    switch (x->type)
+    {
+    case -TYPE_SYMBOL:
+        e = eval(y);
+
+        if (is_error(e))
+            return e;
+
+        return set_symbol(x, e);
+
+    default:
+        throw(ERR_TYPE, "let: unsupported types: %d %d", typename(x->type), typename(y->type));
     }
 }

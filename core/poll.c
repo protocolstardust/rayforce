@@ -23,14 +23,7 @@
 
 #include "poll.h"
 #include "format.h"
-#include "cc.h"
 #include "sock.h"
-
-nil_t prompt()
-{
-    printf("%s%s%s", GREEN, PROMPT, RESET);
-    fflush(stdout);
-}
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include "iocp.c"
@@ -43,3 +36,16 @@ nil_t prompt()
 #else
 #error "Unsupported platform"
 #endif
+
+#include "eval.h"
+
+nil_t prompt()
+{
+    printf("%s> %s", GREEN, RESET);
+    fflush(stdout);
+}
+
+nil_t poll_exit(poll_t poll, i64_t code)
+{
+    poll->code = code;
+}

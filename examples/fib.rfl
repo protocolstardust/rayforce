@@ -2,9 +2,6 @@
 (set fib (fn [x] 
     (if (< x 2) 
         1
-        (+ (self (- x 1))  (self (- x 2))))))
+        (+ (self (- x 1)) (self (- x 2))))))
 
-;; (try (fib 6)
-;;     (catch e 
-;;         (print "E:%", e)))
-
+;; \t (fib 35)

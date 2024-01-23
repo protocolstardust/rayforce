@@ -21,10 +21,13 @@
  *   SOFTWARE.
  */
 
+#include <time.h>
 #include "math.h"
 #include "util.h"
 #include "heap.h"
 #include "ops.h"
+#include "error.h"
+#include "aggr.h"
 
 obj_t ray_add(obj_t x, obj_t y)
 {
@@ -57,7 +60,7 @@ obj_t ray_add(obj_t x, obj_t y)
     case mtype2(-TYPE_I64, TYPE_F64):
         l = y->len;
         yfvals = as_f64(y);
-        vec = vector_i64(l);
+        vec = vector_f64(l);
         fout = as_f64(vec);
         for (i = 0; i < l; i++)
             fout[i] = addf64((f64_t)x->i64, yfvals[i]);
@@ -117,11 +120,11 @@ obj_t ray_add(obj_t x, obj_t y)
             throw(ERR_LENGTH, "add: vectors must be of the same length");
 
         xivals = as_i64(x);
-        yivals = as_i64(y);
-        vec = vector_i64(l);
-        iout = as_i64(vec);
+        yfvals = as_f64(y);
+        vec = vector_f64(l);
+        fout = as_f64(vec);
         for (i = 0; i < l; i++)
-            iout[i] = addi64(xivals[i], yivals[i]);
+            fout[i] = addf64((f64_t)xivals[i], yfvals[i]);
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_F64):
@@ -177,10 +180,9 @@ obj_t ray_sub(obj_t x, obj_t y)
 {
     u64_t i, l = 0;
     obj_t vec;
-    i64_t *xids = NULL, *yids = NULL, *xivals = NULL, *yivals = NULL;
+    i64_t *xivals = NULL, *yivals = NULL;
     f64_t *xfvals = NULL, *yfvals = NULL;
 
-dispatch:
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_I64, -TYPE_I64):
@@ -194,16 +196,6 @@ dispatch:
     case mtype2(-TYPE_TIMESTAMP, -TYPE_I64):
         return timestamp(subi64(x->i64, y->i64));
     case mtype2(-TYPE_I64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subi64(x->i64, yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_i64(l);
@@ -212,16 +204,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_I64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subf64((f64_t)x->i64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_i64(l);
@@ -230,16 +212,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(x->f64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_f64(l);
@@ -248,16 +220,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(x->f64, (f64_t)yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_f64(l);
@@ -266,16 +228,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_I64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subi64(xivals[xids[i]], y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_i64(l);
@@ -284,16 +236,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_F64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subf64((f64_t)xivals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_i64(l);
@@ -302,106 +244,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, TYPE_I64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subi64(xivals[xids[i]], yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "sub: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subi64(xivals[xids[i]], yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subi64(xivals[i], yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subi64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(vec)[i] = subi64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_I64, TYPE_F64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subf64((f64_t)xivals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "sub: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subf64((f64_t)xivals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subf64((f64_t)xivals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = subi64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(vec)[i] = subi64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_F64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -410,16 +276,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_I64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[xids[i]], (f64_t)y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -428,125 +284,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, TYPE_F64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "sub: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[i], yfvals[i]);
-        }
+        xfvals = as_f64(x);
+        yfvals = as_f64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = subf64(xfvals[i], yfvals[i]);
 
         return vec;
     case mtype2(TYPE_F64, TYPE_I64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[xids[i]], (f64_t)yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "sub: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[xids[i]], (f64_t)yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[i], (f64_t)yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = subf64(xfvals[i], (f64_t)yivals[i]);
-        }
+        xfvals = as_f64(x);
+        yivals = as_i64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = subf64(xfvals[i], (f64_t)yivals[i]);
 
         return vec;
     default:
-        if ((x->type == TYPE_FILTERMAP) && (y->type == TYPE_FILTERMAP))
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-
-            if (l != as_list(y)[1]->len)
-                throw(ERR_LENGTH, "sub: vectors must be of the same length");
-
-            yids = as_i64(as_list(y)[1]);
-            y = as_list(y)[0];
-
-            goto dispatch;
-        }
-        else if (x->type == TYPE_FILTERMAP)
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-            goto dispatch;
-        }
-        else if (y->type == TYPE_FILTERMAP)
-        {
-            yids = as_i64(as_list(y)[1]);
-            l = as_list(y)[1]->len;
-            y = as_list(y)[0];
-            goto dispatch;
-        }
-
         throw(ERR_TYPE, "sub: unsupported types: '%s, '%s", typename(x->type), typename(y->type));
     }
 }
@@ -555,10 +316,9 @@ obj_t ray_mul(obj_t x, obj_t y)
 {
     u64_t i, l = 0;
     obj_t vec;
-    i64_t *xids = NULL, *yids = NULL, *xivals = NULL, *yivals = NULL;
+    i64_t *xivals = NULL, *yivals = NULL;
     f64_t *xfvals = NULL, *yfvals = NULL;
 
-dispatch:
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_I64, -TYPE_I64):
@@ -570,16 +330,6 @@ dispatch:
     case mtype2(-TYPE_F64, -TYPE_I64):
         return f64(mulf64(x->f64, (f64_t)y->i64));
     case mtype2(-TYPE_I64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = muli64(x->i64, yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_i64(l);
@@ -588,16 +338,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_I64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = mulf64((f64_t)x->i64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_i64(l);
@@ -606,16 +346,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(x->f64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_f64(l);
@@ -624,16 +354,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(x->f64, (f64_t)yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_f64(l);
@@ -642,16 +362,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_I64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = muli64(xivals[xids[i]], y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_i64(l);
@@ -660,16 +370,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_F64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = mulf64((f64_t)xivals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_i64(l);
@@ -678,106 +378,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, TYPE_I64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = muli64(xivals[xids[i]], yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "mul: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = muli64(xivals[xids[i]], yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = muli64(xivals[i], yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = muli64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(vec)[i] = muli64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_I64, TYPE_F64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = mulf64((f64_t)xivals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "mul: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = mulf64((f64_t)xivals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = mulf64((f64_t)xivals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = muli64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(vec)[i] = muli64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_F64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -786,16 +410,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_I64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[xids[i]], (f64_t)y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -804,125 +418,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, TYPE_F64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "mul: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[i], yfvals[i]);
-        }
+        xfvals = as_f64(x);
+        yfvals = as_f64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = mulf64(xfvals[i], yfvals[i]);
 
         return vec;
     case mtype2(TYPE_F64, TYPE_I64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[xids[i]], (f64_t)yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "mul: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[xids[i]], (f64_t)yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[i], (f64_t)yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = mulf64(xfvals[i], (f64_t)yivals[i]);
-        }
+        xfvals = as_f64(x);
+        yivals = as_i64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = mulf64(xfvals[i], (f64_t)yivals[i]);
 
         return vec;
     default:
-        if ((x->type == TYPE_FILTERMAP) && (y->type == TYPE_FILTERMAP))
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-
-            if (l != as_list(y)[1]->len)
-                throw(ERR_LENGTH, "mul: vectors must be of the same length");
-
-            yids = as_i64(as_list(y)[1]);
-            y = as_list(y)[0];
-
-            goto dispatch;
-        }
-        else if (x->type == TYPE_FILTERMAP)
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-            goto dispatch;
-        }
-        else if (y->type == TYPE_FILTERMAP)
-        {
-            yids = as_i64(as_list(y)[1]);
-            l = as_list(y)[1]->len;
-            y = as_list(y)[0];
-            goto dispatch;
-        }
-
         throw(ERR_TYPE, "mul: unsupported types: '%s, '%s", typename(x->type), typename(y->type));
     }
 }
@@ -931,10 +450,9 @@ obj_t ray_div(obj_t x, obj_t y)
 {
     u64_t i, l = 0;
     obj_t vec;
-    i64_t *xids = NULL, *yids = NULL, *xivals = NULL, *yivals = NULL;
+    i64_t *xivals = NULL, *yivals = NULL;
     f64_t *xfvals = NULL, *yfvals = NULL;
 
-dispatch:
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_I64, -TYPE_I64):
@@ -946,16 +464,6 @@ dispatch:
     case mtype2(-TYPE_F64, -TYPE_I64):
         return f64(divf64(x->f64, (f64_t)y->i64));
     case mtype2(-TYPE_I64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divi64(x->i64, yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_i64(l);
@@ -964,16 +472,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_I64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divf64((f64_t)x->i64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_i64(l);
@@ -982,16 +480,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(x->f64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_f64(l);
@@ -1000,16 +488,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(x->f64, (f64_t)yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_f64(l);
@@ -1018,16 +496,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_I64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divi64(xivals[xids[i]], y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_i64(l);
@@ -1036,16 +504,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_F64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divf64((f64_t)xivals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_i64(l);
@@ -1054,106 +512,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, TYPE_I64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divi64(xivals[xids[i]], yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "div: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divi64(xivals[xids[i]], yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divi64(xivals[i], yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divi64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(vec)[i] = divi64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_I64, TYPE_F64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divf64((f64_t)xivals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "div: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divf64((f64_t)xivals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divf64((f64_t)xivals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = divi64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(vec)[i] = divi64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_F64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -1162,16 +544,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_I64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[xids[i]], (f64_t)y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -1180,125 +552,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, TYPE_F64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "div: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[i], yfvals[i]);
-        }
+        xfvals = as_f64(x);
+        yfvals = as_f64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = divf64(xfvals[i], yfvals[i]);
 
         return vec;
     case mtype2(TYPE_F64, TYPE_I64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[xids[i]], (f64_t)yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "div: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[xids[i]], (f64_t)yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[i], (f64_t)yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = divf64(xfvals[i], (f64_t)yivals[i]);
-        }
+        xfvals = as_f64(x);
+        yivals = as_i64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = divf64(xfvals[i], (f64_t)yivals[i]);
 
         return vec;
     default:
-        if ((x->type == TYPE_FILTERMAP) && (y->type == TYPE_FILTERMAP))
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-
-            if (l != as_list(y)[1]->len)
-                throw(ERR_LENGTH, "div: vectors must be of the same length");
-
-            yids = as_i64(as_list(y)[1]);
-            y = as_list(y)[0];
-
-            goto dispatch;
-        }
-        else if (x->type == TYPE_FILTERMAP)
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-            goto dispatch;
-        }
-        else if (y->type == TYPE_FILTERMAP)
-        {
-            yids = as_i64(as_list(y)[1]);
-            l = as_list(y)[1]->len;
-            y = as_list(y)[0];
-            goto dispatch;
-        }
-
         throw(ERR_TYPE, "div: unsupported types: '%s, '%s", typename(x->type), typename(y->type));
     }
 }
@@ -1307,10 +584,9 @@ obj_t ray_fdiv(obj_t x, obj_t y)
 {
     u64_t i, l = 0;
     obj_t vec;
-    i64_t *xids = NULL, *yids = NULL, *xivals = NULL, *yivals = NULL;
+    i64_t *xivals = NULL, *yivals = NULL;
     f64_t *xfvals = NULL, *yfvals = NULL;
 
-dispatch:
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_I64, -TYPE_I64):
@@ -1322,16 +598,6 @@ dispatch:
     case mtype2(-TYPE_F64, -TYPE_I64):
         return f64(fdivi64(x->f64, y->i64));
     case mtype2(-TYPE_I64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(x->i64, yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_f64(l);
@@ -1340,16 +606,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_I64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(x->i64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_f64(l);
@@ -1358,16 +614,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivf64(x->f64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_f64(l);
@@ -1376,16 +622,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(x->f64, yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_f64(l);
@@ -1394,16 +630,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_I64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[xids[i]], y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_f64(l);
@@ -1412,16 +638,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_F64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = fdivf64((f64_t)xivals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_f64(l);
@@ -1430,106 +646,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, TYPE_I64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[xids[i]], yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[xids[i]], yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[i], yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = fdivi64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_I64, TYPE_F64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = fdivi64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_F64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivf64(xfvals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -1538,16 +678,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_I64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xfvals[xids[i]], y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -1556,125 +686,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, TYPE_F64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivf64(xfvals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivf64(xfvals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivf64(xfvals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivf64(xfvals[i], yfvals[i]);
-        }
+        xfvals = as_f64(x);
+        yfvals = as_f64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = fdivf64(xfvals[i], yfvals[i]);
 
         return vec;
     case mtype2(TYPE_F64, TYPE_I64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xfvals[xids[i]], yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xfvals[xids[i]], yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xfvals[i], yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = fdivi64(xfvals[i], yivals[i]);
-        }
+        xfvals = as_f64(x);
+        yivals = as_i64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = fdivi64(xfvals[i], yivals[i]);
 
         return vec;
     default:
-        if ((x->type == TYPE_FILTERMAP) && (y->type == TYPE_FILTERMAP))
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-
-            if (l != as_list(y)[1]->len)
-                throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
-
-            yids = as_i64(as_list(y)[1]);
-            y = as_list(y)[0];
-
-            goto dispatch;
-        }
-        else if (x->type == TYPE_FILTERMAP)
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-            goto dispatch;
-        }
-        else if (y->type == TYPE_FILTERMAP)
-        {
-            yids = as_i64(as_list(y)[1]);
-            l = as_list(y)[1]->len;
-            y = as_list(y)[0];
-            goto dispatch;
-        }
-
         throw(ERR_TYPE, "add: unsupported types: '%s, '%s", typename(x->type), typename(y->type));
     }
 }
@@ -1683,10 +718,9 @@ obj_t ray_mod(obj_t x, obj_t y)
 {
     u64_t i, l = 0;
     obj_t vec;
-    i64_t *xids = NULL, *yids = NULL, *xivals = NULL, *yivals = NULL;
+    i64_t *xivals = NULL, *yivals = NULL;
     f64_t *xfvals = NULL, *yfvals = NULL;
 
-dispatch:
     switch (mtype2(x->type, y->type))
     {
     case mtype2(-TYPE_I64, -TYPE_I64):
@@ -1698,16 +732,6 @@ dispatch:
     case mtype2(-TYPE_F64, -TYPE_I64):
         return i64(modf64(x->f64, (f64_t)y->i64));
     case mtype2(-TYPE_I64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modi64(x->i64, yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_i64(l);
@@ -1716,16 +740,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_I64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modf64((f64_t)x->i64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_i64(l);
@@ -1734,16 +748,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_F64):
-        if (yids)
-        {
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modf64(x->f64, yfvals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yfvals = as_f64(y);
         vec = vector_i64(l);
@@ -1752,16 +756,6 @@ dispatch:
 
         return vec;
     case mtype2(-TYPE_F64, TYPE_I64):
-        if (yids)
-        {
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modf64(x->f64, (f64_t)yivals[yids[i]]);
-
-            return vec;
-        }
-
         l = y->len;
         yivals = as_i64(y);
         vec = vector_i64(l);
@@ -1770,15 +764,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_I64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modi64(xivals[xids[i]], y->i64);
-
-            return vec;
-        }
         l = x->len;
         xivals = as_i64(x);
         vec = vector_i64(l);
@@ -1787,16 +772,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, -TYPE_F64):
-        if (xids)
-        {
-            xivals = as_i64(x);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modf64((f64_t)xivals[xids[i]], y->f64);
-
-            return vec;
-        }
-
         l = x->len;
         xivals = as_i64(x);
         vec = vector_i64(l);
@@ -1805,106 +780,30 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_I64, TYPE_I64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modi64(xivals[xids[i]], yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "mod: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modi64(xivals[xids[i]], yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modi64(xivals[i], yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modi64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(vec)[i] = modi64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_I64, TYPE_F64):
-        if (xids && yids)
-        {
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modi64(xivals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "mod: vectors must be of the same length");
 
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modf64((f64_t)xivals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yfvals = as_f64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modf64((f64_t)xivals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            xivals = as_i64(x);
-            yivals = as_i64(y);
-            vec = vector_i64(l);
-            for (i = 0; i < l; i++)
-                as_i64(vec)[i] = modi64(xivals[i], yivals[i]);
-        }
+        xivals = as_i64(x);
+        yivals = as_i64(y);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(vec)[i] = modi64(xivals[i], yivals[i]);
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_F64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modf64(y->f64, xfvals[xids[i]]);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -1913,16 +812,6 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, -TYPE_I64):
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modi64(xfvals[xids[i]], y->i64);
-
-            return vec;
-        }
-
         l = x->len;
         xfvals = as_f64(x);
         vec = vector_f64(l);
@@ -1931,134 +820,39 @@ dispatch:
 
         return vec;
     case mtype2(TYPE_F64, TYPE_F64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modf64(xfvals[xids[i]], yfvals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "mod: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modf64(xfvals[xids[i]], yfvals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modf64(xfvals[i], yfvals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yfvals = as_f64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modf64(xfvals[i], yfvals[i]);
-        }
+        xfvals = as_f64(x);
+        yfvals = as_f64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = modf64(xfvals[i], yfvals[i]);
 
         return vec;
     case mtype2(TYPE_F64, TYPE_I64):
-        if (xids && yids)
-        {
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modi64(xfvals[xids[i]], yivals[yids[i]]);
-        }
-        else if (xids)
-        {
-            if (l != y->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
+        l = x->len;
+        if (l != y->len)
+            throw(ERR_LENGTH, "mod: vectors must be of the same length");
 
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modi64(xfvals[xids[i]], yivals[i]);
-        }
-        else if (yids)
-        {
-            if (l != x->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modi64(xfvals[i], yivals[yids[i]]);
-        }
-        else
-        {
-            l = x->len;
-            if (l != y->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            xfvals = as_f64(x);
-            yivals = as_i64(y);
-            vec = vector_f64(l);
-            for (i = 0; i < l; i++)
-                as_f64(vec)[i] = modi64(xfvals[i], yivals[i]);
-        }
+        xfvals = as_f64(x);
+        yivals = as_i64(y);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(vec)[i] = modi64(xfvals[i], yivals[i]);
 
         return vec;
     default:
-        if ((x->type == TYPE_FILTERMAP) && (y->type == TYPE_FILTERMAP))
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-
-            if (l != as_list(y)[1]->len)
-                throw(ERR_LENGTH, "mod: vectors must be of the same length");
-
-            yids = as_i64(as_list(y)[1]);
-            y = as_list(y)[0];
-
-            goto dispatch;
-        }
-        else if (x->type == TYPE_FILTERMAP)
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-            goto dispatch;
-        }
-        else if (y->type == TYPE_FILTERMAP)
-        {
-            yids = as_i64(as_list(y)[1]);
-            l = as_list(y)[1]->len;
-            y = as_list(y)[0];
-            goto dispatch;
-        }
-
         throw(ERR_TYPE, "add: unsupported types: '%s, '%s", typename(x->type), typename(y->type));
     }
 }
 
 obj_t ray_sum(obj_t x)
 {
-    i32_t i;
-    i64_t l = 0, isum = 0, *xivals = NULL;
-    f64_t fsum = 0.0, *xfvals = NULL;
+    u64_t i, l;
+    i64_t isum, *xii;
+    f64_t fsum, *xfi;
 
     switch (x->type)
     {
@@ -2068,18 +862,20 @@ obj_t ray_sum(obj_t x)
         return clone(x);
     case TYPE_I64:
         l = x->len;
-        xivals = as_i64(x);
-        for (i = 0; i < l; i++)
-            isum += (xivals[i] == NULL_I64) ? 0 : xivals[i];
+        xii = as_i64(x);
+        for (i = 0, isum = 0; i < l; i++)
+            isum += (xii[i] == NULL_I64) ? 0 : xii[i];
 
         return i64(isum);
     case TYPE_F64:
         l = x->len;
-        xfvals = as_f64(x);
-        for (i = 0; i < l; i++)
-            fsum += xfvals[i];
+        xfi = as_f64(x);
+        for (i = 0, fsum = 0; i < l; i++)
+            fsum += xfi[i];
 
         return f64(fsum);
+    case TYPE_GROUPMAP:
+        return aggr_sum(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
 
     default:
         throw(ERR_TYPE, "sum: unsupported type: '%s", typename(x->type));
@@ -2089,30 +885,15 @@ obj_t ray_sum(obj_t x)
 obj_t ray_avg(obj_t x)
 {
     u64_t i, l = 0, n;
-    i64_t isum = 0, *xids = NULL, *xivals = NULL;
+    i64_t isum = 0, *xivals = NULL;
     f64_t fsum = 0.0, *xfvals = NULL;
 
-dispatch:
     switch (x->type)
     {
     case -TYPE_I64:
     case -TYPE_F64:
         return clone(x);
     case TYPE_I64:
-        if (xids)
-        {
-            xivals = as_i64(x);
-            for (i = 0, n = 0; i < l; i++)
-            {
-                if (xivals[xids[i]] != NULL_I64)
-                    isum += xivals[xids[i]];
-                else
-                    n++;
-            }
-
-            return f64((f64_t)isum / (l - n));
-        }
-
         l = x->len;
         xivals = as_i64(x);
 
@@ -2127,15 +908,6 @@ dispatch:
         return f64((f64_t)isum / (l - n));
 
     case TYPE_F64:
-        if (xids)
-        {
-            xfvals = as_f64(x);
-            for (i = 0, n = 0; i < l; i++)
-                fsum += xfvals[xids[i]];
-
-            return f64(fsum / l);
-        }
-
         l = x->len;
         xfvals = as_f64(x);
 
@@ -2144,15 +916,10 @@ dispatch:
 
         return f64(fsum / l);
 
-    default:
-        if (x->type == TYPE_FILTERMAP)
-        {
-            xids = as_i64(as_list(x)[1]);
-            l = as_list(x)[1]->len;
-            x = as_list(x)[0];
-            goto dispatch;
-        }
+    case TYPE_GROUPMAP:
+        return aggr_avg(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
 
+    default:
         throw(ERR_TYPE, "avg: unsupported type: '%s", typename(x->type));
     }
 }

@@ -37,14 +37,25 @@
 #include "ops.h"
 #include "fs.h"
 #include "serde.h"
-#include "cc.h"
 #include "sock.h"
+#include "eval.h"
+#include "lambda.h"
+#include "error.h"
 
 CASSERT(sizeof(struct obj_t) == 16, rayforce_h)
+
+// Synchronization flag (use atomics on rc operations).
+static i32_t __RC_SYNC = 0;
 
 u8_t version()
 {
     return RAYFORCE_VERSION;
+}
+
+nil_t zero_obj(obj_t obj)
+{
+    u64_t size = size_of(obj) - sizeof(struct obj_t);
+    memset(obj->arr, 0, size);
 }
 
 obj_t atom(type_t type)
@@ -55,11 +66,9 @@ obj_t atom(type_t type)
         throw(ERR_HEAP, "oom");
 
     a->mmod = MMOD_INTERNAL;
-    a->refc = 1;
     a->type = -type;
     a->rc = 1;
     a->attrs = 0;
-    a->len = 1;
 
     return a;
 }
@@ -164,6 +173,11 @@ obj_t vector(type_t type, u64_t len)
 
     if (type < 0)
         t = -type;
+    else if (type == TYPE_CHAR)
+    {
+        len = (len > 0) ? len + 1 : len;
+        t = TYPE_CHAR;
+    }
     else if (type > 0 && type < TYPE_ENUM)
         t = type;
     else if (type == TYPE_ENUM)
@@ -183,23 +197,48 @@ obj_t vector(type_t type, u64_t len)
     vec->len = len;
     vec->attrs = 0;
 
+    if ((type == TYPE_CHAR) && (len > 0))
+        as_string(vec)[len - 1] = '\0';
+
     return vec;
+}
+
+obj_t vn_symbol(u64_t len, ...)
+{
+    u64_t i;
+    i64_t sym, *syms;
+    obj_t res;
+    str_t s;
+    va_list args;
+
+    res = vector_symbol(len);
+    syms = as_symbol(res);
+
+    va_start(args, len);
+
+    for (i = 0; i < len; i++)
+    {
+        s = va_arg(args, str_t);
+        sym = intern_symbol(s, strlen(s));
+        syms[i] = sym;
+    }
+
+    va_end(args);
+
+    return res;
 }
 
 obj_t string(u64_t len)
 {
-    obj_t string = vector(TYPE_CHAR, len + 1);
-
-    if (!string)
-        throw(ERR_HEAP, "oom");
-
-    as_string(string)[len] = '\0';
-    string->len = len;
-
-    return string;
+    return vector(TYPE_CHAR, len);
 }
 
-obj_t list(u64_t len, ...)
+obj_t list(u64_t len)
+{
+    return vector(TYPE_LIST, len);
+}
+
+obj_t vn_list(u64_t len, ...)
 {
     u64_t i;
     obj_t l;
@@ -231,7 +270,7 @@ obj_t dict(obj_t keys, obj_t vals)
 {
     obj_t dict;
 
-    dict = list(2, keys, vals);
+    dict = vn_list(2, keys, vals);
 
     if (!dict)
         throw(ERR_HEAP, "oom");
@@ -243,7 +282,7 @@ obj_t dict(obj_t keys, obj_t vals)
 
 obj_t table(obj_t keys, obj_t vals)
 {
-    obj_t t = list(2, keys, vals);
+    obj_t t = vn_list(2, keys, vals);
 
     if (!t)
         throw(ERR_HEAP, "oom");
@@ -255,7 +294,7 @@ obj_t table(obj_t keys, obj_t vals)
 
 obj_t venum(obj_t sym, obj_t vec)
 {
-    obj_t e = list(2, sym, vec);
+    obj_t e = vn_list(2, sym, vec);
 
     if (!e)
         throw(ERR_HEAP, "oom");
@@ -267,7 +306,7 @@ obj_t venum(obj_t sym, obj_t vec)
 
 obj_t anymap(obj_t sym, obj_t vec)
 {
-    obj_t e = list(2, sym, vec);
+    obj_t e = vn_list(2, sym, vec);
 
     if (!e)
         throw(ERR_HEAP, "oom");
@@ -275,25 +314,6 @@ obj_t anymap(obj_t sym, obj_t vec)
     e->type = TYPE_ANYMAP;
 
     return e;
-}
-
-/*
- * Error is a list with the following structure:
- * (code, message, span, file, content)
- * code, message are mandatory, others are optional
- */
-obj_t error(i8_t code, str_t msg)
-{
-    obj_t obj = list(5, i64(code), string_from_str(msg, strlen(msg)), NULL, NULL, NULL);
-
-    if (!obj)
-        throw(ERR_HEAP, "oom");
-
-    obj->mmod = MMOD_INTERNAL;
-    obj->refc = 1;
-    obj->type = TYPE_ERROR;
-
-    return obj;
 }
 
 obj_t resize(obj_t *obj, u64_t len)
@@ -330,14 +350,14 @@ obj_t push_raw(obj_t *obj, raw_t val)
 obj_t push_obj(obj_t *obj, obj_t val)
 {
     obj_t res, lst = NULL;
-    u64_t i, l;
+    u64_t i, l, size1, size2;
     type_t t = val ? val->type : TYPE_LIST;
 
     // change vector type to a list
-    if ((*obj)->type != -val->type && (*obj)->type != TYPE_LIST)
+    if ((*obj)->type != -t && (*obj)->type != TYPE_LIST)
     {
         l = (*obj)->len;
-        lst = list(l + 1);
+        lst = vn_list(l + 1);
 
         for (i = 0; i < l; i++)
             as_list(lst)[i] = at_idx(*obj, i);
@@ -366,6 +386,14 @@ obj_t push_obj(obj_t *obj, obj_t val)
     case mtype2(TYPE_CHAR, -TYPE_CHAR):
         res = push_raw(obj, &val->vchar);
         drop(val);
+        return res;
+    case mtype2(TYPE_I64, TYPE_I64):
+    case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
+    case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
+        size1 = size_of(*obj) - sizeof(struct obj_t);
+        size2 = size_of(val) - sizeof(struct obj_t);
+        res = resize(obj, (*obj)->len + val->len);
+        memcpy((*obj)->arr + size1, as_i64(val), size2);
         return res;
     default:
         if ((*obj)->type == TYPE_LIST)
@@ -465,8 +493,6 @@ obj_t at_idx(obj_t obj, i64_t idx)
 {
     obj_t k, v, res;
     u8_t *buf;
-    i64_t *ids;
-    u64_t i, l;
 
     if (!obj)
         return null(0);
@@ -568,12 +594,50 @@ dispatch:
     }
 }
 
-obj_t at_obj(obj_t obj, obj_t idx)
+obj_t at_ids(obj_t obj, i64_t ids[], u64_t len)
 {
-    u64_t i, l;
-    i64_t *iinp, *iout, *ids;
+    u64_t i;
+    i64_t *iinp, *iout;
     f64_t *finp, *fout;
     obj_t res;
+
+    if (obj == NULL)
+        return null(0);
+
+    switch (obj->type)
+    {
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        res = vector(obj->type, len);
+        iinp = as_i64(obj);
+        iout = as_i64(res);
+        for (i = 0; i < len; i++)
+            iout[i] = iinp[ids[i]];
+
+        return res;
+
+    case TYPE_F64:
+        res = vector(TYPE_F64, len);
+        finp = as_f64(obj);
+        fout = as_f64(res);
+        for (i = 0; i < len; i++)
+            fout[i] = finp[ids[i]];
+
+        return res;
+
+    default:
+        res = vector(TYPE_LIST, len);
+        for (i = 0; i < len; i++)
+            ins_obj(&res, i, at_idx(obj, ids[i]));
+
+        return res;
+    }
+}
+
+obj_t at_obj(obj_t obj, obj_t idx)
+{
+    u64_t i;
 
     if (obj == NULL)
         return null(0);
@@ -594,27 +658,8 @@ obj_t at_obj(obj_t obj, obj_t idx)
     case mtype2(TYPE_I64, TYPE_I64):
     case mtype2(TYPE_SYMBOL, TYPE_I64):
     case mtype2(TYPE_TIMESTAMP, TYPE_I64):
-        l = idx->len;
-        res = vector(obj->type, l);
-        iinp = as_i64(obj);
-        iout = as_i64(res);
-        ids = as_i64(idx);
-        for (i = 0; i < l; i++)
-            iout[i] = iinp[ids[i]];
-
-        return res;
-
     case mtype2(TYPE_F64, TYPE_I64):
-        l = idx->len;
-        res = vector_f64(l);
-        finp = as_f64(obj);
-        fout = as_f64(res);
-        ids = as_i64(idx);
-        for (i = 0; i < l; i++)
-            fout[i] = finp[ids[i]];
-
-        return res;
-
+        return at_ids(obj, as_i64(idx), idx->len);
     default:
         if (obj->type == TYPE_DICT || obj->type == TYPE_TABLE)
         {
@@ -907,21 +952,14 @@ obj_t as(type_t type, obj_t obj)
 {
     obj_t res, err;
     u64_t i, l;
-    str_t s, msg;
+    str_t msg;
 
     // Do nothing if the type is the same
     if (type == obj->type)
         return clone(obj);
 
     if (type == TYPE_CHAR)
-    {
-        s = obj_fmt(obj);
-        if (s == NULL)
-            panic("obj_fmt() returned NULL");
-        res = string_from_str(s, strlen(s));
-        heap_free(s);
-        return res;
-    }
+        return obj_stringify(obj);
 
     switch (mtype2(type, obj->type))
     {
@@ -994,7 +1032,7 @@ obj_t as(type_t type, obj_t obj)
         return res;
     default:
         msg = str_fmt(0, "invalid conversion from '%s to '%s", typename(obj->type), typename(type));
-        err = error(ERR_TYPE, msg);
+        err = error_str(ERR_TYPE, msg);
         heap_free(msg);
         return err;
     }
@@ -1009,10 +1047,10 @@ obj_t __attribute__((hot)) clone(obj_t obj)
     if (obj == NULL)
         return NULL;
 
-    if (runtime_get()->sync)
-        __atomic_fetch_add(&obj->rc, 1, __ATOMIC_RELAXED);
-    else
+    if (!__RC_SYNC)
         (obj)->rc += 1;
+    else
+        __atomic_fetch_add(&obj->rc, 1, __ATOMIC_RELAXED);
 
     return obj;
 }
@@ -1028,13 +1066,13 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     u64_t i, l;
     obj_t id, k;
 
-    if (runtime_get()->sync)
-        rc = __atomic_sub_fetch(&obj->rc, 1, __ATOMIC_RELAXED);
-    else
+    if (!__RC_SYNC)
     {
         (obj)->rc -= 1;
         rc = (obj)->rc;
     }
+    else
+        rc = __atomic_sub_fetch(&obj->rc, 1, __ATOMIC_RELAXED);
 
     if (rc)
         return;
@@ -1042,7 +1080,6 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     switch (obj->type)
     {
     case TYPE_LIST:
-    case TYPE_FILTERMAP:
     case TYPE_GROUPMAP:
         l = obj->len;
         for (i = 0; i < l; i++)
@@ -1074,19 +1111,21 @@ nil_t __attribute__((hot)) drop(obj_t obj)
         heap_free(obj);
         return;
     case TYPE_LAMBDA:
-        drop(as_lambda(obj)->constants);
+        drop(as_lambda(obj)->name);
         drop(as_lambda(obj)->args);
-        drop(as_lambda(obj)->locals);
         drop(as_lambda(obj)->body);
-        drop(as_lambda(obj)->code);
-        nfo_free(&as_lambda(obj)->nfo);
+        drop(as_lambda(obj)->nfo);
+        heap_free(obj);
+        return;
+    case TYPE_FILTERMAP:
+        drop(as_list(obj)[0]);
+        drop(as_list(obj)[1]);
+        drop(as_list(obj)[2]);
         heap_free(obj);
         return;
     case TYPE_ERROR:
-        drop(as_list(obj)[0]);
-        drop(as_list(obj)[1]);
-        drop(as_list(obj)[3]);
-        drop(as_list(obj)[4]);
+        drop(as_error(obj)->msg);
+        drop(as_error(obj)->locs);
         heap_free(obj);
         return;
     default:
@@ -1107,19 +1146,6 @@ nil_t __attribute__((hot)) drop(obj_t obj)
         else
             heap_free(obj);
     }
-}
-
-nil_t dropn(u64_t n, ...)
-{
-    u64_t i;
-    va_list args;
-
-    va_start(args, n);
-
-    for (i = 0; i < n; i++)
-        drop(va_arg(args, obj_t));
-
-    va_end(args);
 }
 
 obj_t cow(obj_t obj)
@@ -1155,10 +1181,10 @@ obj_t cow(obj_t obj)
     Since it is forbidden to modify globals from several threads simultenously,
     we can just check for rc == 1 and if it is the case, we can just return the object
     */
-    if (runtime_get()->sync)
-        rc = __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
-    else
+    if (!__RC_SYNC)
         rc = (obj)->rc;
+    else
+        rc = __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
 
     // we only owns the reference, so we can freely modify it
     if (rc == 1)
@@ -1188,103 +1214,12 @@ u32_t rc(obj_t obj)
 {
     u32_t rc;
 
-    if (runtime_get()->sync)
-        rc = __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
-    else
+    if (!__RC_SYNC)
         rc = (obj)->rc;
+    else
+        rc = __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
 
     return rc;
-}
-
-obj_t eval_obj(i64_t fd, str_t name, obj_t obj)
-{
-    obj_t compiled, executed;
-    runtime_t runtime = runtime_get();
-    parser_t *parser = &runtime_get()->parser;
-    vm_t *vm = &runtime->vm;
-    i32_t ip, bp;
-
-    if (name != NULL)
-        parser->nfo.filename = name;
-
-    if (!obj || obj->type != TYPE_LIST)
-        return obj;
-
-    // eval onto self host
-    if (fd == 0)
-    {
-        compiled = cc_compile(obj, &parser->nfo);
-
-        if (is_error(compiled))
-        {
-            as_list(compiled)[3] = string_from_str(parser->nfo.filename, strlen(parser->nfo.filename));
-            as_list(compiled)[4] = string_from_str(parser->input, strlen(parser->input));
-            return compiled;
-        }
-
-        ip = vm->ip;
-        bp = vm->bp;
-        executed = vm_exec(vm, compiled);
-        vm->ip = ip;
-        vm->bp = bp;
-        drop(compiled);
-
-        if (is_error(executed) && (as_list(executed)[3] && strcmp(as_string(as_list(executed)[3]), "stdin") == 0))
-            as_list(executed)[4] = string_from_str(parser->input, strlen(parser->input));
-
-        return executed;
-    }
-
-    throw(ERR_NOT_IMPLEMENTED, "eval: not implemented");
-
-    // sync request
-    if (fd > 0)
-    {
-        // v = ser(y);
-        // r = sock_send(x->i64, as_u8(v), v->len);
-        // drop(v);
-
-        // if (r == -1)
-        //     throw(ERR_IO, "write: failed to write to socket: %s", get_os_error());
-
-        // if (sock_recv(x->i64, (u8_t *)&header, sizeof(header_t)) == -1)
-        //     throw(ERR_IO, "write: failed to read from socket: %s", get_os_error());
-
-        // buf = heap_alloc(header.size + sizeof(header_t));
-        // memcpy(buf, &header, sizeof(header_t));
-
-        // if (sock_recv(x->i64, buf + sizeof(header_t), header.size) == -1)
-        // {
-        //     heap_free(buf);
-        //     throw(ERR_IO, "write: failed to read from socket: %s", get_os_error());
-        // }
-
-        // v = de_raw(buf, header.size + sizeof(header_t));
-        // heap_free(buf);
-
-        // return v;
-    }
-}
-
-obj_t eval_str(i64_t fd, str_t name, str_t str)
-{
-    obj_t parsed, res;
-    parser_t *parser = &runtime_get()->parser;
-
-    parsed = parse(parser, name, str);
-
-    if (is_error(parsed))
-    {
-        as_list(parsed)[3] = string_from_str(name, strlen(name));
-        as_list(parsed)[4] = string_from_str(str, strlen(str));
-        return parsed;
-    }
-
-    res = eval_obj(fd, NULL, parsed);
-    parser->nfo.filename = "";
-    parser->input = "";
-
-    return res;
 }
 
 str_t typename(type_t type)

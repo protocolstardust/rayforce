@@ -71,14 +71,15 @@ i64_t mmap_sync(nil_t *addr, u64_t size)
 
 nil_t *mmap_stack(u64_t size)
 {
-    return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK | MAP_POPULATE | MAP_NORESERVE | MAP_LOCKED | MAP_GROWSDOWN, -1, 0);
+    return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE | MAP_STACK | MAP_LOCKED, -1, 0);
 }
 
 nil_t *mmap_malloc(u64_t size)
 {
     nil_t *ptr;
 
-    ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, -1, 0);
+    // ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, -1, 0);
+    ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     if (ptr == MAP_FAILED)
         return NULL;

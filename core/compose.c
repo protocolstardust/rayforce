@@ -31,6 +31,7 @@
 #include "runtime.h"
 #include "items.h"
 #include "guid.h"
+#include "error.h"
 
 obj_t ray_as(obj_t x, obj_t y)
 {
@@ -47,7 +48,7 @@ obj_t ray_as(obj_t x, obj_t y)
     {
         fmt = obj_fmt(x);
         msg = str_fmt(0, "as: not a type: '%s", fmt);
-        err = error(ERR_TYPE, msg);
+        err = error_str(ERR_TYPE, msg);
         heap_free(fmt);
         heap_free(msg);
         return err;
@@ -59,7 +60,7 @@ obj_t ray_as(obj_t x, obj_t y)
 obj_t ray_til(obj_t x)
 {
     if (x->type != -TYPE_I64)
-        return error(ERR_TYPE, "til: expected i64");
+        return error_str(ERR_TYPE, "til: expected i64");
 
     i32_t i, l = (i32_t)x->i64;
     obj_t vec = NULL;
@@ -132,10 +133,10 @@ obj_t ray_reverse(obj_t x)
 obj_t ray_dict(obj_t x, obj_t y)
 {
     if (!is_vector(x) || !is_vector(y))
-        return error(ERR_TYPE, "Keys and Values must be lists");
+        return error_str(ERR_TYPE, "Keys and Values must be lists");
 
-    if (x->len != y->len)
-        return error(ERR_LENGTH, "Keys and Values must have the same length");
+    if (ops_count(x) != ops_count(y))
+        return error_str(ERR_LENGTH, "Keys and Values must have the same length");
 
     return dict(clone(x), clone(y));
 }
@@ -147,14 +148,14 @@ obj_t ray_table(obj_t x, obj_t y)
     obj_t lst, c, l = null(0);
 
     if (x->type != TYPE_SYMBOL)
-        return error(ERR_TYPE, "Keys must be a symbol vector");
+        return error_str(ERR_TYPE, "Keys must be a symbol vector");
 
     if (y->type != TYPE_LIST)
     {
         if (x->len != 1)
-            return error(ERR_LENGTH, "Keys and Values must have the same length");
+            return error_str(ERR_LENGTH, "Keys and Values must have the same length");
 
-        l = list(1);
+        l = vn_list(1);
         as_list(l)[0] = clone(y);
         y = l;
     }
@@ -162,7 +163,7 @@ obj_t ray_table(obj_t x, obj_t y)
     if (x->len != y->len && y->len > 0)
     {
         drop(l);
-        return error(ERR_LENGTH, "Keys and Values must have the same length");
+        return error_str(ERR_LENGTH, "Keys and Values must have the same length");
     }
 
     len = y->len;
@@ -189,9 +190,10 @@ obj_t ray_table(obj_t x, obj_t y)
         case TYPE_CHAR:
         case TYPE_SYMBOL:
         case TYPE_LIST:
+        case TYPE_GUID:
             j = as_list(y)[i]->len;
             if (cl != 0 && j != cl)
-                return error(ERR_LENGTH, "Values must be of the same length");
+                return error_str(ERR_LENGTH, "Values must be of the same length");
 
             cl = j;
             break;
@@ -200,7 +202,7 @@ obj_t ray_table(obj_t x, obj_t y)
             synergy = false;
             j = as_list(as_list(y)[i])[1]->len;
             if (cl != 0 && j != cl)
-                return error(ERR_LENGTH, "Values must be of the same length");
+                return error_str(ERR_LENGTH, "Values must be of the same length");
 
             cl = j;
             break;
@@ -208,11 +210,11 @@ obj_t ray_table(obj_t x, obj_t y)
             synergy = false;
             j = as_list(as_list(y)[i])[1]->len;
             if (cl != 0 && j != cl)
-                return error(ERR_LENGTH, "Values must be of the same length");
+                return error_str(ERR_LENGTH, "Values must be of the same length");
             cl = j;
             break;
         default:
-            return error(ERR_TYPE, "Unsupported type in a Values list");
+            return error_str(ERR_TYPE, "Unsupported type in a Values list");
         }
     }
 
@@ -340,7 +342,7 @@ obj_t ray_enum(obj_t x, obj_t y)
     }
 }
 
-obj_t ray_vecmap(obj_t x, obj_t y)
+obj_t ray_filtermap(obj_t x, obj_t y)
 {
     u64_t i, l;
     obj_t res;
@@ -349,48 +351,15 @@ obj_t ray_vecmap(obj_t x, obj_t y)
     {
     case TYPE_TABLE:
         l = as_list(x)[1]->len;
-        res = vector(TYPE_LIST, l);
+        res = list(l);
         for (i = 0; i < l; i++)
-            as_list(res)[i] = ray_vecmap(as_list(as_list(x)[1])[i], y);
+            as_list(res)[i] = ray_filtermap(as_list(as_list(x)[1])[i], y);
 
         return table(clone(as_list(x)[0]), res);
 
     default:
-        res = list(2, clone(x), clone(y));
+        res = vn_list(3, clone(x), clone(y), NULL);
         res->type = TYPE_FILTERMAP;
-        return res;
-    }
-}
-
-obj_t ray_listmap(obj_t x, obj_t y)
-{
-    u64_t i, l;
-    obj_t v, res;
-
-    switch (x->type)
-    {
-    case TYPE_TABLE:
-        l = as_list(x)[1]->len;
-        res = vector(TYPE_LIST, l);
-        for (i = 0; i < l; i++)
-        {
-            v = as_list(as_list(x)[1])[i];
-            switch (v->type)
-            {
-            case TYPE_FILTERMAP:
-                as_list(res)[i] = ray_listmap(as_list(v)[0], y);
-                break;
-            default:
-                as_list(res)[i] = ray_listmap(v, y);
-                break;
-            }
-        }
-
-        return table(clone(as_list(x)[0]), res);
-
-    default:
-        res = list(2, clone(x), clone(y));
-        res->type = TYPE_GROUPMAP;
         return res;
     }
 }
@@ -422,7 +391,7 @@ obj_t ray_concat(obj_t x, obj_t y)
     obj_t vec;
 
     if (!x || !y)
-        return list(2, clone(x), clone(y));
+        return vn_list(2, clone(x), clone(y));
 
     switch (mtype2(x->type, y->type))
     {
@@ -432,8 +401,10 @@ obj_t ray_concat(obj_t x, obj_t y)
         as_bool(vec)[1] = y->bool;
         return vec;
 
+    case mtype2(-TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
     case mtype2(-TYPE_I64, -TYPE_I64):
-        vec = vector_i64(2);
+    case mtype2(-TYPE_SYMBOL, -TYPE_SYMBOL):
+        vec = vector(-x->type, 2);
         as_i64(vec)[0] = x->i64;
         as_i64(vec)[1] = y->i64;
         return vec;
@@ -442,12 +413,6 @@ obj_t ray_concat(obj_t x, obj_t y)
         vec = vector_f64(2);
         as_f64(vec)[0] = x->f64;
         as_f64(vec)[1] = y->f64;
-        return vec;
-
-    case mtype2(-TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-        vec = vector_timestamp(2);
-        as_timestamp(vec)[0] = x->i64;
-        as_timestamp(vec)[1] = y->i64;
         return vec;
 
     case mtype2(-TYPE_GUID, -TYPE_GUID):
@@ -472,6 +437,8 @@ obj_t ray_concat(obj_t x, obj_t y)
         return vec;
 
     case mtype2(TYPE_I64, -TYPE_I64):
+    case mtype2(TYPE_SYMBOL, -TYPE_SYMBOL):
+    case mtype2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
         xl = x->len;
         vec = vector_i64(xl + 1);
         for (i = 0; i < xl; i++)
@@ -481,8 +448,10 @@ obj_t ray_concat(obj_t x, obj_t y)
         return vec;
 
     case mtype2(-TYPE_I64, TYPE_I64):
+    case mtype2(-TYPE_SYMBOL, TYPE_SYMBOL):
+    case mtype2(-TYPE_TIMESTAMP, TYPE_TIMESTAMP):
         yl = y->len;
-        vec = vector_i64(yl + 1);
+        vec = vector(x->type, yl + 1);
         as_i64(vec)[0] = x->i64;
         for (i = 1; i <= yl; i++)
             as_i64(vec)[i] = as_i64(y)[i - 1];
@@ -496,15 +465,6 @@ obj_t ray_concat(obj_t x, obj_t y)
             as_f64(vec)[i] = as_f64(x)[i];
 
         as_f64(vec)[xl] = y->f64;
-        return vec;
-
-    case mtype2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-        xl = x->len;
-        vec = vector_timestamp(xl + 1);
-        for (i = 0; i < xl; i++)
-            as_timestamp(vec)[i] = as_timestamp(x)[i];
-
-        as_timestamp(vec)[xl] = y->i64;
         return vec;
 
     case mtype2(TYPE_GUID, -TYPE_GUID):
@@ -568,13 +528,14 @@ obj_t ray_concat(obj_t x, obj_t y)
         return vec;
 
     case mtype2(TYPE_CHAR, TYPE_CHAR):
-        xl = x->len;
-        yl = y->len;
+        xl = ops_count(x);
+        yl = ops_count(y);
         vec = string(xl + yl);
         for (i = 0; i < xl; i++)
             as_string(vec)[i] = as_string(x)[i];
         for (i = 0; i < yl; i++)
             as_string(vec)[i + xl] = as_string(y)[i];
+        as_string(vec)[xl + yl] = '\0';
         return vec;
 
     case mtype2(TYPE_LIST, TYPE_LIST):

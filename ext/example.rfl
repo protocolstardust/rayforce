@@ -1,0 +1,1 @@
+(set f (loadfn "ext/libexample.so" "myfn" 2))
