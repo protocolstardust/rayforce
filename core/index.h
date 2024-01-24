@@ -39,5 +39,6 @@ obj_t index_group_i8(i8_t values[], i64_t indices[], u64_t len);
 obj_t index_group_i64(i64_t values[], i64_t indices[], u64_t len);
 obj_t index_group_guid(guid_t values[], i64_t indices[], u64_t len);
 obj_t index_group_obj(obj_t values[], i64_t indices[], u64_t len);
+obj_t index_group_cnts(obj_t grp);
 
 #endif // INDEX_H

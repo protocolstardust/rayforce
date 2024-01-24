@@ -90,8 +90,8 @@ dispatch:
 
 obj_t ray_group(obj_t x)
 {
-    obj_t g, k, v, p;
-    u64_t i, j, n, l;
+    obj_t c, g, k, v;
+    u64_t i, m, n, l;
 
     switch (x->type)
     {
@@ -99,119 +99,182 @@ obj_t ray_group(obj_t x)
     case TYPE_BOOL:
     case TYPE_CHAR:
         g = index_group_i8((i8_t *)as_u8(x), NULL, ops_count(x));
-        l = as_list(g)[0]->len; // count groups
-        k = vector(x->type, l);
+        l = as_list(g)[0]->i64;
+        k = vector_u8(l);
         v = list(l);
 
-        for (i = 0, j = 0; i < l; i++)
+        c = index_group_cnts(g);
+
+        // Allocate vectors for each group indices
+        for (i = 0; i < l; i++)
         {
-            n = as_i64(as_list(g)[0])[i];
-            as_u8(k)[i] = as_u8(x)[as_i64(as_list(g)[1])[j]];
-            p = vector_i64(n);
-            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
-            as_list(v)[i] = p;
-            j += n;
+            as_list(v)[i] = vector_i64(as_i64(c)[i]);
+            as_list(v)[i]->len = 0;
         }
 
+        l = as_list(g)[1]->len;
+
+        // Fill vectors with indices
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[1])[i];
+            as_i64(as_list(v)[n])[as_list(v)[n]->len++] = i;
+            as_u8(k)[n] = as_u8(x)[i];
+        }
+
+        drop(c);
         drop(g);
 
         return dict(k, v);
     case TYPE_I64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
-        g = index_group_i64(as_i64(x), NULL, ops_count(x));
-        l = as_list(g)[0]->len; // count groups
+        g = index_bins_i64(as_i64(x), NULL, ops_count(x));
+        l = as_list(g)[0]->i64;
         k = vector(x->type, l);
         v = list(l);
 
-        for (i = 0, j = 0; i < l; i++)
+        c = index_group_cnts(g);
+
+        // Allocate vectors for each group indices
+        for (i = 0; i < l; i++)
         {
-            n = as_i64(as_list(g)[0])[i];
-            as_i64(k)[i] = as_i64(x)[as_i64(as_list(g)[1])[j]];
-            p = vector_i64(n);
-            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
-            as_list(v)[i] = p;
-            j += n;
+            as_list(v)[i] = vector_i64(as_i64(c)[i]);
+            as_list(v)[i]->len = 0;
         }
 
+        l = as_list(g)[1]->len;
+
+        // Fill vectors with indices
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[1])[i];
+            as_i64(as_list(v)[n])[as_list(v)[n]->len++] = i;
+            as_i64(k)[n] = as_i64(x)[i];
+        }
+
+        drop(c);
         drop(g);
 
         return dict(k, v);
 
     case TYPE_F64:
-        g = index_group_i64((i64_t *)as_f64(x), NULL, ops_count(x));
-        l = as_list(g)[0]->len; // count groups
+        g = index_bins_i64((i64_t *)as_f64(x), NULL, ops_count(x));
+        l = as_list(g)[0]->i64;
         k = vector_f64(l);
         v = list(l);
 
-        for (i = 0, j = 0; i < l; i++)
+        c = index_group_cnts(g);
+
+        // Allocate vectors for each group indices
+        for (i = 0; i < l; i++)
         {
-            n = as_i64(as_list(g)[0])[i];
-            as_f64(k)[i] = as_f64(x)[as_i64(as_list(g)[1])[j]];
-            p = vector_i64(n);
-            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
-            as_list(v)[i] = p;
-            j += n;
+            as_list(v)[i] = vector_i64(as_i64(c)[i]);
+            as_list(v)[i]->len = 0;
+        }
+
+        l = as_list(g)[1]->len;
+
+        // Fill vectors with indices
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[1])[i];
+            as_i64(as_list(v)[n])[as_list(v)[n]->len++] = i;
+            as_f64(k)[n] = as_f64(x)[i];
         }
 
         drop(g);
 
         return dict(k, v);
-
     case TYPE_ENUM:
-        g = index_group_i64(as_i64(enum_val(x)), NULL, ops_count(x));
-        l = as_list(g)[0]->len; // count groups
-        k = vector_i64(l);
+        g = index_bins_i64(as_i64(enum_val(x)), NULL, ops_count(x));
+        l = as_list(g)[0]->i64;
+        k = vector(x->type, l);
         v = list(l);
 
-        for (i = 0, j = 0; i < l; i++)
+        c = index_group_cnts(g);
+
+        // Allocate vectors for each group indices
+        for (i = 0; i < l; i++)
         {
-            n = as_i64(as_list(g)[0])[i];
-            as_i64(k)[i] = as_i64(enum_val(x))[as_i64(as_list(g)[1])[j]];
-            p = vector_i64(n);
-            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
-            as_list(v)[i] = p;
-            j += n;
+            as_list(v)[i] = vector_i64(as_i64(c)[i]);
+            as_list(v)[i]->len = 0;
         }
 
+        l = as_list(g)[1]->len;
+
+        // Fill vectors with indices
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[1])[i];
+            as_i64(as_list(v)[n])[as_list(v)[n]->len++] = i;
+            as_i64(k)[n] = as_i64(enum_val(x))[i];
+        }
+
+        drop(c);
         drop(g);
 
         return dict(k, v);
     case TYPE_GUID:
-        g = index_group_guid(as_guid(x), NULL, ops_count(x));
-        l = as_list(g)[0]->len; // count groups
+        g = index_bins_guid(as_guid(x), NULL, ops_count(x));
+        l = as_list(g)[0]->i64;
         k = vector_guid(l);
         v = list(l);
 
-        for (i = 0, j = 0; i < l; i++)
+        c = index_group_cnts(g);
+
+        // Allocate vectors for each group indices
+        for (i = 0; i < l; i++)
         {
-            n = as_i64(as_list(g)[0])[i];
-            as_guid(k)[i] = as_guid(x)[as_i64(as_list(g)[1])[j]];
-            p = vector_i64(n);
-            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
-            as_list(v)[i] = p;
-            j += n;
+            as_list(v)[i] = vector_i64(as_i64(c)[i]);
+            as_list(v)[i]->len = 0;
         }
 
+        l = as_list(g)[1]->len;
+
+        // Fill vectors with indices
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[1])[i];
+            as_i64(as_list(v)[n])[as_list(v)[n]->len++] = i;
+            as_guid(k)[n] = as_guid(x)[i];
+        }
+
+        drop(c);
         drop(g);
 
         return dict(k, v);
+
     case TYPE_LIST:
-        g = index_group_obj(as_list(x), NULL, ops_count(x));
-        l = as_list(g)[0]->len; // count groups
-        k = list(l);
+        g = index_bins_obj(as_list(x), NULL, ops_count(x));
+        l = as_list(g)[0]->i64;
+        k = vector(TYPE_LIST, l);
         v = list(l);
 
-        for (i = 0, j = 0; i < l; i++)
+        c = index_group_cnts(g);
+
+        // Allocate vectors for each group indices
+        for (i = 0; i < l; i++)
         {
-            n = as_i64(as_list(g)[0])[i];
-            as_list(k)[i] = clone(as_list(x)[as_i64(as_list(g)[1])[j]]);
-            p = vector_i64(n);
-            memcpy(as_i64(p), as_i64(as_list(g)[1]) + j, n * sizeof(i64_t));
-            as_list(v)[i] = p;
-            j += n;
+            as_list(v)[i] = vector_i64(as_i64(c)[i]);
+            as_list(v)[i]->len = 0;
         }
 
+        l = as_list(g)[1]->len;
+
+        // Fill vectors with indices
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(as_list(g)[1])[i];
+            m = as_list(v)[n]->len;
+            as_i64(as_list(v)[n])[m] = i;
+            if (m == 0)
+                as_list(k)[n] = clone(as_list(x)[i]);
+
+            as_list(v)[n]->len++;
+        }
+
+        drop(c);
         drop(g);
 
         return dict(k, v);
