@@ -38,7 +38,12 @@
 #include "compose.h"
 #include "error.h"
 
-obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
+obj_t __binary_call(u8_t attrs, binary_f f, obj_t x, obj_t y)
+{
+    return f(x, y);
+}
+
+obj_t binary_call_left_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
 {
     u64_t i, l;
     obj_t res, item, a;
@@ -48,7 +53,7 @@ obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
     case TYPE_LIST:
         l = ops_count(x);
         a = as_list(x)[0];
-        item = ray_call_binary_left_atomic(f, a, y);
+        item = binary_call(attrs, f, a, y);
 
         if (is_error(item))
             return item;
@@ -60,7 +65,7 @@ obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             a = as_list(x)[i];
-            item = ray_call_binary_left_atomic(f, a, y);
+            item = binary_call(attrs, f, a, y);
 
             if (is_error(item))
             {
@@ -77,7 +82,7 @@ obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
     case TYPE_ANYMAP:
         l = ops_count(x);
         a = at_idx(x, 0);
-        item = ray_call_binary_left_atomic(f, a, y);
+        item = binary_call(attrs, f, a, y);
         drop(a);
 
         if (item->type == TYPE_ERROR)
@@ -90,38 +95,7 @@ obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             a = at_idx(x, i);
-            item = ray_call_binary_left_atomic(f, a, y);
-            drop(a);
-
-            if (is_error(item))
-            {
-                res->len = i;
-                drop(res);
-                return item;
-            }
-
-            ins_obj(&res, i, item);
-        }
-
-        return res;
-
-    case TYPE_GROUPMAP:
-        l = ops_count(x);
-        a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[0]);
-        item = ray_call_binary_left_atomic(f, a, y);
-        drop(a);
-
-        if (is_error(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            a = at_obj(as_list(x)[0], as_list(as_list(x)[1])[i]);
-            item = ray_call_binary_left_atomic(f, a, y);
+            item = binary_call(attrs, f, a, y);
             drop(a);
 
             if (is_error(item))
@@ -137,11 +111,11 @@ obj_t ray_call_binary_left_atomic(binary_f f, obj_t x, obj_t y)
         return res;
 
     default:
-        return f(x, y);
+        return __binary_call(attrs, f, x, y);
     }
 }
 
-obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
+obj_t binary_call_right_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
 {
     u64_t i, l;
     obj_t res, item, b;
@@ -151,7 +125,7 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
     case TYPE_LIST:
         l = ops_count(y);
         b = as_list(y)[0];
-        item = ray_call_binary_right_atomic(f, x, b);
+        item = binary_call(attrs, f, x, b);
 
         if (is_error(item))
             return item;
@@ -163,7 +137,7 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             b = as_list(y)[i];
-            item = ray_call_binary_right_atomic(f, x, b);
+            item = binary_call(attrs, f, x, b);
 
             if (is_error(item))
             {
@@ -180,7 +154,7 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
     case TYPE_ANYMAP:
         l = ops_count(y);
         b = at_idx(y, 0);
-        item = ray_call_binary_right_atomic(f, x, b);
+        item = binary_call(attrs, f, x, b);
         drop(b);
 
         if (is_error(item))
@@ -193,7 +167,7 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             b = at_idx(y, i);
-            item = ray_call_binary_right_atomic(f, x, b);
+            item = binary_call(attrs, f, x, b);
             drop(b);
 
             if (item->type == TYPE_ERROR)
@@ -208,44 +182,13 @@ obj_t ray_call_binary_right_atomic(binary_f f, obj_t x, obj_t y)
 
         return res;
 
-    case TYPE_GROUPMAP:
-        l = ops_count(y);
-        b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[0]);
-        item = ray_call_binary_right_atomic(f, x, b);
-        drop(b);
-
-        if (is_error(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            b = at_obj(as_list(y)[0], as_list(as_list(y)[1])[i]);
-            item = ray_call_binary_right_atomic(f, x, b);
-            drop(b);
-
-            if (is_error(item))
-            {
-                res->len = i;
-                drop(res);
-                return item;
-            }
-
-            ins_obj(&res, i, item);
-        }
-
-        return res;
-
     default:
-        return f(x, y);
+        return __binary_call(attrs, f, x, y);
     }
 }
 
 // Atomic binary functions (iterates through list of arguments down to atoms)
-obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
+obj_t binary_call_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
 {
     u64_t i, l;
     obj_t res, item, a, b;
@@ -256,8 +199,8 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
 
     xt = x->type;
     yt = y->type;
-    if (((xt == TYPE_LIST || xt == TYPE_ANYMAP || xt == TYPE_GROUPMAP) && is_vector(y)) ||
-        ((yt == TYPE_LIST || yt == TYPE_ANYMAP || yt == TYPE_GROUPMAP) && is_vector(x)))
+    if (((xt == TYPE_LIST || xt == TYPE_ANYMAP) && is_vector(y)) ||
+        ((yt == TYPE_LIST || yt == TYPE_ANYMAP) && is_vector(x)))
     {
         l = ops_count(x);
 
@@ -266,7 +209,7 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
 
         a = xt == TYPE_LIST ? as_list(x)[0] : at_idx(x, 0);
         b = yt == TYPE_LIST ? as_list(y)[0] : at_idx(y, 0);
-        item = ray_call_binary_atomic(f, a, b);
+        item = binary_call(attrs, f, a, b);
 
         if (xt != TYPE_LIST)
             drop(a);
@@ -284,7 +227,7 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         {
             a = xt == TYPE_LIST ? as_list(x)[i] : at_idx(x, i);
             b = yt == TYPE_LIST ? as_list(y)[i] : at_idx(y, i);
-            item = ray_call_binary_atomic(f, a, b);
+            item = binary_call(attrs, f, a, b);
 
             if (xt != TYPE_LIST)
                 drop(a);
@@ -303,11 +246,11 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
 
         return res;
     }
-    else if (xt == TYPE_LIST || xt == TYPE_ANYMAP || xt == TYPE_GROUPMAP)
+    else if (xt == TYPE_LIST || xt == TYPE_ANYMAP)
     {
         l = ops_count(x);
         a = xt == TYPE_LIST ? as_list(x)[0] : at_idx(x, 0);
-        item = ray_call_binary_atomic(f, a, y);
+        item = binary_call(attrs, f, a, y);
         if (xt != TYPE_LIST)
             drop(a);
 
@@ -321,7 +264,7 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             a = xt == TYPE_LIST ? as_list(x)[i] : at_idx(x, i);
-            item = ray_call_binary_atomic(f, a, y);
+            item = binary_call(attrs, f, a, y);
             if (xt != TYPE_LIST)
                 drop(a);
 
@@ -337,11 +280,11 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
 
         return res;
     }
-    else if (yt == TYPE_LIST || yt == TYPE_ANYMAP || yt == TYPE_GROUPMAP)
+    else if (yt == TYPE_LIST || yt == TYPE_ANYMAP)
     {
         l = ops_count(y);
         b = yt == TYPE_LIST ? as_list(y)[0] : at_idx(y, 0);
-        item = ray_call_binary_atomic(f, x, b);
+        item = binary_call(attrs, f, x, b);
         if (yt != TYPE_LIST)
             drop(b);
 
@@ -355,7 +298,7 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             b = yt == TYPE_LIST ? as_list(y)[i] : at_idx(y, i);
-            item = ray_call_binary_atomic(f, x, b);
+            item = binary_call(attrs, f, x, b);
             if (yt != TYPE_LIST)
                 drop(b);
 
@@ -372,21 +315,21 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
         return res;
     }
 
-    return f(x, y);
+    return __binary_call(attrs, f, x, y);
 }
 
-obj_t ray_call_binary(u8_t attrs, binary_f f, obj_t x, obj_t y)
+obj_t binary_call(u8_t attrs, binary_f f, obj_t x, obj_t y)
 {
     switch (attrs & FN_ATOMIC_MASK)
     {
     case FN_ATOMIC:
-        return ray_call_binary_atomic(f, x, y);
+        return binary_call_atomic(attrs, f, x, y);
     case FN_LEFT_ATOMIC:
-        return ray_call_binary_left_atomic(f, x, y);
+        return binary_call_left_atomic(attrs, f, x, y);
     case FN_RIGHT_ATOMIC:
-        return ray_call_binary_right_atomic(f, x, y);
+        return binary_call_right_atomic(attrs, f, x, y);
     default:
-        return f(x, y);
+        return __binary_call(attrs, f, x, y);
     }
 }
 

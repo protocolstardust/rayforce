@@ -258,7 +258,16 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                 x = eval(args[0]);
                 if (is_error(x))
                     return x;
-                res = ray_call_unary(car->attrs, (unary_f)car->i64, x);
+
+                if (!(car->attrs & FN_AGGR) && x->type == TYPE_GROUPMAP)
+                    attrs = FN_GROUP_MAP;
+                else if (x->type == TYPE_FILTERMAP)
+                {
+                    y = filter_collect(x);
+                    drop(x);
+                    x = y;
+                }
+                res = unary_call(car->attrs | attrs, (unary_f)car->i64, x);
                 drop(x);
             }
 
@@ -275,6 +284,15 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                 if (is_error(x))
                     return x;
 
+                if (!(car->attrs & FN_AGGR) && x->type == TYPE_GROUPMAP)
+                    attrs = FN_GROUP_MAP;
+                else if (x->type == TYPE_FILTERMAP)
+                {
+                    y = filter_collect(x);
+                    drop(x);
+                    x = y;
+                }
+
                 y = eval(args[1]);
                 if (is_error(y))
                 {
@@ -282,7 +300,16 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                     return y;
                 }
 
-                res = ray_call_binary(car->attrs, (binary_f)car->i64, x, y);
+                if (!(car->attrs & FN_AGGR) && y->type == TYPE_GROUPMAP)
+                    attrs = FN_GROUP_MAP;
+                else if (y->type == TYPE_FILTERMAP)
+                {
+                    x = filter_collect(y);
+                    drop(y);
+                    y = x;
+                }
+
+                res = binary_call(car->attrs | attrs, (binary_f)car->i64, x, y);
                 drop(x);
                 drop(y);
             }
@@ -303,7 +330,7 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                     if (is_error(x))
                         return x;
 
-                    if (x->type == TYPE_GROUPMAP)
+                    if (!(car->attrs & FN_AGGR) && x->type == TYPE_GROUPMAP)
                         attrs = FN_GROUP_MAP;
                     else if (x->type == TYPE_FILTERMAP)
                     {
@@ -315,7 +342,7 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                     stack_push(x);
                 }
 
-                res = ray_call_vary(car->attrs | attrs, (vary_f)car->i64, stack_peek(len - 1), len);
+                res = vary_call(car->attrs | attrs, (vary_f)car->i64, stack_peek(len - 1), len);
 
                 for (i = 0; i < len; i++)
                     drop(stack_pop());
@@ -336,6 +363,15 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                 x = eval(args[i]);
                 if (is_error(x))
                     return x;
+
+                if (x->type == TYPE_GROUPMAP)
+                    attrs = FN_GROUP_MAP;
+                else if (x->type == TYPE_FILTERMAP)
+                {
+                    y = filter_collect(x);
+                    drop(x);
+                    x = y;
+                }
 
                 stack_push(x);
             }

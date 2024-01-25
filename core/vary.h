@@ -27,7 +27,7 @@
 #include "rayforce.h"
 #include "ops.h"
 
-obj_t ray_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n);
+obj_t vary_call(u8_t attrs, vary_f f, obj_t *x, u64_t n);
 obj_t ray_do(obj_t *x, u64_t n);
 obj_t ray_gc(obj_t *x, u64_t n);
 obj_t ray_format(obj_t *x, u64_t n);

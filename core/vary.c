@@ -34,7 +34,7 @@
 #include "error.h"
 #include "group.h"
 
-obj_t call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
+obj_t __vary_call(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 {
     u64_t i;
     obj_t v;
@@ -59,7 +59,7 @@ obj_t call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
     return f(x, n);
 }
 
-obj_t call_vary_atomic(u8_t attrs, vary_f f, obj_t *x, u64_t n)
+obj_t vary_call_atomic(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 {
     u64_t i, lists = 0;
 
@@ -68,17 +68,17 @@ obj_t call_vary_atomic(u8_t attrs, vary_f f, obj_t *x, u64_t n)
     //         lists++;
 
     // if (lists == n)
-    return call_vary(attrs, f, x, n);
+    return __vary_call(attrs, f, x, n);
     // else
     // return f(x, n);
 }
 
-obj_t ray_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
+obj_t vary_call(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 {
     if (attrs & FN_ATOMIC)
-        return call_vary_atomic(attrs, f, x, n);
+        return vary_call_atomic(attrs, f, x, n);
     else
-        return call_vary(attrs, f, x, n);
+        return __vary_call(attrs, f, x, n);
 }
 
 obj_t ray_do(obj_t *x, u64_t n)

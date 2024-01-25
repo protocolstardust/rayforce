@@ -82,13 +82,13 @@ obj_t ray_map(obj_t *x, u64_t n)
     case TYPE_UNARY:
         if (n != 1)
             throw(ERR_LENGTH, "'map': unary call with wrong arguments count");
-        return ray_call_unary(FN_ATOMIC, (unary_f)f->i64, x[0]);
+        return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
     case TYPE_BINARY:
         if (n != 2)
             throw(ERR_LENGTH, "'map': binary call with wrong arguments count");
-        return ray_call_binary(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
+        return binary_call(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
     case TYPE_VARY:
-        return ray_call_vary(FN_ATOMIC, (vary_f)f->i64, x, n);
+        return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
     case TYPE_LAMBDA:
         if (n != as_lambda(f)->args->len)
             throw(ERR_LENGTH, "'map': lambda call with wrong arguments count");
@@ -154,7 +154,7 @@ obj_t ray_fold(obj_t *x, u64_t n)
     case TYPE_UNARY:
         if (n != 1)
             throw(ERR_LENGTH, "'fold': unary call with wrong arguments count");
-        return ray_call_unary(FN_ATOMIC, (unary_f)f->i64, x[0]);
+        return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
     case TYPE_BINARY:
         __args_height(l, x, n);
         if (n == 1)
@@ -176,7 +176,7 @@ obj_t ray_fold(obj_t *x, u64_t n)
         {
             x1 = v;
             x2 = at_idx(*b, i);
-            v = ray_call_binary(FN_ATOMIC, (binary_f)f->i64, x1, x2);
+            v = binary_call(FN_ATOMIC, (binary_f)f->i64, x1, x2);
             drop(x1);
             drop(x2);
 
@@ -186,7 +186,7 @@ obj_t ray_fold(obj_t *x, u64_t n)
 
         return v;
     case TYPE_VARY:
-        return ray_call_vary(FN_ATOMIC, (vary_f)f->i64, x, n);
+        return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
     case TYPE_LAMBDA:
         if (n != as_lambda(f)->args->len)
             throw(ERR_LENGTH, "'fold': lambda call with wrong arguments count");

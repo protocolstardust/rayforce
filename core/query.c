@@ -85,7 +85,7 @@ obj_t get_symbols(obj_t obj)
 //             }
 //         }
 
-//         res = ray_call_unary(car->attrs, (unary_f)car->i64, x);
+//         res = unary_call(car->attrs, (unary_f)car->i64, x);
 //         drop(x);
 
 //         return res;
@@ -124,7 +124,7 @@ obj_t get_symbols(obj_t obj)
 //             }
 //         }
 
-//         res = ray_call_binary(car->attrs, (binary_f)car->i64, x, y);
+//         res = binary_call(car->attrs, (binary_f)car->i64, x, y);
 //         drop(x);
 //         drop(y);
 
@@ -161,7 +161,7 @@ obj_t get_symbols(obj_t obj)
 //                 stack_push(x);
 //             }
 
-//             res = ray_call_vary(car->attrs, (vary_f)car->i64, stack_peek(args_len - 1), args_len);
+//             res = vary_call(car->attrs, (vary_f)car->i64, stack_peek(args_len - 1), args_len);
 
 //             for (i = 0; i < args_len; i++)
 //                 drop(stack_pop());
