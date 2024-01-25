@@ -764,7 +764,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, bool_t
                 s = NULL;
                 l = 0;
                 o = 0;
-                raw_fmt_into(&s, &l, &o, 0, 10, column, j);
+                raw_fmt_into(&s, &l, &o, 0, 31, column, j);
                 formatted_columns[i][j] = s;
                 maxn(n, o);
             }
