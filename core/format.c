@@ -561,11 +561,11 @@ i32_t list_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     {
         for (i = 0; i < list_height - 1; i++)
         {
-            maxn(n, obj_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, false, as_list(obj)[i]));
+            maxn(n, obj_fmt_into(dst, len, offset, indent, limit, false, as_list(obj)[i]));
             maxn(n, str_fmt_into(dst, len, offset, 0, " "));
         }
 
-        maxn(n, obj_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, false, as_list(obj)[i]));
+        maxn(n, obj_fmt_into(dst, len, offset, indent, limit, false, as_list(obj)[i]));
 
         if (list_height < (i32_t)obj->len)
             maxn(n, str_fmt_into(dst, len, offset, 0, ".."));
@@ -580,7 +580,7 @@ i32_t list_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     for (i = 0; i < list_height; i++)
     {
         maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s", indent, indent, PADDING));
-        maxn(n, obj_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, false, as_list(obj)[i]));
+        maxn(n, obj_fmt_into(dst, len, offset, indent, limit, false, as_list(obj)[i]));
     }
 
     if (list_height < (i32_t)obj->len)
@@ -764,7 +764,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, bool_t
                 s = NULL;
                 l = 0;
                 o = 0;
-                raw_fmt_into(&s, &l, &o, 0, 31, column, j);
+                raw_fmt_into(&s, &l, &o, 0, 10, column, j);
                 formatted_columns[i][j] = s;
                 maxn(n, o);
             }
