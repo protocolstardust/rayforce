@@ -30,6 +30,7 @@
 #include "lambda.h"
 #include "items.h"
 #include "error.h"
+#include "filter.h"
 
 __thread interpreter_t __INTERPRETER = NULL;
 
@@ -228,6 +229,7 @@ __attribute__((hot)) obj_t eval(obj_t obj)
     u64_t len, i;
     obj_t car, *args, x, y, res;
     lambda_t *lambda;
+    u8_t attrs = 0;
 
     if (!obj)
         return obj;
@@ -301,10 +303,19 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                     if (is_error(x))
                         return x;
 
+                    if (x->type == TYPE_GROUPMAP)
+                        attrs = FN_GROUP_MAP;
+                    else if (x->type == TYPE_FILTERMAP)
+                    {
+                        y = filter_collect(x);
+                        drop(x);
+                        x = y;
+                    }
+
                     stack_push(x);
                 }
 
-                res = ray_call_vary(car->attrs, (vary_f)car->i64, stack_peek(len - 1), len);
+                res = ray_call_vary(car->attrs | attrs, (vary_f)car->i64, stack_peek(len - 1), len);
 
                 for (i = 0; i < len; i++)
                     drop(stack_pop());

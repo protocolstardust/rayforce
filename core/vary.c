@@ -32,30 +32,53 @@
 #include "util.h"
 #include "runtime.h"
 #include "error.h"
+#include "group.h"
 
-obj_t ray_call_vary_atomic(vary_f f, obj_t *x, u64_t n)
+obj_t call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
+{
+    u64_t i;
+    obj_t v;
+
+    // remap all arguments with dereferencing groupmaps
+    if (attrs & FN_AGGR)
+        return f(x, n);
+
+    if (attrs & FN_GROUP_MAP)
+    {
+        for (i = 0; i < n; i++)
+        {
+            v = x[i];
+            if (v->type == TYPE_GROUPMAP)
+            {
+                x[i] = group_collect(v);
+                drop(v);
+            }
+        }
+    }
+
+    return f(x, n);
+}
+
+obj_t call_vary_atomic(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 {
     u64_t i, lists = 0;
 
-    for (i = 0; i < n; i++)
-        if (is_vector(x[i]))
-            lists++;
+    // for (i = 0; i < n; i++)
+    //     if (is_vector(x[i]))
+    //         lists++;
 
-    if (lists == n)
-        return f(x, n);
-    else
-        return f(x, n);
+    // if (lists == n)
+    return call_vary(attrs, f, x, n);
+    // else
+    // return f(x, n);
 }
 
 obj_t ray_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 {
-    switch (attrs)
-    {
-    case FN_ATOMIC:
-        return ray_call_vary_atomic(f, x, n);
-    default:
-        return f(x, n);
-    }
+    if (attrs & FN_ATOMIC)
+        return call_vary_atomic(attrs, f, x, n);
+    else
+        return call_vary(attrs, f, x, n);
 }
 
 obj_t ray_do(obj_t *x, u64_t n)

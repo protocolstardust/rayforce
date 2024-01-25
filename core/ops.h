@@ -33,6 +33,7 @@
 #define FN_ATOMIC 4
 #define FN_AGGR 8
 #define FN_SPECIAL_FORM 16
+#define FN_GROUP_MAP 32
 #define FN_ATOMIC_MASK (FN_LEFT_ATOMIC | FN_RIGHT_ATOMIC | FN_ATOMIC)
 
 // Object's attributes
