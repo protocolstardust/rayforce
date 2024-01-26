@@ -341,43 +341,112 @@ obj_t ray_select(obj_t obj)
     // Find all mappings (non-keyword fields)
     keys = get_symbols(obj);
     l = keys->len;
-    vals = list(l);
 
     // Apply mappings
-    for (i = 0; i < l; i++)
+    if (l)
     {
-        sym = at_idx(keys, i);
-        prm = at_obj(obj, sym);
-        drop(sym);
-        val = eval(prm);
-        drop(prm);
-
-        if (!val || is_error(val))
+        vals = list(l);
+        for (i = 0; i < l; i++)
         {
-            vals->len = i;
-            drop(vals);
-            drop(tab);
-            drop(keys);
-            drop(bysym);
-            drop(bycol);
-            return val;
-        }
+            sym = at_idx(keys, i);
+            prm = at_obj(obj, sym);
+            drop(sym);
+            val = eval(prm);
+            drop(prm);
 
-        // Materialize groupmaps
-        if (val->type == TYPE_GROUPMAP)
-        {
-            prm = group_collect(val);
-            drop(val);
-            val = prm;
-        }
-        else if (val->type == TYPE_FILTERMAP)
-        {
-            prm = filter_collect(val);
-            drop(val);
-            val = prm;
-        }
+            if (!val || is_error(val))
+            {
+                vals->len = i;
+                drop(vals);
+                drop(tab);
+                drop(keys);
+                drop(bysym);
+                drop(bycol);
+                return val;
+            }
 
-        ins_obj(&vals, i, val);
+            // Materialize groupmaps
+            if (val->type == TYPE_GROUPMAP)
+            {
+                prm = group_collect(val);
+                drop(val);
+                val = prm;
+            }
+            else if (val->type == TYPE_FILTERMAP)
+            {
+                prm = filter_collect(val);
+                drop(val);
+                val = prm;
+            }
+
+            ins_obj(&vals, i, val);
+        }
+    }
+    else
+    {
+        drop(keys);
+
+        // Groupings
+        if (bysym)
+        {
+            keys = ray_except(as_list(tab)[0], bysym);
+            l = keys->len;
+            vals = list(l);
+
+            for (i = 0; i < l; i++)
+            {
+                sym = at_idx(keys, i);
+                prm = ray_get(sym);
+                drop(sym);
+
+                if (is_error(prm))
+                {
+                    vals->len = i;
+                    drop(vals);
+                    drop(tab);
+                    drop(bysym);
+                    drop(bycol);
+                    return prm;
+                }
+
+                val = aggr_first(as_list(prm)[0], as_list(prm)[1], as_list(prm)[2]);
+                drop(prm);
+
+                as_list(vals)[i] = val;
+            }
+        }
+        // No groupings
+        else
+        {
+            keys = clone(as_list(tab)[0]);
+            l = keys->len;
+            vals = list(l);
+
+            for (i = 0; i < l; i++)
+            {
+                sym = at_idx(keys, i);
+                prm = ray_get(sym);
+                drop(sym);
+
+                if (prm->type == TYPE_FILTERMAP)
+                {
+                    val = filter_collect(prm);
+                    drop(prm);
+                }
+                else
+                    val = prm;
+
+                if (is_error(val))
+                {
+                    vals->len = i;
+                    drop(vals);
+                    drop(tab);
+                    return val;
+                }
+
+                as_list(vals)[i] = val;
+            }
+        }
     }
 
     // Prepare result table

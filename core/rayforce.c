@@ -600,7 +600,6 @@ obj_t at_ids(obj_t obj, i64_t ids[], u64_t len)
             iout[i] = iinp[ids[i]];
 
         return res;
-
     case TYPE_F64:
         res = vector(TYPE_F64, len);
         finp = as_f64(obj);
@@ -609,7 +608,18 @@ obj_t at_ids(obj_t obj, i64_t ids[], u64_t len)
             fout[i] = finp[ids[i]];
 
         return res;
+    case TYPE_GUID:
+        res = vector(TYPE_GUID, len);
+        for (i = 0; i < len; i++)
+            as_guid(res)[i] = as_guid(obj)[ids[i]];
 
+        return res;
+    case TYPE_LIST:
+        res = list(len);
+        for (i = 0; i < len; i++)
+            as_list(res)[i] = clone(as_list(obj)[ids[i]]);
+
+        return res;
     default:
         res = vector(TYPE_LIST, len);
         for (i = 0; i < len; i++)
@@ -641,6 +651,8 @@ obj_t at_obj(obj_t obj, obj_t idx)
     case mtype2(TYPE_SYMBOL, TYPE_I64):
     case mtype2(TYPE_TIMESTAMP, TYPE_I64):
     case mtype2(TYPE_F64, TYPE_I64):
+    case mtype2(TYPE_GUID, TYPE_I64):
+    case mtype2(TYPE_LIST, TYPE_I64):
         return at_ids(obj, as_i64(idx), idx->len);
     default:
         if (obj->type == TYPE_DICT || obj->type == TYPE_TABLE)
