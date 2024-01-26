@@ -227,7 +227,7 @@ obj_t call(obj_t obj, u64_t arity)
 __attribute__((hot)) obj_t eval(obj_t obj)
 {
     u64_t len, i;
-    obj_t car, *args, x, y, res;
+    obj_t car, *args, x, y, z, res;
     lambda_t *lambda;
     u8_t attrs = 0;
 
@@ -304,9 +304,9 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                     attrs = FN_GROUP_MAP;
                 else if (y->type == TYPE_FILTERMAP)
                 {
-                    x = filter_collect(y);
+                    z = filter_collect(y);
                     drop(y);
-                    y = x;
+                    y = z;
                 }
 
                 res = binary_call(car->attrs | attrs, (binary_f)car->i64, x, y);

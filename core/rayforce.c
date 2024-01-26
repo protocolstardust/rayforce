@@ -583,7 +583,7 @@ obj_t at_ids(obj_t obj, i64_t ids[], u64_t len)
     u64_t i;
     i64_t *iinp, *iout;
     f64_t *finp, *fout;
-    obj_t res;
+    obj_t k, v, res;
 
     if (obj == NULL)
         return null(0);
@@ -601,7 +601,7 @@ obj_t at_ids(obj_t obj, i64_t ids[], u64_t len)
 
         return res;
     case TYPE_F64:
-        res = vector(TYPE_F64, len);
+        res = vector_f64(len);
         finp = as_f64(obj);
         fout = as_f64(res);
         for (i = 0; i < len; i++)
@@ -619,6 +619,26 @@ obj_t at_ids(obj_t obj, i64_t ids[], u64_t len)
         for (i = 0; i < len; i++)
             as_list(res)[i] = clone(as_list(obj)[ids[i]]);
 
+        return res;
+    case TYPE_ENUM:
+        k = ray_key(obj);
+        if (is_error(k))
+            return k;
+
+        v = ray_get(k);
+        drop(k);
+
+        if (is_error(v))
+            return v;
+
+        if (v->type != TYPE_SYMBOL)
+            return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", typename(v->type));
+
+        res = vector_symbol(len);
+        for (i = 0; i < len; i++)
+            as_i64(res)[i] = as_i64(v)[as_i64(enum_val(obj))[ids[i]]];
+
+        drop(v);
         return res;
     default:
         res = vector(TYPE_LIST, len);
@@ -653,6 +673,7 @@ obj_t at_obj(obj_t obj, obj_t idx)
     case mtype2(TYPE_F64, TYPE_I64):
     case mtype2(TYPE_GUID, TYPE_I64):
     case mtype2(TYPE_LIST, TYPE_I64):
+    case mtype2(TYPE_ENUM, TYPE_I64):
         return at_ids(obj, as_i64(idx), idx->len);
     default:
         if (obj->type == TYPE_DICT || obj->type == TYPE_TABLE)

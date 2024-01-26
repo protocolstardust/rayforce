@@ -56,5 +56,5 @@ obj_t filter_map(obj_t x, obj_t y)
 
 obj_t filter_collect(obj_t x)
 {
-    return at_obj(as_list(x)[0], as_list(x)[1]);
+    return at_ids(as_list(x)[0], as_i64(as_list(x)[1]), as_list(x)[1]->len);
 }

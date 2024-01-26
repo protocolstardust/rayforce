@@ -197,7 +197,7 @@ obj_t ray_select(obj_t obj)
                 return val;
             }
 
-            // Materialize groupmaps
+            // Materialize fields
             if (val->type == TYPE_GROUPMAP)
             {
                 prm = group_collect(val);
@@ -207,6 +207,12 @@ obj_t ray_select(obj_t obj)
             else if (val->type == TYPE_FILTERMAP)
             {
                 prm = filter_collect(val);
+                drop(val);
+                val = prm;
+            }
+            else if (val->type == TYPE_ENUM)
+            {
+                prm = ray_value(val);
                 drop(val);
                 val = prm;
             }
@@ -274,6 +280,11 @@ obj_t ray_select(obj_t obj)
                 if (prm->type == TYPE_FILTERMAP)
                 {
                     val = filter_collect(prm);
+                    drop(prm);
+                }
+                else if (prm->type == TYPE_ENUM)
+                {
+                    val = ray_value(prm);
                     drop(prm);
                 }
                 else
