@@ -257,6 +257,8 @@ obj_t group_collect(obj_t x)
                 as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[filters[i]]];
             }
 
+            drop(v);
+
             return res;
         }
 

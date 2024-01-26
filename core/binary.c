@@ -38,11 +38,6 @@
 #include "compose.h"
 #include "error.h"
 
-obj_t __binary_call(u8_t attrs, binary_f f, obj_t x, obj_t y)
-{
-    return f(x, y);
-}
-
 obj_t binary_call_left_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
 {
     u64_t i, l;
@@ -53,7 +48,7 @@ obj_t binary_call_left_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
     case TYPE_LIST:
         l = ops_count(x);
         a = as_list(x)[0];
-        item = binary_call(attrs, f, a, y);
+        item = binary_call_left_atomic(attrs, f, a, y);
 
         if (is_error(item))
             return item;
@@ -65,7 +60,7 @@ obj_t binary_call_left_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             a = as_list(x)[i];
-            item = binary_call(attrs, f, a, y);
+            item = binary_call_left_atomic(attrs, f, a, y);
 
             if (is_error(item))
             {
@@ -82,7 +77,7 @@ obj_t binary_call_left_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
     case TYPE_ANYMAP:
         l = ops_count(x);
         a = at_idx(x, 0);
-        item = binary_call(attrs, f, a, y);
+        item = binary_call_left_atomic(attrs, f, a, y);
         drop(a);
 
         if (item->type == TYPE_ERROR)
@@ -95,7 +90,7 @@ obj_t binary_call_left_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             a = at_idx(x, i);
-            item = binary_call(attrs, f, a, y);
+            item = binary_call_left_atomic(attrs, f, a, y);
             drop(a);
 
             if (is_error(item))
@@ -111,7 +106,7 @@ obj_t binary_call_left_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         return res;
 
     default:
-        return __binary_call(attrs, f, x, y);
+        return f(x, y);
     }
 }
 
@@ -125,7 +120,7 @@ obj_t binary_call_right_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
     case TYPE_LIST:
         l = ops_count(y);
         b = as_list(y)[0];
-        item = binary_call(attrs, f, x, b);
+        item = binary_call_right_atomic(attrs, f, x, b);
 
         if (is_error(item))
             return item;
@@ -137,7 +132,7 @@ obj_t binary_call_right_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             b = as_list(y)[i];
-            item = binary_call(attrs, f, x, b);
+            item = binary_call_right_atomic(attrs, f, x, b);
 
             if (is_error(item))
             {
@@ -154,7 +149,7 @@ obj_t binary_call_right_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
     case TYPE_ANYMAP:
         l = ops_count(y);
         b = at_idx(y, 0);
-        item = binary_call(attrs, f, x, b);
+        item = binary_call_right_atomic(attrs, f, x, b);
         drop(b);
 
         if (is_error(item))
@@ -167,7 +162,7 @@ obj_t binary_call_right_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             b = at_idx(y, i);
-            item = binary_call(attrs, f, x, b);
+            item = binary_call_right_atomic(attrs, f, x, b);
             drop(b);
 
             if (item->type == TYPE_ERROR)
@@ -183,7 +178,7 @@ obj_t binary_call_right_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         return res;
 
     default:
-        return __binary_call(attrs, f, x, y);
+        return f(x, y);
     }
 }
 
@@ -209,7 +204,7 @@ obj_t binary_call_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
 
         a = xt == TYPE_LIST ? as_list(x)[0] : at_idx(x, 0);
         b = yt == TYPE_LIST ? as_list(y)[0] : at_idx(y, 0);
-        item = binary_call(attrs, f, a, b);
+        item = binary_call_atomic(attrs, f, a, b);
 
         if (xt != TYPE_LIST)
             drop(a);
@@ -227,7 +222,7 @@ obj_t binary_call_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         {
             a = xt == TYPE_LIST ? as_list(x)[i] : at_idx(x, i);
             b = yt == TYPE_LIST ? as_list(y)[i] : at_idx(y, i);
-            item = binary_call(attrs, f, a, b);
+            item = binary_call_atomic(attrs, f, a, b);
 
             if (xt != TYPE_LIST)
                 drop(a);
@@ -250,7 +245,7 @@ obj_t binary_call_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
     {
         l = ops_count(x);
         a = xt == TYPE_LIST ? as_list(x)[0] : at_idx(x, 0);
-        item = binary_call(attrs, f, a, y);
+        item = binary_call_atomic(attrs, f, a, y);
         if (xt != TYPE_LIST)
             drop(a);
 
@@ -264,7 +259,7 @@ obj_t binary_call_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             a = xt == TYPE_LIST ? as_list(x)[i] : at_idx(x, i);
-            item = binary_call(attrs, f, a, y);
+            item = binary_call_atomic(attrs, f, a, y);
             if (xt != TYPE_LIST)
                 drop(a);
 
@@ -284,7 +279,7 @@ obj_t binary_call_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
     {
         l = ops_count(y);
         b = yt == TYPE_LIST ? as_list(y)[0] : at_idx(y, 0);
-        item = binary_call(attrs, f, x, b);
+        item = binary_call_atomic(attrs, f, x, b);
         if (yt != TYPE_LIST)
             drop(b);
 
@@ -298,7 +293,7 @@ obj_t binary_call_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         for (i = 1; i < l; i++)
         {
             b = yt == TYPE_LIST ? as_list(y)[i] : at_idx(y, i);
-            item = binary_call(attrs, f, x, b);
+            item = binary_call_atomic(attrs, f, x, b);
             if (yt != TYPE_LIST)
                 drop(b);
 
@@ -315,7 +310,7 @@ obj_t binary_call_atomic(u8_t attrs, binary_f f, obj_t x, obj_t y)
         return res;
     }
 
-    return __binary_call(attrs, f, x, y);
+    return f(x, y);
 }
 
 obj_t binary_call(u8_t attrs, binary_f f, obj_t x, obj_t y)
@@ -329,7 +324,7 @@ obj_t binary_call(u8_t attrs, binary_f f, obj_t x, obj_t y)
     case FN_RIGHT_ATOMIC:
         return binary_call_right_atomic(attrs, f, x, y);
     default:
-        return __binary_call(attrs, f, x, y);
+        return f(x, y);
     }
 }
 

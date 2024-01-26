@@ -31,6 +31,7 @@
 #include "items.h"
 #include "error.h"
 #include "filter.h"
+#include "group.h"
 
 __thread interpreter_t __INTERPRETER = NULL;
 
@@ -260,14 +261,18 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                     return x;
 
                 if (!(car->attrs & FN_AGGR) && x->type == TYPE_GROUPMAP)
-                    attrs = FN_GROUP_MAP;
+                {
+                    y = group_collect(x);
+                    drop(x);
+                    x = y;
+                }
                 else if (x->type == TYPE_FILTERMAP)
                 {
                     y = filter_collect(x);
                     drop(x);
                     x = y;
                 }
-                res = unary_call(car->attrs | attrs, (unary_f)car->i64, x);
+                res = unary_call(car->attrs, (unary_f)car->i64, x);
                 drop(x);
             }
 
@@ -285,7 +290,11 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                     return x;
 
                 if (!(car->attrs & FN_AGGR) && x->type == TYPE_GROUPMAP)
-                    attrs = FN_GROUP_MAP;
+                {
+                    y = group_collect(x);
+                    drop(x);
+                    x = y;
+                }
                 else if (x->type == TYPE_FILTERMAP)
                 {
                     y = filter_collect(x);
@@ -301,7 +310,11 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                 }
 
                 if (!(car->attrs & FN_AGGR) && y->type == TYPE_GROUPMAP)
-                    attrs = FN_GROUP_MAP;
+                {
+                    z = group_collect(y);
+                    drop(y);
+                    y = z;
+                }
                 else if (y->type == TYPE_FILTERMAP)
                 {
                     z = filter_collect(y);
@@ -309,7 +322,7 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                     y = z;
                 }
 
-                res = binary_call(car->attrs | attrs, (binary_f)car->i64, x, y);
+                res = binary_call(car->attrs, (binary_f)car->i64, x, y);
                 drop(x);
                 drop(y);
             }

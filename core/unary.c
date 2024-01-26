@@ -45,23 +45,6 @@
 #include "index.h"
 #include "group.h"
 
-obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x);
-
-obj_t __unary_call(u8_t attrs, unary_f f, obj_t x)
-{
-    obj_t v, res;
-
-    if (attrs & FN_GROUP_MAP)
-    {
-        v = group_collect(x);
-        res = unary_call_atomic(attrs & !FN_GROUP_MAP, f, v);
-        drop(v);
-        return res;
-    }
-
-    return f(x);
-}
-
 // Atomic unary functions (iterates through list of argument items down to atoms)
 obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
 {
@@ -77,7 +60,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
             return null(0);
 
         v = as_list(x);
-        item = unary_call(attrs, f, v[0]);
+        item = unary_call_atomic(attrs, f, v[0]);
 
         if (is_error(item))
             return item;
@@ -88,7 +71,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
 
         for (i = 1; i < l; i++)
         {
-            item = unary_call(attrs, f, v[i]);
+            item = unary_call_atomic(attrs, f, v[i]);
 
             if (is_error(item))
             {
@@ -108,7 +91,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
             return null(0);
 
         a = at_idx(x, 0);
-        item = unary_call(attrs, f, a);
+        item = unary_call_atomic(attrs, f, a);
         drop(a);
 
         if (is_error(item))
@@ -121,7 +104,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
         for (i = 1; i < l; i++)
         {
             a = at_idx(x, i);
-            item = unary_call(attrs, f, a);
+            item = unary_call_atomic(attrs, f, a);
             drop(a);
 
             if (is_error(item))
@@ -137,7 +120,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
         return res;
 
     default:
-        return __unary_call(attrs, f, x);
+        return f(x);
     }
 }
 
@@ -149,7 +132,7 @@ obj_t unary_call(u8_t attrs, unary_f f, obj_t x)
     if (attrs & FN_ATOMIC)
         return unary_call_atomic(attrs, f, x);
 
-    return __unary_call(attrs, f, x);
+    return f(x);
 }
 
 obj_t ray_get(obj_t x)
