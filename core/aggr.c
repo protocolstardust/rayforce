@@ -255,14 +255,14 @@ obj_t aggr_first(obj_t val, obj_t bins, obj_t filter)
         if (is_error(v))
             return v;
 
+        if (v->type != TYPE_SYMBOL)
+            return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", typename(v->type));
+
         xb = as_i64(as_list(bins)[1]);
         res = vector_symbol(n);
         xo = as_i64(res);
         for (i = 0; i < n; i++)
             xo[i] = NULL_I64;
-
-        if (v->type != TYPE_SYMBOL)
-            return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", typename(v->type));
 
         xi = as_i64(v);
         ei = as_i64(enum_val(val));

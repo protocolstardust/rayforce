@@ -28,6 +28,7 @@
 #include "index.h"
 #include "aggr.h"
 #include "items.h"
+#include "unary.h"
 
 /*
  * group index is a list:
@@ -137,7 +138,7 @@ obj_t group_map(obj_t *aggr, obj_t x, obj_t y, obj_t z)
 obj_t group_collect(obj_t x)
 {
     u64_t i, l, m, n;
-    obj_t obj, grp, bins, res, group_counts;
+    obj_t obj, grp, bins, k, v, res, group_counts;
     i64_t *cnts, *grps, *ids, *filters;
 
     obj = as_list(x)[0];
@@ -174,7 +175,6 @@ obj_t group_collect(obj_t x)
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
         res = list(n);
-
         for (i = 0; i < n; i++)
         {
             m = cnts[i];
@@ -189,14 +189,14 @@ obj_t group_collect(obj_t x)
                 n = as_i64(bins)[i];
                 as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(obj)[filters[i]];
             }
+
+            return res;
         }
-        else
+
+        for (i = 0; i < l; i++)
         {
-            for (i = 0; i < l; i++)
-            {
-                n = as_i64(bins)[i];
-                as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(obj)[i];
-            }
+            n = as_i64(bins)[i];
+            as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(obj)[i];
         }
 
         return res;
@@ -205,8 +205,19 @@ obj_t group_collect(obj_t x)
         for (i = 0; i < n; i++)
         {
             m = cnts[i];
-            as_list(res)[i] = vector(obj->type, m);
+            as_list(res)[i] = vector_f64(m);
             as_list(res)[i]->len = 0;
+        }
+
+        if (filters)
+        {
+            for (i = 0; i < l; i++)
+            {
+                n = as_i64(bins)[i];
+                as_f64(as_list(res)[n])[as_list(res)[n]->len++] = as_f64(obj)[filters[i]];
+            }
+
+            return res;
         }
 
         for (i = 0; i < l; i++)
@@ -216,14 +227,66 @@ obj_t group_collect(obj_t x)
         }
 
         return res;
+    case TYPE_ENUM:
+        k = ray_key(obj);
+        if (is_error(k))
+            return k;
 
+        v = ray_get(k);
+        drop(k);
+
+        if (is_error(v))
+            return v;
+
+        if (v->type != TYPE_SYMBOL)
+            return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", typename(v->type));
+
+        res = list(n);
+        for (i = 0; i < n; i++)
+        {
+            m = cnts[i];
+            as_list(res)[i] = vector_symbol(m);
+            as_list(res)[i]->len = 0;
+        }
+
+        if (filters)
+        {
+            for (i = 0; i < l; i++)
+            {
+                n = as_i64(bins)[i];
+                as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[filters[i]]];
+            }
+
+            return res;
+        }
+
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(bins)[i];
+            as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[i]];
+        }
+
+        drop(v);
+
+        return res;
     case TYPE_LIST:
         res = list(n);
         for (i = 0; i < n; i++)
         {
             m = cnts[i];
-            as_list(res)[i] = vector(obj->type, m);
+            as_list(res)[i] = list(m);
             as_list(res)[i]->len = 0;
+        }
+
+        if (filters)
+        {
+            for (i = 0; i < l; i++)
+            {
+                n = as_i64(bins)[i];
+                as_list(as_list(res)[n])[as_list(res)[n]->len++] = clone(as_list(obj)[filters[i]]);
+            }
+
+            return res;
         }
 
         for (i = 0; i < l; i++)
@@ -233,59 +296,35 @@ obj_t group_collect(obj_t x)
         }
 
         return res;
+    case TYPE_ANYMAP:
+        res = list(n);
+        for (i = 0; i < n; i++)
+        {
+            m = cnts[i];
+            as_list(res)[i] = list(m);
+            as_list(res)[i]->len = 0;
+        }
+
+        if (filters)
+        {
+            for (i = 0; i < l; i++)
+            {
+                n = as_i64(bins)[i];
+                as_list(as_list(res)[n])[as_list(res)[n]->len++] = at_idx(obj, filters[i]);
+            }
+
+            return res;
+        }
+
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(bins)[i];
+            as_list(as_list(res)[n])[as_list(res)[n]->len++] = at_idx(obj, i);
+        }
+
+        return res;
+
     default:
-        throw(ERR_TYPE, "collect_group: unsupported type: '%s", typename(obj->type));
+        throw(ERR_TYPE, "group collect: unsupported type: '%s", typename(obj->type));
     }
 }
-
-// obj_t group_call(obj_t car, obj_t args, type_t types[], u64_t cnt)
-// {
-//     u64_t i, j, l;
-//     obj_t v, res;
-
-//     l = args->len;
-
-//     res = list(cnt);
-
-//     for (i = 0; i < cnt; i++)
-//     {
-//         for (j = 0; j < l; j++)
-//         {
-//             if (types[j] == TYPE_GROUPMAP)
-//                 v = at_idx(as_list(args)[j], i);
-//             else
-//                 v = clone(as_list(args)[j]);
-
-//             stack_push(v);
-//         }
-
-//         v = call(car, l);
-
-//         if (is_error(v))
-//         {
-//             res->len = i;
-//             drop(res);
-//             return v;
-//         }
-
-//         ins_obj(&res, i, v);
-//     }
-
-//     return res;
-// }
-
-// obj_t filter_call(obj_t car, obj_t args)
-// {
-//     u64_t i, l;
-//     obj_t v;
-
-//     l = args->len;
-
-//     for (i = 0; i < l; i++)
-//     {
-//         v = clone(as_list(args)[i]);
-//         stack_push(v);
-//     }
-
-//     return call(car, l);
-// }

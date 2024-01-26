@@ -211,7 +211,18 @@ obj_t ray_select(obj_t obj)
                 val = prm;
             }
 
-            ins_obj(&vals, i, val);
+            if (is_error(val))
+            {
+                vals->len = i;
+                drop(vals);
+                drop(tab);
+                drop(keys);
+                drop(bysym);
+                drop(bycol);
+                return val;
+            }
+
+            as_list(vals)[i] = val;
         }
     }
     else
