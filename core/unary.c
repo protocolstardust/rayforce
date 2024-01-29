@@ -46,7 +46,7 @@
 #include "group.h"
 
 // Atomic unary functions (iterates through list of argument items down to atoms)
-obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
+obj_t unary_call_atomic(unary_f f, obj_t x)
 {
     u64_t i, l;
     obj_t res = NULL, item = NULL, a, *v;
@@ -60,7 +60,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
             return null(0);
 
         v = as_list(x);
-        item = unary_call_atomic(attrs, f, v[0]);
+        item = unary_call_atomic(f, v[0]);
 
         if (is_error(item))
             return item;
@@ -71,7 +71,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
 
         for (i = 1; i < l; i++)
         {
-            item = unary_call_atomic(attrs, f, v[i]);
+            item = unary_call_atomic(f, v[i]);
 
             if (is_error(item))
             {
@@ -91,7 +91,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
             return null(0);
 
         a = at_idx(x, 0);
-        item = unary_call_atomic(attrs, f, a);
+        item = unary_call_atomic(f, a);
         drop(a);
 
         if (is_error(item))
@@ -104,7 +104,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
         for (i = 1; i < l; i++)
         {
             a = at_idx(x, i);
-            item = unary_call_atomic(attrs, f, a);
+            item = unary_call_atomic(f, a);
             drop(a);
 
             if (is_error(item))
@@ -130,7 +130,7 @@ obj_t unary_call(u8_t attrs, unary_f f, obj_t x)
         return null(0);
 
     if (attrs & FN_ATOMIC)
-        return unary_call_atomic(attrs, f, x);
+        return unary_call_atomic(f, x);
 
     return f(x);
 }

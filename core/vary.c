@@ -35,7 +35,7 @@
 #include "group.h"
 #include "ops.h"
 
-obj_t vary_call_atomic(u8_t attrs, vary_f f, obj_t *x, u64_t n)
+obj_t vary_call_atomic(vary_f f, obj_t *x, u64_t n)
 {
     i64_t i, j, l;
     obj_t v, res;
@@ -88,7 +88,7 @@ obj_t vary_call_atomic(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 obj_t vary_call(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 {
     if ((attrs & FN_ATOMIC) || (attrs & FN_GROUP_MAP))
-        return vary_call_atomic(attrs, f, x, n);
+        return vary_call_atomic(f, x, n);
     else
         return f(x, n);
 }
