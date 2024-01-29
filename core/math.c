@@ -21,6 +21,7 @@
  *   SOFTWARE.
  */
 
+#include <math.h>
 #include <time.h>
 #include "math.h"
 #include "util.h"
@@ -971,6 +972,9 @@ obj_t ray_min(obj_t x)
 
         return f64(fmin);
 
+    case TYPE_GROUPMAP:
+        return aggr_min(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+
     default:
         throw(ERR_TYPE, "min: unsupported type: '%s", typename(x->type));
     }
@@ -1017,8 +1021,115 @@ obj_t ray_max(obj_t x)
 
         return f64(fmax);
 
+    case TYPE_GROUPMAP:
+        return aggr_max(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+
     default:
         throw(ERR_TYPE, "max: unsupported type: '%s", typename(x->type));
+    }
+}
+
+obj_t ray_dev(obj_t x)
+{
+    u64_t i, l = 0;
+    f64_t fsum = 0.0, favg = 0.0, *xfvals = NULL;
+    obj_t res;
+
+    switch (x->type)
+    {
+    case TYPE_I64:
+    case TYPE_TIMESTAMP:
+        l = x->len;
+
+        if (!l)
+            return f64(NULL_F64);
+
+        xfvals = as_f64(x);
+        fsum = xfvals[0];
+
+        for (i = 0; i < l; i++)
+            fsum += xfvals[i];
+
+        favg = fsum / l;
+
+        fsum = 0.0;
+        for (i = 0; i < l; i++)
+            fsum += pow(xfvals[i] - favg, 2);
+
+        res = f64(sqrt(fsum / l));
+
+        return res;
+
+    case TYPE_F64:
+        l = x->len;
+
+        if (!l)
+            return f64(NULL_F64);
+
+        xfvals = as_f64(x);
+        fsum = xfvals[0];
+
+        for (i = 0; i < l; i++)
+            fsum += xfvals[i];
+
+        favg = fsum / l;
+
+        fsum = 0.0;
+        for (i = 0; i < l; i++)
+            fsum += pow(xfvals[i] - favg, 2);
+
+        res = f64(sqrt(fsum / l));
+
+        return res;
+
+    case TYPE_GROUPMAP:
+        return aggr_dev(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+
+    default:
+        throw(ERR_TYPE, "dev: unsupported type: '%s", typename(x->type));
+    }
+}
+
+obj_t ray_med(obj_t x)
+{
+    // u64_t i, l = 0;
+    // i64_t *xivals = NULL;
+    // f64_t *xfvals = NULL;
+    // obj_t res;
+
+    switch (x->type)
+    {
+        // case TYPE_I64:
+        // case TYPE_TIMESTAMP:
+        //     l = x->len;
+
+        //     if (!l)
+        //         return i64(NULL_I64);
+
+        //     xivals = as_i64(x);
+        //     qsort(xivals, l, sizeof(i64_t), cmp_i64);
+
+        //     res = i64(xivals[l / 2]);
+        //     res->type = -x->type;
+
+        //     return res;
+
+        // case TYPE_F64:
+        //     l = x->len;
+
+        //     if (!l)
+        //         return f64(NULL_F64);
+
+        //     xfvals = as_f64(x);
+        //     qsort(xfvals, l, sizeof(f64_t), cmp_f64);
+
+        //     return f64(xfvals[l / 2]);
+
+    case TYPE_GROUPMAP:
+        return aggr_med(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+
+    default:
+        throw(ERR_TYPE, "med: unsupported type: '%s", typename(x->type));
     }
 }
 
@@ -1100,5 +1211,41 @@ obj_t ray_ceil(obj_t x)
         return res;
     default:
         throw(ERR_TYPE, "ceil: unsupported type: '%s", typename(x->type));
+    }
+}
+
+obj_t ray_xbar(obj_t x, obj_t y)
+{
+    u64_t i, l = 0;
+    i64_t *xivals = NULL;
+    f64_t *xfvals = NULL;
+    obj_t res;
+
+    switch (mtype2(x->type, y->type))
+    {
+    case mtype2(-TYPE_I64, -TYPE_I64):
+        return i64(xbari64(x->i64, y->i64));
+    case mtype2(-TYPE_F64, -TYPE_I64):
+        return f64(xbarf64(x->i64, y->f64));
+    case mtype2(TYPE_I64, -TYPE_I64):
+        l = x->len;
+        xivals = as_i64(x);
+        res = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_i64(res)[i] = xbari64(xivals[i], y->i64);
+
+        return res;
+
+    case mtype2(TYPE_F64, -TYPE_I64):
+        l = x->len;
+        xfvals = as_f64(x);
+        res = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_f64(res)[i] = xbarf64(xfvals[i], y->f64);
+
+        return res;
+
+    default:
+        throw(ERR_TYPE, "xbar: unsupported types: '%s, '%s", typename(x->type), typename(y->type));
     }
 }

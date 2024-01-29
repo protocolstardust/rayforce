@@ -78,6 +78,8 @@
 #define roundf64(x) ((x) >= 0.0 ? (i64_t)((x) + 0.5) : (i64_t)((x)-0.5))
 #define floorf64(x) ((x) >= 0.0 ? (i64_t)(x) : (i64_t)((x)-1.0))
 #define ceilf64(x) ((x) >= 0.0 ? (i64_t)((x) + 1.0) : (i64_t)(x))
+#define xbari64(x, y) (((x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : ((x) / (y)) * (y))
+#define xbarf64(x, y) ((i64_t)(((x) / (y)) * y))
 
 // Function types
 typedef u64_t (*hash_f)(i64_t, nil_t *);

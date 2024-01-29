@@ -32,12 +32,15 @@ obj_t ray_mul(obj_t x, obj_t y);
 obj_t ray_div(obj_t x, obj_t y);
 obj_t ray_mod(obj_t x, obj_t y);
 obj_t ray_fdiv(obj_t x, obj_t y);
+obj_t ray_xbar(obj_t x, obj_t y);
+obj_t ray_round(obj_t x);
+obj_t ray_floor(obj_t x);
 obj_t ray_sum(obj_t x);
 obj_t ray_avg(obj_t x);
 obj_t ray_min(obj_t x);
 obj_t ray_max(obj_t x);
-obj_t ray_round(obj_t x);
-obj_t ray_floor(obj_t x);
 obj_t ray_ceil(obj_t x);
+obj_t ray_med(obj_t x);
+obj_t ray_dev(obj_t x);
 
 #endif // MATH_H

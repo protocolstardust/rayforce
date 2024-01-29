@@ -171,6 +171,9 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "xasc",      TYPE_BINARY,   FN_NONE,                   ray_xasc);
     regf(functions,  "xdesc",     TYPE_BINARY,   FN_NONE,                   ray_xdesc);
     regf(functions,  "enum",      TYPE_BINARY,   FN_NONE,                   ray_enum);
+    regf(functions,  "xbar",      TYPE_BINARY,   FN_ATOMIC,                 ray_xbar);
+    regf(functions,  "dev",       TYPE_BINARY,   FN_ATOMIC,                 ray_dev);
+    regf(functions,  "med",       TYPE_BINARY,   FN_ATOMIC,                 ray_med);
         
     // Vary               
     regf(functions,  "do",        TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_do);

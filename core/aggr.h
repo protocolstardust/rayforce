@@ -30,5 +30,10 @@ obj_t aggr_sum(obj_t val, obj_t bins, obj_t filter);
 obj_t aggr_first(obj_t val, obj_t bins, obj_t filter);
 obj_t aggr_last(obj_t val, obj_t bins, obj_t filter);
 obj_t aggr_avg(obj_t val, obj_t bins, obj_t filter);
+obj_t aggr_max(obj_t val, obj_t bins, obj_t filter);
+obj_t aggr_min(obj_t val, obj_t bins, obj_t filter);
+obj_t aggr_count(obj_t val, obj_t bins, obj_t filter);
+obj_t aggr_med(obj_t val, obj_t bins, obj_t filter);
+obj_t aggr_dev(obj_t val, obj_t bins, obj_t filter);
 
 #endif // AGGR_H
