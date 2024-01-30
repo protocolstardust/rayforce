@@ -34,7 +34,7 @@
 
 obj_t ray_map(obj_t *x, u64_t n)
 {
-    i64_t i, j, l;
+    u64_t i, j, l;
     obj_t f, v, *b, res;
 
     if (n < 2)
@@ -61,11 +61,11 @@ obj_t ray_map(obj_t *x, u64_t n)
             throw(ERR_LENGTH, "'map': lambda call with wrong arguments count");
 
         l = ops_rank(x, n);
-        if (l == -1)
+        if (l == 0xfffffffffffffffful)
             throw(ERR_LENGTH, "'map': arguments have different lengths");
 
         // first item to get type of res
-        for (j = 0; j < (i64_t)n; j++)
+        for (j = 0; j < n; j++)
         {
             b = x + j;
             v = (is_vector(*b) || (*b)->type == TYPE_GROUPMAP) ? at_idx(*b, 0) : clone(*b);
@@ -82,7 +82,7 @@ obj_t ray_map(obj_t *x, u64_t n)
 
         for (i = 1; i < l; i++)
         {
-            for (j = 0; j < (i64_t)n; j++)
+            for (j = 0; j < n; j++)
             {
                 b = x + j;
                 v = (is_vector(*b) || (*b)->type == TYPE_GROUPMAP) ? at_idx(*b, i) : clone(*b);
@@ -108,7 +108,7 @@ obj_t ray_map(obj_t *x, u64_t n)
 
 obj_t ray_fold(obj_t *x, u64_t n)
 {
-    i64_t o, i, l;
+    u64_t o, i, j, l;
     obj_t f, v, *b, x1, x2;
 
     if (n < 2)
@@ -126,7 +126,7 @@ obj_t ray_fold(obj_t *x, u64_t n)
         return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
     case TYPE_BINARY:
         l = ops_rank(x, n);
-        if (l == -1)
+        if (l == 0xfffffffffffffffful)
             throw(ERR_LENGTH, "'map': arguments have different lengths");
 
         if (n == 1)
@@ -164,49 +164,39 @@ obj_t ray_fold(obj_t *x, u64_t n)
             throw(ERR_LENGTH, "'fold': lambda call with wrong arguments count");
 
         l = ops_rank(x, n);
-        if (l == -1)
-            throw(ERR_LENGTH, "'map': arguments have different lengths");
-        return NULL_OBJ;
+        if (l == 0xfffffffffffffffful)
+            throw(ERR_LENGTH, "'fold': arguments have different lengths");
 
-        // vm = &runtime_get()->vm;
+        // interpret first arg as an initial value
+        if (n > 1)
+        {
+            o = 1;
+            v = clone(x[0]);
+        }
+        else
+        {
+            o = 0;
+            v = null(x[0]->type);
+        }
 
-        // // interpret first arg as an initial value
-        // if (n > 1)
-        // {
-        //     o = 1;
-        //     v = clone(x[0]);
-        // }
-        // else
-        // {
-        //     o = 0;
-        //     v = null(x[0]->type);
-        // }
+        for (i = 0; i < l; i++)
+        {
+            stack_push(v);
 
-        // for (i = 0; i < l; i++)
-        // {
-        //     vm->stack[vm->sp++] = v;
+            for (j = o; j < n; j++)
+            {
+                b = x + j;
+                v = at_idx(*b, i);
+                stack_push(v);
+            }
 
-        //     for (j = o; j < n; j++)
-        //     {
-        //         b = x + j;
-        //         v = at_idx(*b, i);
-        //         vm->stack[vm->sp++] = v;
-        //     }
+            v = call(f, n);
 
-        //     ctx = vm_save_ctx(vm);
-        //     v = vm_exec(vm, f);
-        //     vm_restore_ctx(vm, ctx);
+            if (is_error(v))
+                return v;
+        }
 
-        //     // drop args
-        //     for (j = 0; j < n; j++)
-        //         drop(vm->stack[--vm->sp]);
-
-        //     // check error
-        //     if (is_error(v))
-        //         return v;
-        // }
-
-        // return v;
+        return v;
     default:
         throw(ERR_TYPE, "'fold': unsupported function type: '%s", typename(f->type));
     }

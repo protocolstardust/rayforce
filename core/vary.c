@@ -37,17 +37,17 @@
 
 obj_t vary_call_atomic(vary_f f, obj_t *x, u64_t n)
 {
-    i64_t i, j, l;
+    u64_t i, j, l;
     obj_t v, res;
 
     if (n == 0)
         return NULL_OBJ;
 
     l = ops_rank(x, n);
-    if (l == -1)
+    if (l == 0xfffffffffffffffful)
         throw(ERR_LENGTH, "vary: arguments have different lengths");
 
-    for (j = 0; j < (i64_t)n; j++)
+    for (j = 0; j < n; j++)
         stack_push(at_idx(x[j], 0));
 
     v = f(x + n, n);
@@ -63,13 +63,13 @@ obj_t vary_call_atomic(vary_f f, obj_t *x, u64_t n)
 
     for (i = 1; i < l; i++)
     {
-        for (j = 0; j < (i64_t)n; j++)
+        for (j = 0; j < n; j++)
             stack_push(at_idx(x[j], i));
 
         v = f(x + n, n);
 
         // cleanup stack
-        for (j = 0; j < (i64_t)n; j++)
+        for (j = 0; j < n; j++)
             drop(stack_pop());
 
         if (is_error(v))

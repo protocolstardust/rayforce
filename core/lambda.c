@@ -46,15 +46,15 @@ obj_t lambda(obj_t args, obj_t body, obj_t nfo)
 
 obj_t lambda_map(obj_t f, obj_t *x, u64_t n)
 {
-    i64_t i, j, l;
+    u64_t i, j, l;
     obj_t v, res;
 
     l = ops_rank(x, n);
 
-    if (n == 0 || l < 1)
+    if (n == 0 || l == 0 || l == 0xfffffffffffffffful)
         return NULL_OBJ;
 
-    for (j = 0; j < (i64_t)n; j++)
+    for (j = 0; j < n; j++)
         stack_push(at_idx(x[j], 0));
 
     v = call(f, n);
@@ -71,7 +71,7 @@ obj_t lambda_map(obj_t f, obj_t *x, u64_t n)
 
     for (i = 1; i < l; i++)
     {
-        for (j = 0; j < (i64_t)n; j++)
+        for (j = 0; j < n; j++)
             stack_push(at_idx(x[j], i));
 
         v = call(f, n);
@@ -89,7 +89,7 @@ obj_t lambda_map(obj_t f, obj_t *x, u64_t n)
 
 // cleanup stack
 cleanup:
-    for (j = 0; j < (i64_t)n; j++)
+    for (j = 0; j < n; j++)
         drop(stack_pop());
 
     return res;
