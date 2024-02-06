@@ -969,7 +969,10 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
         return *obj;
     case mtype2(TYPE_TABLE, TYPE_SYMBOL):
         if (val->type != TYPE_LIST)
-            throw(ERR_TYPE, "set_obj: invalid types: '%s, '%s", typename((*obj)->type), typename(val->type));
+        {
+            drop(val);
+            throw(ERR_TYPE, "set_obj: 'Table indexed via vector expects 'List in a values, found: '%s", typename(val->type));
+        }
 
         l = ops_count(idx);
         if (l != ops_count(val))

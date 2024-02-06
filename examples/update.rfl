@@ -1,8 +1,15 @@
+;; Example updating vectors
 (set m (til 10))
 (set n m)
 (alter 'n set 0 100)
 (alter 'n set [4 5] 99)
 (set k (guid 6))
 (alter 'k set [4 5 1] (guid 3))
+
+;; Generic lists
 (set l (list [1 2] "asd" 66))
 (alter 'l set [0 2] 192)
+
+;; And tables
+(set t (table [sym price volume] (list [aapl vod goog] [102 99 203] [500 400 900])))
+(alter 't + [price volume] 12.7)
