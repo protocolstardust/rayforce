@@ -333,10 +333,10 @@ insert:
  */
 obj_t ray_upsert(obj_t *x, u64_t n)
 {
-    u64_t i, j, m, l;
-    i64_t row, keys, *rows;
-    obj_t obj, k1, k2, idx, col, lst, *val = NULL, v, res;
-    bool_t need_drop, single_rec;
+    u64_t i, j, m, p, l, keys;
+    i64_t row, *rows;
+    obj_t obj, k1, k2, idx, col, lst, *val = NULL, v;
+    bool_t single_rec;
 
     if (n != 3)
         throw(ERR_LENGTH, "upsert: expected 3 arguments, got %lld", n);
@@ -358,6 +358,8 @@ obj_t ray_upsert(obj_t *x, u64_t n)
         return error(ERR_TYPE, "upsert: expected 'Table as 1st argument, got '%s'", typename(obj->type));
     }
 
+    p = as_list(obj)[0]->len;
+
     lst = x[2];
 
 upsert:
@@ -368,10 +370,10 @@ upsert:
 
         single_rec = is_atom(as_list(lst)[0]);
 
-        if (l != as_list(obj)[0]->len)
+        if (l > p)
         {
             drop(obj);
-            return error(ERR_LENGTH, "upsert: expected list of length %lld, got %lld", as_list(obj)[0]->len, l);
+            return error(ERR_LENGTH, "upsert: list length %lld is greater than %lld", l, p);
         }
 
         if (keys == 1)
@@ -437,69 +439,31 @@ upsert:
 
         rows = as_i64(idx);
 
-        // Insert/Update all the records now
-        for (j = 0; j < m; j++)
+        // Process each column
+        for (i = 0; i < p; i++)
         {
-            row = rows[j];
-
-            // Insert record
-            if (row == NULL_I64)
+            col = cow(as_list(as_list(obj)[1])[i]);
+            if (col != as_list(as_list(obj)[1])[i])
             {
-                for (i = 0; i < l; i++)
-                {
-                    col = cow(as_list(as_list(obj)[1])[i]);
-                    need_drop = (col != as_list(as_list(obj)[1])[i]);
-                    // single record
-                    if (single_rec)
-                    {
-                        res = push_obj(&col, at_idx(lst, i));
-                    }
-                    else
-                    {
-                        v = at_idx(lst, i);
-                        res = push_obj(&col, at_idx(v, j));
-                        drop(v);
-                    }
-                    if (is_error(res))
-                    {
-                        drop(col);
-                        drop(idx);
-                        drop(obj);
-                        return res;
-                    }
-                    if (need_drop)
-                        drop(as_list(as_list(obj)[1])[i]);
-                    as_list(as_list(obj)[1])[i] = col;
-                }
+                drop(as_list(as_list(obj)[1])[i]);
+                as_list(as_list(obj)[1])[i] = col;
             }
-            // Update record
-            else
+
+            for (j = 0; j < m; j++)
             {
-                for (i = 0; i < l; i++)
+                row = rows[j];
+
+                // Insert record
+                if (row == NULL_I64)
                 {
-                    col = cow(as_list(as_list(obj)[1])[i]);
-                    need_drop = (col != as_list(as_list(obj)[1])[i]);
-                    // single record
-                    if (single_rec)
-                    {
-                        res = set_idx(&col, row, at_idx(lst, i));
-                    }
-                    else
-                    {
-                        v = at_idx(lst, i);
-                        res = set_idx(&col, row, at_idx(v, j));
-                        drop(v);
-                    }
-                    if (is_error(res))
-                    {
-                        drop(col);
-                        drop(idx);
-                        drop(obj);
-                        return res;
-                    }
-                    if (need_drop)
-                        drop(as_list(as_list(obj)[1])[i]);
-                    as_list(as_list(obj)[1])[i] = col;
+                    v = (i < l) ? at_idx(as_list(lst)[i], j) : null(as_list(as_list(obj)[1])[i]->type);
+                    push_obj(as_list(as_list(obj)[1]) + i, v);
+                }
+                // Update record (we can skip the keys since they are matches)
+                else if (i >= keys && i < l)
+                {
+                    v = at_idx(as_list(lst)[i], j);
+                    set_idx(as_list(as_list(obj)[1]) + i, row, v);
                 }
             }
         }
@@ -516,10 +480,11 @@ upsert:
     case TYPE_TABLE:
         // Check columns
         l = as_list(lst)[0]->len;
-        if (l != as_list(obj)[0]->len)
+
+        if (l > p)
         {
             drop(obj);
-            return error(ERR_LENGTH, "upsert: expected 'Table with the same number of columns");
+            return error(ERR_LENGTH, "upsert: 'Table with inconsistent columns");
         }
 
         for (i = 0; i < l; i++)
@@ -527,7 +492,8 @@ upsert:
             if (as_symbol(as_list(lst)[0])[i] != as_symbol(as_list(obj)[0])[i])
             {
                 drop(obj);
-                return error(ERR_TYPE, "upsert: expected 'Table with the same columns");
+                return error(ERR_TYPE, "upsert: expected 'Table with inconsistent columns: '%s != '%s",
+                             symtostr(as_symbol(as_list(lst)[0])[i]), symtostr(as_symbol(as_list(obj)[0])[i]));
             }
         }
 

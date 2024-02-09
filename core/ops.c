@@ -126,6 +126,8 @@ bool_t ops_eq_idx(obj_t a, i64_t ai, obj_t b, i64_t bi)
         return as_f64(a)[ai] == b->f64;
     case mtype2(TYPE_F64, TYPE_F64):
         return as_f64(a)[ai] == as_f64(b)[bi];
+    case mtype2(TYPE_GUID, -TYPE_GUID):
+        return memcmp(as_guid(a) + ai, as_guid(b), sizeof(guid_t)) == 0;
     case mtype2(TYPE_GUID, TYPE_GUID):
         return memcmp(as_guid(a) + ai, as_guid(b) + bi, sizeof(guid_t)) == 0;
         // TODO: figure out how to distinguish between list as column and a list as a value

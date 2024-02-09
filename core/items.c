@@ -353,9 +353,12 @@ obj_t ray_find(obj_t x, obj_t y)
 
     case mtype2(TYPE_I64, TYPE_I64):
     case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
+    case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
         return ops_find(as_i64(x), x->len, as_i64(y), y->len);
     case mtype2(TYPE_F64, TYPE_F64):
         return ops_find((i64_t *)as_f64(x), x->len, (i64_t *)as_f64(y), y->len);
+    // case mtype2(TYPE_GUID, TYPE_GUID):
+    //     return ops_find((i64_t *)as_guid(x), x->len, (i64_t *)as_guid(y), y->len);
     case mtype2(TYPE_LIST, TYPE_LIST):
         xl = x->len;
         yl = y->len;
