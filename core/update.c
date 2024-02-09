@@ -456,13 +456,13 @@ upsert:
                 // Insert record
                 if (row == NULL_I64)
                 {
-                    v = (i < l) ? at_idx(as_list(lst)[i], j) : null(as_list(as_list(obj)[1])[i]->type);
+                    v = (i < l) ? (single_rec ? clone(as_list(lst)[i]) : at_idx(as_list(lst)[i], j)) : null(as_list(as_list(obj)[1])[i]->type);
                     push_obj(as_list(as_list(obj)[1]) + i, v);
                 }
                 // Update record (we can skip the keys since they are matches)
                 else if (i >= keys && i < l)
                 {
-                    v = at_idx(as_list(lst)[i], j);
+                    v = single_rec ? clone(as_list(lst)[i]) : at_idx(as_list(lst)[i], j);
                     set_idx(as_list(as_list(obj)[1]) + i, row, v);
                 }
             }
