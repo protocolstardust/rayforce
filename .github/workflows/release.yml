@@ -123,8 +123,7 @@ jobs:
             --prerelease=false \
             ${{ github.workspace }}/ubuntu-latest.tar.gz/ubuntu-latest.tar.gz \
             ${{ github.workspace }}/windows-latest.zip/windows-latest.zip \
-            ${{ github.workspace }}/macos-latest.tar.gz/macos-latest.tar.gz \
-            --clobber \
-            -F ${{ github.workspace }}/release-notes/RELEASE.md
+            ${{ github.workspace }}/macos-latest.tar.gz/macos-latest.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
+        
