@@ -42,6 +42,7 @@
 #include "lambda.h"
 #include "error.h"
 #include "filter.h"
+#include "sys.h"
 
 CASSERT(sizeof(struct obj_t) == 16, rayforce_h)
 
@@ -1679,8 +1680,6 @@ str_t typename(type_t type)
 
 nil_t disp(raw_t ptr)
 {
-    printf("FREE: %p\n", ptr);
-
     heap_free(ptr);
 }
 

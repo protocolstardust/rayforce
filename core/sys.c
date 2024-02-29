@@ -24,6 +24,7 @@
 #include "sys.h"
 #include <stdio.h>
 #include "string.h"
+#include "format.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
@@ -31,9 +32,30 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #elif defined(__linux__)
+#elif defined(__EMSCRIPTEN__)
+#include <emscripten.h>
 #endif
 
-sys_info_t get_sys_info(nil_t)
+str_t sys_about_info(nil_t)
+{
+#if defined(__EMSCRIPTEN__)
+    return str_fmt(0, "RayforceDB: %d.%d %s\n"
+                      "WASM target\n"
+                      "Documentation: https://rayforcedb.com/\n"
+                      "Github: https://github.com/singaraiona/rayforce\n",
+                   RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__);
+#else
+    sys_info_t nfo = sys_hw_info();
+    return str_fmt(0, "RayforceDB: %d.%d %s\n"
+                      "%s %d(MB)\n"
+                      "Documentation: https://rayforcedb.com/\n"
+                      "Github: https://github.com/singaraiona/rayforce\n",
+                   RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION,
+                   __DATE__, nfo.cpu, nfo.mem);
+#endif
+}
+
+sys_info_t sys_hw_info(nil_t)
 {
     sys_info_t info;
 
@@ -85,11 +107,11 @@ sys_info_t get_sys_info(nil_t)
     info.mem = (i32_t)(memSize / (1024 * 1024));
 
 #elif defined(__EMSCRIPTEN__)
-    snprintf(info.cpu, sizeof(info.cpu), "wasm");
+    snprintf(info.cpu, sizeof(info.cpu), "WASM target");
     info.mem = 0;
 
 #else
-    snprintf(info.cpu, sizeof(info.cpu), "unknown");
+    snprintf(info.cpu, sizeof(info.cpu), "Unknown arch");
     info.mem = 0;
 
 #endif

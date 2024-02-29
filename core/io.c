@@ -34,6 +34,7 @@
 #include "runtime.h"
 #include "error.h"
 #include "timestamp.h"
+#include "sys.h"
 
 obj_t ray_hopen(obj_t x)
 {

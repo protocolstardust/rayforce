@@ -35,25 +35,23 @@
 #include "poll.h"
 #include "heap.h"
 #include "runtime.h"
+#include "sys.h"
 
-#define LOGO "\
-  RayforceDB: %d.%d %s\n\
-  WASM target\n\
-  Documentation: https://rayforcedb.com/\n\
-  Github: https://github.com/singaraiona/rayforce\n"
+// Declare rayforce_ready callback on js side
+EM_JS(nil_t, js_rayforce_ready, (str_t text), {
+    Module.rayforce_ready(UTF8ToString(text));
+});
 
 poll_t poll_init(i64_t port)
 {
     poll_t poll = (poll_t)heap_alloc(sizeof(struct poll_t));
     poll->code = NULL_I64;
-    poll->replfile = string_from_str("wasm", 4);
 
     return poll;
 }
 
 nil_t poll_cleanup(poll_t poll)
 {
-    drop(poll->replfile);
     heap_free(poll);
 }
 
@@ -93,18 +91,14 @@ obj_t ipc_send_async(poll_t poll, i64_t id, obj_t msg)
     return NULL_OBJ;
 }
 
-// nil_t print_logo(nil_t)
-// {
-//     str_t logo = str_fmt(0, LOGO, RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__);
-//     str_t fmt = str_fmt(0, "%s%s%s", BOLD, logo, RESET);
-//     printjs(fmt);
-//     heap_free(logo);
-//     heap_free(fmt);
-// }
-
 EMSCRIPTEN_KEEPALIVE i32_t main(i32_t argc, str_t argv[])
 {
+    i32_t code;
+
     atexit(runtime_cleanup);
     runtime_init(argc, argv);
-    return runtime_run();
+    code = runtime_run();
+    js_rayforce_ready(sys_about_info());
+
+    return code;
 }

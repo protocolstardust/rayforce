@@ -31,6 +31,7 @@
 #include "env.h"
 #include "eval.h"
 #include "error.h"
+#include "sys.h"
 
 u64_t size_of_type(type_t type)
 {

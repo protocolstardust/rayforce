@@ -29,18 +29,11 @@
 #include "../core/util.h"
 #include "../core/sys.h"
 
-#define LOGO "\
-  RayforceDB: %d.%d %s\n\
-  %s %d(MB)\n\
-  Documentation: https://rayforcedb.com/\n\
-  Github: https://github.com/singaraiona/rayforce\n"
-
 nil_t print_logo(nil_t)
 {
-  sys_info_t nfo = get_sys_info();
-  str_t logo = str_fmt(0, LOGO, RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__, nfo.cpu, nfo.mem);
-  printf("%s%s%s", BOLD, logo, RESET);
-  heap_free(logo);
+  str_t nfo = sys_about_info();
+  printf("%s%s%s", BOLD, nfo, RESET);
+  heap_free(nfo);
 }
 
 i32_t main(i32_t argc, str_t argv[])

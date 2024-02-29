@@ -43,6 +43,7 @@
 #include "heap.h"
 #include "io.h"
 #include "error.h"
+#include "sys.h"
 
 // Definitions and globals
 #define STDIN_WAKER_ID ~0ull

@@ -26,12 +26,17 @@
 
 #include "rayforce.h"
 
+#define RAYFORCE_MAJOR_VERSION 0
+#define RAYFORCE_MINOR_VERSION 1
+#define RAYFORCE_VERSION (RAYFORCE_MAJOR_VERSION >> 3 | RAYFORCE_MINOR_VERSION)
+
 typedef struct sys_info_t
 {
     char_t cpu[256];
     i32_t mem;
 } sys_info_t;
 
-sys_info_t get_sys_info(nil_t);
+str_t sys_about_info(nil_t);
+sys_info_t sys_hw_info(nil_t);
 
 #endif // SYS_H
