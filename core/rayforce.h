@@ -185,7 +185,7 @@ extern obj_p cow_obj(obj_p obj);   // clone_obj if refcount > 1
 extern u32_t rc_obj(obj_p obj);    // get refcount
 
 // Errors
-extern obj_p error(i8_t code, str_p fmt, ...);       // Creates an error object
+extern obj_p error(i8_t code, str_p fmt, ...); // Creates an error object
 
 // Destructors
 extern nil_t drop_obj(obj_p obj); // Free an object

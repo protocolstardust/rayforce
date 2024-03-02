@@ -199,9 +199,9 @@ str_p str_fmt(i64_t limit, str_p fmt, ...)
 i64_t b8_fmt_into(str_p *dst, i64_t *len, i64_t *offset, i64_t limit, b8_t val)
 {
     if (val)
-        return str_fmt_into(dst, len, offset, limit, "B8_TRUE");
+        return str_fmt_into(dst, len, offset, limit, "true");
 
-    return str_fmt_into(dst, len, offset, limit, "B8_FALSE");
+    return str_fmt_into(dst, len, offset, limit, "false");
 }
 
 i64_t byte_fmt_into(str_p *dst, i64_t *len, i64_t *offset, i64_t limit, u8_t val)
