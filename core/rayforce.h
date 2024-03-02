@@ -95,29 +95,17 @@ typedef void nil_t;
 #define B8_TRUE   (char)1
 #define B8_FALSE  (char)0
 
-/*
- * GUID (Globally Unique Identifier)
- */
+
+// GUID (Globally Unique Identifier)
 typedef struct guid_t {
     u8_t buf[16];
 } guid_t;
 
-/*
-* Generic type
-*/ 
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wpedantic"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-#endif
-
+// Object (generic type)
 typedef struct obj_t
 {
-    u8_t mmod;  // memory model (0 - internal, 1 - memmapped)
-    u8_t refc;  // is reference counted
+    u8_t mmod;  // memory model (internal, external, etc.)
+    u8_t resv;  // reserved
     i8_t type;  // type
     u8_t attrs; // attributes
     u32_t rc;   // reference count
@@ -136,36 +124,30 @@ typedef struct obj_t
     };
 } *obj_p;
 
-#ifdef __clang__
-#pragma clang diagnostic pop
-#else
-#pragma GCC diagnostic pop
-#endif
-
 // Version
 extern u8_t version(nil_t); // get version as u8_t (major - 5 bits, minor - 3 bits)
 
 // Constructors
-extern obj_p null(i8_t type);               // create null atom of type
-extern obj_p nullv(i8_t type, u64_t len);   // create null list of type and length
-extern obj_p atom(i8_t type);               // create atom of type
-extern obj_p list(u64_t len);               // create list
-extern obj_p vn_list(u64_t len, ...);       // create list from values
-extern obj_p vector(i8_t type, u64_t len);  // create vector of type
-extern obj_p vn_symbol(u64_t len, ...);     // create vector symbols from strings
-extern obj_p b8(b8_t val);                  // bool atom
-extern obj_p u8(u8_t val);                  // byte atom
-extern obj_p c8(c8_t c);                    // char
-extern obj_p i64(i64_t val);                // i64 atom
-extern obj_p f64(f64_t val);                // f64 atom
-extern obj_p symbol(str_p ptr);             // symbol
-extern obj_p symboli64(i64_t id);           // symbol from i64
-extern obj_p timestamp(i64_t val);          // timestamp
-extern obj_p guid(u8_t buf[16]);            // GUID
-extern obj_p string(u64_t len);             // string 
-extern obj_p vn_string(str_p fmt, ...);     // string from format
-extern obj_p venum(obj_p sym, obj_p vec);   // enum
-extern obj_p anymap(obj_p sym, obj_p vec);  // anymap
+extern obj_p null(i8_t type);                 // create null atom of type
+extern obj_p nullv(i8_t type, u64_t len);     // create null list of type and length
+extern obj_p atom(i8_t type);                 // create atom of type
+extern obj_p list(u64_t len);                 // create list
+extern obj_p vn_list(u64_t len, ...);         // create list from values
+extern obj_p vector(i8_t type, u64_t len);    // create vector of type
+extern obj_p vn_symbol(u64_t len, ...);       // create vector symbols from strings
+extern obj_p b8(b8_t val);                    // bool atom
+extern obj_p u8(u8_t val);                    // byte atom
+extern obj_p c8(c8_t c);                      // char
+extern obj_p i64(i64_t val);                  // i64 atom
+extern obj_p f64(f64_t val);                  // f64 atom
+extern obj_p symbol(str_p ptr);               // symbol
+extern obj_p symboli64(i64_t id);             // symbol from i64
+extern obj_p timestamp(i64_t val);            // timestamp
+extern obj_p guid(u8_t buf[16]);              // GUID
+extern obj_p string(u64_t len);               // string 
+extern obj_p vn_string(str_p fmt, ...);       // string from format
+extern obj_p enumerate(obj_p sym, obj_p vec); // enum
+extern obj_p anymap(obj_p sym, obj_p vec);    // anymap
 
 #define vector_b8(len)        (vector(TYPE_B8,        len)) // bool vector
 #define vector_u8(len)        (vector(TYPE_U8,        len)) // byte vector

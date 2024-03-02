@@ -330,7 +330,7 @@ obj_p ray_enum(obj_p x, obj_p y)
             throw(ERR_TYPE, "enum: can not be fully indexed");
         }
 
-        return venum(clone_obj(x), v);
+        return enumerate(clone_obj(x), v);
     default:
         throw(ERR_TYPE, "enum: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
     }
@@ -570,7 +570,7 @@ obj_p ray_distinct(obj_p x)
     case TYPE_ENUM:
         l = ops_count(x);
         res = index_distinct_i64(as_i64(enum_val(x)), l);
-        res = venum(ray_key(x), res);
+        res = enumerate(ray_key(x), res);
         return res;
     case TYPE_LIST:
         l = ops_count(x);

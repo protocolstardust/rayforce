@@ -257,7 +257,6 @@ obj_p vector(i8_t type, u64_t len)
         panic("oom");
 
     vec->mmod = MMOD_INTERNAL;
-    vec->refc = 1;
     vec->type = t;
     vec->rc = 1;
     vec->len = len;
@@ -313,7 +312,6 @@ obj_p vn_list(u64_t len, ...)
     l = (obj_p)heap_alloc(sizeof(struct obj_t) + sizeof(obj_p) * len);
 
     l->mmod = MMOD_INTERNAL;
-    l->refc = 1;
     l->type = TYPE_LIST;
     l->rc = 1;
     l->len = len;
@@ -349,7 +347,7 @@ obj_p table(obj_p keys, obj_p vals)
     return t;
 }
 
-obj_p venum(obj_p sym, obj_p vec)
+obj_p enumerate(obj_p sym, obj_p vec)
 {
     obj_p e;
 
@@ -389,7 +387,6 @@ obj_p resize_obj(obj_p *obj, u64_t len)
         new_obj = (obj_p)heap_alloc(new_size);
         memcpy(new_obj, *obj, size_of(*obj));
         new_obj->mmod = MMOD_INTERNAL;
-        new_obj->refc = 1;
         new_obj->type = (*obj)->type;
         new_obj->rc = 1;
         drop_obj(*obj);
@@ -418,7 +415,6 @@ obj_p push_raw(obj_p *obj, raw_p val)
         new_obj = (obj_p)heap_alloc(req);
         memcpy(new_obj, *obj, occup);
         new_obj->mmod = MMOD_INTERNAL;
-        new_obj->refc = 1;
         new_obj->type = (*obj)->type;
         new_obj->rc = 1;
         drop_obj(*obj);
