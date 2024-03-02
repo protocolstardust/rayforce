@@ -512,7 +512,7 @@ obj_p ray_parse(obj_p x)
     if (!x || x->type != TYPE_CHAR)
         throw(ERR_TYPE, "parse: expected string");
 
-    return parse_str(0, x, NULL);
+    return ray_parse_str(0, x, NULL);
 }
 
 obj_p ray_eval(obj_p x)

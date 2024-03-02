@@ -262,7 +262,7 @@ extern obj_p ser_obj(obj_p obj);
 extern obj_p de_obj(obj_p buf);
 
 // Parse
-extern obj_p parse_str(i64_t fd, obj_p str, obj_p file);
+extern obj_p parse_str(str_p str);
 
 // Evaluate
 extern obj_p eval_str(str_p str);

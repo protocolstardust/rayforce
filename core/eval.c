@@ -533,7 +533,7 @@ obj_p ray_raise(obj_p obj)
     __builtin_unreachable();
 }
 
-obj_p parse_str(i64_t fd, obj_p str, obj_p file)
+obj_p ray_parse_str(i64_t fd, obj_p str, obj_p file)
 {
     unused(fd);
     obj_p info, res;

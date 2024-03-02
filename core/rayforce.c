@@ -1708,6 +1708,11 @@ obj_p eval_str(str_p str)
     return res;
 }
 
+obj_p parse_str(str_p str)
+{
+    return parse(str, NULL_OBJ);
+}
+
 str_p strof_obj(obj_p obj)
 {
     return obj_fmt(obj);
