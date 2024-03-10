@@ -46,7 +46,7 @@ Q7: \t select v3: sum v3, cnt: count i by id1, id2, id3, id4, id5, id6 from t --
 
 Load CSV: (set t (csv [Symbol Symbol Symbol I64 I64 I64 I64 I64 F64] "./db-benchmark/G1_1e7_1e2_0_0.csv"))
 Q1: \t (select {v1: (sum v1) from: t by: id1}) --> 60ms
-Q2: \t (select {v1: (sum v1) from: t by: id1, id2}) --> 74ms
+Q2: \t (select {v1: (sum v1) from: t by: {id1: id1 id2: id2}}) --> 74ms
 Q3: \t (select {v1: (sum v1) v3: (avg v3) from: t by: id3}) --> 118ms
 Q4: \t (select {v1: (avg v1) v2: (avg v2) v3: (avg v3) from: t by: id4}) --> 72ms
 Q5: \t (select {v1: (sum v1) v2: (sum v2) v3: (sum v3) from: t by: id6}) --> 122ms
