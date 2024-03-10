@@ -24,7 +24,7 @@ Q5: select id6, sum(v1) AS v1, sum(v2) AS v2, sum(v3) AS v3 from t group by id6;
 Q6: select id3, max(v1)-min(v2) AS range_v1_v2 from t group by id3; --> 528ms
 Q7: select id1, id2, id3, id4, id5, id6, sum(v3) AS v3 count(*) AS count from t group by id1, id2, id3, id4, id5, id6; --> 3269ms
 
-## KDB+ (4.1)
+## KDB+ (4.0)
 
 Q1: \t select v1: sum v1 by id1 from t --> 59ms
 Q2: \t select v1: sum v1 by id1, id2 from t --> 143ms
@@ -42,7 +42,7 @@ Q3: \t (select {v1: (sum v1) v3: (avg v3) from: t by: id3}) --> 118ms
 Q4: \t (select {v1: (avg v1) v2: (avg v2) v3: (avg v3) from: t by: id4}) --> 72ms
 Q5: \t (select {v1: (sum v1) v2: (sum v2) v3: (sum v3) from: t by: id6}) --> 122ms
 Q6: \t (select {range_v1_v2: (- (max v1) (min v2)) from: t by: id3}) --> 104ms
-Q7: \t (select {v3: (sum v3) count: (count v3) from: t by: id1, id2, id3, id4, id5, id6}) --> 1394ms
+Q7: \t (select {v3: (sum v3) count: (map count v3) from: t by: id1, id2, id3, id4, id5, id6}) --> 1394ms
 
 ## ThePlatform
 
@@ -60,6 +60,6 @@ Q7: \t 0N#.?[t;();`id1`id2`id3`id4`id5`id6!`id1`id2`id3`id4`id5`id6;`v3`count!((
 | ------------------------------- | --- | --- | --- | --- | --- | --- | ----- |
 | DuckDB (multithread turned on)  | 63  | 153 | 360 | 23  | 322 | 330 | 878   |
 | DuckDB (multithread turned off) | 347 | 690 | 601 | 108 | 440 | 528 | 3269  |
-| KDB+ (4.1)                      | 59  | 143 | 166 | 99  | 156 | 551 | 4497  |
+| KDB+ (4.0)                      | 59  | 143 | 166 | 99  | 156 | 551 | 4497  |
 | Rayforce                        | 60  | 74  | 118 | 72  | 122 | 104 | 1394  |
 | ThePlatform                     | 213 | 723 | 507 | 285 | 488 | N/A | 15712 |
