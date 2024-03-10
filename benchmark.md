@@ -4,8 +4,14 @@
 
 Dataset: G1_1e7_1e2_0_0.csv (10 million rows)
 
+Ubuntu:
+> sudo apt install r-base
+run R and then in a R console type: install.packages("data.table")
+> Rscript _data/groupby-datagen.R 1e7 1e2 0 0
+
 ## DuckDB (multithread turned on)
 
+Load CSV: create table t as SELECT * FROM read_csv('./db-benchmark/G1_1e7_1e2_0_0.csv');
 Q1: select id1, sum(v1) AS v1 from t group by id1; --> 63ms
 Q2: select id1, id2, sum(v1) AS v1 from t group by id1, id2; --> 153ms
 Q3: select id3, sum(v1) AS v1, mean(v3) AS v3 from t group by id3; --> 360ms
@@ -16,6 +22,7 @@ Q7: select id1, id2, id3, id4, id5, id6, sum(v3) AS v3 count(*) AS count from t 
 
 ## DuckDB (multithread turned off)
 
+Load CSV: create table t as SELECT * FROM read_csv('./db-benchmark/G1_1e7_1e2_0_0.csv');
 Q1: select id1, sum(v1) AS v1 from t group by id1; --> 347ms
 Q2: select id1, id2, sum(v1) AS v1 from t group by id1, id2; --> 690ms
 Q3: select id3, sum(v1) AS v1, mean(v3) AS v3 from t group by id3; --> 601ms
@@ -26,6 +33,7 @@ Q7: select id1, id2, id3, id4, id5, id6, sum(v3) AS v3 count(*) AS count from t 
 
 ## KDB+ (4.0)
 
+Load CSV: t: ("SSSJJJJJF";enlist",") 0: hsym `$":./db-benchmark/G1_1e7_1e2_0_0.csv"
 Q1: \t select v1: sum v1 by id1 from t --> 59ms
 Q2: \t select v1: sum v1 by id1, id2 from t --> 143ms
 Q3: \t select v1: sum v1, v3: avg v3 by id3 from t --> 166ms
@@ -36,6 +44,7 @@ Q7: \t select v3: sum v3, cnt: count i by id1, id2, id3, id4, id5, id6 from t --
 
 ## Rayforce
 
+Load CSV: (set t (csv [Symbol Symbol Symbol I64 I64 I64 I64 I64 F64] "./db-benchmark/G1_1e7_1e2_0_0.csv"))
 Q1: \t (select {v1: (sum v1) from: t by: id1}) --> 60ms
 Q2: \t (select {v1: (sum v1) from: t by: id1, id2}) --> 74ms
 Q3: \t (select {v1: (sum v1) v3: (avg v3) from: t by: id3}) --> 118ms
@@ -46,6 +55,7 @@ Q7: \t (select {v3: (sum v3) count: (map count v3) from: t by: {id1: id1 id2: id
 
 ## ThePlatform
 
+Load CSV: t: ("SSSJJJJJF";enlist",") 0: `$":./db-benchmark/G1_1e7_1e2_0_0.csv"
 Q1: \t 0N#.?[t;();`id1!`id1;`v1!(sum;`v1)] --> 213ms
 Q2: \t 0N#.?[t;();`id1`id2!`id1`id2;`v1!(sum;`v1)] --> 723ms
 Q3: \t 0N#.?[t;();`id3!`id3;`v2`v3!((sum;`v2);(avg;`v3))] --> 507ms
