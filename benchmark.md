@@ -42,7 +42,7 @@ Q3: \t (select {v1: (sum v1) v3: (avg v3) from: t by: id3}) --> 118ms
 Q4: \t (select {v1: (avg v1) v2: (avg v2) v3: (avg v3) from: t by: id4}) --> 72ms
 Q5: \t (select {v1: (sum v1) v2: (sum v2) v3: (sum v3) from: t by: id6}) --> 122ms
 Q6: \t (select {range_v1_v2: (- (max v1) (min v2)) from: t by: id3}) --> 104ms
-Q7: \t (select {v3: (sum v3) count: (map count v3) from: t by: id1, id2, id3, id4, id5, id6}) --> 1394ms
+Q7: \t (select {v3: (sum v3) count: (map count v3) from: t by: {id1: id1 id2: id2 id3: id3 id4: id4 id5: id5 id6: id6}}) --> 1394ms
 
 ## ThePlatform
 
@@ -51,7 +51,7 @@ Q2: \t 0N#.?[t;();`id1`id2!`id1`id2;`v1!(sum;`v1)] --> 723ms
 Q3: \t 0N#.?[t;();`id3!`id3;`v2`v3!((sum;`v2);(avg;`v3))] --> 507ms
 Q4: \t 0N#.?[t;();`id4!`id4;`v1`v2`v3!((avg;`v1);(avg;`v2);(avg;`v3))] --> 285ms
 Q5: \t 0N#.?[t;();`id6!`id6;`v1`v2`v3!((sum;`v1);(sum;`v2);(sum;`v3))] --> 488ms
-Q6: \t 0N#.?[t;();`id3!`id3;`range_v1_v2:((max;`v1)-min;`v2)] --> N/A
+Q6: N/A
 Q7: \t 0N#.?[t;();`id1`id2`id3`id4`id5`id6!`id1`id2`id3`id4`id5`id6;`v3`count!((sum;`v3);(count;`v3))] --> 15712ms
 
 ## Results
