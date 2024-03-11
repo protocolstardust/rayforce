@@ -200,6 +200,7 @@ nil_t init_functions(obj_p functions)
     regf(functions,  "upsert",    TYPE_VARY,     FN_NONE,                   ray_upsert);
     regf(functions,  "csv",       TYPE_VARY,     FN_NONE,                   ray_csv);
     regf(functions,  "lj",        TYPE_VARY,     FN_NONE,                   ray_lj);
+    regf(functions,  "ij",        TYPE_VARY,     FN_NONE,                   ray_ij);
     regf(functions,  "if",        TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_cond);
     regf(functions,  "return",    TYPE_VARY,     FN_NONE,                   ray_return);
     regf(functions,  "exit",      TYPE_VARY,     FN_NONE,                   ray_exit);

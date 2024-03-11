@@ -46,7 +46,7 @@ obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
     type = is_null(left_col) ? right_col->type : left_col->type;
 
     if (right_col->type != type)
-        throw(ERR_TYPE, "join_column: incompatible types");
+        throw(ERR_TYPE, "select_column: incompatible types");
 
     res = vector(type, len);
 
@@ -62,6 +62,22 @@ obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
     }
 
     return res;
+}
+
+obj_p get_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
+{
+    i8_t type;
+
+    // there is no such column in the right table
+    if (is_null(right_col))
+        return at_ids(left_col, ids, len);
+
+    type = is_null(left_col) ? right_col->type : left_col->type;
+
+    if (right_col->type != type)
+        throw(ERR_TYPE, "get_column: incompatible types");
+
+    return at_ids(right_col, ids, len);
 }
 
 obj_p ray_lj(obj_p *x, u64_t n)
@@ -198,4 +214,121 @@ obj_p ray_lj(obj_p *x, u64_t n)
     }
 
     return table(rescols, resvals);
+}
+
+obj_p ray_ij(obj_p *x, u64_t n)
+{
+    u64_t ll;
+    i64_t i, j, l;
+    obj_p k1, k2, c1, c2, un, col, cols, vals, idx;
+
+    if (n != 3)
+        throw(ERR_LENGTH, "ij");
+
+    if (x[0]->type != TYPE_SYMBOL)
+        throw(ERR_TYPE, "ij: first argument must be a symbol vector");
+
+    if (x[1]->type != TYPE_TABLE)
+        throw(ERR_TYPE, "ij: second argument must be a table");
+
+    if (x[2]->type != TYPE_TABLE)
+        throw(ERR_TYPE, "ij: third argument must be a table");
+
+    if (ops_count(x[1]) == 0 || ops_count(x[2]) == 0)
+        return clone_obj(x[1]);
+
+    k1 = ray_at(x[1], x[0]);
+    if (is_error(k1))
+        return k1;
+
+    k2 = ray_at(x[2], x[0]);
+    if (is_error(k2))
+    {
+        drop_obj(k1);
+        return k2;
+    }
+
+    idx = index_join_obj(k1, k2, x[0]->len);
+    drop_obj(k1);
+    drop_obj(k2);
+
+    if (is_error(idx))
+        return idx;
+
+    // Compact the index (skip all nulls)
+    l = idx->len;
+    for (i = 0, ll = 0; i < l; i++)
+        if (as_i64(idx)[i] != NULL_I64)
+            as_i64(idx)[ll++] = as_i64(idx)[i];
+
+    un = ray_union(as_list(x[1])[0], as_list(x[2])[0]);
+    if (is_error(un))
+        return un;
+
+    // exclude columns that we are joining on
+    cols = ray_except(un, x[0]);
+    drop_obj(un);
+
+    if (is_error(cols))
+    {
+        drop_obj(idx);
+        return cols;
+    }
+
+    if (cols->len == 0)
+    {
+        drop_obj(idx);
+        drop_obj(cols);
+        throw(ERR_LENGTH, "ij: no columns to join on");
+    }
+
+    col = ray_concat(x[0], cols);
+    drop_obj(cols);
+    cols = col;
+
+    l = cols->len;
+
+    // resulting columns
+    vals = list(l);
+
+    // process each column
+    for (i = 0; i < l; i++)
+    {
+        c1 = NULL_OBJ;
+        c2 = NULL_OBJ;
+
+        for (j = 0; j < (i64_t)as_list(x[1])[0]->len; j++)
+        {
+            if (as_symbol(as_list(x[1])[0])[j] == as_symbol(cols)[i])
+            {
+                c1 = as_list(as_list(x[1])[1])[j];
+                break;
+            }
+        }
+
+        for (j = 0; j < (i64_t)as_list(x[2])[0]->len; j++)
+        {
+            if (as_symbol(as_list(x[2])[0])[j] == as_symbol(cols)[i])
+            {
+                c2 = as_list(as_list(x[2])[1])[j];
+                break;
+            }
+        }
+
+        col = get_column(c1, c2, as_i64(idx), ll);
+        if (is_error(col))
+        {
+            drop_obj(cols);
+            drop_obj(idx);
+            drop_obj(vals);
+            return col;
+        }
+
+        as_list(vals)[i] = col;
+    }
+
+    // cleanup and assemble result table
+    drop_obj(idx);
+
+    return table(cols, vals);
 }
