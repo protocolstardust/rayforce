@@ -1,9 +1,10 @@
-rayforce
 *.o
 *.so
 .vscode/
 *.a
 *.gch
+rayforce
+rayforce.test
 rayforce.S
 rayforce.js
 rayforce.py

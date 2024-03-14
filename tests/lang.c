@@ -65,6 +65,7 @@ test_result_t test_lang_basic()
     TEST_ASSERT_EQ("(div [6 8] 4)", "[1.50 2.00]");
     TEST_ASSERT_EQ("(div 6 [3 4])", "[2.00 1.50]");
     TEST_ASSERT_EQ("(div [6 8] [4 3])", "[1.50 2.67]");
+    TEST_ASSERT_EQ("((fn [x y] (+ x y)) 1 [2.3 4])", "[3.3 5.0]");
 
     PASS();
 }
