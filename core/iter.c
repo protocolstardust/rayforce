@@ -243,8 +243,9 @@ obj_p ray_fold(obj_p *x, u64_t n)
 
 obj_p ee(raw_p x, u64_t n)
 {
+    unused(n);
     obj_p o = (obj_p)x;
-    return ray_do(&o, n);
+    return eval(o);
 }
 
 obj_p ray_pmap(obj_p obj)
@@ -252,6 +253,7 @@ obj_p ray_pmap(obj_p obj)
     u64_t i, l;
     pool_p pool = runtime_get()->pool;
     task_p tasks = pool->shared->tasks;
+    obj_p v;
 
     l = pool->executors_count;
 
@@ -263,8 +265,8 @@ obj_p ray_pmap(obj_p obj)
     }
 
     pool_run(pool);
-
+    v = eval(obj);
     pool_wait(pool);
 
-    return pool_collect(pool, i64(9876));
+    return pool_collect(pool, v);
 }

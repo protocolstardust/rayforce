@@ -109,11 +109,18 @@ pool_p pool_new(u64_t executors_count)
 
 nil_t pool_run(pool_p pool)
 {
+    u64_t i, l;
     shared_p shared = pool->shared;
 
     rc_sync(B8_TRUE);
 
     pthread_mutex_lock(&shared->lock);
+
+    // Borrow heap blocks from the main heap
+    l = pool->executors_count;
+    for (i = 0; i < l; i++)
+        heap_borrow(pool->executors[i].heap);
+
     shared->tasks_remaining = pool->executors_count;
     pthread_cond_broadcast(&shared->run);
 }

@@ -58,25 +58,6 @@ heap_p heap_init(u64_t, u64_t) { return NULL; }
 memstat_t heap_memstat(nil_t) { return (memstat_t){0}; }
 #else
 
-nil_t heap_print_blocks(nil_t)
-{
-    u64_t i = 0;
-    node_t *node;
-
-    printf("-- HEAP[%lld]: BLOCKS:\n", __HEAP->id);
-    for (; i <= MAX_POOL_ORDER; i++)
-    {
-        node = __HEAP->freelist[i];
-        printf("-- order: %lld [", i);
-        while (node)
-        {
-            printf("%p, ", (raw_p)node);
-            node = node->next;
-        }
-        printf("]\n");
-    }
-}
-
 nil_t *heap_add_pool(u64_t order)
 {
     u64_t size = blocksize(order);
@@ -400,26 +381,57 @@ i64_t heap_gc(nil_t)
     return total;
 }
 
+nil_t heap_borrow(heap_p heap)
+{
+    u64_t i;
+
+    for (i = 0; i <= MAX_POOL_ORDER; i++)
+    {
+        // Only borrow if the source heap has a freelist[i] and it has more than one node
+        if (__HEAP->freelist[i] == NULL || __HEAP->freelist[i]->next == NULL)
+            continue;
+
+        heap->freelist[i] = __HEAP->freelist[i];
+        __HEAP->freelist[i] = __HEAP->freelist[i]->next;
+        heap->freelist[i]->next = NULL;
+        heap->avail |= blocksize(i);
+    }
+}
+
 nil_t heap_merge(heap_p heap)
 {
     u64_t i;
-    node_t *node;
+    node_t *node, *last_node;
 
     for (i = 0; i <= MAX_POOL_ORDER; i++)
     {
         if (heap->freelist[i] == NULL)
             continue;
 
+        // Find the last node in the heap->freelist[i]
         node = heap->freelist[i];
-        heap->freelist[i] = NULL;
-        heap->avail &= ~blocksize(i);
-        node->next = __HEAP->freelist[i];
+        last_node = node;
 
+        while (last_node->next != NULL)
+            last_node = last_node->next;
+
+        // Connect the last node of heap's freelist to the head of __HEAP->freelist
+        last_node->next = __HEAP->freelist[i];
+
+        // Now, point __HEAP->freelist[i] to the head of the node list we just attached
         __HEAP->freelist[i] = node;
+
+        // Update the availability bitmap
         __HEAP->avail |= blocksize(i);
-        __HEAP->memstat.heap += heap->memstat.heap;
-        __HEAP->memstat.system += heap->memstat.system;
+        heap->avail &= ~blocksize(i);
+
+        // Clear the source heap's freelist entry
+        heap->freelist[i] = NULL;
     }
+
+    // Update memory statistics
+    __HEAP->memstat.heap += heap->memstat.heap;
+    __HEAP->memstat.system += heap->memstat.system;
 }
 
 memstat_t heap_memstat(nil_t)
@@ -492,6 +504,25 @@ nil_t heap_cleanup(nil_t)
 
     mmap_free(__HEAP->blocks16, NUM_16_BLOCKS * 16);
     mmap_free(__HEAP, sizeof(struct heap_t));
+}
+
+nil_t heap_print_blocks(nil_t)
+{
+    u64_t i = 0;
+    node_t *node;
+
+    printf("-- HEAP[%lld]: BLOCKS:\n", __HEAP->id);
+    for (; i <= MAX_POOL_ORDER; i++)
+    {
+        node = __HEAP->freelist[i];
+        printf("-- order: %lld [", i);
+        while (node)
+        {
+            printf("%p, ", (raw_p)node);
+            node = node->next;
+        }
+        printf("]\n");
+    }
 }
 
 #endif
