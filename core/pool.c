@@ -29,37 +29,33 @@
 
 raw_p executor_run(raw_p arg)
 {
-    executor_p executor = (executor_p)arg;
-    shared_p shared = executor->shared;
-    u64_t id = executor->id;
-    task_p task = &shared->tasks[id];
+    executor_t *executor = (executor_t *)arg;
 
-    executor->heap = heap_init(id + 1, 0);
+    executor->heap = heap_init(executor->id + 1);
     interpreter_new();
 
     for (;;)
     {
-        pthread_mutex_lock(&shared->lock);
-        pthread_cond_wait(&shared->run, &shared->lock);
+        pthread_mutex_lock(&executor->mutex);
+        pthread_cond_wait(&executor->has_task, &executor->mutex);
 
-        if (shared->stop)
+        if (executor->stop)
         {
-            pthread_mutex_unlock(&shared->lock);
+            pthread_mutex_unlock(&executor->mutex);
             break;
         }
 
-        pthread_mutex_unlock(&shared->lock);
+        pthread_mutex_unlock(&executor->mutex);
 
         // execute task
         rc_sync(B8_TRUE);
-        task->result = task->fn(task->arg, task->len);
+        executor->task.result = executor->task.fn(executor->task.arg, executor->task.len);
         rc_sync(B8_FALSE);
 
-        pthread_mutex_lock(&shared->lock);
-        shared->tasks_remaining--;
-
-        pthread_cond_signal(&shared->done);
-        pthread_mutex_unlock(&shared->lock);
+        pthread_mutex_lock(&executor->mutex);
+        executor->done = B8_TRUE;
+        pthread_cond_signal(&executor->done_task);
+        pthread_mutex_unlock(&executor->mutex);
     }
 
     interpreter_free();
@@ -71,89 +67,71 @@ raw_p executor_run(raw_p arg)
 pool_p pool_new(u64_t executors_count)
 {
     u64_t i;
-    shared_p shared;
-    pool_p pool;
-    executor_p executors;
-
-    shared = (shared_p)heap_alloc(sizeof(struct shared_t));
-    shared->tasks_remaining = 0;
-    pthread_mutex_init(&shared->lock, NULL);
-    pthread_cond_init(&shared->run, NULL);
-    pthread_cond_init(&shared->done, NULL);
-    shared->stop = B8_FALSE;
-
-    shared->tasks = (task_p)heap_alloc(sizeof(struct task_t) * executors_count);
-    for (i = 0; i < executors_count; i++)
-    {
-        shared->tasks[i].fn = NULL;
-        shared->tasks[i].arg = NULL;
-        shared->tasks[i].len = 0;
-        shared->tasks[i].result = NULL_OBJ;
-    }
-
-    executors = (executor_p)heap_alloc(sizeof(struct executor_t) * executors_count);
-    for (i = 0; i < executors_count; i++)
-    {
-        executors[i].id = i;
-        executors[i].shared = shared;
-        pthread_create(&executors[i].handle, NULL, executor_run, &executors[i]);
-    }
-
-    pool = (pool_p)heap_alloc(sizeof(struct pool_t));
-    pool->executors = executors;
+    pool_p pool = (pool_p)mmap_malloc(sizeof(struct pool_t) + (sizeof(executor_t) * executors_count));
     pool->executors_count = executors_count;
-    pool->shared = shared;
+
+    for (i = 0; i < executors_count; i++)
+    {
+        pool->executors[i].id = i;
+        pthread_mutex_init(&pool->executors[i].mutex, NULL);
+        pthread_cond_init(&pool->executors[i].has_task, NULL);
+        pthread_cond_init(&pool->executors[i].done_task, NULL);
+        pool->executors[i].stop = B8_FALSE;
+        pool->executors[i].done = B8_FALSE;
+        pool->executors[i].task.fn = NULL;
+        pool->executors[i].task.arg = NULL;
+        pool->executors[i].task.len = 0;
+        pool->executors[i].task.result = NULL_OBJ;
+        pthread_create(&pool->executors[i].handle, NULL, executor_run, &pool->executors[i]);
+    }
 
     return pool;
 }
 
-nil_t pool_run(pool_p pool)
+nil_t pool_run(pool_p pool, u64_t executor_id, task_fn fn, raw_p arg, u64_t len)
 {
-    u64_t i, l;
-    shared_p shared = pool->shared;
+    executor_t *executor = &pool->executors[executor_id];
 
-    rc_sync(B8_TRUE);
+    pthread_mutex_lock(&executor->mutex);
 
-    pthread_mutex_lock(&shared->lock);
+    // borrow heap
+    heap_borrow(executor->heap);
 
-    // Borrow heap blocks from the main heap
-    l = pool->executors_count;
-    for (i = 0; i < l; i++)
-        heap_borrow(pool->executors[i].heap);
+    executor->task.fn = fn;
+    executor->task.arg = arg;
+    executor->task.len = len;
+    executor->task.result = NULL_OBJ;
+    executor->done = B8_FALSE;
 
-    shared->tasks_remaining = pool->executors_count;
-    pthread_cond_broadcast(&shared->run);
+    pthread_cond_signal(&executor->has_task);
+    pthread_mutex_unlock(&executor->mutex);
 }
 
-nil_t pool_wait(pool_p pool)
+nil_t pool_wait(pool_p pool, u64_t executor_id)
 {
-    u64_t i, l;
-    shared_p shared = pool->shared;
+    executor_t *executor = &pool->executors[executor_id];
 
-    while (shared->tasks_remaining)
-        pthread_cond_wait(&shared->done, &shared->lock);
+    pthread_mutex_lock(&executor->mutex);
 
-    // merge all heaps into the main heap
-    l = pool->executors_count;
-    for (i = 0; i < l; i++)
-        heap_merge(pool->executors[i].heap);
+    while (!executor->done)
+        pthread_cond_wait(&executor->done_task, &executor->mutex);
 
-    pthread_mutex_unlock(&shared->lock);
+    // merge heap
+    heap_merge(executor->heap);
 
-    rc_sync(B8_FALSE);
+    pthread_mutex_unlock(&executor->mutex);
 }
 
 obj_p pool_collect(pool_p pool, obj_p x)
 {
     u64_t i;
     obj_p v, lst;
-    shared_p shared = pool->shared;
     u64_t n = pool->executors_count;
 
     if (is_error(x))
     {
         for (i = 0; i < n; i++)
-            drop_obj(shared->tasks[i].result);
+            drop_obj(pool->executors[i].task.result);
 
         return x;
     }
@@ -162,7 +140,7 @@ obj_p pool_collect(pool_p pool, obj_p x)
 
     for (i = 0; i < n; i++)
     {
-        v = shared->tasks[i].result;
+        v = pool->executors[i].task.result;
         if (is_error(v))
         {
             v = clone_obj(v);
@@ -170,7 +148,7 @@ obj_p pool_collect(pool_p pool, obj_p x)
             drop_obj(lst);
 
             for (i = 0; i < n; i++)
-                drop_obj(shared->tasks[i].result);
+                drop_obj(pool->executors[i].task.result);
 
             return v;
         }
@@ -186,29 +164,31 @@ obj_p pool_collect(pool_p pool, obj_p x)
 u64_t pool_executors_count(pool_p pool)
 {
     if (pool)
-        return pool->executors_count + 1;
+        return pool->executors_count;
     else
-        return 1;
+        return 0;
 }
 
 nil_t pool_stop(pool_p pool)
 {
     u64_t i;
 
-    pthread_mutex_lock(&pool->shared->lock);
-    pool->shared->stop = B8_TRUE;
-    pthread_cond_broadcast(&pool->shared->run);
-    pthread_mutex_unlock(&pool->shared->lock);
-
     for (i = 0; i < pool->executors_count; i++)
-        pthread_join(pool->executors[i].handle, NULL);
+    {
+        pthread_mutex_lock(&pool->executors[i].mutex);
+        pool->executors[i].stop = B8_TRUE;
+        pthread_cond_signal(&pool->executors[i].has_task);
+        pthread_mutex_unlock(&pool->executors[i].mutex);
+        if (pthread_join(pool->executors[i].handle, NULL) != 0)
+            printf("Failed to join thread %lld\n", i);
+        pthread_mutex_destroy(&pool->executors[i].mutex);
+        pthread_cond_destroy(&pool->executors[i].has_task);
+        pthread_cond_destroy(&pool->executors[i].done_task);
+    }
 }
 
 nil_t pool_free(pool_p pool)
 {
     pool_stop(pool);
-    heap_free(pool->shared->tasks);
-    heap_free(pool->shared);
-    heap_free(pool->executors);
-    heap_free(pool);
+    mmap_free(pool, sizeof(struct pool_t) + sizeof(executor_t) * pool->executors_count);
 }

@@ -1608,6 +1608,8 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
         }
         else
             heap_free(obj);
+
+        return;
     }
 }
 

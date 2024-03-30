@@ -25,7 +25,7 @@
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
-#define MAP_FAILED (nil_t *)-1
+#define MAP_FAILED (raw_p)(-1)
 #else
 #include <sys/mman.h>
 #endif
@@ -36,17 +36,17 @@
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 
-nil_t *mmap_stack(u64_t size)
+raw_p mmap_stack(u64_t size)
 {
     return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
 
-nil_t *mmap_malloc(u64_t size)
+raw_p mmap_malloc(u64_t size)
 {
     return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
 
-nil_t *mmap_file(i64_t fd, u64_t size)
+raw_p mmap_file(i64_t fd, u64_t size)
 {
     HANDLE hMapping = CreateFileMapping((HANDLE)fd, NULL, PAGE_READWRITE, 0, size, NULL);
 
@@ -56,27 +56,27 @@ nil_t *mmap_file(i64_t fd, u64_t size)
     return MapViewOfFile(hMapping, FILE_MAP_ALL_ACCESS, 0, 0, size);
 }
 
-i64_t mmap_free(nil_t *addr, u64_t size)
+i64_t mmap_free(raw_p addr, u64_t size)
 {
     unused(size);
     return VirtualFree(addr, 0, MEM_RELEASE);
 }
 
-i64_t mmap_sync(nil_t *addr, u64_t size)
+i64_t mmap_sync(raw_p addr, u64_t size)
 {
     return FlushViewOfFile(addr, size);
 }
 
 #elif defined(__linux__) || defined(__EMSCRIPTEN__)
 
-nil_t *mmap_stack(u64_t size)
+raw_p mmap_stack(u64_t size)
 {
     return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE | MAP_STACK | MAP_LOCKED, -1, 0);
 }
 
-nil_t *mmap_malloc(u64_t size)
+raw_p mmap_malloc(u64_t size)
 {
-    nil_t *ptr;
+    raw_p ptr;
 
     // ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, -1, 0);
     ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -87,20 +87,21 @@ nil_t *mmap_malloc(u64_t size)
     return ptr;
 }
 
-nil_t *mmap_file(i64_t fd, u64_t size)
+raw_p mmap_file(i64_t fd, u64_t size)
 {
-    nil_t *ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    // raw_p ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    raw_p ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE | MAP_NORESERVE, fd, 0);
     // madvise(ptr, size, MADV_HUGEPAGE | MADV_SEQUENTIAL);
 
     return ptr;
 }
 
-i64_t mmap_free(nil_t *addr, u64_t size)
+i64_t mmap_free(raw_p addr, u64_t size)
 {
     return munmap(addr, size);
 }
 
-i64_t mmap_sync(nil_t *addr, u64_t size)
+i64_t mmap_sync(raw_p addr, u64_t size)
 {
     return msync(addr, size, MS_SYNC);
 }
@@ -110,27 +111,27 @@ i64_t mmap_sync(nil_t *addr, u64_t size)
 #define MAP_ANON 0x1000
 #define MAP_ANONYMOUS MAP_ANON
 
-nil_t *mmap_stack(u64_t size)
+raw_p mmap_stack(u64_t size)
 {
     return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 }
 
-nil_t *mmap_malloc(u64_t size)
+raw_p mmap_malloc(u64_t size)
 {
     return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 }
 
-nil_t *mmap_file(i64_t fd, u64_t size)
+raw_p mmap_file(i64_t fd, u64_t size)
 {
     return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 }
 
-i64_t mmap_free(nil_t *addr, u64_t size)
+i64_t mmap_free(raw_p addr, u64_t size)
 {
     return munmap(addr, size);
 }
 
-i64_t mmap_sync(nil_t *addr, u64_t size)
+i64_t mmap_sync(raw_p addr, u64_t size)
 {
     return msync(addr, size, MS_SYNC);
 }

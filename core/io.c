@@ -313,9 +313,134 @@ obj_p parse_csv_line(i8_t types[], i64_t cnt, str_p start, str_p end, i64_t row,
     return NULL_OBJ;
 }
 
+obj_p parse_csv_range(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t lines, i64_t start_line, obj_p cols, c8_t sep)
+{
+    str_p line_end, prev;
+    obj_p res = NULL_OBJ;
+    i64_t j;
+
+    for (j = 0, prev = buf; j < lines; j++)
+    {
+        line_end = (str_p)memchr(prev, '\n', buf + size - prev);
+        if (line_end == NULL)
+        {
+            line_end = prev + size; // Handle last line without newline
+            if (line_end > buf && *(line_end - 1) == '\r')
+                line_end--; // Handle carriage return
+        }
+
+        res = parse_csv_line(types, num_types, prev, line_end, start_line + j, cols, sep);
+        if (res != NULL_OBJ)
+            return res;
+
+        prev = line_end + 1; // Move past the newline
+    }
+
+    return NULL_OBJ; // Success
+}
+
+typedef struct csv_parse_ctx_t
+{
+    i8_t *types;
+    i64_t num_types;
+    str_p buf;
+    i64_t size;
+    i64_t lines;
+    i64_t start_line;
+    obj_p cols;
+    c8_t sep;
+} csv_parse_ctx_t;
+
+obj_p parse_csv_batch(raw_p x, u64_t n)
+{
+    unused(n);
+    csv_parse_ctx_t *ctx = (csv_parse_ctx_t *)x;
+    return parse_csv_range(ctx->types, ctx->num_types, ctx->buf, ctx->size, ctx->lines, ctx->start_line, ctx->cols, ctx->sep);
+}
+
+obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t total_lines, obj_p cols, c8_t sep)
+{
+    obj_p v, res = NULL_OBJ;
+    i64_t i, batch, batch_size, num_batches, lines_per_batch, start_line, end_line, lines_in_batch;
+    str_p batch_start, batch_end;
+    pool_p pool = runtime_get()->pool;
+
+    num_batches = pool_executors_count(pool) + 1; // Number of batches is equal to the number of executors plus the main thread
+    if (num_batches == 1)
+        return parse_csv_range(types, num_types, buf, size, total_lines, 0, cols, sep);
+
+    csv_parse_ctx_t ctx[num_batches];
+
+    lines_per_batch = (total_lines + num_batches - 1) / num_batches; // Calculate lines per batch
+
+    for (batch = 0; batch < num_batches; ++batch)
+    {
+        start_line = batch * lines_per_batch;
+        end_line = start_line + lines_per_batch;
+        if (batch == num_batches - 1 || end_line > total_lines)
+            end_line = total_lines; // Adjust the last batch to cover all remaining lines
+
+        lines_in_batch = end_line - start_line;
+
+        // Now calculate the actual buffer positions for start_line and end_line
+        batch_start = buf;
+        for (i = 0; i < start_line && batch_start < (buf + size); ++i)
+            batch_start = (str_p)memchr(batch_start, '\n', size - (batch_start - buf)) + 1;
+
+        batch_end = batch_start;
+        for (i = 0; i < lines_in_batch && batch_end < (buf + size); ++i)
+        {
+            batch_end = (str_p)memchr(batch_end, '\n', size - (batch_end - buf));
+            if (batch_end == NULL)
+            {
+                batch_end = buf + size; // Handle the last line in the buffer
+                break;
+            }
+            else
+            {
+                ++batch_end; // Move past the newline to include the full line
+            }
+        }
+
+        // Handle cases where lines are fewer than expected or parsing issues
+        if (batch_start == NULL || batch_end == NULL || batch_start >= batch_end)
+            break;
+
+        batch_size = batch_end - batch_start;
+
+        // Fill the new batch
+        ctx[batch].types = types;
+        ctx[batch].num_types = num_types;
+        ctx[batch].buf = batch_start;
+        ctx[batch].size = batch_size;
+        ctx[batch].lines = lines_in_batch;
+        ctx[batch].start_line = start_line;
+        ctx[batch].cols = cols;
+        ctx[batch].sep = sep;
+    }
+
+    // Prepare tasks for executors
+    for (batch = 0; batch < num_batches - 1; batch++)
+        pool_run(pool, batch, parse_csv_batch, &ctx[batch], 1);
+
+    v = parse_csv_batch(&ctx[batch], 1);
+
+    for (batch = 0; batch < num_batches - 1; batch++)
+        pool_wait(pool, batch);
+
+    res = pool_collect(pool, v);
+
+    if (is_error(res))
+        return res;
+
+    drop_obj(res);
+
+    return NULL_OBJ; // Success
+}
+
 obj_p ray_csv(obj_p *x, i64_t n)
 {
-    i64_t i, j, l, fd, len, lines, size;
+    i64_t i, l, fd, len, lines, size;
     str_p buf, prev, pos, line;
     obj_p types, names, cols, res;
     i8_t type;
@@ -342,7 +467,7 @@ obj_p ray_csv(obj_p *x, i64_t n)
 
         // check that all symbols are valid typenames and convert them to types
         l = x[0]->len;
-        types = string(l);
+        types = vector_u8(l);
         for (i = 0; i < l; i++)
         {
             type = env_get_type_by_type_name(&runtime_get()->env, as_symbol(x[0])[i]);
@@ -355,7 +480,7 @@ obj_p ray_csv(obj_p *x, i64_t n)
             if (type < 0)
                 type = -type;
 
-            as_string(types)[i] = type;
+            types->arr[i] = type;
         }
 
         fd = fs_fopen(as_string(x[1]), ATTR_RDONLY);
@@ -462,44 +587,18 @@ obj_p ray_csv(obj_p *x, i64_t n)
         }
 
         // parse lines
-        for (j = 0, prev = line; j < lines; j++)
-        {
-            line = (str_p)memchr(prev, '\n', size);
-            // the last line may not end with \n
-            if (line == NULL)
-            {
-                if (j < lines - 1)
-                {
-                    drop_obj(types);
-                    drop_obj(names);
-                    drop_obj(cols);
-                    fs_fclose(fd);
-                    mmap_free(buf, size);
-                    throw(ERR_LENGTH, "csv: file '%s': invalid line (number of fields is less then csv contains)", as_string(x[1]));
-                }
-
-                line = prev + size;
-                // truncate \r (if any)
-                if ((size > 0) && (line[-1] == '\r'))
-                    line--;
-            }
-            res = parse_csv_line((i8_t *)as_string(types), l, prev, line, j, cols, sep);
-            if (!is_null(res))
-            {
-                drop_obj(types);
-                drop_obj(names);
-                drop_obj(cols);
-                fs_fclose(fd);
-                mmap_free(buf, size);
-                return res;
-            }
-            size -= ((++line) - prev);
-            prev = line;
-        }
+        res = parse_csv_lines((i8_t *)as_u8(types), l, line, size, lines, cols, sep);
 
         drop_obj(types);
         fs_fclose(fd);
         mmap_free(buf, size);
+
+        if (!is_null(res))
+        {
+            drop_obj(names);
+            drop_obj(cols);
+            return res;
+        }
 
         return table(names, cols);
     default:

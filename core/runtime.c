@@ -116,7 +116,7 @@ i32_t runtime_init(i32_t argc, str_p argv[])
     obj_p arg, res;
     str_p fmt;
 
-    heap_init(0, NUM_16_BLOCKS);
+    heap_init(0);
 
     __RUNTIME = (runtime_p)mmap_malloc(sizeof(struct runtime_t));
     __RUNTIME->symbols = symbols_new();
@@ -145,9 +145,9 @@ i32_t runtime_init(i32_t argc, str_p argv[])
         }
         else
         {
-            __RUNTIME->sys_info = sys_info(0);
-            if (__RUNTIME->sys_info.threads > 1)
-                __RUNTIME->pool = pool_new(__RUNTIME->sys_info.threads - 1);
+            __RUNTIME->sys_info = sys_info(1);
+            // if (__RUNTIME->sys_info.threads > 1)
+            //     __RUNTIME->pool = pool_new(__RUNTIME->sys_info.threads - 1);
         }
 
         arg = runtime_get_arg("port");
@@ -178,9 +178,9 @@ i32_t runtime_init(i32_t argc, str_p argv[])
     else
     {
         __RUNTIME->poll = NULL;
-        __RUNTIME->sys_info = sys_info(0);
-        if (__RUNTIME->sys_info.threads > 1)
-            __RUNTIME->pool = pool_new(__RUNTIME->sys_info.threads - 1);
+        __RUNTIME->sys_info = sys_info(1);
+        // if (__RUNTIME->sys_info.threads > 1)
+        //     __RUNTIME->pool = pool_new(__RUNTIME->sys_info.threads - 1);
     }
 
     return 0;

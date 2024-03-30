@@ -85,11 +85,11 @@
 #define debug_assert(x, fmt, ...) (nil_t)0
 #endif
 
-#define printbits_n(x, n)                                        \
-    {                                                            \
-        for (i32_t i = n; i; i--, putchar('0' | ((x >> i) & 1))) \
-            ;                                                    \
-        printf("\n");                                            \
+#define printbits_n(x, n)                                                \
+    {                                                                    \
+        for (u64_t __i = n; __i; __i--, putchar('0' | ((x >> __i) & 1))) \
+            ;                                                            \
+        printf("\n");                                                    \
     }
 #define printbits_32(x) printbits_n(x, 32)
 #define printbits_64(x) printbits_n(x, 64)

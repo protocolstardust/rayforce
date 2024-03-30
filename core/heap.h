@@ -27,21 +27,12 @@
 #include "rayforce.h"
 #include "symbols.h"
 
-#define MIN_ORDER 6                   // 2^6  = 64 bytes
+#define AVAIL_MASK ((u64_t)0xffffffffffffffff)
+#define BLOCK_HEADER_SIZE 16
+#define MIN_ORDER 5                   // 2^5 = 32 bytes (size of block header)
 #define MAX_ORDER 25                  // 2^25 = 32MB
 #define MAX_POOL_ORDER 36             // 2^36 = 64GB
 #define POOL_SIZE (1ull << MAX_ORDER) // 32MB
-#define NUM_16_BLOCKS 1024            // 1K blocks
-
-typedef struct node_t
-{
-    nil_t *base; // base address of the root block (pool) + original order in 7's byte
-    union
-    {
-        struct node_t *next; // next block in the pool
-        u64_t size;          // size of the block (splitted)
-    };
-} node_t;
 
 typedef struct memstat_t
 {
@@ -50,26 +41,33 @@ typedef struct memstat_t
     u64_t free;   // free heap memory
 } memstat_t;
 
+typedef struct block_t
+{
+    struct block_t *pool; // address of the pool the block belongs to
+    u16_t pool_order;     // order of the pool the block belongs to
+    u16_t used;           // used flag
+    u32_t order;          // order of the block
+    struct block_t *prev; // previous block
+    struct block_t *next; // next block
+} *block_p;
+
 typedef struct heap_t
 {
     u64_t id;
-    nil_t *blocks16;                      // pool of 16 bytes blocks
-    nil_t *freelist16;                    // blocks of 16 bytes
-    node_t *freelist[MAX_POOL_ORDER + 2]; // free list of blocks by order
+    block_p freelist[MAX_POOL_ORDER + 2]; // free list of blocks by order
     u64_t avail;                          // mask of available blocks by order
     memstat_t memstat;
 } __attribute__((aligned(PAGE_SIZE))) * heap_p;
 
-heap_p heap_init(u64_t id, u64_t small_blocks);
-nil_t *heap_alloc(u64_t size);
-nil_t *heap_realloc(nil_t *block, u64_t size);
-nil_t heap_free(nil_t *block);
-heap_p heap_get(nil_t);
+heap_p heap_init(u64_t id);
+raw_p heap_alloc(u64_t size);
+raw_p heap_realloc(raw_p ptr, u64_t size);
+nil_t heap_free(raw_p ptr);
 i64_t heap_gc(nil_t);
 nil_t heap_borrow(heap_p heap);
 nil_t heap_merge(heap_p heap);
 nil_t heap_cleanup(nil_t);
 memstat_t heap_memstat(nil_t);
-nil_t heap_print_blocks(nil_t);
+nil_t heap_print_blocks(heap_p heap);
 
 #endif // HEAP_H

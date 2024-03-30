@@ -40,11 +40,11 @@
 #include "rayforce.h"
 
 // clang-format off
-nil_t *mmap_stack(u64_t size);
-nil_t *mmap_malloc(u64_t size);
-nil_t *mmap_file(i64_t fd, u64_t size);
-i64_t  mmap_free(nil_t *addr, u64_t size);
-i64_t  mmap_sync(nil_t *addr, u64_t size);
+raw_p mmap_stack(u64_t size);
+raw_p mmap_malloc(u64_t size);
+raw_p mmap_file(i64_t fd, u64_t size);
+i64_t  mmap_free(raw_p addr, u64_t size);
+i64_t  mmap_sync(raw_p addr, u64_t size);
 // clang-format on
 
 #endif // MMAP_H

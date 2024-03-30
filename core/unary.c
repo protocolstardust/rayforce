@@ -21,6 +21,7 @@
  *   SOFTWARE.
  */
 
+#define _POSIX_C_SOURCE 200809L
 #include <time.h>
 #include "unary.h"
 #include "binary.h"
@@ -281,15 +282,22 @@ obj_p ray_get(obj_p x)
 
 obj_p ray_time(obj_p x)
 {
-    u64_t timer;
+    struct timespec start, end;
+    f64_t elapsed;
 
-    timer = clock();
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     x = eval(x);
     if (is_error(x))
         return x;
     drop_obj(x);
 
-    return f64((((f64_t)(clock() - timer)) / CLOCKS_PER_SEC) * 1000);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    elapsed = (end.tv_sec - start.tv_sec) * 1e3;    // Convert to milliseconds
+    elapsed += (end.tv_nsec - start.tv_nsec) / 1e6; // Convert nanoseconds to milliseconds
+
+    return f64(elapsed);
 }
 
 obj_p ray_bins(obj_p x)

@@ -28,6 +28,7 @@
 #include "hash.h"
 #include "mmap.h"
 #include "string.h"
+#include <pthread.h>
 
 #define STRINGS_POOL_SIZE 4096
 
@@ -50,6 +51,7 @@ typedef struct symbol_t
  */
 typedef struct symbols_t
 {
+    pthread_mutex_t lock;
     i64_t next_sym_id;
     obj_p str_po_id;
     obj_p id_to_str;

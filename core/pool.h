@@ -30,43 +30,37 @@
 
 typedef obj_p (*task_fn)(raw_p, u64_t);
 
-typedef struct task_t
+typedef struct
 {
     task_fn fn;
     raw_p arg;
     u64_t len;
     obj_p result;
-} *task_p;
+} task_t;
 
-typedef struct shared_t
-{
-    pthread_mutex_t lock;  // Mutex for condition variable
-    pthread_cond_t run;    // Condition variable to signal executors
-    pthread_cond_t done;   // Condition variable to signal main thread
-    u64_t tasks_remaining; // Counter to track remaining tasks
-    b8_t stop;             // Flag to indicate if the pool is stopped
-    task_p tasks;          // Array of input tasks for executors
-} *shared_p;
-
-typedef struct executor_t
+typedef struct
 {
     u64_t id;
-    shared_p shared;
-    pthread_t handle;
-    heap_p heap;
-} *executor_p;
+    pthread_mutex_t mutex;    // Mutex for condition variable
+    pthread_cond_t has_task;  // Condition variable for task
+    pthread_cond_t done_task; // Condition variable for task completion
+    b8_t stop;                // Stop flag
+    b8_t done;                // Done flag
+    task_t task;              // Executor's task
+    heap_p heap;              // Executor's heap
+    pthread_t handle;         // Executor's thread handle
+} executor_t;
 
 typedef struct pool_t
 {
-    executor_p executors;  // Array of executors
-    u64_t executors_count; // Number of executors
-    shared_p shared;       // Shared data
+    u64_t executors_count;  // Number of executors
+    executor_t executors[]; // Array of executors
 } *pool_p;
 
 pool_p pool_new(u64_t executors_count);
 nil_t pool_free(pool_p pool);
-nil_t pool_run(pool_p pool);
-nil_t pool_wait(pool_p pool);
+nil_t pool_run(pool_p pool, u64_t executor_id, task_fn fn, raw_p arg, u64_t len);
+nil_t pool_wait(pool_p pool, u64_t executor_id);
 obj_p pool_collect(pool_p pool, obj_p x);
 u64_t pool_executors_count(pool_p pool);
 nil_t pool_stop(pool_p pool);

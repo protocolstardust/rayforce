@@ -186,6 +186,7 @@ symbols_p symbols_new(nil_t)
     symbols_p symbols = (symbols_p)mmap_malloc(sizeof(struct symbols_t));
     pool_node_p node = pool_node_new();
 
+    pthread_mutex_init(&symbols->lock, NULL);
     symbols->pool_node_0 = node;
     symbols->pool_node = node;
     symbols->symbols_pool = (symbol_p)(node + sizeof(pool_node_p)); // Skip the node size of next ptr
@@ -215,9 +216,11 @@ i64_t intern_symbol(str_p s, u64_t len)
 {
     symbol_p sym;
     symbols_p symbols = runtime_get()->symbols;
-    i64_t idx = symbols_next(&symbols->str_po_id, s, len);
+    i64_t idx;
 
     // insert new symbol
+    // pthread_mutex_lock(&symbols->lock);
+    idx = symbols_next(&symbols->str_po_id, s, len);
     if (as_i64(as_list(symbols->str_po_id)[0])[idx] == NULL_I64)
     {
         sym = str_intern(symbols, s, len);
@@ -231,11 +234,16 @@ i64_t intern_symbol(str_p s, u64_t len)
         as_i64(as_list(symbols->id_to_str)[0])[idx] = symbols->next_sym_id;
         as_i64(as_list(symbols->id_to_str)[1])[idx] = (i64_t)sym;
 
+        // pthread_mutex_unlock(&symbols->lock);
+
         return symbols->next_sym_id++;
     }
     // symbol is already interned
     else
+    {
+        // pthread_mutex_unlock(&symbols->lock);
         return as_i64(as_list(symbols->str_po_id)[1])[idx];
+    }
 }
 
 str_p strof_sym(i64_t key)

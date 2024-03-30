@@ -27,17 +27,14 @@
 #include "util.h"
 
 /*
- * Creates new obj_pstring from a C string.
+ * Creates new obj_p string from a C string.
  */
 obj_p string_from_str(str_p str, i64_t len)
 {
     obj_p s;
 
-    if (len == 0)
-        return string(0);
-
-    s = string(len); // string constructor awares of the additional byte for '\0'
-    strncpy(as_string(s), str, len);
+    s = vector(TYPE_C8, len); // vector call is aware of len + 1 and \0 in the end
+    memcpy(s->arr, str, len);
 
     return s;
 }
