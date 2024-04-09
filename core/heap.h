@@ -30,7 +30,7 @@
 #define MIN_ORDER 5                                   // 2^5 = 32 bytes
 #define MAX_ORDER 25                                  // 2^25 = 32MB
 #define MAX_POOL_ORDER 36                             // 2^36 = 64GB
-#define POOL_SIZE (1024 * 1024 * (1ull << MAX_ORDER)) //
+#define POOL_SIZE (1024 * 1024 * (1ull << MAX_ORDER)) // 32TB
 
 typedef struct memstat_t
 {
