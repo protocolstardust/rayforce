@@ -253,11 +253,15 @@ test_result_t test_allocate_and_free_complex()
     obj_p ht2 = vn_list(2, i64(1), i64(2));
     obj_p ht3 = vector_i64(1024);
     obj_p ht4 = vn_list(2, i64(1), i64(2));
+    obj_p ht5 = list(0);
+    push_obj(&ht5, i64(345));
+    push_obj(&ht5, i64(145));
 
     drop_obj(ht1);
     drop_obj(ht2);
     drop_obj(ht3);
     drop_obj(ht4);
+    drop_obj(ht5);
 
     PASS();
 }

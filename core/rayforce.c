@@ -373,7 +373,7 @@ obj_p resize_obj(obj_p *obj, u64_t len)
     new_size = len * size_of_type((*obj)->type);
 
     if (is_internal(*obj))
-        heap_realloc_obj(*obj, new_size);
+        *obj = heap_realloc_obj(*obj, new_size);
     else
     {
         new_obj = heap_alloc_obj(new_size);
@@ -400,7 +400,7 @@ obj_p push_raw(obj_p *obj, raw_p val)
     req = off + size;
 
     if (is_internal(*obj))
-        heap_realloc_obj(*obj, req);
+        *obj = heap_realloc_obj(*obj, req);
     else
     {
         new_obj = heap_alloc_obj(req);

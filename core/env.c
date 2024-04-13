@@ -255,13 +255,13 @@ nil_t init_kw(nil_t)
 
 env_t create_env(nil_t)
 {
-    obj_p functions = dict(vector_symbol(0), vn_list(0));
-    obj_p variables = dict(vector_symbol(0), vn_list(0));
+    obj_p functions = dict(vector_symbol(0), list(0));
+    obj_p variables = dict(vector_symbol(0), list(0));
     obj_p typenames = dict(vector_i64(0), vector_symbol(0));
 
     init_kw();
     init_functions(functions);
-    init_typenames(typenames);
+    // init_typenames(typenames);
 
     env_t env = {
         .functions = functions,

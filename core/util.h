@@ -73,11 +73,11 @@
 #pragma clang diagnostic pop
 #endif
 
-#define debug_obj(o)             \
-    {                            \
-        str_p _f = obj_fmt((o)); \
-        debug("%s", _f);         \
-        heap_free_raw(_f);       \
+#define debug_obj(o)                                  \
+    {                                                 \
+        obj_p _f = obj_fmt((o));                      \
+        debug("%*.s", (i32_t)_f->len, as_string(_f)); \
+        heap_free_obj(_f);                            \
     }
 
 #else
