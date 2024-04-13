@@ -297,6 +297,34 @@ u64_t save_obj(u8_t *buf, u64_t len, obj_p obj)
     }
 }
 
+i64_t ser_raw(u8_t **buf, obj_p obj)
+{
+    u64_t size = size_obj(obj);
+    header_t *header;
+
+    if (size == 0)
+        return -1;
+
+    *buf = (u8_t *)heap_realloc_raw(*buf, sizeof(struct header_t) + size);
+    header = (header_t *)*buf;
+
+    header->prefix = SERDE_PREFIX;
+    header->version = RAYFORCE_VERSION;
+    header->flags = 0;
+    header->endian = 0;
+    header->msgtype = 0;
+    header->size = size;
+
+    if (save_obj(*buf + sizeof(struct header_t), size, obj) == 0)
+    {
+        heap_free_raw(*buf);
+        *buf = NULL;
+        return -1;
+    }
+
+    return sizeof(struct header_t) + size;
+}
+
 obj_p ser_obj(obj_p obj)
 {
     u64_t size = size_obj(obj);
@@ -514,10 +542,8 @@ obj_p load_obj(u8_t **buf, u64_t len)
     }
 }
 
-obj_p de_obj(obj_p obj)
+obj_p de_raw(u8_t *buf, u64_t len)
 {
-    u8_t *buf = as_u8(obj);
-    u64_t len = obj->len;
     header_t *header = (header_t *)buf;
 
     if (header->version > RAYFORCE_VERSION)
@@ -527,6 +553,10 @@ obj_p de_obj(obj_p obj)
         return error_str(ERR_IO, "de: corrupted data in a buffer");
 
     buf += sizeof(struct header_t);
-
     return load_obj(&buf, header->size);
+}
+
+obj_p de_obj(obj_p obj)
+{
+    return de_raw(as_u8(obj), obj->len);
 }

@@ -39,10 +39,10 @@ typedef struct ray_timer_t
 
 typedef struct timers_t
 {
-    obj_p timers;   // Array of timer pointers
-    u64_t capacity; // Maximum size of the heap
-    u64_t size;     // Current number of timers in the heap
-    i64_t counter;  // Counter to assign unique IDs to timers
+    ray_timer_p *timers; // Array of timer pointers
+    u64_t capacity;      // Maximum size of the heap
+    u64_t size;          // Current number of timers in the heap
+    i64_t counter;       // Counter to assign unique IDs to timers
 } *timers_p;
 
 timers_p timers_new(u64_t capacity);

@@ -29,8 +29,6 @@
 #include "error.h"
 #include "io.h"
 
-#define as_timers(t) ((ray_timer_p *)as_i64(t))
-
 #if defined(_WIN32) || defined(__CYGWIN__)
 u64_t get_time_millis(nil_t)
 {
@@ -52,8 +50,7 @@ u64_t get_time_millis(nil_t)
 
 ray_timer_p timer_new(i64_t id, u64_t tic, u64_t exp, i64_t num, obj_p clb)
 {
-    obj_p obj = heap_alloc(sizeof(struct obj_t) + sizeof(struct ray_timer_t));
-    ray_timer_p timer = (ray_timer_p)obj2raw(obj);
+    ray_timer_p timer = (ray_timer_p)heap_alloc_raw(sizeof(struct ray_timer_t));
 
     timer->id = id;
     timer->tic = tic;
@@ -67,7 +64,7 @@ ray_timer_p timer_new(i64_t id, u64_t tic, u64_t exp, i64_t num, obj_p clb)
 nil_t timer_free(ray_timer_p t)
 {
     drop_obj(t->clb);
-    heap_free(raw2obj(t));
+    heap_free_raw(t);
 }
 
 nil_t timers_swap(ray_timer_p *a, ray_timer_p *b)
@@ -80,9 +77,8 @@ nil_t timers_swap(ray_timer_p *a, ray_timer_p *b)
 nil_t timer_up(timers_p timers, u64_t index)
 {
     u64_t parent_index = (index - 1) / 2;
-    ray_timer_p *tmrs = as_timers(timers->timers);
 
-    if (index > 0 && tmrs[parent_index]->exp > tmrs[index]->exp)
+    if (index > 0 && timers->timers[parent_index]->exp > timers->timers[index]->exp)
     {
         timers_swap(&(timers->timers[parent_index]), &(timers->timers[index]));
         timer_up(timers, parent_index);
@@ -94,11 +90,10 @@ nil_t timer_down(timers_p timers, u64_t index)
     u64_t left_child_index = 2 * index + 1;
     u64_t right_child_index = 2 * index + 2;
     u64_t smallest_index = index;
-    ray_timer_p *tmrs = as_timers(timers->timers);
 
-    if (left_child_index < timers->size && tmrs[left_child_index]->exp < tmrs[smallest_index]->exp)
+    if (left_child_index < timers->size && timers->timers[left_child_index]->exp < timers->timers[smallest_index]->exp)
         smallest_index = left_child_index;
-    if (right_child_index < timers->size && tmrs[right_child_index]->exp < tmrs[smallest_index]->exp)
+    if (right_child_index < timers->size && timers->timers[right_child_index]->exp < timers->timers[smallest_index]->exp)
         smallest_index = right_child_index;
     if (smallest_index != index)
     {
@@ -109,25 +104,21 @@ nil_t timer_down(timers_p timers, u64_t index)
 
 i64_t timer_push(timers_p timers, ray_timer_p timer)
 {
-    ray_timer_p *tmrs = as_timers(timers->timers);
-
     if (timers->size == timers->capacity)
         return -1;
 
-    tmrs[timers->size] = timer;
+    timers->timers[timers->size] = timer;
     timer_up(timers, timers->size);
     return timers->size++;
 }
 
 ray_timer_p timer_pop(timers_p timers)
 {
-    ray_timer_p *tmrs = as_timers(timers->timers);
-
     if (timers->size == 0)
         return NULL;
 
-    ray_timer_p timer = tmrs[0];
-    tmrs[0] = tmrs[timers->size - 1];
+    ray_timer_p timer = timers->timers[0];
+    timers->timers[0] = timers->timers[timers->size - 1];
     timers->size--;
     timer_down(timers, 0);
 
@@ -136,10 +127,9 @@ ray_timer_p timer_pop(timers_p timers)
 
 timers_p timers_new(u64_t capacity)
 {
-    obj_p obj = heap_alloc(sizeof(struct obj_t) + sizeof(struct timers_t));
-    timers_p timers = (timers_p)obj2raw(obj);
+    timers_p timers = (timers_p)heap_alloc_raw(sizeof(struct timers_t));
 
-    timers->timers = vector_i64(capacity);
+    timers->timers = (ray_timer_p *)heap_alloc_raw(capacity * sizeof(ray_timer_p));
     timers->capacity = capacity;
     timers->size = 0;
     timers->counter = 0;
@@ -150,21 +140,20 @@ timers_p timers_new(u64_t capacity)
 nil_t timers_free(timers_p timers)
 {
     u64_t i, l;
-    ray_timer_p *tmrs = as_timers(timers->timers);
 
     l = timers->size;
 
     for (i = 0; i < l; i++)
-        timer_free(tmrs[i]);
+        timer_free(timers->timers[i]);
 
-    heap_free(timers->timers);
-    heap_free(raw2obj(timers));
+    heap_free_raw(timers->timers);
+    heap_free_raw(timers);
 }
 
 i64_t timer_add(timers_p timers, u64_t tic, u64_t exp, u64_t num, obj_p clb)
 {
     i64_t id;
-    ray_timer_t *timer;
+    ray_timer_p timer;
 
     id = timers->counter++;
     timer = timer_new(id, tic, exp, num, clb);
@@ -172,7 +161,7 @@ i64_t timer_add(timers_p timers, u64_t tic, u64_t exp, u64_t num, obj_p clb)
     return timer_push(timers, timer);
 }
 
-nil_t timer_del(timers_t *timers, i64_t id)
+nil_t timer_del(timers_p timers, i64_t id)
 {
     i64_t i, l;
 
@@ -194,10 +183,10 @@ nil_t timer_del(timers_t *timers, i64_t id)
     }
 }
 
-i64_t timer_next_timeout(timers_t *timers)
+i64_t timer_next_timeout(timers_p timers)
 {
     i64_t now = get_time_millis();
-    ray_timer_t *timer;
+    ray_timer_p timer;
     obj_p res;
 
     if (timers->size == 0)
@@ -254,7 +243,7 @@ i64_t timer_next_timeout(timers_t *timers)
 obj_p ray_timer(obj_p *x, u64_t n)
 {
     i64_t id;
-    timers_t *timers;
+    timers_p timers;
 
     if (n == 0)
         throw(ERR_IO, "timer: no arguments provided");

@@ -535,7 +535,7 @@ obj_p __ray_set(obj_p x, obj_p y)
                 return clone_obj(x);
             }
 
-            p = (obj_p)heap_alloc(PAGE_SIZE);
+            p = (obj_p)heap_alloc_raw(PAGE_SIZE);
 
             memset((str_p)p, 0, PAGE_SIZE);
 
@@ -546,7 +546,7 @@ obj_p __ray_set(obj_p x, obj_p y)
             c = fs_fwrite(fd, (str_p)p, PAGE_SIZE);
             if (c == -1)
             {
-                heap_free(p);
+                heap_free_raw(p);
                 fs_fclose(fd);
                 return sys_error(ERROR_TYPE_SYS, as_string(x));
             }
@@ -557,7 +557,7 @@ obj_p __ray_set(obj_p x, obj_p y)
             c = fs_fwrite(fd, (str_p)p, sizeof(struct obj_t));
             if (c == -1)
             {
-                heap_free(p);
+                heap_free_raw(p);
                 fs_fclose(fd);
                 return sys_error(ERROR_TYPE_SYS, as_string(x));
             }
@@ -565,7 +565,7 @@ obj_p __ray_set(obj_p x, obj_p y)
             size = as_list(y)[1]->len * sizeof(i64_t);
 
             c = fs_fwrite(fd, as_string(as_list(y)[1]), size);
-            heap_free(p);
+            heap_free_raw(p);
             fs_fclose(fd);
 
             if (c == -1)
@@ -620,7 +620,7 @@ obj_p __ray_set(obj_p x, obj_p y)
             if (fd == -1)
                 return sys_error(ERROR_TYPE_SYS, as_string(x));
 
-            p = (obj_p)heap_alloc(PAGE_SIZE);
+            p = (obj_p)heap_alloc_raw(PAGE_SIZE);
 
             memset((str_p)p, 0, PAGE_SIZE);
 
@@ -629,7 +629,7 @@ obj_p __ray_set(obj_p x, obj_p y)
             c = fs_fwrite(fd, (str_p)p, PAGE_SIZE);
             if (c == -1)
             {
-                heap_free(p);
+                heap_free_raw(p);
                 fs_fclose(fd);
                 return sys_error(ERROR_TYPE_SYS, as_string(x));
             }
@@ -640,7 +640,7 @@ obj_p __ray_set(obj_p x, obj_p y)
             c = fs_fwrite(fd, (str_p)p, sizeof(struct obj_t));
             if (c == -1)
             {
-                heap_free(p);
+                heap_free_raw(p);
                 fs_fclose(fd);
                 return sys_error(ERROR_TYPE_SYS, as_string(x));
             }
@@ -648,8 +648,8 @@ obj_p __ray_set(obj_p x, obj_p y)
             size = k->len * sizeof(i64_t);
 
             c = fs_fwrite(fd, as_string(k), size);
-            heap_free(p);
-            heap_free(k);
+            heap_free_raw(p);
+            heap_free_raw(k);
             fs_fclose(fd);
 
             if (c == -1)

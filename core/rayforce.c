@@ -76,7 +76,7 @@ nil_t zero_obj(obj_p obj)
 
 obj_p atom(i8_t type)
 {
-    obj_p a = heap_alloc(sizeof(struct obj_t));
+    obj_p a = heap_alloc_obj(1);
 
     if (!a)
         panic("oom");
@@ -246,7 +246,7 @@ obj_p vector(i8_t type, u64_t len)
     else
         t = TYPE_LIST;
 
-    vec = heap_alloc(sizeof(struct obj_t) + len * size_of_type(t));
+    vec = heap_alloc_obj(len * size_of_type(t));
 
     if (!vec)
         panic("oom");
@@ -301,7 +301,7 @@ obj_p vn_list(u64_t len, ...)
     obj_p l;
     va_list args;
 
-    l = heap_alloc(sizeof(struct obj_t) + sizeof(obj_p) * len);
+    l = heap_alloc_obj(sizeof(obj_p) * len);
 
     l->mmod = MMOD_INTERNAL;
     l->type = TYPE_LIST;
@@ -370,14 +370,14 @@ obj_p resize_obj(obj_p *obj, u64_t len)
         return *obj;
 
     // calculate size of vector with new length
-    new_size = sizeof(struct obj_t) + len * size_of_type((*obj)->type);
+    new_size = len * size_of_type((*obj)->type);
 
     if (is_internal(*obj))
-        *obj = (obj_p)heap_realloc(*obj, new_size);
+        heap_realloc_obj(*obj, new_size);
     else
     {
-        new_obj = (obj_p)heap_alloc(new_size);
-        memcpy(new_obj, *obj, size_of(*obj));
+        new_obj = heap_alloc_obj(new_size);
+        objcpy(new_obj, *obj, size_of(*obj));
         new_obj->mmod = MMOD_INTERNAL;
         new_obj->type = (*obj)->type;
         new_obj->rc = 1;
@@ -392,20 +392,19 @@ obj_p resize_obj(obj_p *obj, u64_t len)
 
 obj_p push_raw(obj_p *obj, raw_p val)
 {
-    i64_t off, occup, req;
+    i64_t off, req;
     i32_t size = size_of_type((*obj)->type);
     obj_p new_obj;
 
     off = (*obj)->len * size;
-    occup = sizeof(struct obj_t) + off;
-    req = occup + size;
+    req = off + size;
 
     if (is_internal(*obj))
-        *obj = (obj_p)heap_realloc(*obj, req);
+        heap_realloc_obj(*obj, req);
     else
     {
-        new_obj = (obj_p)heap_alloc(req);
-        memcpy(new_obj, *obj, occup);
+        new_obj = heap_alloc_obj(req);
+        objcpy(new_obj, *obj, off);
         new_obj->mmod = MMOD_INTERNAL;
         new_obj->type = (*obj)->type;
         new_obj->rc = 1;
@@ -1545,7 +1544,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
         if (is_external_simple(obj))
             mmap_free(obj, size_of(obj));
         else
-            heap_free(obj);
+            heap_free_obj(obj);
         return;
     case TYPE_ENUM:
         if (is_external_compound(obj))
@@ -1554,7 +1553,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
         {
             drop_obj(as_list(obj)[0]);
             drop_obj(as_list(obj)[1]);
-            heap_free(obj);
+            heap_free_obj(obj);
         }
         return;
     case TYPE_ANYMAP:
@@ -1565,21 +1564,21 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
     case TYPE_DICT:
         drop_obj(as_list(obj)[0]);
         drop_obj(as_list(obj)[1]);
-        heap_free(obj);
+        heap_free_obj(obj);
         return;
     case TYPE_LAMBDA:
         drop_obj(as_lambda(obj)->name);
         drop_obj(as_lambda(obj)->args);
         drop_obj(as_lambda(obj)->body);
         drop_obj(as_lambda(obj)->nfo);
-        heap_free(obj);
+        heap_free_obj(obj);
         return;
     case TYPE_NULL:
         return;
     case TYPE_ERROR:
         drop_obj(as_error(obj)->msg);
         drop_obj(as_error(obj)->locs);
-        heap_free(obj);
+        heap_free_obj(obj);
         return;
     default:
         if (is_external_simple(obj))
@@ -1597,7 +1596,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
             drop_obj(id);
         }
         else
-            heap_free(obj);
+            heap_free_obj(obj);
 
         return;
     }
@@ -1678,11 +1677,6 @@ u32_t rc_obj(obj_p obj)
 str_p type_name(i8_t type)
 {
     return strof_sym(env_get_typename_by_type(&runtime_get()->env, type));
-}
-
-nil_t drop_raw(raw_p ptr)
-{
-    heap_free(ptr);
 }
 
 obj_p eval_str(str_p str)

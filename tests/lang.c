@@ -21,18 +21,18 @@
  *   SOFTWARE.
  */
 
-#define TEST_ASSERT_EQ(lhs, rhs)                                                            \
-    {                                                                                       \
-        obj_p le = eval_str(lhs);                                                           \
-        obj_p re = eval_str(rhs);                                                           \
-        str_p lns = obj_fmt(le);                                                            \
-        str_p rns = obj_fmt(re);                                                            \
-        TEST_ASSERT(strcmp(lns, rns) == 0, str_fmt(0, "Expected %s, got %s\n -- at: %s:%d", \
-                                                   rns, lns, __FILE__, __LINE__));          \
-        drop_obj(le);                                                                       \
-        drop_obj(re);                                                                       \
-        heap_free(lns);                                                                     \
-        heap_free(rns);                                                                     \
+#define TEST_ASSERT_EQ(lhs, rhs)                                                                         \
+    {                                                                                                    \
+        obj_p le = eval_str(lhs);                                                                        \
+        obj_p re = eval_str(rhs);                                                                        \
+        obj_p lns = obj_fmt(le);                                                                         \
+        obj_p rns = obj_fmt(re);                                                                         \
+        TEST_ASSERT(ray_eq(lns, rns) == 0, str_fmt(0, "Expected %s, got %s\n -- at: %s:%d",              \
+                                                   as_string(rns), as_string(lns), __FILE__, __LINE__)); \
+        drop_obj(le);                                                                                    \
+        drop_obj(re);                                                                                    \
+        heap_free_obj(lns);                                                                              \
+        heap_free_obj(rns);                                                                              \
     }
 
 test_result_t test_lang_basic()

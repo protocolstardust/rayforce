@@ -64,8 +64,7 @@
 i64_t str_vfmt_into(obj_p *dst, i64_t *offset, i64_t limit, str_p fmt, va_list vargs)
 {
     str_p s;
-    u64_t n = 0, size = limit > 0 ? limit : MAX_ROW_WIDTH;
-    u64_t len;
+    i64_t n = 0, size = limit > 0 ? limit : MAX_ROW_WIDTH, len;
     va_list args;
 
     len = (*dst)->len;
@@ -76,7 +75,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t *offset, i64_t limit, str_p fmt, va_list v
         len = *offset + size;
         if (is_null(resize_obj(dst, len)))
         {
-            heap_free(*dst);
+            heap_free_raw(*dst);
             panic("str_vfmt_into: OOM");
         }
     }
@@ -90,7 +89,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t *offset, i64_t limit, str_p fmt, va_list v
 
         if (n < 0)
         {
-            heap_free(*dst);
+            heap_free_raw(*dst);
             panic("str_vfmt_into: Error in vsnprintf");
         }
 
@@ -111,7 +110,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t *offset, i64_t limit, str_p fmt, va_list v
         len = *offset + size;
         if (is_null(resize_obj(dst, len)))
         {
-            heap_free(*dst);
+            heap_free_raw(*dst);
             panic("str_vfmt_into: OOM");
         }
     }
@@ -160,7 +159,7 @@ obj_p str_vfmt(i64_t limit, str_p fmt, va_list vargs)
         if (n < 0)
         {
             // Handle encoding error
-            heap_free(res);
+            heap_free_raw(res);
             return NULL_OBJ;
         }
 
@@ -826,7 +825,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t *offset, i64_t indent, b8_t full, obj_p o
             str_fmt_into_n(dst, offset, 0, n, " ");
             str_fmt_into(dst, offset, 0, "|");
             // Free formatted column
-            heap_free(s);
+            heap_free_raw(s);
         }
     }
 
@@ -966,7 +965,7 @@ obj_p obj_fmt_n(obj_p *x, u64_t n)
         if (!end)
         {
             if (res)
-                heap_free(res);
+                heap_free_raw(res);
 
             return NULL;
         }
@@ -983,7 +982,7 @@ obj_p obj_fmt_n(obj_p *x, u64_t n)
     if (sz > 0 && memchr(start, '%', sz))
     {
         if (res)
-            heap_free(res);
+            heap_free_raw(res);
 
         return NULL;
     }
@@ -994,7 +993,12 @@ obj_p obj_fmt_n(obj_p *x, u64_t n)
 }
 
 // Prints out an obj_t string
-i64_t strprintf(obj_p str)
+i64_t objprint(obj_p str)
+{
+    return printf("%.*s", (i32_t)str->len, as_string(str));
+}
+
+i64_t objprintln(obj_p str)
 {
     return printf("%.*s\n", (i32_t)str->len, as_string(str));
 }

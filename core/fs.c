@@ -44,7 +44,7 @@ i64_t fs_fopen(str_p path, i64_t attrs)
         p = slash;
     }
 
-    heap_free(tmp_path);
+    heap_free_raw(tmp_path);
 
     return (i64_t)CreateFile(path, attrs, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 }
@@ -129,7 +129,7 @@ i64_t fs_fopen(str_p path, i64_t attrs)
         p = slash;
     }
 
-    heap_free(s);
+    heap_free_raw(s);
 
     return open(path, attrs, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 }

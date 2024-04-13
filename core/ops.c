@@ -226,7 +226,7 @@ obj_p sys_error(os_ray_error_type_t tp, str_p msg)
     case ERROR_TYPE_OS:
         emsg = str_fmt(0, "%s: %s", msg, strerror(errno));
         err = error_str(ERR_IO, emsg);
-        heap_free(emsg);
+        heap_free_raw(emsg);
         return err;
 
     case ERROR_TYPE_SOCK:
@@ -248,7 +248,7 @@ obj_p sys_error(os_ray_error_type_t tp, str_p msg)
 
     emsg = str_fmt(0, "%s: %s", msg, lpMsgBuf);
     err = error_str(ERR_IO, emsg);
-    heap_free(emsg);
+    heap_free_raw(emsg);
 
     LocalFree(lpMsgBuf);
 

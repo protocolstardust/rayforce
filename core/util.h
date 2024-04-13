@@ -35,7 +35,7 @@
 #define CASSERT(predicate, file) _IMPL_CASSERT_LINE(predicate, __LINE__, file)
 #define _IMPL_PASTE(a, b) a##b
 #define _IMPL_CASSERT_LINE(predicate, line, file) \
-    typedef char _IMPL_PASTE(assertion_failed_##file##_, line)[2 * !!(predicate)-1];
+    typedef char _IMPL_PASTE(assertion_failed_##file##_, line)[2 * !!(predicate) - 1];
 
 #define unused(x) (nil_t)(x)
 
@@ -77,7 +77,7 @@
     {                            \
         str_p _f = obj_fmt((o)); \
         debug("%s", _f);         \
-        heap_free(_f);           \
+        heap_free_raw(_f);       \
     }
 
 #else

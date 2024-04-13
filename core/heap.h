@@ -31,8 +31,6 @@
 #define MAX_ORDER 25                                  // 2^25 = 32MB
 #define MAX_POOL_ORDER 36                             // 2^36 = 64GB
 #define POOL_SIZE (1024 * 1024 * (1ull << MAX_ORDER)) // 32TB
-#define obj2raw(o) ((raw_p)(o)->arr)
-#define raw2obj(r) (((obj_p)(r)) - 1)
 
 typedef struct memstat_t
 {

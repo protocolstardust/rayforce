@@ -34,7 +34,7 @@ obj_p ray_eq(obj_p x, obj_p y)
 
     switch (mtype2(x->type, y->type))
     {
-    case mtype2(TYPE_B8, TYPE_B8):
+    case mtype2(-TYPE_B8, -TYPE_B8):
         return (b8(x->b8 == y->b8));
 
     case mtype2(-TYPE_I64, -TYPE_I64):

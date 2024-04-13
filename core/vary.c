@@ -123,26 +123,26 @@ obj_p ray_format(obj_p *x, u64_t n)
 
 obj_p ray_print(obj_p *x, u64_t n)
 {
-    str_p s = obj_fmt_n(x, n);
+    obj_p s = obj_fmt_n(x, n);
 
     if (!s)
         return error_str(ERR_TYPE, "malformed format string");
 
-    printf("%s", s);
-    heap_free(s);
+    objprint(s);
+    heap_free_obj(s);
 
     return NULL_OBJ;
 }
 
 obj_p ray_println(obj_p *x, u64_t n)
 {
-    str_p s = obj_fmt_n(x, n);
+    obj_p s = obj_fmt_n(x, n);
 
     if (!s)
         return error_str(ERR_TYPE, "malformed format string");
 
-    printf("%s\n", s);
-    heap_free(s);
+    objprintln(s);
+    heap_free_obj(s);
 
     return NULL_OBJ;
 }

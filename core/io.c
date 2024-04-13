@@ -115,7 +115,7 @@ obj_p ray_read(obj_p x)
 
 obj_p io_write(i64_t fd, u8_t msg_type, obj_p obj)
 {
-    str_p fmt;
+    obj_p fmt;
 
     if (obj == NULL_OBJ)
         return NULL_OBJ;
@@ -130,13 +130,13 @@ obj_p io_write(i64_t fd, u8_t msg_type, obj_p obj)
             return eval_obj(obj);
     case 1:
         fmt = obj_fmt(obj);
-        fprintf(stdout, "%s\n", fmt);
-        heap_free(fmt);
+        fprintf(stdout, "%.*s\n", (i32_t)fmt->len, as_string(fmt));
+        heap_free_obj(fmt);
         return NULL_OBJ;
     case 2:
         fmt = obj_fmt(obj);
-        fprintf(stderr, "%s\n", fmt);
-        heap_free(fmt);
+        fprintf(stderr, "%.*s\n", (i32_t)fmt->len, as_string(fmt));
+        heap_free_obj(fmt);
         return NULL_OBJ;
     default:
         // send ipc msg

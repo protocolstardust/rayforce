@@ -34,16 +34,21 @@ CASSERT(sizeof(struct block_t) == 2 * sizeof(struct obj_t), heap_h);
 
 __thread heap_p __HEAP = NULL;
 
-#define blocksize(s) ((s < sizeof(struct block_t)) ? sizeof(struct block_t) : (s))
+#define blocksize(s) ((s < sizeof(struct block_t)) ? sizeof(struct block_t) : (s) + sizeof(struct obj_t))
 #define bsizeof(i) (1ull << (u64_t)(i))
 #define buddyof(b, n) ((block_p)((u64_t)__HEAP->memory + (((u64_t)(b) - (u64_t)__HEAP->memory) ^ bsizeof(n))))
 #define orderof(s) (64ull - __builtin_clzll((s) - 1))
+#define obj2raw(o) ((raw_p)(o)->arr)
+#define raw2obj(r) ((raw_p)((i64_t)(r) - sizeof(struct obj_t)))
 
 #ifdef SYS_MALLOC
 
-raw_p heap_alloc(u64_t size) { return malloc(size); }
-nil_t heap_free(raw_p ptr) { free(ptr); }
-raw_p heap_realloc(raw_p ptr, u64_t new_size) { return realloc(ptr, new_size); }
+raw_p heap_alloc_raw(u64_t size) { return malloc(size); }
+nil_t heap_free_raw(raw_p ptr) { free(ptr); }
+raw_p heap_realloc_raw(raw_p ptr, u64_t new_size) { return realloc(ptr, new_size); }
+raw_p heap_alloc_raw(u64_t size) { return malloc(size); }
+nil_t heap_free_raw(raw_p ptr) { free(ptr); }
+raw_p heap_realloc_raw(raw_p ptr, u64_t size) { return realloc(ptr, size); }
 i64_t heap_gc(nil_t) { return 0; }
 nil_t heap_cleanup(nil_t) {}
 nil_t heap_borrow(heap_p) {}
@@ -138,13 +143,10 @@ inline __attribute__((always_inline)) nil_t split_block(block_p block, u64_t ord
     }
 }
 
-obj_p __attribute__((hot)) heap_alloc(u64_t size)
+obj_p __attribute__((hot)) heap_alloc_obj(u64_t size)
 {
     u64_t i, order, block_size;
     block_p block;
-
-    if (size == 0)
-        return NULL;
 
     block_size = blocksize(size);
 
@@ -198,7 +200,7 @@ obj_p __attribute__((hot)) heap_alloc(u64_t size)
     return (obj_p)block;
 }
 
-__attribute__((hot)) nil_t heap_free(obj_p obj)
+__attribute__((hot)) nil_t heap_free_obj(obj_p obj)
 {
     block_p block, buddy;
     u64_t order;
@@ -239,17 +241,17 @@ __attribute__((hot)) nil_t heap_free(obj_p obj)
     }
 }
 
-__attribute__((hot)) obj_p heap_realloc(obj_p obj, u64_t new_size)
+__attribute__((hot)) obj_p heap_realloc_obj(obj_p obj, u64_t new_size)
 {
     block_p block, new_block;
     u64_t i, old_size, cap, order;
 
     if (obj == NULL)
-        return heap_alloc(new_size);
+        return heap_alloc_obj(new_size);
 
     if (new_size == 0)
     {
-        heap_free(obj);
+        heap_free_obj(obj);
         return NULL;
     }
 
@@ -265,7 +267,7 @@ __attribute__((hot)) obj_p heap_realloc(obj_p obj, u64_t new_size)
     // grow
     if (cap > old_size)
     {
-        new_block = (block_p)heap_alloc(new_size);
+        new_block = (block_p)heap_alloc_obj(new_size);
 
         // Need to preserve the allocator metadata
         if (new_block)
@@ -274,7 +276,7 @@ __attribute__((hot)) obj_p heap_realloc(obj_p obj, u64_t new_size)
             new_block->order = order;
         }
 
-        heap_free(obj);
+        heap_free_obj(obj);
 
         return (obj_p)new_block;
     }
@@ -286,6 +288,42 @@ __attribute__((hot)) obj_p heap_realloc(obj_p obj, u64_t new_size)
     split_block(block, i);
 
     return obj;
+}
+
+raw_p heap_alloc_raw(u64_t size)
+{
+    obj_p obj;
+
+    if (size == 0)
+        return NULL;
+
+    obj = heap_alloc_obj(size);
+
+    if (obj == NULL)
+        return NULL;
+
+    return obj2raw(obj);
+}
+
+raw_p heap_realloc_raw(raw_p ptr, u64_t size)
+{
+    obj_p obj, new_obj;
+
+    obj = raw2obj(ptr);
+    new_obj = heap_realloc_obj(obj, size + sizeof(struct obj_t));
+
+    if (new_obj == NULL)
+        return NULL;
+
+    return obj2raw(new_obj);
+}
+
+nil_t heap_free_raw(raw_p ptr)
+{
+    if (ptr == NULL)
+        return;
+
+    heap_free_obj(raw2obj(ptr));
 }
 
 i64_t heap_gc(nil_t)
@@ -363,7 +401,7 @@ nil_t heap_merge(heap_p heap)
         {
             next = block;
             block = block->next;
-            heap_free((obj_p)next);
+            heap_free_raw(next);
         }
 
         heap->freelist[i] = NULL;

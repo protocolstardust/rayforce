@@ -100,7 +100,7 @@ typedef struct selector_t
         u8_t msgtype;
         i64_t bytes_transfered;
         i64_t size;
-        obj_p buf; // vector bytes
+        u8_t *buf;
     } rx;
 
     struct
@@ -108,7 +108,7 @@ typedef struct selector_t
         b8_t isset;
         i64_t bytes_transfered;
         i64_t size;
-        obj_p buf;
+        u8_t *buf;
         queue_t queue; // queue for async messages waiting to be sent
     } tx;
 
@@ -124,7 +124,7 @@ typedef struct poll_t
     obj_p replfile;
     obj_p ipcfile;
     freelist_p selectors; // freelist of selectors
-    timers_t *timers;     // timers heap
+    timers_p timers;      // timers heap
 } *poll_p;
 
 poll_p poll_init(i64_t port);

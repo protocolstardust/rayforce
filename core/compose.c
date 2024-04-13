@@ -38,7 +38,7 @@ obj_p ray_cast_obj(obj_p x, obj_p y)
 {
     i8_t type;
     obj_p err;
-    str_p fmt, msg;
+    obj_p fmt, msg;
 
     if (x->type != -TYPE_SYMBOL)
         throw(ERR_TYPE, "as: first argument must be a symbol");
@@ -49,9 +49,9 @@ obj_p ray_cast_obj(obj_p x, obj_p y)
     {
         fmt = obj_fmt(x);
         msg = str_fmt(0, "as: not a type: '%s", fmt);
-        err = error_str(ERR_TYPE, msg);
-        heap_free(fmt);
-        heap_free(msg);
+        err = error_obj(ERR_TYPE, msg);
+        heap_free_obj(fmt);
+        heap_free_obj(msg);
         return err;
     }
 

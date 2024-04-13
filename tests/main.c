@@ -37,6 +37,7 @@
 #include "../core/util.h"
 #include "../core/parse.h"
 #include "../core/runtime.h"
+#include "../core/rel.h"
 #include "../core/eval.h"
 
 typedef enum test_status_t
@@ -64,18 +65,18 @@ typedef struct test_entry_t
 // Setup and Teardown functions
 nil_t setup()
 {
-#ifdef STOP_ON_FAIL
-    runtime_init(1, NULL);
-#else
-    runtime_init(0, NULL);
-#endif
-    // heap_init(0);
+    // #ifdef STOP_ON_FAIL
+    //     runtime_init(1, NULL);
+    // #else
+    //     runtime_init(0, NULL);
+    // #endif
+    heap_init(0);
 }
 
 nil_t teardown()
 {
-    runtime_cleanup();
-    // heap_cleanup();
+    // runtime_cleanup();
+    heap_cleanup();
 }
 
 #define PASS() \
@@ -130,11 +131,11 @@ nil_t on_fail(str_p msg)
 
 // Include tests files
 #include "heap.c"
-#include "hash.c"
-#include "string.c"
-#include "env.c"
-#include "sort.c"
-#include "lang.c"
+// #include "hash.c"
+// #include "string.c"
+// #include "env.c"
+// #include "sort.c"
+// #include "lang.c"
 
 // Add tests here
 test_entry_t tests[] = {
