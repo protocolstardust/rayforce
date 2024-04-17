@@ -27,10 +27,18 @@
 #include "rayforce.h"
 
 #define AVAIL_MASK ((u64_t)0xffffffffffffffff)
-#define MIN_ORDER 5                                   // 2^5 = 32 bytes
+#define MIN_ORDER 4                                   // 2^4 = 16B
 #define MAX_ORDER 25                                  // 2^25 = 32MB
 #define MAX_POOL_ORDER 36                             // 2^36 = 64GB
 #define POOL_SIZE (1024 * 1024 * (1ull << MAX_ORDER)) // 32TB
+#define ORDER_SHIFT 56ull                             // Shift to extract the order
+#define ORDER_MASK 0xff00000000000000ull              // Mask to extract the order
+
+// Memory modes
+#define MMOD_INTERNAL 0xff
+#define MMOD_EXTERNAL_SIMPLE 0xfd
+#define MMOD_EXTERNAL_COMPOUND 0xfe
+#define MMOD_EXTERNAL_SERIALIZED 0xfa
 
 typedef struct memstat_t
 {
@@ -41,14 +49,8 @@ typedef struct memstat_t
 
 typedef struct block_t
 {
-    u8_t used;  // block is used
-    u8_t order; // block order
-    i8_t type;  // type
-    u8_t attrs; // attributes
-    u32_t rc;   // reference count
-    u64_t pad;  // padding
-    struct block_t *next;
     struct block_t *prev;
+    struct block_t *next;
 } *block_p;
 
 typedef struct heap_t

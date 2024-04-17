@@ -76,7 +76,7 @@ nil_t zero_obj(obj_p obj)
 
 obj_p atom(i8_t type)
 {
-    obj_p a = heap_alloc_obj(1);
+    obj_p a = heap_alloc_obj(0);
 
     if (!a)
         panic("oom");
@@ -246,7 +246,7 @@ obj_p vector(i8_t type, u64_t len)
     else
         t = TYPE_LIST;
 
-    vec = heap_alloc_obj(sizeof(struct obj_t) + len * size_of_type(t));
+    vec = heap_alloc_obj(len * size_of_type(t));
 
     if (!vec)
         panic("oom");

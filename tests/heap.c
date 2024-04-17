@@ -249,10 +249,10 @@ test_result_t test_realloc()
 
 test_result_t test_allocate_and_free_complex()
 {
-    obj_p ht1 = vector_i64(1024);
-    obj_p ht2 = vn_list(2, i64(1), i64(2));
-    obj_p ht3 = vector_i64(1024);
-    obj_p ht4 = vn_list(2, i64(1), i64(2));
+    obj_p ht1 = vector_i64(12);
+    obj_p ht2 = vn_list(2, i64(1), i64(7));
+    obj_p ht3 = vector_i64(12);
+    obj_p ht4 = vn_list(2, i64(1), i64(7));
     obj_p ht5 = list(0);
     push_obj(&ht5, i64(345));
     push_obj(&ht5, i64(145));

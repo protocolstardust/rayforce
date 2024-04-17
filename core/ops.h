@@ -48,18 +48,12 @@ extern struct obj_t __NULL_OBJECT;
 #define ATTR_QUOTED 8
 #define ATTR_PROTECTED 64
 
-// Memory modes
-#define MMOD_INTERNAL 0xff
-#define MMOD_EXTERNAL_SIMPLE 0xfd
-#define MMOD_EXTERNAL_COMPOUND 0xfe
-#define MMOD_EXTERNAL_SERIALIZED 0xfa
-
 #define is_internal(x) ((x)->mmod == MMOD_INTERNAL)
 #define is_external_simple(x) ((x)->mmod == MMOD_EXTERNAL_SIMPLE)
 #define is_external_compound(x) ((x)->mmod == MMOD_EXTERNAL_COMPOUND)
 #define is_external_serialized(x) ((x)->mmod == MMOD_EXTERNAL_SERIALIZED)
 
-#define alignup(x, a) (((x) + (a)-1) & ~((a)-1))
+#define alignup(x, a) (((x) + (a) - 1) & ~((a) - 1))
 #define align8(x) ((str_p)(((u64_t)x + 7) & ~7))
 #define mtype2(x, y) ((u8_t)(x) | ((u8_t)(y) << 8))
 #define absi64(x) ((x) == NULL_I64 ? 0 : (((x) < 0 ? -(x) : (x))))
@@ -81,8 +75,8 @@ extern struct obj_t __NULL_OBJECT;
 #define minf64(x, y) ((x) < (y) ? (x) : (y))
 #define roti32(x, y) (((x) << (y)) | ((x) >> (32 - (y))))
 #define roti64(x, y) (((x) << (y)) | ((x) >> (64 - (y))))
-#define roundf64(x) ((x) >= 0.0 ? (i64_t)((x) + 0.5) : (i64_t)((x)-0.5))
-#define floorf64(x) ((x) >= 0.0 ? (i64_t)(x) : (i64_t)((x)-1.0))
+#define roundf64(x) ((x) >= 0.0 ? (i64_t)((x) + 0.5) : (i64_t)((x) - 0.5))
+#define floorf64(x) ((x) >= 0.0 ? (i64_t)(x) : (i64_t)((x) - 1.0))
 #define ceilf64(x) ((x) >= 0.0 ? (i64_t)((x) + 1.0) : (i64_t)(x))
 #define xbari64(x, y) (((x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : ((x) / (y)) * (y))
 #define xbarf64(x, y) ((i64_t)(((x) / (y)) * y))
