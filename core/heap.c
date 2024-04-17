@@ -73,26 +73,12 @@ heap_p heap_init(u64_t id)
     return __HEAP;
 }
 
-block_p heap_add_pool(u64_t order)
+block_p heap_add_pool(u64_t size)
 {
-    u64_t size = bsizeof(order);
     block_p block = (block_p)mmap_commit(__HEAP->memory + __HEAP->memoffset, size);
 
     debug_assert(block != NULL, "Failed to add pool");
     debug_assert((u64_t)block % PAGE_SIZE == 0, "Pool is not page aligned");
-
-    debug("-- HEAP[%lld]: add pool order: %lld block: %p size: %lld", __HEAP->id, order, block, size);
-
-    if (block == NULL)
-        return NULL;
-
-    block->prev = blockaddr(NULL, order);
-    block->next = NULL;
-
-    __HEAP->memstat.system += size;
-    __HEAP->memstat.heap += size;
-
-    __HEAP->memoffset += size;
 
     return block;
 }
@@ -158,19 +144,25 @@ obj_p __attribute__((hot)) heap_alloc_obj(u64_t size)
     {
         if (order >= MAX_ORDER)
         {
-            block = heap_add_pool(order);
+            size = bsizeof(order);
+            block = heap_add_pool(size);
+
             if (block == NULL)
                 return NULL;
+
+            __HEAP->memstat.system += size;
 
             goto retobj;
         }
 
+        block = heap_add_pool(bsizeof(MAX_ORDER));
         i = MAX_ORDER;
-
-        block = heap_add_pool(i);
 
         if (block == NULL)
             return NULL;
+
+        __HEAP->memstat.system += bsizeof(MAX_ORDER);
+        __HEAP->memoffset += bsizeof(MAX_ORDER);
 
         insert_block(block, i);
     }
