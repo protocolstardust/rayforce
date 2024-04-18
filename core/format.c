@@ -86,7 +86,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, str_p fmt, va_list vargs)
     if (limit == 0)
         return 0;
 
-    size = (limit == NO_LIMIT) ? MAX_ROW_WIDTH : limit;
+    size = (limit == NO_LIMIT) ? 2 : limit;
 
     // Allocate or expand the buffer if necessary
     if (*dst == NULL_OBJ)
@@ -134,7 +134,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, str_p fmt, va_list vargs)
             return limit;
 
         // Expand the buffer for the next iteration
-        size = n;
+        size = n + 1; // +1 for the null terminator
         if (is_null(resize_obj(dst, l + size)))
         {
             heap_free_raw(*dst);
@@ -221,63 +221,63 @@ obj_p str_fmt(i64_t limit, str_p fmt, ...)
     return res;
 }
 
-i64_t b8_fmt_into(obj_p *dst, i64_t limit, b8_t val)
+i64_t b8_fmt_into(obj_p *dst, b8_t val)
 {
     if (val)
-        return str_fmt_into(dst, limit, "true");
+        return str_fmt_into(dst, 5, "true");
 
-    return str_fmt_into(dst, limit, "false");
+    return str_fmt_into(dst, 5, "false");
 }
 
-i64_t byte_fmt_into(obj_p *dst, i64_t limit, u8_t val)
+i64_t byte_fmt_into(obj_p *dst, u8_t val)
 {
-    return str_fmt_into(dst, limit, "0x%02x", val);
+    return str_fmt_into(dst, 5, "0x%02x", val);
 }
 
-i64_t char_fmt_into(obj_p *dst, i64_t limit, b8_t full, c8_t val)
+i64_t char_fmt_into(obj_p *dst, b8_t full, c8_t val)
 {
     switch (val)
     {
     case '\"':
-        return full ? str_fmt_into(dst, limit, "'\\\"'") : str_fmt_into(dst, limit, "\\\"");
+        return full ? str_fmt_into(dst, 5, "'\\\"'") : str_fmt_into(dst, 4, "\\\"");
     case '\n':
-        return full ? str_fmt_into(dst, limit, "'\\n'") : str_fmt_into(dst, limit, "\\n");
+        return full ? str_fmt_into(dst, 5, "'\\n'") : str_fmt_into(dst, 3, "\\n");
     case '\r':
-        return full ? str_fmt_into(dst, limit, "'\\r'") : str_fmt_into(dst, limit, "\\r");
+        return full ? str_fmt_into(dst, 5, "'\\r'") : str_fmt_into(dst, 3, "\\r");
     case '\t':
-        return full ? str_fmt_into(dst, limit, "'\\t'") : str_fmt_into(dst, limit, "\\t");
+        return full ? str_fmt_into(dst, 5, "'\\t'") : str_fmt_into(dst, 3, "\\t");
     default:
-        return full ? str_fmt_into(dst, limit, "'%c'", val) : str_fmt_into(dst, limit, "%c", val);
+        return full ? str_fmt_into(dst, 4, "'%c'", val) : str_fmt_into(dst, 2, "%c", val);
     }
 }
 
-i64_t i64_fmt_into(obj_p *dst, i64_t limit, i64_t val)
+i64_t i64_fmt_into(obj_p *dst, i64_t val)
 {
     if (val == NULL_I64)
-        return str_fmt_into(dst, limit, "%s", "0i");
+        return str_fmt_into(dst, 3, "%s", "0i");
 
-    return str_fmt_into(dst, limit, "%lld", val);
+    return str_fmt_into(dst, NO_LIMIT, "%lld", val);
 }
 
-i64_t f64_fmt_into(obj_p *dst, i64_t limit, f64_t val)
+i64_t f64_fmt_into(obj_p *dst, f64_t val)
 {
     f64_t order;
 
     if (ops_is_nan(val))
-        return str_fmt_into(dst, limit, "0f");
+        return str_fmt_into(dst, 3, "0f");
 
     // Find the order of magnitude of the number to select the appropriate format
     order = log10(val);
     if (val && (order > 6 || order < -4))
-        return str_fmt_into(dst, limit, "%.*e", 3 * F64_PRECISION, val);
+        return str_fmt_into(dst, 20, "%.*e", 3 * F64_PRECISION, val);
 
-    return str_fmt_into(dst, limit, "%.*f", F64_PRECISION, val);
+    return str_fmt_into(dst, 20, "%.*f", F64_PRECISION, val);
 }
 
 i64_t symbol_fmt_into(obj_p *dst, i64_t limit, i64_t val)
 {
     if (val == NULL_I64)
-        return str_fmt_into(dst, limit, "0s");
+        return str_fmt_into(dst, 3, "0s");
 
     i64_t n = str_fmt_into(dst, limit, "%s", strof_sym(val));
 
@@ -290,7 +290,7 @@ i64_t symbol_fmt_into(obj_p *dst, i64_t limit, i64_t val)
 i64_t ts_fmt_into(obj_p *dst, i64_t limit, i64_t val)
 {
     if (val == NULL_I64)
-        return str_fmt_into(dst, limit, "0t");
+        return str_fmt_into(dst, 3, "0t");
 
     timestamp_t ts = timestamp_from_i64(val);
     i64_t n;
@@ -503,13 +503,13 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i)
     switch (obj->type)
     {
     case TYPE_B8:
-        return b8_fmt_into(dst, limit, as_b8(obj)[i]);
+        return b8_fmt_into(dst, as_b8(obj)[i]);
     case TYPE_U8:
-        return byte_fmt_into(dst, limit, as_u8(obj)[i]);
+        return byte_fmt_into(dst, as_u8(obj)[i]);
     case TYPE_I64:
-        return i64_fmt_into(dst, limit, as_i64(obj)[i]);
+        return i64_fmt_into(dst, as_i64(obj)[i]);
     case TYPE_F64:
-        return f64_fmt_into(dst, limit, as_f64(obj)[i]);
+        return f64_fmt_into(dst, as_f64(obj)[i]);
     case TYPE_SYMBOL:
         return symbol_fmt_into(dst, limit, as_symbol(obj)[i]);
     case TYPE_TIMESTAMP:
@@ -517,7 +517,7 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i)
     case TYPE_GUID:
         return guid_fmt_into(dst, limit, &as_guid(obj)[i]);
     case TYPE_C8:
-        return char_fmt_into(dst, limit, B8_TRUE, as_string(obj)[i]);
+        return char_fmt_into(dst, B8_TRUE, as_string(obj)[i]);
     case TYPE_LIST:
         return obj_fmt_into(dst, indent, limit, B8_FALSE, as_list(obj)[i]);
     case TYPE_ENUM:
@@ -639,7 +639,7 @@ i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
 
     for (i = 0; i < l; i++)
     {
-        n += char_fmt_into(dst, 2, B8_FALSE, s[i]);
+        n += char_fmt_into(dst, B8_FALSE, s[i]);
         if (n > limit)
             break;
     }
@@ -746,7 +746,6 @@ i64_t dict_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
         maxn(n, raw_fmt_into(dst, indent, MAX_ROW_WIDTH, keys, i));
         n += str_fmt_into(dst, MAX_ROW_WIDTH, ": ");
         maxn(n, raw_fmt_into(dst, indent, MAX_ROW_WIDTH, vals, i));
-        debug("dict_fmt_into: i=%llu LEN: %lld\n", i, (*dst)->len);
     }
 
     if (dict_height < ops_count(keys))
@@ -901,13 +900,13 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
     switch (obj->type)
     {
     case -TYPE_B8:
-        return b8_fmt_into(dst, limit, obj->b8);
+        return b8_fmt_into(dst, obj->b8);
     case -TYPE_U8:
-        return byte_fmt_into(dst, limit, obj->u8);
+        return byte_fmt_into(dst, obj->u8);
     case -TYPE_I64:
-        return i64_fmt_into(dst, limit, obj->i64);
+        return i64_fmt_into(dst, obj->i64);
     case -TYPE_F64:
-        return f64_fmt_into(dst, limit, obj->f64);
+        return f64_fmt_into(dst, obj->f64);
     case -TYPE_SYMBOL:
         return symbol_fmt_into(dst, limit, obj->i64);
     case -TYPE_TIMESTAMP:

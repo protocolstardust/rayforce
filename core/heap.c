@@ -294,6 +294,9 @@ __attribute__((hot)) obj_p heap_realloc_obj(obj_p obj, u64_t new_size)
     cap = blocksize(new_size);
     order = orderof(cap);
 
+    if (obj->order == order)
+        return obj;
+
     // grow
     if (cap > old_size)
     {
