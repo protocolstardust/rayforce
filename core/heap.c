@@ -42,7 +42,7 @@ __thread heap_p __HEAP = NULL;
 #define blockorder(b) ((u64_t)(b->prev) >> ORDER_SHIFT)
 #define blockaddr(p, o) ((block_p)((u64_t)(p) | ((u64_t)(o) << ORDER_SHIFT)))
 #define obj2raw(o) ((raw_p)(o)->arr)
-#define raw2obj(r) ((raw_p)((i64_t)(r) - sizeof(struct obj_t)))
+#define raw2obj(r) ((obj_p)((i64_t)(r) - sizeof(struct obj_t)))
 
 #ifdef SYS_MALLOC
 
@@ -152,7 +152,7 @@ obj_p __attribute__((hot)) heap_alloc_obj(u64_t size)
 
             __HEAP->memstat.system += size;
 
-            goto retobj;
+            goto complete;
         }
 
         block = heap_add_pool(bsizeof(MAX_ORDER));
@@ -180,7 +180,7 @@ obj_p __attribute__((hot)) heap_alloc_obj(u64_t size)
 
     split_block(block, order, i);
 
-retobj:
+complete:
     obj = (obj_p)block;
     obj->mmod = MMOD_INTERNAL;
     obj->order = order;
