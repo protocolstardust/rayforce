@@ -74,7 +74,6 @@ heap_p heap_init(u64_t id)
     return __HEAP;
 }
 
-// inline __attribute__((always_inline))
 block_p heap_add_pool(u64_t size)
 {
     block_p block = (block_p)mmap_commit(__HEAP->memory + __HEAP->memoffset, size);
@@ -85,7 +84,6 @@ block_p heap_add_pool(u64_t size)
     return block;
 }
 
-// inline __attribute__((always_inline))
 nil_t heap_remove_pool(block_p block, u64_t size)
 {
     mmap_free(block, size);
@@ -94,8 +92,7 @@ nil_t heap_remove_pool(block_p block, u64_t size)
     __HEAP->memstat.system -= size;
 }
 
-// inline __attribute__((always_inline))
-nil_t heap_insert_block(block_p block, u64_t order)
+inline __attribute__((always_inline)) nil_t heap_insert_block(block_p block, u64_t order)
 {
     u64_t size = bsizeof(order);
 
@@ -110,8 +107,7 @@ nil_t heap_insert_block(block_p block, u64_t order)
     __HEAP->freelist[order] = block;
 }
 
-// inline __attribute__((always_inline))
-nil_t heap_remove_block(block_p block, u64_t order)
+inline __attribute__((always_inline)) nil_t heap_remove_block(block_p block, u64_t order)
 {
     block_p prev = blockprev(block);
 
@@ -127,8 +123,7 @@ nil_t heap_remove_block(block_p block, u64_t order)
         __HEAP->avail &= ~bsizeof(order);
 }
 
-// inline __attribute__((always_inline))
-nil_t heap_split_block(block_p block, u64_t block_order, u64_t order)
+inline __attribute__((always_inline)) nil_t heap_split_block(block_p block, u64_t block_order, u64_t order)
 {
     while ((order--) > block_order)
         heap_insert_block((block_p)((u64_t)block + bsizeof(order)), order);
@@ -451,8 +446,6 @@ memstat_t heap_memstat(nil_t)
 {
     u64_t i;
     block_p block;
-
-    // heap_print_blocks(__HEAP);
 
     __HEAP->memstat.free = 0;
 
