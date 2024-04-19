@@ -27,7 +27,7 @@
         obj_p re = eval_str(rhs);                                                                        \
         obj_p lns = obj_fmt(le);                                                                         \
         obj_p rns = obj_fmt(re);                                                                         \
-        TEST_ASSERT(ray_eq(lns, rns) == 0, str_fmt(0, "Expected %s, got %s\n -- at: %s:%d",              \
+        TEST_ASSERT(ray_eq(lns, rns) == 0, str_fmt(-1, "Expected %s, got %s\n -- at: %s:%d",             \
                                                    as_string(rns), as_string(lns), __FILE__, __LINE__)); \
         drop_obj(le);                                                                                    \
         drop_obj(re);                                                                                    \

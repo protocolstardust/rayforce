@@ -43,11 +43,27 @@ obj_p cstring_from_str(str_p str, i64_t len)
 {
     obj_p s;
 
-    s = string(len + 1);
-    strncpy(as_string(s), str, len);
-    as_string(s)[len] = '\0';
+    if (len <= 0)
+        return string(0);
+
+    if (str[len - 1] == '\0')
+    {
+        s = string(len);
+        strncpy(as_string(s), str, len);
+    }
+    else
+    {
+        s = string(len + 1);
+        strncpy(as_string(s), str, len + 1);
+        return s;
+    }
 
     return s;
+}
+
+obj_p cstring_from_obj(obj_p obj)
+{
+    return cstring_from_str(as_string(obj), obj->len);
 }
 
 /*

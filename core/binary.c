@@ -376,7 +376,7 @@ obj_p __ray_set(obj_p x, obj_p y)
     i64_t fd, c = 0;
     u64_t i, l, sz, size;
     u8_t *b, mmod;
-    obj_p res, col, s, p, k, v, e, cols, sym, buf;
+    obj_p res, col, s, p, k, v, e, cols, sym, path, buf;
 
     switch (x->type)
     {
@@ -398,16 +398,23 @@ obj_p __ray_set(obj_p x, obj_p y)
         switch (y->type)
         {
         case TYPE_SYMBOL:
-            fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
+            path = cstring_from_obj(x);
+
+            fd = fs_fopen(as_string(path), ATTR_WRONLY | ATTR_CREAT);
 
             if (fd == -1)
-                return sys_error(ERROR_TYPE_SYS, as_string(x));
+            {
+                res = sys_error(ERROR_TYPE_SYS, as_string(path));
+                drop_obj(path);
+                return res;
+            }
 
             buf = ser_obj(y);
 
             if (is_error(buf))
             {
                 fs_fclose(fd);
+                drop_obj(path);
                 return buf;
             }
 
@@ -416,7 +423,13 @@ obj_p __ray_set(obj_p x, obj_p y)
             drop_obj(buf);
 
             if (c == -1)
-                return sys_error(ERROR_TYPE_SYS, as_string(x));
+            {
+                res = sys_error(ERROR_TYPE_SYS, as_string(path));
+                drop_obj(path);
+                return res;
+            }
+
+            drop_obj(path);
 
             return clone_obj(x);
         case TYPE_TABLE:
@@ -662,10 +675,15 @@ obj_p __ray_set(obj_p x, obj_p y)
         default:
             if (is_vector(y))
             {
-                fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
+                path = cstring_from_obj(x);
+                fd = fs_fopen(as_string(path), ATTR_WRONLY | ATTR_CREAT);
 
                 if (fd == -1)
-                    return sys_error(ERROR_TYPE_SYS, as_string(x));
+                {
+                    res = sys_error(ERROR_TYPE_SYS, as_string(path));
+                    drop_obj(path);
+                    return res;
+                }
 
                 size = size_of(y);
 
@@ -673,7 +691,8 @@ obj_p __ray_set(obj_p x, obj_p y)
 
                 if (c == -1)
                 {
-                    e = sys_error(ERROR_TYPE_SYS, as_string(x));
+                    e = sys_error(ERROR_TYPE_SYS, as_string(path));
+                    drop_obj(path);
                     fs_fclose(fd);
                     return e;
                 }
@@ -684,10 +703,13 @@ obj_p __ray_set(obj_p x, obj_p y)
                 c = fs_fwrite(fd, (str_p)&mmod, sizeof(u8_t));
                 if (c == -1)
                 {
-                    e = sys_error(ERROR_TYPE_SYS, as_string(x));
+                    e = sys_error(ERROR_TYPE_SYS, as_string(path));
+                    drop_obj(path);
                     fs_fclose(fd);
                     return e;
                 }
+
+                drop_obj(path);
                 fs_fclose(fd);
 
                 return clone_obj(x);

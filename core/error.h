@@ -34,11 +34,11 @@
 /*
  * Create a new error object and return it
  */
-#define throw(t, ...)                       \
-    {                                       \
-        obj_p _m = str_fmt(0, __VA_ARGS__); \
-        obj_p _e = error_obj(t, _m);        \
-        return _e;                          \
+#define throw(t, ...)                        \
+    {                                        \
+        obj_p _m = str_fmt(-1, __VA_ARGS__); \
+        obj_p _e = error_obj(t, _m);         \
+        return _e;                           \
     }
 
 #define panic(...)                                              \

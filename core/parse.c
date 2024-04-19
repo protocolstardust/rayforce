@@ -207,7 +207,7 @@ obj_p parse_timestamp(parser_t *parser)
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(0, "Month is out of range"));
+            return parse_error(parser, parser->count++, str_fmt(-1, "Month is out of range"));
         }
     }
     else
@@ -233,7 +233,7 @@ obj_p parse_timestamp(parser_t *parser)
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(0, "Day is out of range"));
+            return parse_error(parser, parser->count++, str_fmt(-1, "Day is out of range"));
         }
     }
     else
@@ -267,7 +267,7 @@ obj_p parse_timestamp(parser_t *parser)
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(0, "Hour is out of range"));
+            return parse_error(parser, parser->count++, str_fmt(-1, "Hour is out of range"));
         }
     }
     else
@@ -293,7 +293,7 @@ obj_p parse_timestamp(parser_t *parser)
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(0, "Minute is out of range"));
+            return parse_error(parser, parser->count++, str_fmt(-1, "Minute is out of range"));
         }
     }
     else
@@ -319,7 +319,7 @@ obj_p parse_timestamp(parser_t *parser)
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(0, "Second is out of range"));
+            return parse_error(parser, parser->count++, str_fmt(-1, "Second is out of range"));
         }
     }
     else
@@ -404,7 +404,7 @@ obj_p parse_number(parser_t *parser)
     {
         span.end_column += (end - parser->current - 1);
         nfo_insert(parser->nfo, parser->count, span);
-        return parse_error(parser, parser->count++, str_fmt(0, "Number is out of range"));
+        return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
     }
 
     if (end == parser->current)
@@ -419,7 +419,7 @@ obj_p parse_number(parser_t *parser)
         {
             span.end_column += (end - parser->current);
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(0, "Number is out of range"));
+            return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
         }
 
         num = f64(num_f64);
@@ -466,7 +466,7 @@ obj_p parse_char(parser_t *parser)
         {
             span.end_column += (pos - parser->current);
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(0, "Invalid literal: char can not contain more than one symbol"));
+            return parse_error(parser, parser->count++, str_fmt(-1, "Invalid literal: char can not contain more than one symbol"));
         }
 
         id = intern_symbol(parser->current + 1, pos - (parser->current + 1));
@@ -524,7 +524,7 @@ obj_p parse_string(parser_t *parser)
                 drop_obj(str);
                 span.end_column += (pos - parser->current);
                 nfo_insert(parser->nfo, parser->count, span);
-                err = parse_error(parser, parser->count++, str_fmt(0, "Invalid escape sequence"));
+                err = parse_error(parser, parser->count++, str_fmt(-1, "Invalid escape sequence"));
             }
 
             continue;
@@ -540,7 +540,7 @@ obj_p parse_string(parser_t *parser)
         drop_obj(str);
         span.end_column += (pos - parser->current);
         nfo_insert(parser->nfo, parser->count, span);
-        err = parse_error(parser, parser->count++, str_fmt(0, "Expected '\"'"));
+        err = parse_error(parser, parser->count++, str_fmt(-1, "Expected '\"'"));
 
         return err;
     }
@@ -634,7 +634,7 @@ obj_p parse_vector(parser_t *parser)
 
         if (is_at(tok, '\0') || is_at_term(tok))
         {
-            err = parse_error(parser, (i64_t)tok, str_fmt(0, "Expected ']'"));
+            err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Expected ']'"));
             drop_obj(vec);
             drop_obj(tok);
 
@@ -645,7 +645,7 @@ obj_p parse_vector(parser_t *parser)
         {
             if (vec->len > 0 && vec->type != TYPE_B8)
             {
-                err = parse_error(parser, (i64_t)tok, str_fmt(0, "Invalid token in vector"));
+                err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
 
@@ -666,7 +666,7 @@ obj_p parse_vector(parser_t *parser)
             }
             else
             {
-                err = parse_error(parser, (i64_t)tok, str_fmt(0, "Invalid token in vector"));
+                err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
 
@@ -687,7 +687,7 @@ obj_p parse_vector(parser_t *parser)
             }
             else
             {
-                err = parse_error(parser, (i64_t)tok, str_fmt(0, "Invalid token in vector"));
+                err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
 
@@ -703,7 +703,7 @@ obj_p parse_vector(parser_t *parser)
             }
             else
             {
-                err = parse_error(parser, (i64_t)tok, str_fmt(0, "Invalid token in vector"));
+                err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
 
@@ -719,7 +719,7 @@ obj_p parse_vector(parser_t *parser)
             }
             else
             {
-                err = parse_error(parser, (i64_t)tok, str_fmt(0, "Invalid token in vector"));
+                err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
 
@@ -728,7 +728,7 @@ obj_p parse_vector(parser_t *parser)
         }
         else
         {
-            err = parse_error(parser, (i64_t)tok, str_fmt(0, "Invalid token in vector"));
+            err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
             drop_obj(vec);
             drop_obj(tok);
 
@@ -770,7 +770,7 @@ obj_p parse_list(parser_t *parser)
         {
             if (args->type != TYPE_I64 || args->len != 0)
             {
-                err = parse_error(parser, (i64_t)args, str_fmt(0, "fn: expected type 'Symbol as arguments."));
+                err = parse_error(parser, (i64_t)args, str_fmt(-1, "fn: expected type 'Symbol as arguments."));
                 drop_obj(args);
                 return err;
             }
@@ -792,7 +792,7 @@ obj_p parse_list(parser_t *parser)
         {
             span_extend(parser, &span);
             nfo_insert(parser->nfo, parser->count, span);
-            err = parse_error(parser, parser->count++, str_fmt(0, "fn: expected ')'"));
+            err = parse_error(parser, parser->count++, str_fmt(-1, "fn: expected ')'"));
             drop_obj(args);
             drop_obj(body);
             drop_obj(tok);
@@ -821,7 +821,7 @@ obj_p parse_list(parser_t *parser)
         if (at_eof(*parser->current))
         {
             nfo_insert(parser->nfo, parser->count, span);
-            err = parse_error(parser, parser->count++, str_fmt(0, "Expected ')'"));
+            err = parse_error(parser, parser->count++, str_fmt(-1, "Expected ')'"));
             drop_obj(lst);
             drop_obj(tok);
 
@@ -830,7 +830,7 @@ obj_p parse_list(parser_t *parser)
 
         if (is_at_term(tok))
         {
-            err = parse_error(parser, (i64_t)tok, str_fmt(0, "There is no opening found for: '%c'", tok->c8));
+            err = parse_error(parser, (i64_t)tok, str_fmt(-1, "There is no opening found for: '%c'", tok->c8));
             drop_obj(lst);
             drop_obj(tok);
 
@@ -875,7 +875,7 @@ obj_p parse_dict(parser_t *parser)
         if (at_eof(*parser->current) || is_at_term(tok))
         {
             nfo_insert(parser->nfo, parser->count, span);
-            err = parse_error(parser, parser->count++, str_fmt(0, "Expected '}'"));
+            err = parse_error(parser, parser->count++, str_fmt(-1, "Expected '}'"));
             drop_obj(keys);
             drop_obj(vals);
             drop_obj(tok);
@@ -901,7 +901,7 @@ obj_p parse_dict(parser_t *parser)
 
         if (!is_at(tok, ':'))
         {
-            err = parse_error(parser, (i64_t)tok, str_fmt(0, "Expected ':'"));
+            err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Expected ':'"));
             drop_obj(vals);
             drop_obj(keys);
             drop_obj(tok);
@@ -924,7 +924,7 @@ obj_p parse_dict(parser_t *parser)
         if (is_at_term(tok))
         {
             nfo_insert(parser->nfo, parser->count, span);
-            err = parse_error(parser, parser->count++, str_fmt(0, "Expected value folowing ':'"));
+            err = parse_error(parser, parser->count++, str_fmt(-1, "Expected value folowing ':'"));
             drop_obj(keys);
             drop_obj(vals);
             drop_obj(tok);
@@ -978,7 +978,7 @@ obj_p parse_command(parser_t *parser)
     }
 
     nfo_insert(parser->nfo, parser->count, span);
-    err = parse_error(parser, parser->count++, str_fmt(0, "Invalid command. Type '\\?' for commands list."));
+    err = parse_error(parser, parser->count++, str_fmt(-1, "Invalid command. Type '\\?' for commands list."));
     return err;
 }
 
@@ -1079,7 +1079,7 @@ obj_p parser_advance(parser_t *parser)
     }
 
     nfo_insert(parser->nfo, (i64_t)tok, span_start(parser));
-    err = parse_error(parser, (i64_t)tok, str_fmt(0, "Unexpected token: '%c'", *parser->current));
+    err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Unexpected token: '%c'", *parser->current));
     drop_obj(tok);
 
     return err;
@@ -1152,7 +1152,7 @@ obj_p parse(str_p input, obj_p nfo)
         span.start_column = span.end_column + 1;
         span.end_column = span.start_column;
         nfo_insert(parser.nfo, parser.count, span);
-        err = parse_error(&parser, parser.count++, str_fmt(0, "Unparsed input remains"));
+        err = parse_error(&parser, parser.count++, str_fmt(-1, "Unparsed input remains"));
         drop_obj(res);
         return err;
     }

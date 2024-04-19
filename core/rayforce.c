@@ -1491,7 +1491,7 @@ obj_p cast_obj(i8_t type, obj_p obj)
         if (type == TYPE_C8)
             return obj_fmt(obj);
 
-        msg = str_fmt(0, "invalid conversion from '%s to '%s", type_name(obj->type), type_name(type));
+        msg = str_fmt(-1, "invalid conversion from '%s to '%s", type_name(obj->type), type_name(type));
         err = error_obj(ERR_TYPE, msg);
         return err;
     }

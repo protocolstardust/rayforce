@@ -34,6 +34,7 @@ b8_t str_ends_with(str_p str, str_p pat);
 b8_t str_match(str_p str, str_p pat);
 obj_p string_from_str(str_p str, i64_t len);
 obj_p cstring_from_str(str_p str, i64_t len);
+obj_p cstring_from_obj(obj_p obj);
 str_p str_dup(str_p str);
 u64_t str_cpy(str_p dst, str_p src);
 u64_t str_len(str_p s, u64_t n);

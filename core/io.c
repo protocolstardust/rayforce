@@ -69,6 +69,7 @@ obj_p ray_hopen(obj_p x)
     }
 
     sock_set_nonblocking(fd, B8_TRUE);
+
     return i64(poll_register(runtime_get()->poll, fd, RAYFORCE_VERSION));
 }
 
@@ -88,7 +89,7 @@ obj_p ray_read(obj_p x)
     switch (x->type)
     {
     case TYPE_C8:
-        s = cstring_from_str(as_string(x), x->len);
+        s = cstring_from_obj(x);
         fd = fs_fopen(as_string(s), ATTR_RDONLY);
 
         // error handling if file does not exist

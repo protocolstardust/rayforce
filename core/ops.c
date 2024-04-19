@@ -223,7 +223,7 @@ obj_p sys_error(os_ray_error_type_t tp, str_p msg)
     switch (tp)
     {
     case ERROR_TYPE_OS:
-        emsg = str_fmt(0, "%s: %s", msg, strerror(errno));
+        emsg = str_fmt(-1, "%s: %s", msg, strerror(errno));
         err = error_str(ERR_IO, emsg);
         heap_free_raw(emsg);
         return err;
@@ -245,7 +245,7 @@ obj_p sys_error(os_ray_error_type_t tp, str_p msg)
         (LPSTR)&lpMsgBuf,
         0, NULL);
 
-    emsg = str_fmt(0, "%s: %s", msg, lpMsgBuf);
+    emsg = str_fmt(-1, "%s: %s", msg, lpMsgBuf);
     err = error_str(ERR_IO, emsg);
     heap_free_raw(emsg);
 
