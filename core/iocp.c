@@ -118,13 +118,12 @@ DWORD WINAPI StdinThread(LPVOID lpParam)
 
 nil_t exit_werror()
 {
-    obj_p err;
-    str_p fmt;
+    obj_p fmt, err;
 
     err = sys_error(ERROR_TYPE_SOCK, "poll_init");
     fmt = obj_fmt(err);
-    printf("%s\n", fmt);
-    heap_free(fmt);
+    printf("%s\n", as_string(fmt));
+    drop_obj(fmt);
     drop_obj(err);
     fflush(stdout);
     exit(1);
@@ -538,8 +537,7 @@ i64_t poll_run(poll_p poll)
     OVERLAPPED_ENTRY events[MAX_EVENTS];
     b8_t success;
     i64_t key, poll_result, idx;
-    obj_p str, res;
-    str_p fmt;
+    obj_p str, fmt, res;
     selector_p selector;
 
     prompt();
@@ -661,8 +659,8 @@ i64_t poll_run(poll_p poll)
         {
             res = sys_error(ERROR_TYPE_SOCK, "poll_init");
             fmt = obj_fmt(res);
-            printf("%s\n", fmt);
-            heap_free(fmt);
+            printf("%s\n", as_string(fmt));
+            drop_obj(fmt);
             drop_obj(res);
         }
     }

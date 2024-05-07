@@ -216,8 +216,7 @@ u64_t ops_rank(obj_p *x, u64_t n)
 
 obj_p sys_error(os_ray_error_type_t tp, lit_p msg)
 {
-    str_p emsg;
-    obj_p err;
+    obj_p err, emsg;
     DWORD dw;
     LPVOID lpMsgBuf;
 
@@ -225,8 +224,7 @@ obj_p sys_error(os_ray_error_type_t tp, lit_p msg)
     {
     case ERROR_TYPE_OS:
         emsg = str_fmt(-1, "%s: %s", msg, strerror(errno));
-        err = error_str(ERR_IO, emsg);
-        heap_free(emsg);
+        err = error_obj(ERR_IO, emsg);
         return err;
 
     case ERROR_TYPE_SOCK:
@@ -247,8 +245,7 @@ obj_p sys_error(os_ray_error_type_t tp, lit_p msg)
         0, NULL);
 
     emsg = str_fmt(-1, "%s: %s", msg, lpMsgBuf);
-    err = error_str(ERR_IO, emsg);
-    heap_free(emsg);
+    err = error_obj(ERR_IO, emsg);
 
     LocalFree(lpMsgBuf);
 
