@@ -347,9 +347,8 @@ i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     return n;
 }
 
-i64_t error_frame_fmt_into(obj_p *dst, i64_t limit, obj_p obj, i64_t idx, str_p msg, u64_t msg_len)
+i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t msg_len)
 {
-    unused(limit);
     i64_t n = 0;
     u32_t line_len, fname_len;
     u16_t line_number = 0, i;
@@ -395,36 +394,36 @@ i64_t error_frame_fmt_into(obj_p *dst, i64_t limit, obj_p obj, i64_t idx, str_p 
 
         if (line_number >= span.start_line && line_number <= span.end_line)
         {
-            n += str_fmt_into(dst, MAX_ERROR_LEN, "  %.3d %s|%s %.*s", line_number + 1, CYAN, RESET, line_len, start);
+            n += str_fmt_into(dst, NO_LIMIT, "  %.3d %s|%s %.*s", line_number + 1, CYAN, RESET, line_len, start);
 
             if (span.start_line == span.end_line)
             {
-                n += str_fmt_into(dst, MAX_ERROR_LEN, "%s      %s:%s ", lf, CYAN, RESET);
+                n += str_fmt_into(dst, NO_LIMIT, "%s      %s:%s ", lf, CYAN, RESET);
                 for (i = 0; i < span.start_column; i++)
-                    n += str_fmt_into(dst, MAX_ERROR_LEN, " ");
+                    n += str_fmt_into(dst, 2, " ");
 
                 for (i = span.start_column; i < span.end_column; i++)
-                    n += str_fmt_into(dst, MAX_ERROR_LEN, "%s~%s", TOMATO, RESET);
+                    n += str_fmt_into(dst, NO_LIMIT, "%s~%s", TOMATO, RESET);
 
-                n += str_fmt_into(dst, MAX_ERROR_LEN, "%s~ %.*s%s\n", TOMATO, msg_len, msg, RESET);
+                n += str_fmt_into(dst, NO_LIMIT, "%s~ %.*s%s\n", TOMATO, msg_len, msg, RESET);
             }
             else
             {
                 if (line_number == span.start_line)
                 {
-                    n += str_fmt_into(dst, MAX_ERROR_LEN, "      %s:%s ", CYAN, RESET);
+                    n += str_fmt_into(dst, NO_LIMIT, "      %s:%s ", CYAN, RESET);
                     for (i = 0; i < span.start_column; i++)
-                        n += str_fmt_into(dst, MAX_ERROR_LEN, " ");
+                        n += str_fmt_into(dst, 2, " ");
 
-                    n += str_fmt_into(dst, MAX_ERROR_LEN, "%s~%s\n", TOMATO, RESET);
+                    n += str_fmt_into(dst, NO_LIMIT, "%s~%s\n", TOMATO, RESET);
                 }
                 else if (line_number == span.end_line)
                 {
-                    n += str_fmt_into(dst, MAX_ERROR_LEN, "%s%s      :%s", lf, CYAN, RESET);
+                    n += str_fmt_into(dst, NO_LIMIT, "%s%s      :%s", lf, CYAN, RESET);
                     for (i = 0; i < span.end_column + 1; i++)
-                        n += str_fmt_into(dst, MAX_ERROR_LEN, " ");
+                        n += str_fmt_into(dst, 2, " ");
 
-                    n += str_fmt_into(dst, MAX_ERROR_LEN, "%s~ %.*s%s\n", TOMATO, msg_len, msg, RESET);
+                    n += str_fmt_into(dst, NO_LIMIT, "%s~ %.*s%s\n", TOMATO, msg_len, msg, RESET);
                 }
             }
         }
@@ -441,8 +440,8 @@ i64_t error_frame_fmt_into(obj_p *dst, i64_t limit, obj_p obj, i64_t idx, str_p 
 
 i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
 {
-    i64_t n = 0;
-    u64_t msg_len;
+    i64_t n;
+    i32_t msg_len;
     u16_t i, l, m;
     lit_p error_desc;
     str_p msg;
@@ -499,36 +498,34 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
         error_desc = "raised error";
         break;
     default:
-        error_desc = "corrupted error object/unknown error";
+        error_desc = "corrupted object/unknown error";
     }
 
-    msg_len = error->msg->len;
+    msg_len = (i32_t)error->msg->len;
     msg = as_string(error->msg);
 
     // there is a locations
     if (error->locs != NULL_OBJ)
     {
-        n += str_fmt_into(dst, MAX_ERROR_LEN, "%s** [E%.3lld] error%s: %s\n", TOMATO, error->code, RESET, error_desc);
+        n = str_fmt_into(dst, MAX_ERROR_LEN, "%s** [E%.3lld] error%s: %s\n", TOMATO, error->code, RESET, error_desc);
         l = error->locs->len;
         m = l > ERR_STACK_MAX_HEIGHT ? ERR_STACK_MAX_HEIGHT : l;
 
         for (i = 0; i < m; i++)
         {
-            n += error_frame_fmt_into(dst, MAX_ERROR_LEN, as_list(error->locs)[i], l - i - 1, msg, msg_len);
+            n += error_frame_fmt_into(dst, as_list(error->locs)[i], l - i - 1, msg, msg_len);
             msg_len = 0;
         }
 
         if (l > m)
         {
             n += str_fmt_into(dst, limit, "  ..\n");
-            n += error_frame_fmt_into(dst, MAX_ERROR_LEN, as_list(error->locs)[l - 1], 0, msg, msg_len);
+            n += error_frame_fmt_into(dst, as_list(error->locs)[l - 1], 0, msg, msg_len);
         }
-
         return n;
     }
 
-    return str_fmt_into(dst, MAX_ERROR_LEN, "%s** [E%.3lld] error%s: %s: %.*s", TOMATO, error->code, RESET,
-                        error_desc, msg_len, msg);
+    return str_fmt_into(dst, NO_LIMIT, "%s** [E%.3lld] error:%s %.*s", TOMATO, error->code, RESET, msg_len, msg);
 }
 
 i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i)

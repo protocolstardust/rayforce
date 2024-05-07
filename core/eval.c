@@ -95,7 +95,6 @@ interpreter_p interpreter_new(nil_t)
 nil_t interpreter_destroy(nil_t)
 {
     // cleanup stack (if any)
-    debug("sp: %lld", __INTERPRETER->sp);
     debug_assert(__INTERPRETER->sp == 0, "stack is not empty");
 
     heap_unmap(__INTERPRETER->stack, EVAL_STACK_SIZE);

@@ -30,7 +30,13 @@
 #include "env.h"
 #include "runtime.h"
 
-#ifdef DEBUG
+#if defined(DEBUG)
+
+#if defined(__EMSCRIPTEN__)
+
+nil_t dump_stack(nil_t) {}
+
+#else
 
 #include <execinfo.h>
 
@@ -51,6 +57,8 @@ nil_t dump_stack(nil_t)
         free(strings); // Free the memory allocated by backtrace_symbols
     }
 }
+
+#endif
 
 #endif
 
