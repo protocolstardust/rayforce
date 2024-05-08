@@ -69,7 +69,8 @@ sys_info_t sys_info(i32_t threads)
     info.build_date[strcspn(info.build_date, "\n")] = 0; // Remove the newline
     info.cores = cpu_cores();
     info.threads = (threads == 0) ? info.cores : threads;
-    getcwd(info.cwd, sizeof(info.cwd));
+    if (getcwd(info.cwd, sizeof(info.cwd)) == NULL)
+        printf("Unable to get current working directory\n");
 
 #if defined(_WIN32) || defined(__CYGWIN__)
     SYSTEM_INFO si;
