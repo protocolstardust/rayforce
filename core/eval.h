@@ -52,7 +52,7 @@ typedef struct interpreter_t
 
 extern __thread interpreter_p __INTERPRETER;
 
-interpreter_p interpreter_new(nil_t);
+interpreter_p interpreter_create(nil_t);
 nil_t interpreter_destroy(nil_t);
 obj_p call(obj_p obj, u64_t arity);
 obj_p *deref(obj_p sym);

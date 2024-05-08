@@ -64,7 +64,7 @@ typedef struct heap_t
     memstat_t memstat;
 } *heap_p;
 
-heap_p heap_init(u64_t id);
+heap_p heap_create(u64_t id);
 nil_t heap_destroy(nil_t);
 heap_p heap_get(nil_t);
 raw_p heap_mmap(u64_t size);

@@ -107,22 +107,22 @@ obj_p parse_cmdline(i32_t argc, str_p argv[])
     return dict(keys, vals);
 }
 
-i32_t runtime_init(i32_t argc, str_p argv[])
+i32_t runtime_create(i32_t argc, str_p argv[])
 {
     u64_t n;
     obj_p arg, fmt, res;
 
-    heap_init(0);
+    heap_create(0);
 
     __RUNTIME = (runtime_p)heap_mmap(sizeof(struct runtime_t));
-    __RUNTIME->symbols = symbols_new();
+    __RUNTIME->symbols = symbols_create();
     __RUNTIME->env = create_env();
     __RUNTIME->addr = (sock_addr_t){{0}, 0};
     __RUNTIME->fds = dict(vector_i64(0), vector_i64(0));
     __RUNTIME->args = NULL_OBJ;
     __RUNTIME->pool = NULL;
 
-    interpreter_new();
+    interpreter_create();
 
     if (argc)
     {
@@ -134,7 +134,7 @@ i32_t runtime_init(i32_t argc, str_p argv[])
         {
             n = atoi(as_string(arg));
             if (n > 1)
-                __RUNTIME->pool = pool_new(n - 1); // -1 for the main thread
+                __RUNTIME->pool = pool_create(n - 1); // -1 for the main thread
 
             __RUNTIME->sys_info = sys_info(n);
             drop_obj(arg);
@@ -143,7 +143,7 @@ i32_t runtime_init(i32_t argc, str_p argv[])
         {
             __RUNTIME->sys_info = sys_info(1);
             // if (__RUNTIME->sys_info.threads > 1)
-            //     __RUNTIME->pool = pool_new(__RUNTIME->sys_info.threads - 1);
+            //     __RUNTIME->pool = pool_create(__RUNTIME->sys_info.threads - 1);
         }
 
         arg = runtime_get_arg("port");
@@ -176,7 +176,7 @@ i32_t runtime_init(i32_t argc, str_p argv[])
         __RUNTIME->poll = NULL;
         __RUNTIME->sys_info = sys_info(1);
         // if (__RUNTIME->sys_info.threads > 1)
-        //     __RUNTIME->pool = pool_new(__RUNTIME->sys_info.threads - 1);
+        //     __RUNTIME->pool = pool_create(__RUNTIME->sys_info.threads - 1);
     }
 
     return 0;

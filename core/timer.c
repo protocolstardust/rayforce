@@ -48,7 +48,7 @@ u64_t get_time_millis(nil_t)
 }
 #endif
 
-ray_timer_p timer_new(i64_t id, u64_t tic, u64_t exp, i64_t num, obj_p clb)
+ray_timer_p ray_timer_create(i64_t id, u64_t tic, u64_t exp, i64_t num, obj_p clb)
 {
     ray_timer_p timer = (ray_timer_p)heap_alloc(sizeof(struct ray_timer_t));
 
@@ -125,7 +125,7 @@ ray_timer_p timer_pop(timers_p timers)
     return timer;
 }
 
-timers_p timers_new(u64_t capacity)
+timers_p timers_create(u64_t capacity)
 {
     timers_p timers = (timers_p)heap_alloc(sizeof(struct timers_t));
 
@@ -137,7 +137,7 @@ timers_p timers_new(u64_t capacity)
     return timers;
 }
 
-nil_t timers_free(timers_p timers)
+nil_t timers_destroy(timers_p timers)
 {
     u64_t i, l;
 
@@ -156,7 +156,7 @@ i64_t timer_add(timers_p timers, u64_t tic, u64_t exp, u64_t num, obj_p clb)
     ray_timer_p timer;
 
     id = timers->counter++;
-    timer = timer_new(id, tic, exp, num, clb);
+    timer = ray_timer_create(id, tic, exp, num, clb);
 
     return timer_push(timers, timer);
 }

@@ -48,7 +48,7 @@ i32_t main(i32_t argc, str_p argv[])
   i32_t code = -1;
   sys_info_t *info;
 
-  runtime_init(argc, argv);
+  runtime_create(argc, argv);
   info = &runtime_get()->sys_info;
   print_logo(info);
   code = runtime_run();

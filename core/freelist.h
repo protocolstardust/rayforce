@@ -36,7 +36,7 @@ typedef struct freelist_t
     i64_t *free;
 } *freelist_p;
 
-freelist_p freelist_new(i64_t data_size);
+freelist_p freelist_create(i64_t data_size);
 nil_t freelist_free(freelist_p freelist);
 
 i64_t freelist_push(freelist_p freelist, i64_t val);

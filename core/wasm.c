@@ -144,7 +144,7 @@ EMSCRIPTEN_KEEPALIVE i32_t main(i32_t argc, str_p argv[])
     list_examples(&fmt);
 
     atexit(runtime_destroy);
-    runtime_init(0, NULL);
+    runtime_create(0, NULL);
     code = runtime_run();
     js_rayforce_ready(as_string(fmt));
     drop_obj(fmt);

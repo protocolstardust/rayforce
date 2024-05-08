@@ -122,8 +122,8 @@ poll_p poll_init(i64_t port)
     poll->ipc_fd = listen_fd;
     poll->replfile = string_from_str("repl", 4);
     poll->ipcfile = string_from_str("ipc", 3);
-    poll->selectors = freelist_new(128);
-    poll->timers = timers_new(16);
+    poll->selectors = freelist_create(128);
+    poll->timers = timers_create(16);
 
     return poll;
 }
@@ -147,7 +147,7 @@ nil_t poll_destroy(poll_p poll)
     drop_obj(poll->ipcfile);
 
     freelist_free(poll->selectors);
-    timers_free(poll->timers);
+    timers_destroy(poll->timers);
 
     close(__EVENT_FD);
     close(poll->poll_fd);
@@ -172,7 +172,7 @@ i64_t poll_register(poll_p poll, i64_t fd, u8_t version)
     selector->tx.buf = NULL;
     selector->tx.size = 0;
     selector->tx.bytes_transfered = 0;
-    selector->tx.queue = queue_new(TX_QUEUE_SIZE);
+    selector->tx.queue = queue_create(TX_QUEUE_SIZE);
 
     ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
     ev.data.ptr = selector;

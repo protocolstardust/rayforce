@@ -43,7 +43,7 @@ __thread heap_p __HEAP = NULL;
 
 #ifdef SYS_MALLOC
 
-heap_p heap_init(u64_t id)
+heap_p heap_create(u64_t id)
 {
     unused(id);
     return NULL;
@@ -62,7 +62,7 @@ memstat_t heap_memstat(nil_t) { return (memstat_t){0}; }
 
 #else
 
-heap_p heap_init(u64_t id)
+heap_p heap_create(u64_t id)
 {
     __HEAP = (heap_p)mmap_alloc(sizeof(struct heap_t));
     __HEAP->id = id;

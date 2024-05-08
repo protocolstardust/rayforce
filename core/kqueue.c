@@ -114,10 +114,10 @@ poll_p poll_init(i64_t port)
     poll->code = NULL_I64;
     poll->poll_fd = kq_fd;
     poll->ipc_fd = listen_fd;
-    poll->selectors = freelist_new(128);
+    poll->selectors = freelist_create(128);
     poll->replfile = string_from_str("repl", 4);
     poll->ipcfile = string_from_str("ipc", 3);
-    poll->timers = timers_new(128);
+    poll->timers = timers_create(128);
 
     return poll;
 }
@@ -141,7 +141,7 @@ nil_t poll_destroy(poll_p poll)
     drop_obj(poll->ipcfile);
 
     freelist_free(poll->selectors);
-    timers_free(poll->timers);
+    timers_destroy(poll->timers);
 
     close(__EVENT_FD[0]);
     close(__EVENT_FD[1]);
@@ -167,7 +167,7 @@ i64_t poll_register(poll_p poll, i64_t fd, u8_t version)
     selector->tx.buf = NULL;
     selector->tx.size = 0;
     selector->tx.bytes_transfered = 0;
-    selector->tx.queue = queue_new(TX_QUEUE_SIZE);
+    selector->tx.queue = queue_create(TX_QUEUE_SIZE);
 
     EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, selector);
     if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)

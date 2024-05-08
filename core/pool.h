@@ -25,7 +25,7 @@
 #define POOL_H
 
 #include "rayforce.h"
-#include <pthread.h>
+#include "thread.h"
 #include "heap.h"
 #include "eval.h"
 #include "mpmc.h"
@@ -37,20 +37,21 @@ typedef enum pool_state_t
     POOL_STATE_RUN = 0,
     POOL_STATE_STOP = 1
 } pool_state_t;
+
 typedef struct
 {
     u64_t id;
     heap_p heap;               // Executor's heap
     interpreter_p interpreter; // Executor's interpreter
     pool_p pool;               // Executor's pool
-    pthread_t handle;          // Executor's thread handle
+    thread_t handle;           // Executor's thread handle
 } executor_t;
 
 typedef struct pool_t
 {
-    pthread_mutex_t mutex;  // Mutex for condition variable
-    pthread_cond_t run;     // Condition variable for run executors
-    pthread_cond_t done;    // Condition variable for signal that executor is done
+    mutex_t mutex;          // Mutex for condition variable
+    cond_t run;             // Condition variable for run executors
+    cond_t done;            // Condition variable for signal that executor is done
     pool_state_t state;     // Pool's state
     u64_t done_count;       // Number of done executors
     u64_t executors_count;  // Number of executors
@@ -59,7 +60,7 @@ typedef struct pool_t
     executor_t executors[]; // Array of executors
 } *pool_p;
 
-pool_p pool_new(u64_t executors_count);
+pool_p pool_create(u64_t executors_count);
 nil_t pool_destroy(pool_p pool);
 u64_t pool_executors_count(pool_p pool);
 nil_t pool_prepare(pool_p pool, u64_t tasks_count);

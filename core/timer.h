@@ -45,8 +45,8 @@ typedef struct timers_t
     i64_t counter;       // Counter to assign unique IDs to timers
 } *timers_p;
 
-timers_p timers_new(u64_t capacity);
-nil_t timers_free(timers_p timers);
+timers_p timers_create(u64_t capacity);
+nil_t timers_destroy(timers_p timers);
 i64_t timer_next_timeout(timers_p timers);
 
 obj_p ray_timer(obj_p *x, u64_t n);

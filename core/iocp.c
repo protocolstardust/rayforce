@@ -222,8 +222,8 @@ poll_p poll_init(i64_t port)
     poll->code = NULL_I64;
     poll->replfile = string_from_str("repl", 4);
     poll->ipcfile = string_from_str("ipc", 3);
-    poll->selectors = freelist_new(128);
-    poll->timers = timers_new(16);
+    poll->selectors = freelist_create(128);
+    poll->timers = timers_create(16);
 
     return poll;
 }
@@ -247,7 +247,7 @@ nil_t poll_destroy(poll_p poll)
     drop_obj(poll->ipcfile);
 
     freelist_free(poll->selectors);
-    timers_free(poll->timers);
+    timers_destroy(poll->timers);
 
     CloseHandle((HANDLE)poll->poll_fd);
     heap_free(poll);
@@ -302,7 +302,7 @@ i64_t poll_register(poll_p poll, i64_t fd, u8_t version)
     selector->tx.wsa_buf.len = 0;
     selector->tx.bytes_transfered = 0;
     selector->tx.overlapped.hEvent = CreateEvent(NULL, B8_TRUE, B8_FALSE, NULL);
-    selector->tx.queue = queue_new(TX_QUEUE_SIZE);
+    selector->tx.queue = queue_create(TX_QUEUE_SIZE);
 
     CreateIoCompletionPort((HANDLE)fd, (HANDLE)poll->poll_fd, (ULONG_PTR)selector, 0);
 

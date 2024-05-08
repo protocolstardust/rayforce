@@ -26,7 +26,7 @@
 #include "util.h"
 #include "ops.h"
 
-queue_p queue_new(i64_t size)
+queue_p queue_create(i64_t size)
 {
     queue_p queue = (queue_p)heap_alloc(sizeof(struct queue_t));
 

@@ -23,7 +23,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <string.h>
 #include <time.h>
 #include "../core/rayforce.h"
@@ -66,11 +65,11 @@ typedef struct test_entry_t
 nil_t setup()
 {
 #ifdef STOP_ON_FAIL
-    runtime_init(1, NULL);
+    runtime_create(1, NULL);
 #else
-    runtime_init(0, NULL);
+    runtime_create(0, NULL);
 #endif
-    // heap_init(0);
+    // heap_create(0);
 }
 
 nil_t teardown()

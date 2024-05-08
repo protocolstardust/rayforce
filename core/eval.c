@@ -62,7 +62,7 @@ nil_t error_add_loc(obj_p err, i64_t id, ctx_p ctx)
         push_raw(&as_error(err)->locs, &loc);
 }
 
-interpreter_p interpreter_new(nil_t)
+interpreter_p interpreter_create(nil_t)
 {
     interpreter_p interpreter;
     obj_p f;

@@ -55,7 +55,7 @@ static i64_t __RC_SYNC = 0;
 
 i32_t ray_init()
 {
-    return runtime_init(0, NULL);
+    return runtime_create(0, NULL);
 }
 
 nil_t ray_clean()

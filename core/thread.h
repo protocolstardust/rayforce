@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2023 Anton Kundenko <singaraiona@gmail.com>
+ *   Copyright (c) 2024 Anton Kundenko <singaraiona@gmail.com>
  *   All rights reserved.
 
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,22 +21,64 @@
  *   SOFTWARE.
  */
 
-#ifndef QUEUE_H
-#define QUEUE_H
+#ifndef THREAD_H
+#define THREAD_H
 
 #include "rayforce.h"
 
-typedef struct queue_t
+#if defined(_WIN32) || defined(__CYGWIN__)
+
+typedef struct
 {
-    i64_t size;
-    i64_t head;
-    i64_t tail;
-    raw_p *data;
-} *queue_p;
+    pthread_t handle;
+} thread_t;
 
-queue_p queue_create(i64_t size);
-nil_t queue_free(queue_p queue);
-nil_t queue_push(queue_p queue, raw_p val);
-raw_p queue_pop(queue_p queue);
+typedef struct
+{
+    pthread_mutex_t inner;
+} mutex_t;
 
-#endif // QUEUE_H
+typedef struct
+{
+    pthread_cond_t inner;
+} cond_t;
+
+#else
+
+#include <pthread.h>
+
+typedef struct
+{
+    pthread_t handle;
+} thread_t;
+
+typedef struct
+{
+    pthread_mutex_t inner;
+} mutex_t;
+
+typedef struct
+{
+    pthread_cond_t inner;
+} cond_t;
+
+#endif
+
+mutex_t mutex_create();
+nil_t mutex_destroy(mutex_t *mutex);
+nil_t mutex_lock(mutex_t *mutex);
+nil_t mutex_unlock(mutex_t *mutex);
+
+cond_t cond_create();
+nil_t cond_destroy(cond_t *cond);
+i32_t cond_wait(cond_t *cond, mutex_t *mutex);
+i32_t cond_signal(cond_t *cond);
+i32_t cond_broadcast(cond_t *cond);
+
+thread_t thread_create(raw_p (*fn)(raw_p), raw_p arg);
+i32_t thread_destroy(thread_t *thread);
+i32_t thread_join(thread_t thread);
+i32_t thread_detach(thread_t thread);
+nil_t thread_exit(raw_p res);
+
+#endif // THREAD_H

@@ -34,22 +34,22 @@ raw_p executor_run(raw_p arg)
     mpmc_data_t data;
     obj_p res;
 
-    executor->heap = heap_init(executor->id + 1);
-    executor->interpreter = interpreter_new();
+    executor->heap = heap_create(executor->id + 1);
+    executor->interpreter = interpreter_create();
     rc_sync(B8_TRUE);
 
     for (;;)
     {
-        pthread_mutex_lock(&executor->pool->mutex);
-        pthread_cond_wait(&executor->pool->run, &executor->pool->mutex);
+        mutex_lock(&executor->pool->mutex);
+        cond_wait(&executor->pool->run, &executor->pool->mutex);
 
         if (executor->pool->state == POOL_STATE_STOP)
         {
-            pthread_mutex_unlock(&executor->pool->mutex);
+            mutex_unlock(&executor->pool->mutex);
             break;
         }
 
-        pthread_mutex_unlock(&executor->pool->mutex);
+        mutex_unlock(&executor->pool->mutex);
 
         // process tasks
         for (;;)
@@ -65,10 +65,10 @@ raw_p executor_run(raw_p arg)
             mpmc_push(executor->pool->result_queue, (mpmc_data_t){data.id, .out = {data.in.arg, data.in.len, res}});
         }
 
-        pthread_mutex_lock(&executor->pool->mutex);
+        mutex_lock(&executor->pool->mutex);
         executor->pool->done_count++;
-        pthread_cond_signal(&executor->pool->done);
-        pthread_mutex_unlock(&executor->pool->mutex);
+        cond_signal(&executor->pool->done);
+        mutex_unlock(&executor->pool->mutex);
     }
 
     interpreter_destroy();
@@ -77,7 +77,7 @@ raw_p executor_run(raw_p arg)
     return NULL;
 }
 
-pool_p pool_new(u64_t executors_count)
+pool_p pool_create(u64_t executors_count)
 {
     u64_t i;
     pool_p pool;
@@ -88,20 +88,19 @@ pool_p pool_new(u64_t executors_count)
     pool->task_queue = mpmc_create(MPMC_SIZE);
     pool->result_queue = mpmc_create(MPMC_SIZE);
     pool->state = POOL_STATE_RUN;
-
-    pthread_mutex_init(&pool->mutex, NULL);
-    pthread_cond_init(&pool->run, NULL);
-    pthread_cond_init(&pool->done, NULL);
-    pthread_mutex_lock(&pool->mutex);
+    pool->mutex = mutex_create();
+    pool->run = cond_create();
+    pool->done = cond_create();
+    mutex_lock(&pool->mutex);
 
     for (i = 0; i < executors_count; i++)
     {
         pool->executors[i].id = i;
         pool->executors[i].pool = pool;
-        pthread_create(&pool->executors[i].handle, NULL, executor_run, &pool->executors[i]);
+        pool->executors[i].handle = thread_create(executor_run, &pool->executors[i]);
     }
 
-    pthread_mutex_unlock(&pool->mutex);
+    mutex_unlock(&pool->mutex);
 
     return pool;
 }
@@ -110,21 +109,20 @@ nil_t pool_destroy(pool_p pool)
 {
     u64_t i;
 
-    pthread_mutex_lock(&pool->mutex);
+    mutex_lock(&pool->mutex);
     pool->state = POOL_STATE_STOP;
-    pthread_cond_broadcast(&pool->run);
-    pthread_mutex_unlock(&pool->mutex);
+    cond_broadcast(&pool->run);
+    mutex_unlock(&pool->mutex);
 
     for (i = 0; i < pool->executors_count; i++)
     {
-        if (pthread_join(pool->executors[i].handle, NULL) != 0)
+        if (thread_join(pool->executors[i].handle) != 0)
             printf("Pool destroy: failed to join thread %lld\n", i);
     }
 
-    pthread_mutex_destroy(&pool->mutex);
-    pthread_cond_destroy(&pool->run);
-    pthread_cond_destroy(&pool->done);
-
+    mutex_destroy(&pool->mutex);
+    cond_destroy(&pool->run);
+    cond_destroy(&pool->done);
     mpmc_destroy(pool->task_queue);
     mpmc_destroy(pool->result_queue);
 
@@ -175,9 +173,9 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
     n = pool->executors_count;
 
     // wake up all executors
-    pthread_mutex_lock(&pool->mutex);
-    pthread_cond_broadcast(&pool->run);
-    pthread_mutex_unlock(&pool->mutex);
+    mutex_lock(&pool->mutex);
+    cond_broadcast(&pool->run);
+    mutex_unlock(&pool->mutex);
 
     // process tasks on self too
     for (;;)
@@ -193,11 +191,11 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
         mpmc_push(pool->result_queue, (mpmc_data_t){data.id, .out = {data.in.arg, data.in.len, res}});
     }
 
-    pthread_mutex_lock(&pool->mutex);
+    mutex_lock(&pool->mutex);
 
     // wait for all tasks to be done
     while (pool->done_count < n)
-        pthread_cond_wait(&pool->done, &pool->mutex);
+        cond_wait(&pool->done, &pool->mutex);
 
     // merge heaps
     for (i = 0; i < n; i++)
@@ -217,7 +215,7 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
         ins_obj(&res, data.id, data.out.result);
     }
 
-    pthread_mutex_unlock(&pool->mutex);
+    mutex_unlock(&pool->mutex);
     rc_sync(B8_FALSE);
 
     return res;

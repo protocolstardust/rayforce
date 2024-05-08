@@ -148,7 +148,7 @@ next:
 /*
  * Allocate a new pool node for the strings pool.
  */
-pool_node_p pool_node_new(nil_t)
+pool_node_p pool_node_create(nil_t)
 {
     return (pool_node_p)heap_mmap(STRINGS_POOL_SIZE);
 }
@@ -167,7 +167,7 @@ symbol_p str_intern(symbols_p symbols, lit_p str, u64_t len)
     // Allocate new pool node
     if ((i64_t)symbols->symbols_pool + size - (i64_t)symbols->pool_node >= STRINGS_POOL_SIZE)
     {
-        node = pool_node_new();
+        node = pool_node_create();
         symbols->pool_node->next = node;
         symbols->pool_node = node;
         symbols->symbols_pool = (symbol_p)(node + sizeof(pool_node_p)); // Skip the node size of next ptr
@@ -182,12 +182,11 @@ symbol_p str_intern(symbols_p symbols, lit_p str, u64_t len)
     return sym;
 }
 
-symbols_p symbols_new(nil_t)
+symbols_p symbols_create(nil_t)
 {
     symbols_p symbols = (symbols_p)heap_mmap(sizeof(struct symbols_t));
-    pool_node_p node = pool_node_new();
+    pool_node_p node = pool_node_create();
 
-    pthread_mutex_init(&symbols->lock, NULL);
     symbols->pool_node_0 = node;
     symbols->pool_node = node;
     symbols->symbols_pool = (symbol_p)(node + sizeof(pool_node_p)); // Skip the node size of next ptr
@@ -220,7 +219,6 @@ i64_t intern_symbol(lit_p s, u64_t len)
     i64_t idx;
 
     // insert new symbol
-    // pthread_mutex_lock(&symbols->lock);
     idx = symbols_next(&symbols->str_po_id, s, len);
     if (as_i64(as_list(symbols->str_po_id)[0])[idx] == NULL_I64)
     {
@@ -235,14 +233,11 @@ i64_t intern_symbol(lit_p s, u64_t len)
         as_i64(as_list(symbols->id_to_str)[0])[idx] = symbols->next_sym_id;
         as_i64(as_list(symbols->id_to_str)[1])[idx] = (i64_t)sym;
 
-        // pthread_mutex_unlock(&symbols->lock);
-
         return symbols->next_sym_id++;
     }
     // symbol is already interned
     else
     {
-        // pthread_mutex_unlock(&symbols->lock);
         return as_i64(as_list(symbols->str_po_id)[1])[idx];
     }
 }
