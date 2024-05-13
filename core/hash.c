@@ -225,12 +225,11 @@ lfhash_p lfhash_create(u64_t size)
     u64_t i;
     lfhash_p hash;
 
-    size = next_power_of_two_u64(size);
     hash = heap_alloc(sizeof(struct lfhash_t) + size * sizeof(bucket_p));
     if (hash == NULL)
         return NULL;
 
-    hash->mask = size - 1;
+    hash->size = size;
     for (i = 0; i < size; i++)
         hash->table[i] = NULL;
 
@@ -247,7 +246,7 @@ b8_t lfhash_insert(lfhash_p hash, i64_t key, i64_t val)
     i64_t index;
     bucket_p bucket;
 
-    index = key & hash->mask;
+    index = key % hash->size;
 
     for (;;)
     {
@@ -297,7 +296,7 @@ i64_t lfhash_insert_with(lfhash_p ht, i64_t key, i64_t val, hash_f hash, cmp_f c
     i64_t index;
     bucket_p bucket;
 
-    index = hash(key, seed) & ht->mask;
+    index = hash(key, seed) % ht->size;
 
     for (;;)
     {
@@ -339,10 +338,10 @@ i64_t lfhash_insert_with(lfhash_p ht, i64_t key, i64_t val, hash_f hash, cmp_f c
     }
 }
 
-b8_t lfhash_get(lfhash_p hash, i64_t key, i64_t *val)
+b8_t lfhash_get(lfhash_p ht, i64_t key, i64_t *val)
 {
-    u64_t index = key & hash->mask;
-    bucket_p current = hash->table[index];
+    u64_t index = key % ht->size;
+    bucket_p current = ht->table[index];
 
     while (current != NULL)
     {

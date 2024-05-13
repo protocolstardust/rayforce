@@ -659,10 +659,11 @@ obj_p index_group_guid(guid_t values[], i64_t indices[], u64_t len)
 obj_p index_group_obj(obj_p values[], i64_t indices[], u64_t len)
 {
     u64_t i, j, n;
-    i64_t idx, *hk, *hv, *hp;
-    obj_p vals, ht;
+    i64_t idx, *hp;
+    obj_p vals;
+    lfhash_p hash;
 
-    ht = ht_create(len, TYPE_I64);
+    hash = lfhash_create(len);
     vals = vector_i64(len);
     hp = as_i64(vals);
 
@@ -672,16 +673,12 @@ obj_p index_group_obj(obj_p values[], i64_t indices[], u64_t len)
         for (i = 0, j = 0; i < len; i++)
         {
             n = (i64_t)values[indices[i]];
-            idx = ht_tab_next_with(&ht, n, &hash_obj, &hash_cmp_obj, NULL);
-            hk = as_i64(as_list(ht)[0]);
-            hv = as_i64(as_list(ht)[1]);
-            if (hk[idx] == NULL_I64)
-            {
-                hk[idx] = n;
-                hv[idx] = j++;
-            }
+            idx = lfhash_insert_with(hash, n, j, &hash_obj, &hash_cmp_obj, NULL);
 
-            hp[i] = hv[idx];
+            if (idx == (i64_t)j)
+                j++;
+
+            hp[i] = idx;
         }
     }
     else
@@ -689,20 +686,16 @@ obj_p index_group_obj(obj_p values[], i64_t indices[], u64_t len)
         for (i = 0, j = 0; i < len; i++)
         {
             n = (i64_t)values[i];
-            idx = ht_tab_next_with(&ht, n, &hash_obj, &hash_cmp_obj, NULL);
-            hk = as_i64(as_list(ht)[0]);
-            hv = as_i64(as_list(ht)[1]);
-            if (hk[idx] == NULL_I64)
-            {
-                hk[idx] = n;
-                hv[idx] = j++;
-            }
+            idx = lfhash_insert_with(hash, n, j, &hash_obj, &hash_cmp_obj, NULL);
 
-            hp[i] = hv[idx];
+            if (idx == (i64_t)j)
+                j++;
+
+            hp[i] = idx;
         }
     }
 
-    drop_obj(ht);
+    lfhash_destroy(hash);
 
     return vn_list(3, i64(j), vals, NULL_OBJ);
 }

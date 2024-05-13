@@ -45,7 +45,7 @@ typedef struct bucket_t
 
 typedef struct lfhash_t
 {
-    u64_t mask;
+    u64_t size;
     bucket_p table[];
 } *lfhash_p;
 
