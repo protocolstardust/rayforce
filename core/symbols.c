@@ -226,12 +226,7 @@ symbols_p symbols_create(nil_t)
     }
 
     // Allocate the string pool as close to the start of the address space as possible
-    // #ifdef DEBUG
-    pooladdr = NULL;
-    // #else
-    // pooladdr = (raw_p)(16 * PAGE_SIZE);
-    // #endif
-
+    pooladdr = (raw_p)(PAGE_SIZE);
     symbols->size = SYMBOLS_HT_SIZE;
     symbols->count = 0;
     symbols->syms = (symbol_p *)heap_mmap(SYMBOLS_HT_SIZE * sizeof(symbol_p));
@@ -240,15 +235,7 @@ symbols_p symbols_create(nil_t)
     if (string_pool == NULL)
     {
         perror("string_pool mmap_reserve");
-
-        // try to reserve memory without specifying the address
-        string_pool = (str_p)mmap_reserve(NULL, STRING_POOL_SIZE);
-
-        if (string_pool == NULL)
-        {
-            perror("string_pool mmap_reserve");
-            exit(1);
-        }
+        exit(1);
     }
 
     symbols->string_pool = string_pool;
