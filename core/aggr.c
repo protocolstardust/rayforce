@@ -506,73 +506,6 @@ obj_p aggr_last(obj_p val, obj_p bins, obj_p filter)
     }
 }
 
-obj_p aggr_avg(obj_p val, obj_p bins, obj_p filter)
-{
-    u64_t i, l, n;
-    i64_t *xi, *xm, *ci, *ids;
-    f64_t *xf, *fo;
-    obj_p res;
-
-    n = as_list(bins)[0]->i64;
-    l = as_list(bins)[1]->len;
-
-    group_fill_counts(bins);
-
-    ci = as_i64(as_list(bins)[2]);
-
-    switch (val->type)
-    {
-    case TYPE_I64:
-        xi = as_i64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addi64(fo[xm[i]], xi[ids[i]]);
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addi64(fo[xm[i]], xi[i]);
-        }
-
-        // calc avgs
-        for (i = 0; i < n; i++)
-            fo[i] = divi64(fo[i], ci[i]);
-
-        return res;
-    case TYPE_F64:
-        xf = as_f64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
-        }
-
-        // calc avgs
-        for (i = 0; i < n; i++)
-            fo[i] = fdivf64(fo[i], ci[i]);
-
-        return res;
-    default:
-        return error(ERR_TYPE, "avg: unsupported type: '%s'", type_name(val->type));
-    }
-}
-
 obj_p aggr_max(obj_p val, obj_p bins, obj_p filter)
 {
     u64_t i, l, n;
@@ -716,13 +649,135 @@ obj_p aggr_min(obj_p val, obj_p bins, obj_p filter)
     }
 }
 
+obj_p aggr_count_partial(raw_p arg)
+{
+    aggr_partial_p partial = (aggr_partial_p)arg;
+    u64_t i, l, n;
+    i64_t *xi, *xm, *xk, *xo, *ids, min;
+    f64_t *xf, *fo;
+    obj_p val, bins, res;
+
+    val = partial->val;
+    bins = partial->bins;
+    l = partial->len;
+    n = as_list(bins)[0]->i64;
+    min = as_list(bins)[1]->i64;
+
+    switch (val->type)
+    {
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+        xi = as_i64(val) + partial->offset;
+        xm = as_i64(as_list(bins)[2]);
+        xk = as_i64(as_list(bins)[3]) + partial->offset;
+        res = partial->out;
+        xo = as_i64(res);
+
+        for (i = 0; i < n; i++)
+            xo[i] = 0;
+
+        for (i = 0; i < l; i++)
+        {
+            n = xk[i] - min;
+            xo[xm[n]]++;
+        }
+
+        return res;
+    default:
+        return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
+    }
+}
+
 obj_p aggr_count(obj_p val, obj_p bins, obj_p filter)
 {
-    unused(val);
-    unused(filter);
+    u64_t i, j, l, n;
+    i64_t *xi, *xo;
+    obj_p res, parts;
+
+    parts = aggr_map(aggr_count_partial, val, bins, filter);
+    n = as_list(bins)[0]->i64;
+    l = parts->len;
+
+    res = clone_obj(as_list(parts)[0]);
+    xo = as_i64(res);
+
+    for (i = 1; i < l; i++)
+    {
+        xi = as_i64(as_list(parts)[i]);
+        for (j = 0; j < n; j++)
+            xo[j] += xi[j];
+    }
+
+    drop_obj(parts);
+
+    return res;
+}
+
+obj_p aggr_avg(obj_p val, obj_p bins, obj_p filter)
+{
+    u64_t i, l, n;
+    i64_t *xi, *xm, *ci, *ids;
+    f64_t *xf, *fo;
+    obj_p res;
+
+    n = as_list(bins)[0]->i64;
+    l = as_list(bins)[1]->len;
+
     group_fill_counts(bins);
 
-    return clone_obj(as_list(bins)[2]);
+    ci = as_i64(as_list(bins)[2]);
+
+    switch (val->type)
+    {
+    case TYPE_I64:
+        xi = as_i64(val);
+        xm = as_i64(as_list(bins)[1]);
+        res = vector_f64(n);
+        fo = as_f64(res);
+        memset(fo, 0, n * sizeof(i64_t));
+        if (filter != NULL_OBJ)
+        {
+            ids = as_i64(filter);
+            for (i = 0; i < l; i++)
+                fo[xm[i]] = addi64(fo[xm[i]], xi[ids[i]]);
+        }
+        else
+        {
+            for (i = 0; i < l; i++)
+                fo[xm[i]] = addi64(fo[xm[i]], xi[i]);
+        }
+
+        // calc avgs
+        for (i = 0; i < n; i++)
+            fo[i] = divi64(fo[i], ci[i]);
+
+        return res;
+    case TYPE_F64:
+        xf = as_f64(val);
+        xm = as_i64(as_list(bins)[1]);
+        res = vector_f64(n);
+        fo = as_f64(res);
+        memset(fo, 0, n * sizeof(i64_t));
+        if (filter != NULL_OBJ)
+        {
+            ids = as_i64(filter);
+            for (i = 0; i < l; i++)
+                fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
+        }
+        else
+        {
+            for (i = 0; i < l; i++)
+                fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
+        }
+
+        // calc avgs
+        for (i = 0; i < n; i++)
+            fo[i] = fdivf64(fo[i], ci[i]);
+
+        return res;
+    default:
+        return error(ERR_TYPE, "avg: unsupported type: '%s'", type_name(val->type));
+    }
 }
 
 obj_p aggr_med(obj_p val, obj_p bins, obj_p filter)
