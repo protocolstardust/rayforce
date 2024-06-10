@@ -32,51 +32,8 @@
 
 #define COMMANDS_LIST "\
   :?  - Displays help.\n\
-  :t  - Measures the execution time of an expression.\n\
-  :g  - Use rich graphic formatting.\n\
-  :q  - Exits the application."
-
-// obj_p parse_command(parser_t *parser)
-// {
-//     obj_p v, err;
-//     span_t span = span_start(parser);
-
-//     shift(parser, 1); // skip ':'
-
-//     if ((*parser->current) == '?')
-//     {
-//         shift(parser, 1);
-//         printf("%s** Commands list:\n%s%s\n", YELLOW, COMMANDS_LIST, RESET);
-//         return NULL_OBJ;
-//     }
-//     if ((*parser->current) == 't')
-//     {
-//         shift(parser, 1);
-//         v = parse_do(parser);
-//         if (is_error(v))
-//             return v;
-
-//         return vn_list(2, env_get_internal_function("time"), v);
-//     }
-//     if ((*parser->current) == 'q')
-//     {
-//         shift(parser, 1);
-//         return vn_list(1, env_get_internal_function("exit"));
-//     }
-//     if ((*parser->current) == 'g')
-//     {
-//         shift(parser, 1);
-//         v = parse_do(parser);
-//         if (is_error(v))
-//             return v;
-
-//         return vn_list(2, env_get_internal_function("graphic"), v);
-//     }
-
-//     nfo_insert(parser->nfo, parser->count, span);
-//     err = parse_error(parser, parser->count++, str_fmt(-1, "Invalid command. Type ':?' for commands list."));
-//     return err;
-// }
+  :g  - Use rich graphic formatting: [0|1].\n\
+  :q  - Exits the application: [exit code]."
 
 term_p term_create()
 {
@@ -110,6 +67,7 @@ obj_p term_read(term_p term)
 {
     c8_t c;
     obj_p res = NULL;
+    i64_t exit_code;
 
     if (read(STDIN_FILENO, &c, 1) == 1)
     {
@@ -121,9 +79,20 @@ obj_p term_read(term_p term)
             term->buf[term->bufpos] = '\0';
 
             if (strncmp(term->buf, ":q", 2) == 0)
-                poll_exit(runtime_get()->poll, 0);
+            {
+                if (term->bufpos > 2)
+                    exit_code = i64_from_str(term->buf + 2, term->bufpos - 3);
+                else
+                    exit_code = 0;
+
+                poll_exit(runtime_get()->poll, exit_code);
+            }
             else if (strncmp(term->buf, ":?", 2) == 0)
-                printf("%s** Commands list:\n%s%s\n", YELLOW, COMMANDS_LIST, RESET);
+            {
+                printf("\n%s** Commands list:\n%s%s", YELLOW, COMMANDS_LIST, RESET);
+                fflush(stdout);
+                res = NULL_OBJ;
+            }
             else
                 res = (term->bufpos) ? cstring_from_str(term->buf, term->bufpos) : NULL_OBJ;
 
