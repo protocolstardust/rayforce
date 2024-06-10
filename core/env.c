@@ -387,3 +387,46 @@ str_p env_get_internal_function_lit(lit_p name, u64_t len)
 
     return NULL;
 }
+
+str_p env_get_internal_kw_lit(lit_p name, u64_t len)
+{
+    if (len == 2 && strncmp(name, "fn", 2) == 0)
+        return (str_p) "fn";
+
+    if (len == 4 && strncmp(name, "self", 4) == 0)
+        return (str_p) "self";
+
+    if (len == 2 && strncmp(name, "do", 2) == 0)
+        return (str_p) "do";
+
+    if (len == 3 && strncmp(name, "set", 3) == 0)
+        return (str_p) "set";
+
+    if (len == 3 && strncmp(name, "let", 3) == 0)
+        return (str_p) "let";
+
+    return NULL;
+}
+
+str_p env_get_internal_lit_lit(lit_p name, u64_t len)
+{
+    if (len == 2 && strncmp(name, "0i", 2) == 0)
+        return (str_p) "0i";
+
+    if (len == 2 && strncmp(name, "0f", 2) == 0)
+        return (str_p) "0f";
+
+    if (len == 2 && strncmp(name, "by", 2) == 0)
+        return (str_p) "by";
+
+    if (len == 4 && strncmp(name, "from", 4) == 0)
+        return (str_p) "from";
+
+    if (len == 4 && strncmp(name, "true", 4) == 0)
+        return (str_p) "true";
+
+    if (len == 5 && strncmp(name, "false", 5) == 0)
+        return (str_p) "false";
+
+    return NULL;
+}

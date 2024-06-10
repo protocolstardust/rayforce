@@ -78,13 +78,12 @@ nil_t term_prompt(term_p term)
     drop_obj(prompt);
 }
 
-i64_t term_highlight_into(term_p term, obj_p *dst)
+i64_t term_redraw_into(term_p term, obj_p *dst)
 {
     u64_t i, j, l, n, c;
     str_p verb;
 
-    n = str_fmt_into(dst, -1, "\r\033[K");
-    n += prompt_fmt_into(dst);
+    n = prompt_fmt_into(dst);
 
     l = term->buf_len;
 
@@ -99,7 +98,7 @@ i64_t term_highlight_into(term_p term, obj_p *dst)
         case ']':
         case '{':
         case '}':
-            n += str_fmt_into(dst, -1, "%s%c%s", MAGENTA, term->buf[i], RESET);
+            n += str_fmt_into(dst, -1, "%s%c%s", GRAY, term->buf[i], RESET);
             break;
         case ':':
             j = i + 1;
@@ -136,10 +135,28 @@ i64_t term_highlight_into(term_p term, obj_p *dst)
                     c = 1;
                     break;
                 }
+
+                verb = env_get_internal_kw_lit(term->buf + i, j - i);
+                if (verb != NULL)
+                {
+                    n += str_fmt_into(dst, -1, "%s%s%s%s", BOLD, YELLOW, verb, RESET);
+                    i += strlen(verb) - 1;
+                    c = 1;
+                    break;
+                }
+
+                verb = env_get_internal_lit_lit(term->buf + i, j - i);
+                if (verb != NULL)
+                {
+                    n += str_fmt_into(dst, -1, "%s%s%s%s", BOLD, GREEN, verb, RESET);
+                    i += strlen(verb) - 1;
+                    c = 1;
+                    break;
+                }
             }
             else if (is_op(term->buf[i]))
             {
-                n += str_fmt_into(dst, -1, "%s%c%s", BLUE, term->buf[i], RESET);
+                n += str_fmt_into(dst, -1, "%s%c%s", LIGHT_BLUE, term->buf[i], RESET);
                 c = 1;
             }
             else if (term->buf[i] == '"')
@@ -158,22 +175,22 @@ i64_t term_highlight_into(term_p term, obj_p *dst)
                     }
                 }
             }
-            else if (term->buf[i] == '\'')
-            {
-                // char or symbol
-                for (j = i + 1; j < l; j++)
-                {
-                    if (!is_alphanum(term->buf[j]))
-                    {
-                        n += str_fmt_into(dst, -1, "%s", TEAL);
-                        n += str_fmt_into(dst, -1, "%.*s", j - i + 1, term->buf + i);
-                        n += str_fmt_into(dst, -1, "%s", RESET);
-                        i = j;
-                        c = 1;
-                        break;
-                    }
-                }
-            }
+            // else if (term->buf[i] == '\'')
+            // {
+            //     // char or symbol
+            //     for (j = i + 1; j < l; j++)
+            //     {
+            //         if (!is_alphanum(term->buf[j]))
+            //         {
+            //             n += str_fmt_into(dst, -1, "%s", TEAL);
+            //             n += str_fmt_into(dst, -1, "%.*s", j - i + 1, term->buf + i);
+            //             n += str_fmt_into(dst, -1, "%s", RESET);
+            //             i = j;
+            //             c = 1;
+            //             break;
+            //         }
+            //     }
+            // }
 
             if (c == 0)
                 n += str_fmt_into(dst, -1, "%c", term->buf[i]);
@@ -185,12 +202,17 @@ i64_t term_highlight_into(term_p term, obj_p *dst)
     return n;
 }
 
-nil_t term_highlight(term_p term)
+nil_t term_redraw(term_p term)
 {
     obj_p fmt = NULL_OBJ;
+    i32_t n;
 
-    term_highlight_into(term, &fmt);
+    printf("\r\033[K"); // Clear the line
+    term_redraw_into(term, &fmt);
     printf("%s", as_string(fmt));
+    n = term->buf_len - term->buf_pos;
+    if (n > 0)
+        printf("\033[%dD", n); // Move the cursor to the right position
     fflush(stdout);
     drop_obj(fmt);
 }
@@ -212,7 +234,7 @@ nil_t term_backspace(term_p term)
         term->buf_pos--;
     }
 
-    term_highlight(term);
+    term_redraw(term);
 }
 
 obj_p term_read(term_p term)
@@ -232,7 +254,7 @@ obj_p term_read(term_p term)
 
             if (strncmp(term->buf, ":q", 2) == 0)
             {
-                if (term->buf_pos > 2)
+                if (term->buf_len > 2)
                     exit_code = i64_from_str(term->buf + 2, term->buf_len - 3);
                 else
                     exit_code = 0;
@@ -249,6 +271,7 @@ obj_p term_read(term_p term)
                 res = (term->buf_len) ? cstring_from_str(term->buf, term->buf_len) : NULL_OBJ;
 
             term->buf_len = 0;
+            term->buf_pos = 0;
             term->history_index = 0;
 
             printf("\n");
@@ -276,29 +299,43 @@ obj_p term_read(term_p term)
                         // term_navigate_history(term, 1);
                         break;
                     case 'C': // Right arrow
-                        // if (term->buf_pos < strlen(term->buf))
-                        // {
-                        //     term->buf_pos++;
-                        //     term_replace_stdout(term);
-                        // }
+                        if (term->buf_pos < term->buf_len)
+                        {
+                            term->buf_pos++;
+                            printf("\033[%dC", 1);
+                            fflush(stdout);
+                        }
                         break;
                     case 'D': // Left arrow
                         if (term->buf_pos > 0)
                         {
                             term->buf_pos--;
+                            printf("\033[%dD", 1);
+                            fflush(stdout);
                         }
                         break;
                     }
-                    term_highlight(term);
+
+                    // term_redraw(term);
                 }
             }
             return res;
         default:
             // regular character
-            if (term->buf_len < TERM_BUF_SIZE - 1)
+            if (term->buf_pos < term->buf_len)
+            {
+                memmove(term->buf + term->buf_pos + 1, term->buf + term->buf_pos, term->buf_len - term->buf_pos);
+                term->buf[term->buf_pos] = c;
+                term->buf_len++;
+                term->buf_pos++;
+            }
+            else if (term->buf_pos == term->buf_len && term->buf_len < TERM_BUF_SIZE - 1)
+            {
                 term->buf[term->buf_len++] = c;
+                term->buf_pos++;
+            }
 
-            term_highlight(term);
+            term_redraw(term);
 
             return res;
         }
