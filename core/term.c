@@ -109,7 +109,9 @@ history_p history_create()
     history->lines = lines;
     history->size = fsize;
     history->pos = pos;
-    history->index = pos;
+    history->index = (pos == 0) ? 0 : pos - 1;
+    history->curr_saved = 0;
+    history->curr_len = 0;
 
     return history;
 }
@@ -147,14 +149,14 @@ nil_t history_add(history_p history, str_p line)
     memcpy(history->lines + pos, line, len);
     history->lines[pos + len] = '\n';
     history->pos += len + 1;
-    history->index = history->pos;
+    history->index = history->pos - 1;
 
     // Sync the history buffer to the file
     if (mmap_sync(history->lines, history->size) == -1)
         perror("can't sync history buffer");
 }
 
-i64_t history_prev(history_p history, str_p dst)
+i64_t history_prev(history_p history, c8_t buf[])
 {
     u64_t index = history->index;
     i64_t len = 0;
@@ -162,15 +164,54 @@ i64_t history_prev(history_p history, str_p dst)
     if (index == 0)
         return len;
 
-    // index--; // Skip the current line break
-
     // Find the previous line
     while (index > 0)
     {
         if (history->lines[--index] == '\n')
         {
             len = history->index - index - 1;
-            strncpy(dst, history->lines + index + 1, len);
+            strncpy(buf, history->lines + index + 1, len);
+            buf[len] = '\0';
+            history->index = index;
+            return len;
+        }
+    }
+
+    len = history->index;
+    strncpy(buf, history->lines, len);
+    buf[len] = '\0';
+    history->index = index;
+
+    return len;
+}
+
+i64_t history_next(history_p history, c8_t buf[])
+{
+    u64_t index = history->index;
+    i64_t len = 0;
+
+    // Skip current line
+    while (index + 1 < history->pos)
+    {
+        if (history->lines[index] == '\n')
+            break;
+
+        index++;
+    }
+
+    history->index = index;
+
+    if (index == 0 || index + 1 == history->pos)
+        return len;
+
+    // Find the next line
+    while (index + 1 < history->pos)
+    {
+        if (history->lines[++index] == '\n')
+        {
+            len = index - history->index - 1;
+            strncpy(buf, history->lines + history->index + 1, len);
+            buf[len] = '\0';
             break;
         }
     }
@@ -180,28 +221,30 @@ i64_t history_prev(history_p history, str_p dst)
     return len;
 }
 
-i64_t history_next(history_p history, str_p dst)
+i64_t history_save_current(history_p history, c8_t buf[], u64_t len)
 {
-    u64_t index = history->index;
-    i64_t len = 0;
+    if (history->curr_saved == 1)
+        return 0;
 
-    if (index == history->size)
-        return len;
-
-    // Find the next line
-    while (index < history->size)
-    {
-        if (history->lines[index++] == '\n')
-        {
-            len = index - history->index - 1;
-            strncpy(dst, history->lines + history->index, len);
-            break;
-        }
-    }
-
-    history->index = index;
-
+    memcpy(history->curr, buf, len);
+    history->curr[len] = '\0';
+    history->curr_len = len;
+    history->curr_saved = 1;
     return len;
+}
+
+i64_t history_restore_current(history_p history, c8_t buf[])
+{
+    u64_t l;
+    l = history->curr_len;
+
+    if (history->curr_saved == 0)
+        return l;
+
+    memcpy(buf, history->curr, l);
+    buf[l] = '\0';
+    history->curr_saved = 0;
+    return l;
 }
 
 term_p term_create()
@@ -347,22 +390,22 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
                     }
                 }
             }
-            // else if (term->buf[i] == '\'')
-            // {
-            //     // char or symbol
-            //     for (j = i + 1; j < l; j++)
-            //     {
-            //         if (!is_alphanum(term->buf[j]))
-            //         {
-            //             n += str_fmt_into(dst, -1, "%s", TEAL);
-            //             n += str_fmt_into(dst, -1, "%.*s", j - i + 1, term->buf + i);
-            //             n += str_fmt_into(dst, -1, "%s", RESET);
-            //             i = j;
-            //             c = 1;
-            //             break;
-            //         }
-            //     }
-            // }
+            else if (term->buf[i] == '\'')
+            {
+                // char
+                for (j = i + 1; j < l; j++)
+                {
+                    if (term->buf[j] == '\'')
+                    {
+                        n += str_fmt_into(dst, -1, "%s", SALAD);
+                        n += str_fmt_into(dst, -1, "%.*s", j - i + 1, term->buf + i);
+                        n += str_fmt_into(dst, -1, "%s", RESET);
+                        i = j;
+                        c = 1;
+                        break;
+                    }
+                }
+            }
 
             if (c == 0)
                 n += str_fmt_into(dst, -1, "%c", term->buf[i]);
@@ -466,6 +509,7 @@ obj_p term_read(term_p term)
                     switch (c)
                     {
                     case 'A': // Up arrow
+                        history_save_current(term->history, term->buf, term->buf_len);
                         l = history_prev(term->history, term->buf);
                         if (l > 0)
                         {
@@ -480,8 +524,15 @@ obj_p term_read(term_p term)
                         {
                             term->buf_len = l;
                             term->buf_pos = l;
-                            term_redraw(term);
                         }
+                        else
+                        {
+                            l = history_restore_current(term->history, term->buf);
+                            term->buf_len = l;
+                            term->buf_pos = l;
+                        }
+
+                        term_redraw(term);
                         break;
                     case 'C': // Right arrow
                         if (term->buf_pos < term->buf_len)

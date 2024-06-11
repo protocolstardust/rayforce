@@ -36,6 +36,9 @@ typedef struct history_t
     u64_t size;
     u64_t pos;
     u64_t index;
+    i64_t curr_saved;
+    u64_t curr_len;
+    c8_t curr[TERM_BUF_SIZE];
 } *history_p;
 
 typedef struct term_t
@@ -51,8 +54,10 @@ typedef struct term_t
 history_p history_create();
 nil_t history_destroy(history_p history);
 nil_t history_add(history_p history, str_p line);
-i64_t history_prev(history_p history, str_p dst);
-i64_t history_next(history_p history, str_p dst);
+i64_t history_prev(history_p history, c8_t buf[]);
+i64_t history_next(history_p history, c8_t buf[]);
+i64_t history_save_current(history_p history, c8_t buf[], u64_t len);
+i64_t history_restore_current(history_p history, c8_t buf[]);
 
 term_p term_create();
 nil_t term_prompt(term_p term);
