@@ -42,6 +42,21 @@
   :g  - Use rich graphic formatting: [0|1].\n\
   :q  - Exits the application: [exit code]."
 
+nil_t cursor_move_left(i32_t i)
+{
+    printf("\033[%dD", i);
+}
+
+nil_t cursor_move_right(i32_t i)
+{
+    printf("\033[%dC", i);
+}
+
+nil_t line_clear()
+{
+    printf("\r\033[K");
+}
+
 // Function to extend the file size
 i64_t extend_file_size(i64_t fd, u64_t new_size)
 {
@@ -472,12 +487,12 @@ nil_t term_redraw(term_p term)
     obj_p fmt = NULL_OBJ;
     i32_t n;
 
-    printf("\r\033[K"); // Clear the line
+    line_clear();
     term_redraw_into(term, &fmt);
     printf("%s", as_string(fmt));
     n = term->buf_len - term->buf_pos;
     if (n > 0)
-        printf("\033[%dD", n); // Move the cursor to the right position
+        cursor_move_left(n);
     fflush(stdout);
     drop_obj(fmt);
 }
@@ -649,7 +664,7 @@ obj_p term_read(term_p term)
                         if (term->buf_pos < term->buf_len)
                         {
                             term->buf_pos++;
-                            printf("\033[%dC", 1);
+                            cursor_move_right(1);
                             fflush(stdout);
                         }
                         break;
@@ -657,7 +672,23 @@ obj_p term_read(term_p term)
                         if (term->buf_pos > 0)
                         {
                             term->buf_pos--;
-                            printf("\033[%dD", 1);
+                            cursor_move_left(1);
+                            fflush(stdout);
+                        }
+                        break;
+                    case 'H': // Home
+                        if (term->buf_pos > 0)
+                        {
+                            cursor_move_left(term->buf_pos);
+                            term->buf_pos = 0;
+                            fflush(stdout);
+                        }
+                        break;
+                    case 'F': // End
+                        if (term->buf_len > 0)
+                        {
+                            cursor_move_right(term->buf_len - term->buf_pos);
+                            term->buf_pos = term->buf_len;
                             fflush(stdout);
                         }
                         break;
