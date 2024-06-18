@@ -419,6 +419,12 @@ i64_t poll_run(poll_p poll)
             // stdin
             if (ev.data.fd == STDIN_FILENO)
             {
+                if (!read(STDIN_FILENO, &poll->term->nextc, 1))
+                {
+                    poll->code = 1;
+                    break;
+                }
+
                 str = term_read(poll->term);
                 if (str != NULL)
                 {

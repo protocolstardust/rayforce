@@ -45,6 +45,7 @@
 #define KEYCODE_RETURN '\n'
 #define KEYCODE_BACKSPACE '\b'
 #define KEYCODE_DELETE 127
+#define KEYCODE_TAB '\t'
 #define KEYCODE_UP 0x48
 #define KEYCODE_DOWN 0x50
 #define KEYCODE_LEFT 0x4b

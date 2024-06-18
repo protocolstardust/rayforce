@@ -36,8 +36,8 @@
 #include "fs.h"
 #include "eval.h"
 
-#define hist_FILE_PATH ".rayhist.dat"
-#define hist_SIZE 4096
+#define HIST_FILE_PATH ".rayhist.dat"
+#define HIST_SIZE 4096
 #define COMMANDS_LIST "\
   :?  - Displays help.\n\
   :g  - Use rich graphic formatting: [0|1].\n\
@@ -104,7 +104,7 @@ hist_p hist_create()
     str_p lines;
     hist_p hist;
 
-    fd = fs_fopen(hist_FILE_PATH, GENERIC_READ | GENERIC_WRITE);
+    fd = fs_fopen(HIST_FILE_PATH, ATTR_RDWR);
 
     if (fd == -1)
     {
@@ -116,14 +116,14 @@ hist_p hist_create()
     if (fsize == 0)
     {
         // Set initial file size if the file is empty
-        if (extend_file_size(fd, hist_SIZE) == -1)
+        if (extend_file_size(fd, HIST_SIZE) == -1)
         {
             perror("can't truncate history file");
             fs_fclose(fd);
             return NULL;
         }
 
-        fsize = hist_SIZE;
+        fsize = HIST_SIZE;
     }
 
     // Map file to memory
@@ -401,14 +401,6 @@ nil_t term_destroy(term_p term)
     heap_unmap(term, sizeof(struct term_t));
 }
 
-b8_t __getc(c8_t *c)
-{
-    DWORD bytesRead;
-    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
-
-    return ReadFile(hStdin, (LPVOID)c, 1, &bytesRead, NULL);
-}
-
 #else
 
 term_p term_create()
@@ -434,6 +426,8 @@ term_p term_create()
     // Initialize the input buffer
     term->buf_len = 0;
     term->buf_pos = 0;
+    term->out = NULL_OBJ;
+    prompt_fmt_into(&term->out);
     term->hist = hist;
     term->fnidx = 0;
     term->varidx = 0;
@@ -449,13 +443,10 @@ nil_t term_destroy(term_p term)
 
     hist_destroy(term->hist);
 
+    drop_obj(term->out);
+
     // Unmap the terminal structure
     heap_unmap(term, sizeof(struct term_t));
-}
-
-b8_t __getc(c8_t *c)
-{
-    return read(STDIN_FILENO, c, 1) == 1;
 }
 
 #endif
@@ -523,7 +514,7 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
                 verb = env_get_internal_function_lit(term->buf + i, j - i, NULL, B8_TRUE);
                 if (verb != NULL)
                 {
-                    n += str_fmt_into(dst, -1, "%s%s%s%s", BOLD, GREEN, verb, RESET);
+                    n += str_fmt_into(dst, -1, "%s%s%s", GREEN, verb, RESET);
                     i += strlen(verb) - 1;
                     c = 1;
                     break;
@@ -595,9 +586,9 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
     return n;
 }
 
-i32_t term_out_diff(obj_p old_out, obj_p new_out)
+u64_t term_out_diff(obj_p old_out, obj_p new_out)
 {
-    i32_t i, old_len, new_len, len;
+    u64_t i, old_len, new_len, len;
     str_p old_str, new_str;
 
     old_len = old_out->len;
@@ -622,21 +613,19 @@ i32_t term_out_diff(obj_p old_out, obj_p new_out)
 nil_t term_redraw(term_p term)
 {
     obj_p out = NULL_OBJ;
-    i32_t n, offset, pos;
+    u64_t n, offset, pos;
 
     term_redraw_into(term, &out);
 
     // Compare old out with new out
-    pos = term_out_diff(term->out, out);
+    // pos = term_out_diff(term->out, out);
 
-    if (pos < term->out->len)
-    {
-        offset = term->out->len - pos;
-        cursor_move_left(offset);
-        // line_clear();
-    }
+    // offset = term->out->len - pos;
 
-    printf("%s", as_string(out) + pos);
+    cursor_move_start();
+    line_clear();
+    printf("%s", as_string(out));
+
     fflush(stdout);
 
     drop_obj(term->out);
@@ -732,7 +721,9 @@ obj_p term_read(term_p term)
     u64_t l, n;
     obj_p res = NULL;
 
+#if defined(_WIN32) || defined(__CYGWIN__)
     mutex_lock(&term->lock);
+#endif
 
     switch (term->nextc)
     {
@@ -873,7 +864,9 @@ obj_p term_read(term_p term)
         break;
     }
 
+#if defined(_WIN32) || defined(__CYGWIN__)
     mutex_unlock(&term->lock);
+#endif
 
     return res;
 }
