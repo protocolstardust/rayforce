@@ -63,6 +63,16 @@ nil_t line_clear()
     printf("\r\033[K");
 }
 
+nil_t cursor_hide()
+{
+    printf("\e[?25l");
+}
+
+nil_t cursor_show()
+{
+    printf("\e[?25h");
+}
+
 // Function to extend the file size
 #if defined(_WIN32) || defined(__CYGWIN__)
 
@@ -347,7 +357,11 @@ term_p term_create()
 {
     term_p term;
     hist_p hist;
-    HANDLE hConsoleInput = GetStdHandle(STD_INPUT_HANDLE);
+    HANDLE hin, hout;
+    DWORD mode;
+
+    hin = GetStdHandle(STD_INPUT_HANDLE);
+    hout = GetStdHandle(STD_OUTPUT_HANDLE);
 
     hist = hist_create();
     if (hist == NULL)
@@ -358,23 +372,30 @@ term_p term_create()
     if (term == NULL)
         return NULL;
 
-    // Save the current input mode
-    GetConsoleMode(hConsoleInput, &term->oldMode);
-
     // For windows 10, set the output encoding to UTF-8
     // [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+    // Set the console output code page to UTF-8
+    if (!SetConsoleOutputCP(CP_UTF8))
+        use_unicode(B8_FALSE); // Disable unicode support
+
+    // Save the current input mode
+    GetConsoleMode(hin, &term->oldMode);
 
     // Set the new input mode (disable line input, echo input, etc.)
     term->newMode = term->oldMode;
     term->newMode &= ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT);
-    SetConsoleMode(hConsoleInput, term->newMode);
+    SetConsoleMode(hin, term->newMode);
+
+    // Enable ANSI escape codes for the console
+    GetConsoleMode(hout, &mode);
+    mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(hout, mode);
 
     // Initialize the input buffer
     term->lock = mutex_create();
     term->buf_len = 0;
     term->buf_pos = 0;
-    term->out = NULL_OBJ;
-    prompt_fmt_into(&term->out);
     term->hist = hist;
     term->fnidx = 0;
     term->varidx = 0;
@@ -394,8 +415,6 @@ nil_t term_destroy(term_p term)
     hist_destroy(term->hist);
 
     mutex_destroy(&term->lock);
-
-    drop_obj(term->out);
 
     // Unmap the terminal structure
     heap_unmap(term, sizeof(struct term_t));
@@ -426,8 +445,6 @@ term_p term_create()
     // Initialize the input buffer
     term->buf_len = 0;
     term->buf_pos = 0;
-    term->out = NULL_OBJ;
-    prompt_fmt_into(&term->out);
     term->hist = hist;
     term->fnidx = 0;
     term->varidx = 0;
@@ -442,8 +459,6 @@ nil_t term_destroy(term_p term)
     tcsetattr(STDIN_FILENO, TCSANOW, &term->oldattr);
 
     hist_destroy(term->hist);
-
-    drop_obj(term->out);
 
     // Unmap the terminal structure
     heap_unmap(term, sizeof(struct term_t));
@@ -586,50 +601,20 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
     return n;
 }
 
-u64_t term_out_diff(obj_p old_out, obj_p new_out)
-{
-    u64_t i, old_len, new_len, len;
-    str_p old_str, new_str;
-
-    old_len = old_out->len;
-    new_len = new_out->len;
-    old_str = as_string(old_out);
-    new_str = as_string(new_out);
-
-    len = (old_len < new_len) ? old_len : new_len;
-
-    // if (old_len == 0)
-    //     return 0;
-
-    for (i = 0; i < len; i++)
-    {
-        if (old_str[i] != new_str[i])
-            return i;
-    }
-
-    return len;
-}
-
 nil_t term_redraw(term_p term)
 {
     obj_p out = NULL_OBJ;
-    u64_t n, offset, pos;
 
     term_redraw_into(term, &out);
 
-    // Compare old out with new out
-    // pos = term_out_diff(term->out, out);
-
-    // offset = term->out->len - pos;
-
+    cursor_hide();
     cursor_move_start();
     line_clear();
     printf("%s", as_string(out));
-
+    cursor_show();
     fflush(stdout);
 
-    drop_obj(term->out);
-    term->out = out;
+    drop_obj(out);
 }
 
 nil_t term_backspace(term_p term)

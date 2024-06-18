@@ -120,7 +120,6 @@ typedef enum
 
 i64_t prompt_fmt_into(obj_p *dst)
 {
-    return str_fmt_into(dst, NO_LIMIT, "");
     return (__USE_UNICODE) ? str_fmt_into(dst, NO_LIMIT, "%s%s %s", GREEN, unicode_glyphs[GLYPH_R_ARROW], RESET)
                            : str_fmt_into(dst, NO_LIMIT, "%s%s %s", GREEN, ascii_glyphs[GLYPH_R_ARROW], RESET);
 }

@@ -85,7 +85,6 @@ typedef struct term_t
     i32_t buf_len;
     i32_t buf_pos;
     c8_t buf[TERM_BUF_SIZE];
-    obj_p out;
     u64_t fnidx;
     u64_t varidx;
     u64_t colidx;
