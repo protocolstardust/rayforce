@@ -467,9 +467,11 @@ term_p term_create()
     tcgetattr(STDIN_FILENO, &term->oldattr);
     term->newattr = term->oldattr;
     term->newattr.c_lflag &= ~(ICANON | ECHO | ISIG);
+    // term->newattr.c_iflag &= ~(IXON | ICRNL);
+    // term->newattr.c_oflag &= ~(OPOST);
     // Deny long pressing keys as repeated input
-    term->newattr.c_cc[VMIN] = 1;
-    term->newattr.c_cc[VTIME] = 0;
+    // term->newattr.c_cc[VMIN] = 1;
+    // term->newattr.c_cc[VTIME] = 0;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &term->newattr);
 
     // Initialize the input buffer

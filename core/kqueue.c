@@ -117,6 +117,7 @@ poll_p poll_init(i64_t port)
     poll->selectors = freelist_create(128);
     poll->replfile = string_from_str("repl", 4);
     poll->ipcfile = string_from_str("ipc", 3);
+    poll->term = term_create();
     poll->timers = timers_create(128);
 
     return poll;
@@ -139,6 +140,8 @@ nil_t poll_destroy(poll_p poll)
 
     drop_obj(poll->replfile);
     drop_obj(poll->ipcfile);
+
+    term_destroy(poll->term);
 
     freelist_free(poll->selectors);
     timers_destroy(poll->timers);
@@ -391,14 +394,14 @@ nil_t process_request(poll_p poll, selector_p selector)
 i64_t poll_run(poll_p poll)
 {
     i64_t kq_fd = poll->poll_fd, listen_fd = poll->ipc_fd,
-          nfds, len, poll_result, sock, next_tm;
+          nfds, poll_result, sock, next_tm;
     i32_t n;
     selector_p selector;
     obj_p str, res;
     struct kevent ev, events[MAX_EVENTS];
     struct timespec tm, *timeout = NULL;
 
-    prompt();
+    term_prompt(poll->term);
 
     while (poll->code == NULL_I64)
     {
@@ -414,16 +417,27 @@ i64_t poll_run(poll_p poll)
             // stdin
             if (ev.ident == STDIN_FILENO)
             {
-                len = read(STDIN_FILENO, __STDIN_BUF, BUF_SIZE);
-                if (len > 1)
+                if (!term_getc(poll->term))
                 {
-                    str = cstring_from_str((str_p)__STDIN_BUF, len - 1);
-                    res = ray_eval_str(str, poll->replfile);
-                    drop_obj(str);
-                    io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
-                    drop_obj(res);
+                    poll->code = 1;
+                    break;
                 }
-                prompt();
+
+                str = term_read(poll->term);
+                if (str != NULL)
+                {
+                    if (is_error(str))
+                        io_write(STDOUT_FILENO, MSG_TYPE_RESP, str);
+                    else if (str != NULL_OBJ)
+                    {
+                        res = ray_eval_str(str, poll->replfile);
+                        drop_obj(str);
+                        io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
+                        drop_obj(res);
+                    }
+
+                    term_prompt(poll->term);
+                }
             }
             // accept new connections
             else if (ev.ident == (uintptr_t)listen_fd)
