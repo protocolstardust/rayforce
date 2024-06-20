@@ -33,10 +33,7 @@
 
 nil_t timer_sleep(u64_t ms)
 {
-    struct timespec ts;
-    ts.tv_sec = ms / 1000;
-    ts.tv_nsec = (ms % 1000) * 1000000;
-    nanosleep(&ts, NULL);
+    Sleep((DWORD)ms);
 }
 
 u64_t get_time_millis(nil_t)

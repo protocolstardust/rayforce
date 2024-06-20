@@ -407,7 +407,6 @@ term_p term_create()
     memset(term->input, 0, 8);
     term->buf_len = 0;
     term->buf_pos = 0;
-    term->parens_len = 0;
     term->hist = hist;
     term->fnidx = 0;
     term->varidx = 0;
