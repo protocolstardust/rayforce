@@ -39,6 +39,7 @@
 #include "filter.h"
 #include "update.h"
 #include "pool.h"
+#include "time.h"
 #include "runtime.h"
 
 obj_p get_fields(obj_p obj)
@@ -247,9 +248,13 @@ nil_t drop_field_arg(raw_p x, u64_t n)
 obj_p ray_select(obj_p obj)
 {
     u64_t i, l, tablen;
+    ray_clock_t clock;
+    b8_t timeit;
     obj_p keys = NULL_OBJ, vals = NULL_OBJ, filters = NULL_OBJ, groupby = NULL_OBJ,
           gcol = NULL_OBJ, gkeys = NULL_OBJ, gvals = NULL_OBJ, tab, sym, prm, val;
     pool_p pool;
+
+    timeit = get_timeit();
 
     if (obj->type != TYPE_DICT)
         throw(ERR_LENGTH, "'select' takes dict of params");
@@ -263,11 +268,20 @@ obj_p ray_select(obj_p obj)
     if (is_null(prm))
         throw(ERR_LENGTH, "'select' expects 'from' param");
 
+    if (timeit)
+        ray_clock_get_time(&clock);
+
     tab = eval(prm);
     drop_obj(prm);
 
     if (is_error(tab))
         return tab;
+
+    if (timeit)
+    {
+        ray_print_elapsed_ms("select: get table", ray_clock_elapsed_ms(&clock));
+        ray_clock_get_time(&clock);
+    }
 
     if (tab->type != TYPE_TABLE)
     {
@@ -297,6 +311,12 @@ obj_p ray_select(obj_p obj)
         {
             drop_obj(tab);
             return filters;
+        }
+
+        if (timeit)
+        {
+            ray_print_elapsed_ms("select: apply filters", ray_clock_elapsed_ms(&clock));
+            ray_clock_get_time(&clock);
         }
     }
 
@@ -348,6 +368,12 @@ obj_p ray_select(obj_p obj)
         {
             drop_obj(tab);
             return gcol;
+        }
+
+        if (timeit)
+        {
+            ray_print_elapsed_ms("select: apply groupby", ray_clock_elapsed_ms(&clock));
+            ray_clock_get_time(&clock);
         }
     }
     else if (filters != NULL_OBJ)
@@ -423,6 +449,12 @@ obj_p ray_select(obj_p obj)
 
             vals = pool_run(pool, l);
         }
+
+        if (timeit)
+        {
+            ray_print_elapsed_ms("select: apply mappings", ray_clock_elapsed_ms(&clock));
+            ray_clock_get_time(&clock);
+        }
     }
     else
     {
@@ -497,6 +529,12 @@ obj_p ray_select(obj_p obj)
 
                 as_list(vals)[i] = val;
             }
+        }
+
+        if (timeit)
+        {
+            ray_print_elapsed_ms("select: collect results", ray_clock_elapsed_ms(&clock));
+            ray_clock_get_time(&clock);
         }
     }
 

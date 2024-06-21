@@ -48,6 +48,7 @@ typedef struct interpreter_t
     obj_p *stack;   // Stack.
     i64_t cp;       // Context pointer.
     ctx_p ctxstack; // Stack of contexts.
+    b8_t timeit;    // Timeit flag.
 } *interpreter_p;
 
 extern __thread interpreter_p __INTERPRETER;
@@ -70,6 +71,8 @@ nil_t error_add_loc(obj_p err, i64_t id, ctx_p ctx);
 // TODO: replace with correct functions
 nil_t interpreter_env_set(interpreter_p interpreter, obj_p env);
 nil_t interpreter_env_unset(interpreter_p interpreter);
+nil_t set_timeit(b8_t timeit);
+b8_t get_timeit();
 
 inline __attribute__((always_inline)) nil_t stack_push(obj_p val)
 {

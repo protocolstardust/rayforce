@@ -21,8 +21,6 @@
  *   SOFTWARE.
  */
 
-#define _POSIX_C_SOURCE 1
-
 #include "../core/rayforce.h"
 #include "../core/runtime.h"
 #include "../core/format.h"

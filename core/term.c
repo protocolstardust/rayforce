@@ -42,10 +42,11 @@
 #define COMMANDS_LIST "\
   :?  - Displays help.\n\
   :g  - Use rich graphic formatting: [0|1].\n\
+  :t  - Turns on|off measurement of expressions: [0|1].\n\
   :q  - Exits the application: [exit code]."
 
-#define is_cmd(t, c) ((t)->buf_len == strlen(c) && strncmp((t)->buf, c, strlen(c)) == 0)
-#define is_esc(t, e) ((t)->input_len == strlen(e) && strncmp((t)->input, e, strlen(e)) == 0)
+#define is_cmd(t, c) ((t)->buf_len >= (i32_t)strlen(c) && strncmp((t)->buf, c, strlen(c)) == 0)
+#define is_esc(t, e) ((t)->input_len == (i32_t)strlen(e) && strncmp((t)->input, e, strlen(e)) == 0)
 
 nil_t cursor_move_start()
 {
@@ -891,6 +892,13 @@ obj_p term_handle_return(term_p term)
         exit_code = (term->buf_len > 2) ? i64_from_str(term->buf + 2, term->buf_len - 3) : 0;
         poll_exit(runtime_get()->poll, exit_code);
         return NULL;
+    }
+
+    if (is_cmd(term, ":t"))
+    {
+        set_timeit((term->buf_len > 2 && term->buf[3] == '1') ? B8_TRUE : B8_FALSE);
+        printf("\n%s. Timeit is %s.%s", YELLOW, get_timeit() ? "on" : "off", RESET);
+        return NULL_OBJ;
     }
 
     if (is_cmd(term, ":?"))

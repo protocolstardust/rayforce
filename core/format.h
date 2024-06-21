@@ -66,5 +66,6 @@ obj_p obj_fmt_n(obj_p *obj, u64_t n);
 nil_t use_unicode(b8_t use);
 obj_p ray_set_fpr(obj_p x);           // set float precision
 obj_p ray_set_display_width(obj_p x); // set display width
+nil_t ray_print_elapsed_ms(str_p msg, f64_t elapsed);
 
 #endif // FORMAT_H

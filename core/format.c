@@ -1279,3 +1279,8 @@ nil_t use_unicode(b8_t use)
 {
     __USE_UNICODE = use;
 }
+
+nil_t ray_print_elapsed_ms(str_p msg, f64_t elapsed)
+{
+    printf("%s. %s %.3f ms%s\n", GRAY, msg, elapsed, RESET);
+}

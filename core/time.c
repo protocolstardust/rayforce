@@ -21,8 +21,6 @@
  *   SOFTWARE.
  */
 
-#define _POSIX_C_SOURCE 200809L // Define POSIX source version for CLOCK_REALTIME
-#include <time.h>
 #include "time.h"
 #include "heap.h"
 #include "runtime.h"
@@ -46,24 +44,21 @@ u64_t get_time_millis(nil_t)
     return uli.QuadPart / 10000ULL - 11644473600000ULL; // Convert to milliseconds since Unix epoch
 }
 
-obj_p ray_timeit(obj_p x)
+ray_clock_t ray_clock_get_time()
 {
-    LARGE_INTEGER start, end, freq;
-    f64_t elapsed;
+    ray_clock_t clock;
 
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&start);
+    QueryPerformanceFrequency(&clock.freq);
+    QueryPerformanceCounter(&clock.start);
 
-    x = eval(x);
-    if (is_error(x))
-        return x;
-    drop_obj(x);
+    return clock;
+}
 
-    QueryPerformanceCounter(&end);
+f64_t ray_clock_elapsed_ms(ray_clock_t *clock)
+{
+    QueryPerformanceCounter(&clock->end);
 
-    elapsed = ((end.QuadPart - start.QuadPart) * 1000.0) / freq.QuadPart; // Convert to milliseconds
-
-    return f64(elapsed);
+    return ((clock->end.QuadPart - clock->start.QuadPart) * 1000.0) / clock->freq.QuadPart; // Convert to milliseconds
 }
 
 #else
@@ -83,27 +78,39 @@ u64_t get_time_millis(nil_t)
     return (u64_t)ts.tv_sec * 1000 + (u64_t)ts.tv_nsec / 1000000;
 }
 
-obj_p ray_timeit(obj_p x)
+nil_t ray_clock_get_time(ray_clock_t *clock)
 {
-    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &clock->clock);
+}
+
+f64_t ray_clock_elapsed_ms(ray_clock_t *clock)
+{
+    struct timespec now;
     f64_t elapsed;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    elapsed = (now.tv_sec - clock->clock.tv_sec) * 1e3;    // Convert to milliseconds
+    elapsed += (now.tv_nsec - clock->clock.tv_nsec) / 1e6; // Convert nanoseconds to milliseconds
+
+    return elapsed;
+}
+
+#endif
+
+obj_p ray_timeit(obj_p x)
+{
+    ray_clock_t start;
+
+    ray_clock_get_time(&start);
 
     x = eval(x);
     if (is_error(x))
         return x;
     drop_obj(x);
 
-    clock_gettime(CLOCK_MONOTONIC, &end);
-
-    elapsed = (end.tv_sec - start.tv_sec) * 1e3;    // Convert to milliseconds
-    elapsed += (end.tv_nsec - start.tv_nsec) / 1e6; // Convert nanoseconds to milliseconds
-
-    return f64(elapsed);
+    return f64(ray_clock_elapsed_ms(&start));
 }
-
-#endif
 
 ray_timer_p ray_timer_create(i64_t id, u64_t tic, u64_t exp, i64_t num, obj_p clb)
 {

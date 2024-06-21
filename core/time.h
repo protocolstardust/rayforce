@@ -25,6 +25,11 @@
 #define TIME_H
 
 #include "rayforce.h"
+#if defined(_WIN32) || defined(__CYGWIN__)
+#else
+#define _POSIX_C_SOURCE 200809L // Define POSIX source version for CLOCK_REALTIME
+#include <time.h>
+#endif
 
 #define TIMEOUT_INFINITY -1
 
@@ -45,17 +50,32 @@ typedef struct timers_t
     i64_t counter;       // Counter to assign unique IDs to timers
 } *timers_p;
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+
 typedef struct
 {
-    i64_t start; // Start time of the clock
-    i64_t stop;  // Stop time of the clock
+    LARGE_INTEGER start;
+    LARGE_INTEGER end;
+    LARGE_INTEGER freq;
 } ray_clock_t;
+
+#else
+
+typedef struct
+{
+    struct timespec clock;
+} ray_clock_t;
+
+#endif
+
+nil_t ray_clock_get_time(ray_clock_t *clock);
+f64_t ray_clock_elapsed_ms(ray_clock_t *clock);
 
 timers_p timers_create(u64_t capacity);
 nil_t timers_destroy(timers_p timers);
 i64_t timer_next_timeout(timers_p timers);
-
 nil_t timer_sleep(u64_t ms);
+
 obj_p ray_timer(obj_p *x, u64_t n);
 obj_p ray_timeit(obj_p x);
 
