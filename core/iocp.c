@@ -594,6 +594,7 @@ i64_t poll_run(poll_p poll)
                             drop_obj(str);
                             io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
                             drop_obj(res);
+                            timeit_print();
                         }
 
                         term_prompt(poll->term);

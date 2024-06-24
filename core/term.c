@@ -375,7 +375,7 @@ term_p term_create()
 
     // Set the console output code page to UTF-8
     if (!SetConsoleOutputCP(CP_UTF8))
-        use_unicode(B8_FALSE); // Disable unicode support
+        format_use_unicode(B8_FALSE); // Disable unicode support
 
     // Save the current input mode
     GetConsoleMode(h_stdin, &term->old_stdin_mode);

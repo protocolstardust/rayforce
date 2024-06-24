@@ -45,19 +45,15 @@ u64_t get_time_millis(nil_t)
     return uli.QuadPart / 10000ULL - 11644473600000ULL; // Convert to milliseconds since Unix epoch
 }
 
-ray_clock_t ray_clock_get_time()
+nil_t ray_clock_get_time(ray_clock_t *clock)
 {
-    ray_clock_t clock;
-
-    QueryPerformanceFrequency(&clock.freq);
-    QueryPerformanceCounter(&clock.clock);
-
-    return clock;
+    QueryPerformanceFrequency(&clock->freq);
+    QueryPerformanceCounter(&clock->clock);
 }
 
 f64_t ray_clock_elapsed_ms(ray_clock_t *start, ray_clock_t *end)
 {
-    return ((end->clock.QuadPart - start->clock.QuadPart) * 1000.0) / clock->freq.QuadPart; // Convert to milliseconds
+    return ((end->clock.QuadPart - start->clock.QuadPart) * 1000.0) / start->freq.QuadPart; // Convert to milliseconds
 }
 
 #else

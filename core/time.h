@@ -26,6 +26,7 @@
 
 #include "rayforce.h"
 #if defined(_WIN32) || defined(__CYGWIN__)
+#include <windows.h>
 #else
 #define _POSIX_C_SOURCE 200809L // Define POSIX source version for CLOCK_REALTIME
 #include <time.h>
