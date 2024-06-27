@@ -40,6 +40,7 @@ f64_t f64_from_str(lit_p str, u64_t len);
 u64_t str_cpy(str_p dst, str_p src);
 u64_t str_len(str_p s, u64_t n);
 i64_t str_cmp(lit_p lhs, u64_t m, lit_p rhs, u64_t n);
+str_p str_rchr(lit_p s, i32_t c, u64_t n);
 obj_p vn_vstring(lit_p fmt, va_list args);
 
 #endif // STRING_H

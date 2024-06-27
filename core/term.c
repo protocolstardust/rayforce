@@ -37,6 +37,7 @@
 #include "fs.h"
 #include "eval.h"
 
+#define MAX_PATH_LEN 128
 #define HIST_FILE_PATH ".rayhist.dat"
 #define HIST_SIZE 4096 * 1024 // 4MB
 #define COMMANDS_LIST "\
@@ -400,9 +401,7 @@ term_p term_create()
     term->buf_len = 0;
     term->buf_pos = 0;
     term->hist = hist;
-    term->fnidx = 0;
-    term->varidx = 0;
-    term->colidx = 0;
+    term->autocp_idx.entry = 0;
 
     return term;
 }
@@ -468,9 +467,7 @@ term_p term_create()
     term->buf_len = 0;
     term->buf_pos = 0;
     term->hist = hist;
-    term->fnidx = 0;
-    term->varidx = 0;
-    term->colidx = 0;
+    term->autocp_idx.entry = 0;
 
     return term;
 }
@@ -559,8 +556,7 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
                         break;
                 }
 
-                // try to find in a verbs list
-                verb = env_get_internal_function_lit(term->buf + i, j - i, NULL, B8_TRUE);
+                verb = env_get_internal_keyword_name(term->buf + i, j - i, &term->autocp_idx.index, B8_TRUE);
                 if (verb != NULL)
                 {
                     n += str_fmt_into(dst, -1, "%s%s%s", GREEN, verb, RESET);
@@ -569,19 +565,10 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
                     break;
                 }
 
-                verb = env_get_internal_kw_lit(term->buf + i, j - i, B8_TRUE);
+                verb = env_get_internal_function_name(term->buf + i, j - i, &term->autocp_idx.index, B8_TRUE);
                 if (verb != NULL)
                 {
-                    n += str_fmt_into(dst, -1, "%s%s%s%s", BOLD, YELLOW, verb, RESET);
-                    i += strlen(verb) - 1;
-                    c = 1;
-                    break;
-                }
-
-                verb = env_get_internal_lit_lit(term->buf + i, j - i, B8_TRUE);
-                if (verb != NULL)
-                {
-                    n += str_fmt_into(dst, -1, "%s%s%s%s", BOLD, YELLOW, verb, RESET);
+                    n += str_fmt_into(dst, -1, "%s%s%s", GREEN, verb, RESET);
                     i += strlen(verb) - 1;
                     c = 1;
                     break;
@@ -592,12 +579,12 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
                 n += str_fmt_into(dst, -1, "%s%c%s", LIGHT_BLUE, term->buf[i], RESET);
                 c = 1;
             }
-            else if (term->buf[i] == '"')
+            else if (term->buf[i] == '\"')
             {
                 // string
                 for (j = i + 1; j < l; j++)
                 {
-                    if (term->buf[j] == '"')
+                    if (term->buf[j] == '\"')
                     {
                         n += str_fmt_into(dst, -1, "%s", YELLOW);
                         n += str_fmt_into(dst, -1, "%.*s", j - i + 1, term->buf + i);
@@ -653,9 +640,7 @@ nil_t term_redraw(term_p term)
         cursor_move_left(n);
 
     cursor_show();
-
     fflush(stdout);
-
     drop_obj(out);
 }
 
@@ -679,67 +664,11 @@ nil_t term_handle_backspace(term_p term)
     term_redraw(term);
 }
 
-b8_t term_autocomplete_word(term_p term)
+nil_t autocp_idx_reset(autocp_idx_t *idx)
 {
-    u64_t l, n, len, pos, start, end;
-    c8_t *tbuf, *hbuf;
-    str_p word;
-
-    pos = term->buf_pos;
-    len = term->hist->curr_len;
-    hbuf = term->hist->curr;
-    tbuf = term->buf;
-
-    // Find start of the word
-    for (start = pos; start > 0; start--)
-    {
-        if (!is_alphanum(tbuf[start - 1]) && tbuf[start - 1] != '-')
-            break;
-    }
-
-    // Find end of the word
-    for (end = start; end < len; end++)
-    {
-        if (!is_alphanum(hbuf[end]) && hbuf[end] != '-')
-            break;
-    }
-
-    n = end - start;
-    if (n == 0)
-        return B8_FALSE;
-
-    word = env_get_internal_function_lit(tbuf + start, n, &term->fnidx, B8_FALSE);
-    if (word != NULL)
-        goto redraw;
-
-    word = env_get_internal_kw_lit(tbuf + start, n, B8_FALSE);
-    if (word != NULL)
-        goto redraw;
-
-    word = env_get_internal_lit_lit(tbuf + start, n, B8_FALSE);
-    if (word != NULL)
-        goto redraw;
-
-    word = env_get_global_lit_lit(tbuf + start, n, &term->varidx, &term->colidx);
-    if (word != NULL)
-        goto redraw;
-
-    return B8_FALSE;
-
-redraw:
-    l = strlen(word);
-
-    // if the word is the same as the current one, then skip it
-    if (l == n && strncmp(word, hbuf + start, n) == 0)
-        return B8_FALSE;
-
-    strncpy(tbuf + start, word, l);
-    strncpy(tbuf + start + l, hbuf + end, len - end);
-    term->buf_len = start + l + len - end;
-    term->buf_pos = start + l;
-    term_redraw(term);
-
-    return B8_TRUE;
+    idx->entry = 0;
+    idx->index = 0;
+    idx->sbidx = 0;
 }
 
 nil_t term_highlight_pos(term_p term, u64_t pos)
@@ -838,6 +767,149 @@ paren_t term_find_open_paren(term_p term)
     return (paren_t){-1, 0};
 }
 
+b8_t term_autocomplete_word(term_p term)
+{
+    u64_t l, n, len, pos, start, end;
+    c8_t *tbuf, *hbuf;
+    str_p word;
+
+    pos = term->buf_pos;
+    len = term->hist->curr_len;
+    hbuf = term->hist->curr;
+    tbuf = term->buf;
+
+    // Find start of the word
+    for (start = pos; start > 0; start--)
+    {
+        if (!is_alphanum(tbuf[start - 1]) && tbuf[start - 1] != '-')
+            break;
+    }
+
+    // Find end of the word
+    for (end = start; end < len; end++)
+    {
+        if (!is_alphanum(hbuf[end]) && hbuf[end] != '-')
+            break;
+    }
+
+    n = end - start;
+    if (n == 0)
+        return B8_FALSE;
+
+    switch (term->autocp_idx.entry)
+    {
+    case 0:
+        word = env_get_internal_keyword_name(tbuf + start, n, &term->autocp_idx.index, B8_FALSE);
+        if (word != NULL)
+            goto redraw;
+        term->autocp_idx.index = 0;
+        term->autocp_idx.sbidx = 0;
+        term->autocp_idx.entry++;
+    case 1:
+        word = env_get_internal_function_name(tbuf + start, n, &term->autocp_idx.index, B8_FALSE);
+        if (word != NULL)
+            goto redraw;
+        term->autocp_idx.index = 0;
+        term->autocp_idx.sbidx = 0;
+        term->autocp_idx.entry++;
+    case 2:
+        word = env_get_global_name(tbuf + start, n, &term->autocp_idx.index, &term->autocp_idx.sbidx);
+        if (word != NULL)
+            goto redraw;
+        term->autocp_idx.index = 0;
+        term->autocp_idx.sbidx = 0;
+        term->autocp_idx.entry++;
+    default:
+        break;
+    }
+
+    return B8_FALSE;
+
+redraw:
+    l = strlen(word);
+
+    // if the word is the same as the current one, then skip it
+    if (l == n && strncmp(word, hbuf + start, n) == 0)
+        return B8_FALSE;
+
+    strncpy(tbuf + start, word, l);
+    strncpy(tbuf + start + l, hbuf + end, len - end);
+    term->buf_len = start + l + len - end;
+    term->buf_pos = start + l;
+    term_redraw(term);
+
+    return B8_TRUE;
+}
+
+b8_t term_autocomplete_path(term_p term, u64_t start)
+{
+    u64_t i, l, n, m, end, len, path_len, prefix_len;
+    obj_p files;
+    str_p last_slash, file;
+    c8_t path[MAX_PATH_LEN], prefix[MAX_PATH_LEN], *hbuf, *tbuf;
+
+    len = term->hist->curr_len;
+    hbuf = term->hist->curr;
+    tbuf = term->buf;
+
+    // Find end of the path
+    for (end = start; end < len; end++)
+    {
+        if (is_whitespace(hbuf[end]) || hbuf[end] == KEYCODE_DQUOTE)
+            break;
+    }
+
+    n = end - start;
+    if (n == 0 || n > MAX_PATH_LEN - 1)
+        return B8_FALSE;
+
+    last_slash = str_rchr(hbuf + start, '/', n);
+    if (last_slash != NULL)
+    {
+        path_len = last_slash - hbuf - start + 1;
+        strncpy(path, hbuf + start, path_len);
+        prefix_len = hbuf + end - last_slash - 1;
+        strncpy(prefix, last_slash + 1, prefix_len + 1);
+    }
+    else
+    {
+        path_len = 2;
+        strncpy(path, "./", path_len + 1);
+        prefix_len = n;
+        strncpy(prefix, hbuf + start, prefix_len + 1);
+    }
+
+    files = fs_read_dir(path);
+    l = files->len;
+
+    for (i = term->autocp_idx.index; i < l; i++)
+    {
+        file = as_string(as_list(files)[i]);
+        m = as_list(files)[i]->len;
+
+        if (m > 0 && prefix_len <= m && strncmp(prefix, file, prefix_len) == 0)
+        {
+            // if the word is the same as the current one, then skip it
+            if (prefix_len == m)
+                continue;
+
+            strncpy(tbuf + start, path, path_len);
+            strncpy(tbuf + start + path_len, file, m);
+            strncpy(tbuf + start + path_len + m, hbuf + end, len - end);
+            term->buf_len = start + path_len + m + len - end;
+            term->buf_pos = start + path_len + m;
+            term->autocp_idx.index = i + 1;
+            term_redraw(term);
+            drop_obj(files);
+            return B8_TRUE;
+        }
+    }
+
+    drop_obj(files);
+
+    return B8_FALSE;
+}
+
 b8_t term_autocomplete_paren(term_p term)
 {
     paren_t open_paren;
@@ -845,7 +917,18 @@ b8_t term_autocomplete_paren(term_p term)
     open_paren = term_find_open_paren(term);
 
     if (open_paren.pos == -1)
-        return B8_FALSE;
+    {
+        return term_autocomplete_word(term);
+    }
+    else if (open_paren.type == KEYCODE_DQUOTE)
+    {
+        if (term_autocomplete_path(term, open_paren.pos + 1))
+            return B8_TRUE;
+    }
+    else if (term_autocomplete_word(term))
+    {
+        return B8_TRUE;
+    }
 
     term_highlight_pos(term, open_paren.pos);
 
@@ -863,18 +946,7 @@ b8_t term_autocomplete_paren(term_p term)
 
 nil_t term_handle_tab(term_p term)
 {
-    if (term_autocomplete_word(term))
-        return;
-
-    if (term_autocomplete_paren(term))
-        return;
-}
-
-nil_t term_reset_idx(term_p term)
-{
-    term->fnidx = 0;
-    term->varidx = 0;
-    term->colidx = 0;
+    term_autocomplete_paren(term);
 }
 
 obj_p term_handle_return(term_p term)
@@ -1057,8 +1129,8 @@ obj_p term_read(term_p term)
     {
     case KEYCODE_RETURN:
         res = term_handle_return(term);
-        term_reset_idx(term);
         hist_reset_current(term->hist);
+        autocp_idx_reset(&term->autocp_idx);
         term->buf_len = 0;
         term->buf_pos = 0;
         term->input_len = 0;
@@ -1067,9 +1139,9 @@ obj_p term_read(term_p term)
         break;
     case KEYCODE_BACKSPACE:
     case KEYCODE_DELETE:
-        term_reset_idx(term);
         hist_reset_current(term->hist);
         term_handle_backspace(term);
+        autocp_idx_reset(&term->autocp_idx);
         term->input_len = 0;
         break;
     case KEYCODE_TAB:
@@ -1088,8 +1160,8 @@ obj_p term_read(term_p term)
         term->input_len = 0;
         if (term->buf_len + 1 == TERM_BUF_SIZE)
             return NULL;
-        term_reset_idx(term);
         hist_reset_current(term->hist);
+        autocp_idx_reset(&term->autocp_idx);
         res = term_handle_symbol(term);
         break;
     }

@@ -52,6 +52,7 @@
 i64_t SYMBOL_FN;
 i64_t SYMBOL_SELF;
 i64_t SYMBOL_DO;
+i64_t SYMBOL_BY;
 i64_t SYMBOL_SET;
 i64_t SYMBOL_LET;
 
@@ -253,26 +254,35 @@ nil_t init_typenames(obj_p typenames)
 }
 // clang-format on
 
-nil_t init_kw(nil_t)
+nil_t init_keywords(obj_p *keywords)
 {
     SYMBOL_FN = symbols_intern("fn", 2);
-    SYMBOL_SELF = symbols_intern("self", 4);
+    push_raw(keywords, &SYMBOL_FN);
     SYMBOL_DO = symbols_intern("do", 2);
+    push_raw(keywords, &SYMBOL_DO);
+    SYMBOL_BY = symbols_intern("by", 2);
+    push_raw(keywords, &SYMBOL_BY);
     SYMBOL_SET = symbols_intern("set", 3);
+    push_raw(keywords, &SYMBOL_SET);
+    SYMBOL_SELF = symbols_intern("self", 4);
+    push_raw(keywords, &SYMBOL_SELF);
     SYMBOL_LET = symbols_intern("let", 3);
+    push_raw(keywords, &SYMBOL_LET);
 }
 
-env_t create_env(nil_t)
+env_t env_create(nil_t)
 {
+    obj_p keywords = vector_symbol(0);
     obj_p functions = dict(vector_symbol(0), list(0));
     obj_p variables = dict(vector_symbol(0), list(0));
     obj_p typenames = dict(vector_i64(0), vector_symbol(0));
 
-    init_kw();
+    init_keywords(&keywords);
     init_functions(functions);
     init_typenames(typenames);
 
     env_t env = {
+        .keywords = keywords,
         .functions = functions,
         .variables = variables,
         .typenames = typenames,
@@ -281,8 +291,9 @@ env_t create_env(nil_t)
     return env;
 }
 
-nil_t free_env(env_t *env)
+nil_t env_destroy(env_t *env)
 {
+    drop_obj(env->keywords);
     drop_obj(env->functions);
     drop_obj(env->variables);
     drop_obj(env->typenames);
@@ -368,14 +379,14 @@ obj_p env_get_internal_function_by_id(i64_t id)
     return NULL_OBJ;
 }
 
-str_p env_get_internal_function_lit(lit_p name, u64_t len, u64_t *fnidx, b8_t exact)
+str_p env_get_internal_entry_name(lit_p name, u64_t len, obj_p entries, u64_t *index, b8_t exact)
 {
     i64_t i, l, *names;
     u64_t n;
     str_p nm;
 
-    l = as_list(runtime_get()->env.functions)[0]->len;
-    names = as_i64(as_list(runtime_get()->env.functions)[0]);
+    l = entries->len;
+    names = as_symbol(entries);
 
     if (exact)
     {
@@ -389,7 +400,7 @@ str_p env_get_internal_function_lit(lit_p name, u64_t len, u64_t *fnidx, b8_t ex
     }
     else
     {
-        for (i = *fnidx; i < l; i++)
+        for (i = *index; i < l; i++)
         {
             nm = str_from_symbol(names[i]);
             n = strlen(nm);
@@ -397,7 +408,7 @@ str_p env_get_internal_function_lit(lit_p name, u64_t len, u64_t *fnidx, b8_t ex
                 continue;
             if (strncmp(name, nm, len) == 0)
             {
-                *fnidx = i + 1;
+                *index = i + 1;
                 return nm;
             }
         }
@@ -406,73 +417,17 @@ str_p env_get_internal_function_lit(lit_p name, u64_t len, u64_t *fnidx, b8_t ex
     return NULL;
 }
 
-str_p env_get_internal_kw_lit(lit_p name, u64_t len, b8_t exact)
+str_p env_get_internal_keyword_name(lit_p name, u64_t len, u64_t *index, b8_t exact)
 {
-    if (exact)
-    {
-        if (len == 2 && strncmp(name, "fn", 2) == 0)
-            return (str_p) "fn";
-        if (len == 4 && strncmp(name, "self", 4) == 0)
-            return (str_p) "self";
-        if (len == 2 && strncmp(name, "do", 2) == 0)
-            return (str_p) "do";
-        if (len == 3 && strncmp(name, "set", 3) == 0)
-            return (str_p) "set";
-        if (len == 3 && strncmp(name, "let", 3) == 0)
-            return (str_p) "let";
-    }
-    else
-    {
-        if (len <= 2 && strncmp(name, "fn", len) == 0)
-            return (str_p) "fn";
-        if (len <= 4 && strncmp(name, "self", len) == 0)
-            return (str_p) "self";
-        if (len <= 2 && strncmp(name, "do", len) == 0)
-            return (str_p) "do";
-        if (len <= 3 && strncmp(name, "set", len) == 0)
-            return (str_p) "set";
-        if (len <= 3 && strncmp(name, "let", len) == 0)
-            return (str_p) "let";
-    }
-
-    return NULL;
+    return env_get_internal_entry_name(name, len, runtime_get()->env.keywords, index, exact);
 }
 
-str_p env_get_internal_lit_lit(lit_p name, u64_t len, b8_t exact)
+str_p env_get_internal_function_name(lit_p name, u64_t len, u64_t *index, b8_t exact)
 {
-    if (exact)
-    {
-        if (len == 2 && strncmp(name, "0i", 2) == 0)
-            return (str_p) "0i";
-        if (len == 2 && strncmp(name, "0f", 2) == 0)
-            return (str_p) "0f";
-        if (len == 2 && strncmp(name, "0g", 2) == 0)
-            return (str_p) "0g";
-        if (len == 2 && strncmp(name, "by", 2) == 0)
-            return (str_p) "by";
-        if (len == 4 && strncmp(name, "from", 4) == 0)
-            return (str_p) "from";
-        if (len == 4 && strncmp(name, "true", 4) == 0)
-            return (str_p) "true";
-        if (len == 5 && strncmp(name, "false", 5) == 0)
-            return (str_p) "false";
-    }
-    else
-    {
-        if (len <= 2 && strncmp(name, "by", len) == 0)
-            return (str_p) "by";
-        if (len <= 4 && strncmp(name, "from", len) == 0)
-            return (str_p) "from";
-        if (len <= 4 && strncmp(name, "true", len) == 0)
-            return (str_p) "true";
-        if (len <= 2 && strncmp(name, "false", len) == 0)
-            return (str_p) "false";
-    }
-
-    return NULL;
+    return env_get_internal_entry_name(name, len, as_list(runtime_get()->env.functions)[0], index, exact);
 }
 
-str_p env_get_global_lit_lit(lit_p name, u64_t len, u64_t *varidx, u64_t *colidx)
+str_p env_get_global_name(lit_p name, u64_t len, u64_t *index, u64_t *sbidx)
 {
     i64_t *names, *cols;
     u64_t i, j, n, l, m;
@@ -489,7 +444,7 @@ str_p env_get_global_lit_lit(lit_p name, u64_t len, u64_t *varidx, u64_t *colidx
         n = mini64((i64_t)len, (i64_t)strlen(nm));
         if (strncmp(name, nm, n) == 0)
         {
-            *varidx = i + 1;
+            *index = i + 1;
             return nm;
         }
 
@@ -497,13 +452,13 @@ str_p env_get_global_lit_lit(lit_p name, u64_t len, u64_t *varidx, u64_t *colidx
         {
             cols = as_i64(as_list(vals[i])[0]);
             m = as_list(vals[i])[0]->len;
-            for (j = *colidx; j < m; j++)
+            for (j = *sbidx; j < m; j++)
             {
                 nm = str_from_symbol(cols[j]);
                 n = mini64((i64_t)len, (i64_t)strlen(nm));
                 if (strncmp(name, nm, n) == 0)
                 {
-                    *colidx = j + 1;
+                    *sbidx = j + 1;
                     return nm;
                 }
             }

@@ -48,7 +48,7 @@
 
 #define TABLE_MAX_WIDTH 10       // Maximum number of columns
 #define TABLE_MAX_HEIGHT 20      // Maximum number of rows
-#define LIST_MAX_HEIGHT 5        // Maximum number of list/dict rows
+#define LIST_MAX_HEIGHT 50       // Maximum number of list/dict rows
 #define DEFAULT_MAX_ROW_WIDTH 80 // Maximum number of characters in a row
 #define DEFAULT_F64_PRECISION 2  // Number of decimal places for floating point numbers
 

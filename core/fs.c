@@ -200,6 +200,31 @@ i64_t fs_dclose(i64_t fd)
     return closedir((DIR *)fd);
 }
 
+obj_p fs_read_dir(lit_p path)
+{
+    WIN32_FIND_DATA findFileData;
+    HANDLE hFind;
+
+    // Append \* to the path for Windows API
+    char searchPath[MAX_PATH];
+    snprintf(searchPath, MAX_PATH, "%s\\*", path);
+
+    hFind = FindFirstFile(searchPath, &findFileData);
+    if (hFind == INVALID_HANDLE_VALUE)
+    {
+        printf("Error: Unable to open directory %s\n", path);
+        return;
+    }
+
+    do
+    {
+        const char *name = findFileData.cFileName;
+        printf("%s\n", name);
+    } while (FindNextFile(hFind, &findFileData) != 0);
+
+    FindClose(hFind);
+}
+
 #else
 
 i64_t fs_fopen(lit_p path, i64_t attrs)
@@ -309,6 +334,28 @@ i64_t fs_dopen(lit_p path)
 i64_t fs_dclose(i64_t fd)
 {
     return closedir((DIR *)fd);
+}
+
+obj_p fs_read_dir(lit_p path)
+{
+    DIR *dir;
+    struct dirent *ent;
+    obj_p lst = list(0);
+
+    if ((dir = opendir(path)) != NULL)
+    {
+        while ((ent = readdir(dir)) != NULL)
+        {
+            if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
+                continue;
+
+            push_obj(&lst, string_from_str(ent->d_name, strlen(ent->d_name)));
+        }
+
+        closedir(dir);
+    }
+
+    return lst;
 }
 
 #endif

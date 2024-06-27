@@ -35,6 +35,7 @@
 extern i64_t SYMBOL_FN;
 extern i64_t SYMBOL_SELF;
 extern i64_t SYMBOL_DO;
+extern i64_t SYMBOL_BY;
 extern i64_t SYMBOL_SET;
 extern i64_t SYMBOL_LET;
 
@@ -43,13 +44,14 @@ extern i64_t SYMBOL_LET;
  */
 typedef struct env_t
 {
+    obj_p keywords;  // list of reserved keywords
     obj_p functions; // dict, containing function primitives
     obj_p variables; // dict, containing mappings variables names to their values
     obj_p typenames; // dict, containing mappings type ids to their names
 } env_t;
 
-env_t create_env(nil_t);
-nil_t free_env(env_t *env);
+env_t env_create(nil_t);
+nil_t env_destroy(env_t *env);
 
 i64_t env_get_typename_by_type(env_t *env, i8_t type);
 i8_t env_get_type_by_type_name(env_t *env, i64_t name);
@@ -57,10 +59,9 @@ str_p env_get_type_name(i8_t type);
 str_p env_get_internal_name(obj_p obj);
 obj_p env_get_internal_function(lit_p name);
 obj_p env_get_internal_function_by_id(i64_t id);
-str_p env_get_internal_function_lit(lit_p name, u64_t len, u64_t *fnidx, b8_t exact);
-str_p env_get_internal_kw_lit(lit_p name, u64_t len, b8_t exact);
-str_p env_get_internal_lit_lit(lit_p name, u64_t len, b8_t exact);
-str_p env_get_global_lit_lit(lit_p name, u64_t len, u64_t *varidx, u64_t *colidx);
+str_p env_get_internal_function_name(lit_p name, u64_t len, u64_t *index, b8_t exact);
+str_p env_get_internal_keyword_name(lit_p name, u64_t len, u64_t *index, b8_t exact);
+str_p env_get_global_name(lit_p name, u64_t len, u64_t *index, u64_t *sbidx);
 obj_p env_set(env_t *env, obj_p key, obj_p val);
 obj_p env_get(env_t *env, obj_p key);
 obj_p ray_env(obj_p *x, u64_t n);

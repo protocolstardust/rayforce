@@ -117,7 +117,7 @@ i32_t runtime_create(i32_t argc, str_p argv[])
 
     __RUNTIME = (runtime_p)heap_mmap(sizeof(struct runtime_t));
     __RUNTIME->symbols = symbols_create();
-    __RUNTIME->env = create_env();
+    __RUNTIME->env = env_create();
     __RUNTIME->addr = (sock_addr_t){{0}, 0};
     __RUNTIME->fds = dict(vector_i64(0), vector_i64(0));
     __RUNTIME->args = NULL_OBJ;
@@ -198,7 +198,7 @@ nil_t runtime_destroy(nil_t)
         poll_destroy(__RUNTIME->poll);
     symbols_destroy(__RUNTIME->symbols);
     heap_unmap(__RUNTIME->symbols, sizeof(struct symbols_t));
-    free_env(&__RUNTIME->env);
+    env_destroy(&__RUNTIME->env);
     drop_obj(__RUNTIME->fds);
     interpreter_destroy();
     if (__RUNTIME->pool)

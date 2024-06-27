@@ -74,6 +74,13 @@ typedef struct
     c8_t type;
 } paren_t;
 
+typedef struct
+{
+    u64_t entry;
+    u64_t index;
+    u64_t sbidx;
+} autocp_idx_t;
+
 typedef struct term_t
 {
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -93,9 +100,7 @@ typedef struct term_t
     i32_t buf_len;
     i32_t buf_pos;
     c8_t buf[TERM_BUF_SIZE];
-    u64_t fnidx;
-    u64_t varidx;
-    u64_t colidx;
+    autocp_idx_t autocp_idx;
     hist_p hist;
 } *term_p;
 
