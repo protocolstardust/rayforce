@@ -64,6 +64,7 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
     {
     case -TYPE_SYMBOL:
         bins = group_bins(cols, tab, filter);
+        timeit_tick("build index");
 
         if (is_error(bins))
             return bins;
@@ -79,9 +80,12 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
         *gvals = v;
         drop_obj(bins);
 
+        timeit_tick("apply 'first' on group columns");
+
         return res;
     case TYPE_SYMBOL:
         bins = group_bins_list(cols, tab, filter);
+        timeit_tick("build compound index");
 
         if (is_error(bins))
             return bins;
@@ -108,6 +112,8 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
 
         *gvals = lst;
         drop_obj(bins);
+
+        timeit_tick("apply 'first' on group columns");
 
         return res;
     default:
@@ -323,7 +329,6 @@ obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx)
         ctx->group_fields = gkeys;
         ctx->group_values = gcol;
 
-        timeit_tick("build index");
         timeit_span_end("group");
     }
     else if (ctx->filter != NULL_OBJ)
@@ -530,6 +535,8 @@ obj_p select_build_table(query_ctx_p ctx)
     res = ray_table(keys, vals);
     drop_obj(keys);
     drop_obj(vals);
+
+    timeit_tick("build table");
 
     return res;
 }
