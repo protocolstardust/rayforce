@@ -35,10 +35,12 @@
 extern i64_t SYMBOL_FN;
 extern i64_t SYMBOL_SELF;
 extern i64_t SYMBOL_DO;
-extern i64_t SYMBOL_BY;
 extern i64_t SYMBOL_SET;
 extern i64_t SYMBOL_LET;
+extern i64_t SYMBOL_TAKE;
+extern i64_t SYMBOL_BY;
 extern i64_t SYMBOL_FROM;
+extern i64_t SYMBOL_WHERE;
 
 /*
  *  Environment

@@ -42,17 +42,6 @@
 #include "time.h"
 #include "runtime.h"
 
-obj_p get_fields(obj_p obj)
-{
-    obj_p keywords, symbols;
-
-    keywords = vn_symbol(4, "take", "by", "from", "where");
-    symbols = ray_except(as_list(obj)[0], keywords);
-    drop_obj(keywords);
-
-    return symbols;
-}
-
 obj_p remap_filter(obj_p x, obj_p y)
 {
     u64_t i, l;
@@ -208,111 +197,94 @@ obj_p get_gvals(obj_p obj)
     }
 }
 
-obj_p eval_field(raw_p x, u64_t n)
+nil_t query_ctx_init(query_ctx_p ctx)
 {
-    unused(n);
-    obj_p val, res;
-
-    val = (obj_p)x;
-    res = eval(val);
-
-    // Materialize fields
-    if (res->type == TYPE_GROUPMAP)
-    {
-        val = group_collect(res);
-        drop_obj(res);
-        res = val;
-    }
-    else if (res->type == TYPE_FILTERMAP)
-    {
-        val = filter_collect(res);
-        drop_obj(res);
-        res = val;
-    }
-    else if (res->type == TYPE_ENUM)
-    {
-        val = ray_value(res);
-        drop_obj(res);
-        res = val;
-    }
-
-    return res;
+    ctx->tablen = 0;
+    ctx->table = NULL_OBJ;
+    ctx->filter = NULL_OBJ;
+    ctx->group_fields = NULL_OBJ;
+    ctx->group_values = NULL_OBJ;
+    ctx->query_fields = NULL_OBJ;
+    ctx->query_values = NULL_OBJ;
 }
 
-nil_t drop_field_arg(raw_p x, u64_t n)
+nil_t query_ctx_destroy(query_ctx_p ctx)
 {
-    unused(n);
-    drop_obj((obj_p)x);
+    drop_obj(ctx->table);
+    drop_obj(ctx->filter);
+    drop_obj(ctx->group_fields);
+    drop_obj(ctx->group_values);
+    drop_obj(ctx->query_fields);
+    drop_obj(ctx->query_values);
 }
 
-obj_p ray_select(obj_p obj)
+obj_p select_fetch_table(obj_p obj, query_ctx_p ctx)
 {
-    u64_t i, l, tablen;
-    obj_p keys = NULL_OBJ, vals = NULL_OBJ, filters = NULL_OBJ, groupby = NULL_OBJ,
-          gcol = NULL_OBJ, gkeys = NULL_OBJ, gvals = NULL_OBJ, tab, sym, prm, val;
-    pool_p pool;
+    obj_p prm, val;
 
-    timeit_span_start("select");
-
-    if (obj->type != TYPE_DICT)
-        throw(ERR_LENGTH, "'select' takes dict of params");
-
-    if (as_list(obj)[0]->type != TYPE_SYMBOL)
-        throw(ERR_LENGTH, "'select' takes dict with symbol keys");
-
-    // Retrive a table
     prm = at_sym(obj, "from");
 
     if (is_null(prm))
         throw(ERR_LENGTH, "'select' expects 'from' param");
 
-    tab = eval(prm);
+    val = eval(prm);
     drop_obj(prm);
 
-    if (is_error(tab))
-        return tab;
+    if (is_error(val))
+        return val;
 
-    if (tab->type != TYPE_TABLE)
+    if (val->type != TYPE_TABLE)
     {
-        drop_obj(tab);
+        drop_obj(val);
         throw(ERR_TYPE, "'select' from: expects table");
     }
 
-    timeit_tick("get table");
+    ctx->tablen = as_list(val)[0]->len;
+    ctx->table = val;
 
-    // Mount table columns to a local env
-    tablen = as_list(tab)[0]->len;
-    mount_env(tab);
+    timeit_tick("fetch table");
 
-    // Apply filters
+    return NULL_OBJ;
+}
+
+obj_p select_apply_filters(obj_p obj, query_ctx_p ctx)
+{
+    obj_p prm, val, fil;
+
     prm = at_sym(obj, "where");
     if (prm != NULL_OBJ)
     {
         val = eval(prm);
         drop_obj(prm);
-        if (is_error(val))
-        {
-            drop_obj(tab);
-            return val;
-        }
 
-        filters = ray_where(val);
+        if (is_error(val))
+            return val;
+
+        fil = ray_where(val);
         drop_obj(val);
-        if (is_error(filters))
-        {
-            drop_obj(tab);
-            return filters;
-        }
+
+        if (is_error(fil))
+            return fil;
+
+        ctx->filter = fil;
 
         timeit_tick("apply filters");
     }
 
-    // Apply groupping
+    return NULL_OBJ;
+}
+
+obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx)
+{
+    obj_p prm, val, gkeys = NULL_OBJ, gvals = NULL_OBJ,
+                    groupby = NULL_OBJ, gcol = NULL_OBJ;
+
     prm = at_sym(obj, "by");
     if (prm != NULL_OBJ)
     {
         timeit_span_start("group");
-        gkeys = get_gkeys(as_list(tab)[0], prm);
+
+        gkeys = get_gkeys(as_list(ctx->table)[0], prm);
         groupby = get_gvals(prm);
 
         if (gkeys == NULL_OBJ)
@@ -322,249 +294,296 @@ obj_p ray_select(obj_p obj)
 
         drop_obj(prm);
 
-        unmount_env(tablen);
+        unmount_env(ctx->tablen);
 
         if (is_error(groupby))
         {
             drop_obj(gkeys);
             drop_obj(gvals);
-            drop_obj(filters);
-            drop_obj(tab);
             return groupby;
         }
 
         timeit_tick("get keys");
 
-        prm = remap_group(&gcol, groupby, tab, filters, gkeys, gvals);
+        prm = remap_group(&gcol, groupby, ctx->table, ctx->filter, gkeys, gvals);
+
         drop_obj(gvals);
+        drop_obj(groupby);
 
         if (is_error(prm))
-        {
-            drop_obj(filters);
-            drop_obj(groupby);
-            drop_obj(gkeys);
-            drop_obj(gcol);
-            drop_obj(tab);
             return prm;
-        }
 
         mount_env(prm);
 
         drop_obj(prm);
-        drop_obj(filters);
-        drop_obj(groupby);
 
         if (is_error(gcol))
-        {
-            drop_obj(tab);
             return gcol;
-        }
+
+        ctx->group_fields = gkeys;
+        ctx->group_values = gcol;
 
         timeit_tick("build index");
         timeit_span_end("group");
     }
-    else if (filters != NULL_OBJ)
+    else if (ctx->filter != NULL_OBJ)
     {
         // Unmount table columns from a local env
-        unmount_env(tablen);
+        unmount_env(ctx->tablen);
         // Create filtermaps over table
-        val = remap_filter(tab, filters);
-        drop_obj(filters);
+        val = remap_filter(ctx->table, ctx->filter);
         mount_env(val);
         drop_obj(val);
     }
 
+    return NULL_OBJ;
+}
+
+obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx)
+{
+    u64_t i, l;
+    obj_p prm, sym, val, keys, res;
+
     // Find all mappings (non-keyword fields)
-    keys = get_fields(obj);
+    keys = ray_except(as_list(obj)[0], runtime_get()->env.keywords);
     l = keys->len;
 
-    timeit_span_start("collect");
-
-    // Apply mappings
+    // Mapppings specified
     if (l)
     {
-        pool = runtime_get()->pool;
+        res = list(l);
 
-        // single-threaded
-        if (!pool || l < 2)
+        for (i = 0; i < l; i++)
         {
-            vals = list(l);
+            sym = at_idx(keys, i);
+            prm = at_obj(obj, sym);
+            drop_obj(sym);
 
-            for (i = 0; i < l; i++)
+            val = eval(prm);
+            drop_obj(prm);
+
+            if (is_error(val))
             {
-                sym = at_idx(keys, i);
-                prm = at_obj(obj, sym);
-                drop_obj(sym);
-
-                val = eval_field(prm, 1);
-                drop_obj(prm);
-
-                if (is_error(val))
-                {
-                    vals->len = i;
-                    drop_obj(vals);
-                    drop_obj(tab);
-                    drop_obj(keys);
-                    drop_obj(gkeys);
-                    drop_obj(gcol);
-                    return val;
-                }
-
-                if (is_error(val))
-                {
-                    vals->len = i;
-                    drop_obj(vals);
-                    drop_obj(tab);
-                    drop_obj(keys);
-                    drop_obj(gkeys);
-                    drop_obj(gcol);
-                    return val;
-                }
-
-                as_list(vals)[i] = val;
-            }
-        }
-        else
-        {
-            pool_prepare(pool, l);
-
-            for (i = 0; i < l; i++)
-            {
-                sym = at_idx(keys, i);
-                prm = at_obj(obj, sym);
-                drop_obj(sym);
-                pool_add_task(pool, i, eval_field, drop_field_arg, prm, 1);
+                res->len = i;
+                drop_obj(res);
+                drop_obj(keys);
+                return val;
             }
 
-            vals = pool_run(pool, l);
+            // Materialize fields
+            if (val->type == TYPE_GROUPMAP)
+            {
+                prm = group_collect(val);
+                drop_obj(val);
+                val = prm;
+            }
+            else if (val->type == TYPE_FILTERMAP)
+            {
+                prm = filter_collect(val);
+                drop_obj(val);
+                val = prm;
+            }
+            else if (val->type == TYPE_ENUM)
+            {
+                prm = ray_value(val);
+                drop_obj(val);
+                val = prm;
+            }
+
+            as_list(res)[i] = val;
         }
+
+        ctx->query_fields = keys;
+        ctx->query_values = res;
 
         timeit_tick("apply mappings");
-    }
-    else
-    {
-        drop_obj(keys);
 
-        // Groupings
-        if (gkeys != NULL_OBJ)
-        {
-            keys = ray_except(as_list(tab)[0], gkeys);
-            l = keys->len;
-            vals = list(l);
-
-            for (i = 0; i < l; i++)
-            {
-                sym = at_idx(keys, i);
-                prm = ray_get(sym);
-                drop_obj(sym);
-
-                if (is_error(prm))
-                {
-                    vals->len = i;
-                    drop_obj(vals);
-                    drop_obj(tab);
-                    drop_obj(keys);
-                    drop_obj(gkeys);
-                    drop_obj(gcol);
-                    return prm;
-                }
-
-                val = aggr_first(as_list(prm)[0], as_list(prm)[1], as_list(prm)[2]);
-                drop_obj(prm);
-
-                as_list(vals)[i] = val;
-            }
-        }
-        // No groupings
-        else
-        {
-            keys = clone_obj(as_list(tab)[0]);
-            l = keys->len;
-            vals = list(l);
-
-            for (i = 0; i < l; i++)
-            {
-                sym = at_idx(keys, i);
-                prm = ray_get(sym);
-                drop_obj(sym);
-
-                if (prm->type == TYPE_FILTERMAP)
-                {
-                    val = filter_collect(prm);
-                    drop_obj(prm);
-                }
-                else if (prm->type == TYPE_ENUM)
-                {
-                    val = ray_value(prm);
-                    drop_obj(prm);
-                }
-                else
-                    val = prm;
-
-                if (is_error(val))
-                {
-                    vals->len = i;
-                    drop_obj(vals);
-                    drop_obj(tab);
-                    drop_obj(keys);
-                    drop_obj(gkeys);
-                    drop_obj(gcol);
-                    return val;
-                }
-
-                as_list(vals)[i] = val;
-            }
-        }
-
-        timeit_tick("get fields");
+        return NULL_OBJ;
     }
 
-    // Prepare result table
-    if (gkeys->type == -TYPE_SYMBOL) // Grouped by one column
-    {
-        val = ray_concat(gkeys, keys);
-        drop_obj(keys);
-        drop_obj(gkeys);
-        keys = val;
-        val = list(vals->len + 1);
-        as_list(val)[0] = gcol;
-        for (i = 0; i < vals->len; i++)
-            as_list(val)[i + 1] = clone_obj(as_list(vals)[i]);
-        drop_obj(vals);
-        vals = val;
-    }
-    else if (gkeys->type == TYPE_SYMBOL) // Grouped by multiple columns
-    {
-        val = ray_concat(gkeys, keys);
-        drop_obj(keys);
-        drop_obj(gkeys);
-        keys = val;
+    drop_obj(keys);
 
-        val = list(vals->len + gcol->len);
+    return NULL_OBJ;
+}
 
-        l = gcol->len;
+obj_p select_collect_fields(query_ctx_p ctx)
+{
+    u64_t i, l;
+    obj_p prm, sym, val, keys, res;
+
+    // Already collected by mappings
+    if (!is_null(ctx->query_fields))
+        return NULL_OBJ;
+
+    // Groupings
+    if (!is_null(ctx->group_fields))
+    {
+        keys = ray_except(as_list(ctx->table)[0], ctx->group_fields);
+        l = keys->len;
+        res = list(l);
+
         for (i = 0; i < l; i++)
-            as_list(val)[i] = clone_obj(as_list(gcol)[i]);
+        {
+            sym = at_idx(keys, i);
+            prm = ray_get(sym);
+            drop_obj(sym);
 
-        for (i = 0; i < vals->len; i++)
-            as_list(val)[i + l] = clone_obj(as_list(vals)[i]);
+            if (is_error(prm))
+            {
+                res->len = i;
+                drop_obj(res);
+                drop_obj(keys);
+                return prm;
+            }
 
-        drop_obj(vals);
-        drop_obj(gcol);
+            val = aggr_first(as_list(prm)[0], as_list(prm)[1], as_list(prm)[2]);
+            drop_obj(prm);
 
-        vals = val;
+            as_list(res)[i] = val;
+        }
+
+        ctx->query_fields = keys;
+        ctx->query_values = res;
+
+        timeit_tick("collect fields");
+
+        return NULL_OBJ;
     }
 
-    unmount_env(tablen);
-    drop_obj(tab);
+    keys = clone_obj(as_list(ctx->table)[0]);
+    l = keys->len;
+    res = list(l);
 
-    val = ray_table(keys, vals);
+    for (i = 0; i < l; i++)
+    {
+        sym = at_idx(keys, i);
+        prm = ray_get(sym);
+        drop_obj(sym);
+
+        if (prm->type == TYPE_FILTERMAP)
+        {
+            val = filter_collect(prm);
+            drop_obj(prm);
+        }
+        else if (prm->type == TYPE_ENUM)
+        {
+            val = ray_value(prm);
+            drop_obj(prm);
+        }
+        else
+            val = prm;
+
+        if (is_error(val))
+        {
+            res->len = i;
+            drop_obj(res);
+            drop_obj(keys);
+            return val;
+        }
+
+        as_list(res)[i] = val;
+    }
+
+    ctx->query_fields = keys;
+    ctx->query_values = res;
+
+    timeit_tick("collect fields");
+
+    return NULL_OBJ;
+}
+
+obj_p select_build_table(query_ctx_p ctx)
+{
+    u64_t i, l, m;
+    obj_p res, keys, vals;
+
+    switch (ctx->group_fields->type)
+    {
+    case -TYPE_SYMBOL: // Grouped by one column
+        keys = ray_concat(ctx->group_fields, ctx->query_fields);
+        l = ctx->query_values->len;
+        vals = list(l + 1);
+        as_list(vals)[0] = clone_obj(ctx->group_values);
+
+        for (i = 0; i < l; i++)
+            as_list(vals)[i + 1] = clone_obj(as_list(ctx->query_values)[i]);
+
+        break;
+    case TYPE_SYMBOL: // Grouped by multiple columns
+        keys = ray_concat(ctx->group_fields, ctx->query_fields);
+        l = ctx->group_values->len;
+        m = ctx->query_values->len;
+        vals = list(l + m);
+
+        for (i = 0; i < l; i++)
+            as_list(vals)[i] = clone_obj(as_list(ctx->group_values)[i]);
+
+        for (i = 0; i < m; i++)
+            as_list(vals)[i + l] = clone_obj(as_list(ctx->query_values)[i]);
+
+        break;
+    default:
+        keys = clone_obj(ctx->query_fields);
+        vals = clone_obj(ctx->query_values);
+    }
+
+    res = ray_table(keys, vals);
     drop_obj(keys);
     drop_obj(vals);
 
-    timeit_tick("build table");
-    timeit_span_end("collect");
+    return res;
+}
+
+obj_p ray_select(obj_p obj)
+{
+    obj_p res;
+    struct query_ctx_t ctx;
+
+    query_ctx_init(&ctx);
+
+    if (obj->type != TYPE_DICT)
+        throw(ERR_LENGTH, "'select' takes dict of params");
+
+    if (as_list(obj)[0]->type != TYPE_SYMBOL)
+        throw(ERR_LENGTH, "'select' takes dict with symbol keys");
+
+    timeit_span_start("select");
+
+    // Fetch table
+    res = select_fetch_table(obj, &ctx);
+    if (is_error(res))
+        goto cleanup;
+
+    // Mount table columns to a local env
+    mount_env(ctx.table);
+
+    // Apply filters
+    res = select_apply_filters(obj, &ctx);
+    if (is_error(res))
+        goto cleanup;
+
+    // Apply groupping
+    res = select_apply_groupings(obj, &ctx);
+    if (is_error(res))
+        goto cleanup;
+
+    // Apply mappings
+    res = select_apply_mappings(obj, &ctx);
+    if (is_error(res))
+        goto cleanup;
+
+    // Collect fields
+    res = select_collect_fields(&ctx);
+    if (is_error(res))
+        goto cleanup;
+
+    // Build result table
+    res = select_build_table(&ctx);
+
+cleanup:
+    unmount_env(ctx.tablen);
+    query_ctx_destroy(&ctx);
     timeit_span_end("select");
 
-    return val;
+    return res;
 }

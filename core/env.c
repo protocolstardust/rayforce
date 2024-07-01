@@ -52,10 +52,12 @@
 i64_t SYMBOL_FN;
 i64_t SYMBOL_SELF;
 i64_t SYMBOL_DO;
-i64_t SYMBOL_BY;
 i64_t SYMBOL_SET;
 i64_t SYMBOL_LET;
+i64_t SYMBOL_TAKE;
+i64_t SYMBOL_BY;
 i64_t SYMBOL_FROM;
+i64_t SYMBOL_WHERE;
 
 #define regf(r, n, t, f, o)                      \
     {                                            \
@@ -261,16 +263,20 @@ nil_t init_keywords(obj_p *keywords)
     push_raw(keywords, &SYMBOL_FN);
     SYMBOL_DO = symbols_intern("do", 2);
     push_raw(keywords, &SYMBOL_DO);
-    SYMBOL_BY = symbols_intern("by", 2);
-    push_raw(keywords, &SYMBOL_BY);
     SYMBOL_SET = symbols_intern("set", 3);
     push_raw(keywords, &SYMBOL_SET);
     SYMBOL_SELF = symbols_intern("self", 4);
     push_raw(keywords, &SYMBOL_SELF);
     SYMBOL_LET = symbols_intern("let", 3);
     push_raw(keywords, &SYMBOL_LET);
+    SYMBOL_TAKE = symbols_intern("take", 4);
+    push_raw(keywords, &SYMBOL_TAKE);
+    SYMBOL_BY = symbols_intern("by", 2);
+    push_raw(keywords, &SYMBOL_BY);
     SYMBOL_FROM = symbols_intern("from", 4);
     push_raw(keywords, &SYMBOL_FROM);
+    SYMBOL_WHERE = symbols_intern("where", 5);
+    push_raw(keywords, &SYMBOL_WHERE);
 }
 
 env_t env_create(nil_t)
@@ -407,9 +413,7 @@ str_p env_get_internal_entry_name(lit_p name, u64_t len, obj_p entries, u64_t *i
         {
             nm = str_from_symbol(names[i]);
             n = strlen(nm);
-            if (len > n)
-                continue;
-            if (strncmp(name, nm, len) == 0)
+            if (len < n && strncmp(name, nm, len) == 0)
             {
                 *index = i + 1;
                 return nm;
@@ -441,11 +445,11 @@ str_p env_get_global_name(lit_p name, u64_t len, u64_t *index, u64_t *sbidx)
     names = as_i64(as_list(runtime_get()->env.variables)[0]);
     vals = as_list(as_list(runtime_get()->env.variables)[1]);
 
-    for (i = 0; i < l; i++)
+    for (i = *index; i < l; i++)
     {
         nm = str_from_symbol(names[i]);
-        n = mini64((i64_t)len, (i64_t)strlen(nm));
-        if (strncmp(name, nm, n) == 0)
+        n = strlen(nm);
+        if (len < n && strncmp(name, nm, len) == 0)
         {
             *index = i + 1;
             return nm;
@@ -458,13 +462,15 @@ str_p env_get_global_name(lit_p name, u64_t len, u64_t *index, u64_t *sbidx)
             for (j = *sbidx; j < m; j++)
             {
                 nm = str_from_symbol(cols[j]);
-                n = mini64((i64_t)len, (i64_t)strlen(nm));
-                if (strncmp(name, nm, n) == 0)
+                n = strlen(nm);
+                if (len < n && strncmp(name, nm, len) == 0)
                 {
                     *sbidx = j + 1;
                     return nm;
                 }
             }
+
+            *sbidx = 0;
         }
     }
 

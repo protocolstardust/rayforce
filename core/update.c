@@ -779,7 +779,7 @@ obj_p ray_update(obj_p obj)
         throw(ERR_TYPE, "'update' from: expects table");
     }
 
-    keys = get_fields(obj);
+    keys = ray_except(as_list(obj)[0], runtime_get()->env.keywords);
     keyslen = keys->len;
 
     if (keyslen == 0)
