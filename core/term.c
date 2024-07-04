@@ -503,7 +503,7 @@ nil_t term_prompt(term_p term)
     obj_p prompt = NULL_OBJ;
 
     prompt_fmt_into(&prompt);
-    printf("%s", as_string(prompt));
+    printf("%.*s", (i32_t)prompt->len, as_string(prompt));
     fflush(stdout);
     drop_obj(prompt);
 }
@@ -636,7 +636,7 @@ nil_t term_redraw(term_p term)
     cursor_move_start();
     line_clear();
 
-    printf("%s", as_string(out));
+    printf("%.*s", (i32_t)out->len, as_string(out));
 
     n = term->buf_len - term->buf_pos;
     if (n > 0)

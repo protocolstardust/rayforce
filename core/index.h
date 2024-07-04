@@ -49,7 +49,6 @@ typedef struct index_scope_t
     u64_t range;
 } index_scope_t;
 
-index_scope_t index_scope(i64_t values[], i64_t filter[], u64_t len);
 obj_p index_distinct_i8(i8_t values[], u64_t len, b8_t term);
 obj_p index_distinct_i64(i64_t values[], u64_t len);
 obj_p index_distinct_guid(guid_t values[], u64_t len);
@@ -58,11 +57,11 @@ obj_p index_find_i8(i8_t x[], u64_t xl, i8_t y[], u64_t yl);
 obj_p index_find_i64(i64_t x[], u64_t xl, i64_t y[], u64_t yl);
 obj_p index_find_guid(guid_t x[], u64_t xl, guid_t y[], u64_t yl);
 obj_p index_find_obj(obj_p x[], u64_t xl, obj_p y[], u64_t yl);
-obj_p index_group_i8(i8_t values[], i64_t filter[], u64_t len);
-obj_p index_group_i64(i64_t values[], i64_t filter[], u64_t len);
-obj_p index_group_guid(guid_t values[], i64_t filter[], u64_t len);
-obj_p index_group_obj(obj_p values[], i64_t filter[], u64_t len);
-obj_p index_group_list(obj_p lst, i64_t filter[], u64_t len);
+obj_p index_group_i8(obj_p obj, obj_p filter);
+obj_p index_group_i64(obj_p obj, obj_p filter);
+obj_p index_group_guid(obj_p obj, obj_p filter);
+obj_p index_group_obj(obj_p obj, obj_p filter);
+obj_p index_group_list(obj_p obj, obj_p filter);
 obj_p index_group_cnts(obj_p grp);
 obj_p index_join_obj(obj_p lcols, obj_p rcols, u64_t len);
 nil_t index_hash_obj(obj_p obj, u64_t out[], i64_t filter[], u64_t len, b8_t deref);

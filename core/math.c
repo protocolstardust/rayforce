@@ -915,7 +915,7 @@ obj_p ray_sum(obj_p x)
 
         return f64(fsum);
     case TYPE_GROUPMAP:
-        return aggr_sum(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+        return aggr_sum(as_list(x)[0], as_list(x)[1]);
 
     default:
         throw(ERR_TYPE, "sum: unsupported type: '%s", type_name(x->type));
@@ -957,7 +957,7 @@ obj_p ray_avg(obj_p x)
         return f64(fsum / l);
 
     case TYPE_GROUPMAP:
-        return aggr_avg(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+        return aggr_avg(as_list(x)[0], as_list(x)[1]);
 
     default:
         throw(ERR_TYPE, "avg: unsupported type: '%s", type_name(x->type));
@@ -1012,7 +1012,7 @@ obj_p ray_min(obj_p x)
         return f64(fmin);
 
     case TYPE_GROUPMAP:
-        return aggr_min(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+        return aggr_min(as_list(x)[0], as_list(x)[1]);
 
     default:
         throw(ERR_TYPE, "min: unsupported type: '%s", type_name(x->type));
@@ -1061,7 +1061,7 @@ obj_p ray_max(obj_p x)
         return f64(fmax);
 
     case TYPE_GROUPMAP:
-        return aggr_max(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+        return aggr_max(as_list(x)[0], as_list(x)[1]);
 
     default:
         throw(ERR_TYPE, "max: unsupported type: '%s", type_name(x->type));
@@ -1122,7 +1122,7 @@ obj_p ray_dev(obj_p x)
         return res;
 
     case TYPE_GROUPMAP:
-        return aggr_dev(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+        return aggr_dev(as_list(x)[0], as_list(x)[1]);
 
     default:
         throw(ERR_TYPE, "dev: unsupported type: '%s", type_name(x->type));
@@ -1165,7 +1165,7 @@ obj_p ray_med(obj_p x)
         //     return f64(xfvals[l / 2]);
 
     case TYPE_GROUPMAP:
-        return aggr_med(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+        return aggr_med(as_list(x)[0], as_list(x)[1]);
 
     default:
         throw(ERR_TYPE, "med: unsupported type: '%s", type_name(x->type));

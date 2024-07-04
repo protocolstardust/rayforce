@@ -295,25 +295,25 @@ obj_p ray_bins(obj_p x)
 
     switch (x->type)
     {
-    case TYPE_B8:
-    case TYPE_U8:
-    case TYPE_C8:
-        bins = index_group_i8((i8_t *)as_u8(x), NULL, x->len);
-        break;
-    case TYPE_I64:
-    case TYPE_SYMBOL:
-    case TYPE_TIMESTAMP:
-        bins = index_group_i64(as_i64(x), NULL, x->len);
-        break;
-    case TYPE_F64:
-        bins = index_group_i64((i64_t *)as_f64(x), NULL, x->len);
-        break;
-    case TYPE_LIST:
-        bins = index_group_obj(as_list(x), NULL, x->len);
-        break;
-    case TYPE_GUID:
-        bins = index_group_guid(as_guid(x), NULL, x->len);
-        break;
+    // case TYPE_B8:
+    // case TYPE_U8:
+    // case TYPE_C8:
+    //     bins = index_group_i8((i8_t *)as_u8(x), NULL, x->len);
+    //     break;
+    // case TYPE_I64:
+    // case TYPE_SYMBOL:
+    // case TYPE_TIMESTAMP:
+    //     bins = index_group_i64(as_i64(x), NULL, x->len);
+    //     break;
+    // case TYPE_F64:
+    //     bins = index_group_i64((i64_t *)as_f64(x), NULL, x->len);
+    //     break;
+    // case TYPE_LIST:
+    //     bins = index_group_obj(as_list(x), NULL, x->len);
+    //     break;
+    // case TYPE_GUID:
+    //     bins = index_group_guid(as_guid(x), NULL, x->len);
+    //     break;
     default:
         throw(ERR_TYPE, "bins: unsupported type: '%s", type_name(x->type));
     }

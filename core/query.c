@@ -58,19 +58,19 @@ obj_p remap_filter(obj_p x, obj_p y)
 obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys, obj_p gcols)
 {
     u64_t i, l;
-    obj_p bins, v, lst, res;
+    obj_p index, v, lst, res;
 
     switch (gkeys->type)
     {
     case -TYPE_SYMBOL:
-        bins = group_bins(cols, tab, filter);
+        index = group_bins(cols, tab, filter);
         timeit_tick("build index");
 
-        if (is_error(bins))
-            return bins;
+        if (is_error(index))
+            return index;
 
-        res = group_map(tab, bins, filter);
-        v = (gcols == NULL_OBJ) ? aggr_first(cols, bins, filter) : aggr_first(gcols, bins, filter);
+        res = group_map(tab, index, filter);
+        v = (gcols == NULL_OBJ) ? aggr_first(cols, index) : aggr_first(gcols, index);
         if (is_error(v))
         {
             drop_obj(res);
@@ -78,32 +78,32 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
         }
 
         *gvals = v;
-        drop_obj(bins);
+        drop_obj(index);
 
         timeit_tick("apply 'first' on group columns");
 
         return res;
     case TYPE_SYMBOL:
-        bins = group_bins_list(cols, tab, filter);
+        index = group_bins_list(cols, tab, filter);
         timeit_tick("build compound index");
 
-        if (is_error(bins))
-            return bins;
+        if (is_error(index))
+            return index;
 
-        res = group_map(tab, bins, filter);
+        res = group_map(tab, index, filter);
 
         l = cols->len;
         lst = list(l);
 
         for (i = 0; i < l; i++)
         {
-            v = aggr_first(as_list(cols)[i], bins, filter);
+            v = aggr_first(as_list(cols)[i], index);
 
             if (is_error(v))
             {
                 lst->len = i;
                 drop_obj(res);
-                drop_obj(bins);
+                drop_obj(index);
                 return v;
             }
 
@@ -111,7 +111,7 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
         }
 
         *gvals = lst;
-        drop_obj(bins);
+        drop_obj(index);
 
         timeit_tick("apply 'first' on group columns");
 
@@ -441,7 +441,7 @@ obj_p select_collect_fields(query_ctx_p ctx)
                 return prm;
             }
 
-            val = aggr_first(as_list(prm)[0], as_list(prm)[1], as_list(prm)[2]);
+            val = aggr_first(as_list(prm)[0], as_list(prm)[1]);
             drop_obj(prm);
 
             as_list(res)[i] = val;

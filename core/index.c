@@ -496,11 +496,20 @@ obj_p index_find_obj(obj_p x[], u64_t xl, obj_p y[], u64_t yl)
     return res;
 }
 
-obj_p index_group_i8(i8_t values[], i64_t indices[], u64_t len)
+obj_p index_group_build(u64_t groups_count, obj_p group_ids, i64_t index_min, obj_p source, obj_p filter)
 {
-    u64_t i, j, n, range;
-    i64_t min, *hk, *hv;
+    return vn_list(5, i64(groups_count), group_ids, i64(index_min), source, filter);
+}
+
+obj_p index_group_i8(obj_p obj, obj_p filter)
+{
+    u64_t i, j, n, len, range;
+    i64_t min, *hk, *hv, *values, *indices;
     obj_p keys, vals;
+
+    values = as_i64(obj);
+    indices = is_null(filter) ? NULL : as_i64(filter);
+    len = indices ? filter->len : obj->len;
 
     min = -128;
     range = 256;
@@ -540,18 +549,21 @@ obj_p index_group_i8(i8_t values[], i64_t indices[], u64_t len)
 
     drop_obj(keys);
 
-    return vn_list(3, i64(j), vals, NULL_OBJ);
+    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
-obj_p index_group_i64_scoped(i64_t values[], i64_t indices[], u64_t len, const index_scope_t scope)
+obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
 {
-    u64_t i, j, n;
-    i64_t idx, *hk, *hv, *hp, shift;
+    u64_t i, j, n, len;
+    i64_t idx, *hk, *hv, *hp, *values, *indices;
     obj_p keys, vals, ht;
+
+    values = as_i64(obj);
+    indices = is_null(filter) ? NULL : as_i64(filter);
+    len = indices ? filter->len : obj->len;
 
     if (scope.range <= INDEX_SCOPE_LIMIT)
     {
-        shift = scope.min;
         keys = vector_i64(scope.range);
         hk = as_i64(keys);
 
@@ -560,43 +572,12 @@ obj_p index_group_i64_scoped(i64_t values[], i64_t indices[], u64_t len, const i
 
         for (i = 0, j = 0; i < len; i++)
         {
-            n = values[i] - shift;
+            n = values[i] - scope.min;
             if (hk[n] == NULL_I64)
                 hk[n] = j++;
         }
 
-        return vn_list(4, i64(j), i64(shift), keys, NULL_OBJ);
-
-        vals = vector_i64(len);
-        hv = as_i64(vals);
-
-        // distribute bins
-        if (indices)
-        {
-            for (i = 0, j = 0; i < len; i++)
-            {
-                n = values[indices[i]] - scope.min;
-                if (hk[n] == NULL_I64)
-                    hk[n] = j++;
-
-                hv[i] = hk[n];
-            }
-        }
-        else
-        {
-            for (i = 0, j = 0; i < len; i++)
-            {
-                n = values[i] - scope.min;
-                if (hk[n] == NULL_I64)
-                    hk[n] = j++;
-
-                hv[i] = hk[n];
-            }
-        }
-
-        drop_obj(keys);
-
-        return vn_list(2, i64(j), vals);
+        return index_group_build(j, keys, scope.min, clone_obj(obj), clone_obj(filter));
     }
 
     // use hash table if range is large
@@ -642,20 +623,34 @@ obj_p index_group_i64_scoped(i64_t values[], i64_t indices[], u64_t len, const i
 
     drop_obj(ht);
 
-    return vn_list(3, i64(j), vals, NULL_OBJ);
+    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
-obj_p index_group_i64(i64_t values[], i64_t indices[], u64_t len)
+obj_p index_group_i64(obj_p obj, obj_p filter)
 {
-    index_scope_t scope = index_scope(values, indices, len);
-    return index_group_i64_scoped(values, indices, len, scope);
+    index_scope_t scope;
+    i64_t *values, *indices;
+    u64_t len;
+
+    values = as_i64(obj);
+    indices = is_null(filter) ? NULL : as_i64(filter);
+    len = indices ? filter->len : obj->len;
+
+    scope = index_scope(values, indices, len);
+
+    return index_group_i64_scoped(obj, filter, scope);
 }
 
-obj_p index_group_guid(guid_t values[], i64_t indices[], u64_t len)
+obj_p index_group_guid(obj_p obj, obj_p filter)
 {
-    u64_t i, j;
-    i64_t idx, *hk, *hv, *hp;
+    u64_t i, j, len;
+    i64_t idx, *hk, *hv, *hp, *indices;
+    guid_t *values;
     obj_p vals, ht;
+
+    values = as_guid(obj);
+    indices = is_null(filter) ? NULL : as_i64(filter);
+    len = indices ? filter->len : obj->len;
 
     ht = ht_oa_create(len, TYPE_I64);
     vals = vector_i64(len);
@@ -697,15 +692,19 @@ obj_p index_group_guid(guid_t values[], i64_t indices[], u64_t len)
 
     drop_obj(ht);
 
-    return vn_list(3, i64(j), vals, NULL_OBJ);
+    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
-obj_p index_group_obj(obj_p values[], i64_t indices[], u64_t len)
+obj_p index_group_obj(obj_p obj, obj_p filter)
 {
-    u64_t i, j, n;
-    i64_t idx, *hp;
-    obj_p vals;
+    u64_t i, j, n, len;
+    i64_t idx, *hp, *indices;
+    obj_p vals, *values;
     ht_bk_p hash;
+
+    values = as_list(obj);
+    indices = is_null(filter) ? NULL : as_i64(filter);
+    len = indices ? filter->len : obj->len;
 
     hash = ht_bk_create(len);
     vals = vector_i64(len);
@@ -741,24 +740,31 @@ obj_p index_group_obj(obj_p values[], i64_t indices[], u64_t len)
 
     ht_bk_destroy(hash);
 
-    return vn_list(3, i64(j), vals, NULL_OBJ);
+    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
-obj_p index_group_list_direct(obj_p lst, i64_t filter[], u64_t len)
+obj_p index_group_list_direct(obj_p obj, obj_p filter)
 {
     u8_t *xb;
-    u64_t i, j, product, l = lst->len, multipliers[l];
-    i64_t *xi, *xo;
-    obj_p ht, col, res;
+    u64_t i, j, l, len, product;
+    i64_t *xi, *xo, *indices;
+    obj_p ht, col, res, *values;
     index_scope_t *scopes, scope;
+
+    l = obj->len;
+    u64_t multipliers[l];
 
     if (l == 0)
         return NULL_OBJ;
 
+    values = as_list(obj);
+    indices = is_null(filter) ? NULL : as_i64(filter);
+    len = indices ? filter->len : values[0]->len;
+
     // First, check if columns types are suitable for direct hashing
     for (i = 0; i < l; i++)
     {
-        switch (as_list(lst)[i]->type)
+        switch (values[i]->type)
         {
         case TYPE_B8:
         case TYPE_U8:
@@ -778,7 +784,7 @@ obj_p index_group_list_direct(obj_p lst, i64_t filter[], u64_t len)
     // calculate scopes of each column to check if we can use direct hashing
     for (i = 0; i < l; i++)
     {
-        switch (as_list(lst)[i]->type)
+        switch (values[i]->type)
         {
         case TYPE_B8:
         case TYPE_U8:
@@ -791,7 +797,7 @@ obj_p index_group_list_direct(obj_p lst, i64_t filter[], u64_t len)
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
         case TYPE_ENUM:
-            scopes[i] = index_scope(as_i64(as_list(lst)[i]), filter, len);
+            scopes[i] = index_scope(as_i64(values[i]), indices, len);
             break;
         default:
             // because we already checked the types, this should never happen
@@ -822,17 +828,17 @@ obj_p index_group_list_direct(obj_p lst, i64_t filter[], u64_t len)
 
     for (i = 0; i < l; i++)
     {
-        col = as_list(lst)[i];
+        col = values[i];
         switch (col->type)
         {
         case TYPE_B8:
         case TYPE_U8:
         case TYPE_C8:
             xb = as_u8(col);
-            if (filter)
+            if (indices)
             {
                 for (j = 0; j < len; j++)
-                    xo[j] += (xb[filter[j]] - scopes[i].min) * multipliers[i];
+                    xo[j] += (xb[indices[j]] - scopes[i].min) * multipliers[i];
             }
             else
             {
@@ -844,10 +850,10 @@ obj_p index_group_list_direct(obj_p lst, i64_t filter[], u64_t len)
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
             xi = as_i64(col);
-            if (filter)
+            if (indices)
             {
                 for (j = 0; j < len; j++)
-                    xo[j] += (xi[filter[j]] - scopes[i].min) * multipliers[i];
+                    xo[j] += (xi[indices[j]] - scopes[i].min) * multipliers[i];
             }
             else
             {
@@ -857,10 +863,10 @@ obj_p index_group_list_direct(obj_p lst, i64_t filter[], u64_t len)
             break;
         case TYPE_ENUM:
             xi = as_i64(enum_val(col));
-            if (filter)
+            if (indices)
             {
                 for (j = 0; j < len; j++)
-                    xo[j] += (xi[filter[j]] - scopes[i].min) * multipliers[i];
+                    xo[j] += (xi[indices[j]] - scopes[i].min) * multipliers[i];
             }
             else
             {
@@ -875,71 +881,77 @@ obj_p index_group_list_direct(obj_p lst, i64_t filter[], u64_t len)
     }
 
     heap_free(scopes);
-    res = index_group_i64_scoped(xo, NULL, len, scope);
+    res = index_group_i64_scoped(ht, NULL_OBJ, scope);
     drop_obj(ht);
 
     return res;
 }
 
-obj_p index_group_list(obj_p lst, i64_t filter[], u64_t len)
+obj_p index_group_list(obj_p obj, obj_p filter)
 {
-    u64_t i;
-    i64_t g, idx, *hk, *hv, *xo;
-    obj_p ht, res;
+    u64_t i, len;
+    i64_t g, idx, *hk, *hv, *xo, *indices;
+    obj_p ht, res, *values;
     __index_list_ctx_t ctx;
 
     // If the list values are small, use direct hashing
-    res = index_group_list_direct(lst, filter, len);
+    res = index_group_list_direct(obj, filter);
     if (!is_null(res))
         return res;
 
+    values = as_list(obj);
+    indices = is_null(filter) ? NULL : as_i64(filter);
+    len = indices ? filter->len : values[0]->len;
+
     // Otherwise use a hash table
-    ht = ht_oa_create(len, TYPE_I64);
-    res = vector_i64(len);
-    xo = as_i64(res);
-    ctx = (__index_list_ctx_t){lst, lst, (u64_t *)as_i64(res)};
+    // ht = ht_oa_create(len, TYPE_I64);
+    // res = vector_i64(len);
+    // xo = as_i64(res);
+    // ctx = (__index_list_ctx_t){obj, obj, (u64_t *)as_i64(res)};
 
-    // distribute bins
-    __index_list_precalc_hash(lst, (u64_t *)as_i64(res), lst->len, len, filter, B8_FALSE);
+    // // distribute bins
+    // __index_list_precalc_hash(obj, (u64_t *)as_i64(res), obj->len, len, filter, B8_FALSE);
 
-    if (filter)
-    {
-        for (i = 0, g = 0; i < len; i++)
-        {
-            idx = ht_oa_tab_next_with(&ht, filter[i], &__index_list_hash_get, &__index_list_cmp_row, &ctx);
-            hk = as_i64(as_list(ht)[0]);
-            hv = as_i64(as_list(ht)[1]);
+    // if (filter)
+    // {
+    //     for (i = 0, g = 0; i < len; i++)
+    //     {
+    //         idx = ht_oa_tab_next_with(&ht, filter[i], &__index_list_hash_get, &__index_list_cmp_row, &ctx);
+    //         hk = as_i64(as_list(ht)[0]);
+    //         hv = as_i64(as_list(ht)[1]);
 
-            if (hk[idx] == NULL_I64)
-            {
-                hk[idx] = filter[i];
-                hv[idx] = g++;
-            }
+    //         if (hk[idx] == NULL_I64)
+    //         {
+    //             hk[idx] = filter[i];
+    //             hv[idx] = g++;
+    //         }
 
-            xo[i] = hv[idx];
-        }
-    }
-    else
-    {
-        for (i = 0, g = 0; i < len; i++)
-        {
-            idx = ht_oa_tab_next_with(&ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
-            hk = as_i64(as_list(ht)[0]);
-            hv = as_i64(as_list(ht)[1]);
+    //         xo[i] = hv[idx];
+    //     }
+    // }
+    // else
+    // {
+    //     for (i = 0, g = 0; i < len; i++)
+    //     {
+    //         idx = ht_oa_tab_next_with(&ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
+    //         hk = as_i64(as_list(ht)[0]);
+    //         hv = as_i64(as_list(ht)[1]);
 
-            if (hk[idx] == NULL_I64)
-            {
-                hk[idx] = i;
-                hv[idx] = g++;
-            }
+    //         if (hk[idx] == NULL_I64)
+    //         {
+    //             hk[idx] = i;
+    //             hv[idx] = g++;
+    //         }
 
-            xo[i] = hv[idx];
-        }
-    }
+    //         xo[i] = hv[idx];
+    //     }
+    // }
 
-    drop_obj(ht);
+    // drop_obj(ht);
 
-    return vn_list(3, i64(g), res, NULL_OBJ);
+    // return vn_list(3, i64(g), res, NULL_OBJ);
+
+    panic("not implemented");
 }
 
 nil_t index_hash_obj(obj_p obj, u64_t out[], i64_t filter[], u64_t len, b8_t deref)

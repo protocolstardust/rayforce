@@ -35,32 +35,32 @@
 #include "runtime.h"
 #include "pool.h"
 
-typedef i64_t (*group_index_next_fn)(u64_t i, obj_p bins, u64_t offset);
+typedef i64_t (*group_index_next_fn)(obj_p, u64_t);
 
-i64_t group_index_next(u64_t i, obj_p bins, u64_t offset, group_index_next_fn fn)
+i64_t group_index_next(obj_p index, u64_t i, group_index_next_fn fn)
 {
-    return fn(i, bins, offset);
+    return fn(index, i);
 }
 
-i64_t group_index_next_simple(u64_t i, obj_p bins, u64_t offset)
+i64_t group_index_next_simple(obj_p index, u64_t i)
 {
     i64_t *xm, *xk, shift;
 
-    shift = as_list(bins)[1]->i64;
-    xm = as_i64(as_list(bins)[2]);
-    xk = as_i64(as_list(bins)[3]) + offset;
+    shift = as_list(index)[2]->i64;
+    xm = as_i64(as_list(index)[1]);
+    xk = as_i64(as_list(index)[3]);
 
     return xm[xk[i] - shift];
 }
 
-obj_p aggr_map(raw_p aggr, obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_map(raw_p aggr, obj_p val, obj_p index)
 {
     pool_p pool = runtime_get()->pool;
     u64_t i, l, n, chunk, buckets;
     obj_p res, parts;
     raw_p argv[6];
 
-    buckets = (u64_t)as_list(bins)[0]->i64;
+    buckets = (u64_t)as_list(index)[0]->i64;
     n = pool_executors_count(pool);
 
     if (n == 1)
@@ -69,7 +69,7 @@ obj_p aggr_map(raw_p aggr, obj_p val, obj_p bins, obj_p filter)
         argv[0] = (raw_p)val->len;
         argv[1] = (raw_p)0;
         argv[2] = val;
-        argv[3] = bins;
+        argv[3] = index;
         argv[4] = res;
         pool_call_task_fn(aggr, 5, argv);
         return vn_list(1, res);
@@ -81,22 +81,22 @@ obj_p aggr_map(raw_p aggr, obj_p val, obj_p bins, obj_p filter)
     chunk = l / n;
 
     for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, aggr, 5, chunk, i * chunk, val, bins, vector(val->type, buckets));
+        pool_add_task(pool, aggr, 5, chunk, i * chunk, val, index, vector(val->type, buckets));
 
-    pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, bins, vector(val->type, buckets));
+    pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, index, vector(val->type, buckets));
 
     parts = pool_run(pool, n);
 
     return parts;
 }
 
-obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res)
+obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
     u64_t i, n;
     i64_t *xi, *xm, *xk, *xo, shift;
     f64_t *xf, *fo;
 
-    n = as_list(bins)[0]->i64;
+    n = as_list(index)[0]->i64;
 
     switch (val->type)
     {
@@ -108,7 +108,7 @@ obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res
 
         for (i = 0; i < len; i++)
         {
-            n = group_index_next(i, bins, offset, group_index_next_simple);
+            n = group_index_next(index, i + offset, group_index_next_simple);
             xo[n] = addi64(xo[n], xi[i]);
         }
 
@@ -116,8 +116,8 @@ obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res
 
     case TYPE_F64:
         xf = as_f64(val) + offset;
-        xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + offset;
+        xm = as_i64(as_list(index)[2]);
+        xk = as_i64(as_list(index)[3]) + offset;
         fo = as_f64(res);
 
         memset(fo, 0, n * sizeof(f64_t));
@@ -134,7 +134,7 @@ obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res
     }
 }
 
-obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_sum(obj_p val, obj_p index)
 {
     u64_t i, j, l, n;
     i64_t *xi, *xo;
@@ -144,8 +144,8 @@ obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter)
     switch (val->type)
     {
     case TYPE_I64:
-        parts = aggr_map(aggr_sum_partial, val, bins, filter);
-        n = as_list(bins)[0]->i64;
+        parts = aggr_map(aggr_sum_partial, val, index);
+        n = as_list(index)[0]->i64;
         l = parts->len;
         res = clone_obj(as_list(parts)[0]);
         xo = as_i64(res);
@@ -158,8 +158,8 @@ obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter)
         drop_obj(parts);
         return res;
     case TYPE_F64:
-        parts = aggr_map(aggr_sum_partial, val, bins, filter);
-        n = as_list(bins)[0]->i64;
+        parts = aggr_map(aggr_sum_partial, val, index);
+        n = as_list(index)[0]->i64;
         l = parts->len;
         res = clone_obj(as_list(parts)[0]);
         fo = as_f64(res);
@@ -176,13 +176,13 @@ obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter)
     }
 }
 
-obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res)
+obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
     u64_t i, n;
     i64_t *xi, *xo, *ids;
     f64_t *xf, *fo;
 
-    n = as_list(bins)[0]->i64;
+    n = as_list(index)[0]->i64;
 
     switch (val->type)
     {
@@ -196,7 +196,7 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p r
 
         for (i = 0; i < len; i++)
         {
-            n = group_index_next(i, bins, offset, group_index_next_simple);
+            n = group_index_next(index, i + offset, group_index_next_simple);
             if (xo[n] == NULL_I64)
                 xo[n] = xi[i];
         }
@@ -207,14 +207,14 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p r
     }
 }
 
-obj_p aggr_first(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_first(obj_p val, obj_p index)
 {
     u64_t i, j, l, n;
     i64_t *xi, *xo;
     obj_p res, parts;
 
-    parts = aggr_map(aggr_first_partial, val, bins, filter);
-    n = as_list(bins)[0]->i64;
+    parts = aggr_map(aggr_first_partial, val, index);
+    n = as_list(index)[0]->i64;
     l = parts->len;
 
     res = clone_obj(as_list(parts)[0]);
@@ -232,471 +232,249 @@ obj_p aggr_first(obj_p val, obj_p bins, obj_p filter)
     return res;
 }
 
-obj_p aggr_first1(obj_p val, obj_p bins, obj_p filter)
-{
-    u64_t i, l, n;
-    u8_t *xb, *bo, NULL_GUID[16] = {0};
-    i64_t *xi, *ei, *xm, *xo, *ids;
-    f64_t *xf, *fo;
-    obj_p *oi, *oo, k, v, res;
-    guid_t *xg, *og;
-
-    n = as_list(bins)[0]->i64;
-    l = as_list(bins)[1]->len;
-
-    switch (val->type)
-    {
-    case TYPE_U8:
-    case TYPE_B8:
-        xb = as_u8(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector(val->type, n);
-        bo = as_u8(res);
-        for (i = 0; i < n; i++)
-            bo[i] = 0;
-
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (!bo[n])
-                    bo[n] = xb[ids[i]];
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (!bo[n])
-                    bo[n] = xb[i];
-            }
-        }
-
-        return res;
-    case TYPE_I64:
-    case TYPE_TIMESTAMP:
-    case TYPE_SYMBOL:
-        xi = as_i64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector(val->type, n);
-        xo = as_i64(res);
-        for (i = 0; i < n; i++)
-            xo[i] = NULL_I64;
-
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (xo[n] == NULL_I64)
-                    xo[n] = xi[ids[i]];
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (xo[n] == NULL_I64)
-                    xo[n] = xi[i];
-            }
-        }
-
-        return res;
-    case TYPE_F64:
-        xf = as_f64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        for (i = 0; i < n; i++)
-            fo[i] = NULL_F64;
-
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (ops_is_nan(fo[n]))
-                    fo[n] = xf[ids[i]];
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (ops_is_nan(fo[n]))
-                    fo[n] = xf[i];
-            }
-        }
-
-        return res;
-    case TYPE_LIST:
-        oi = as_list(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = list(n);
-        xo = as_i64(res);
-        for (i = 0; i < n; i++)
-            xo[i] = NULL_I64;
-
-        oo = as_list(res);
-
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (xo[n] == NULL_I64)
-                    oo[n] = clone_obj(oi[ids[i]]);
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (xo[n] == NULL_I64)
-                    oo[n] = clone_obj(oi[i]);
-            }
-        }
-
-        return res;
-
-    case TYPE_GUID:
-        xg = as_guid(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_guid(n);
-        og = as_guid(res);
-        for (i = 0; i < n; i++)
-            memcpy(og + i, NULL_GUID, sizeof(guid_t));
-
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (0 == memcmp(og + n, NULL_GUID, sizeof(guid_t)))
-                    og[n] = xg[ids[i]];
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (0 == memcmp(og + n, NULL_GUID, sizeof(guid_t)))
-                    og[n] = xg[i];
-            }
-        }
-
-        return res;
-
-    case TYPE_ENUM:
-        k = ray_key(val);
-        if (is_error(k))
-            return k;
-
-        v = ray_get(k);
-        drop_obj(k);
-
-        if (is_error(v))
-            return v;
-
-        if (v->type != TYPE_SYMBOL)
-            return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", type_name(v->type));
-
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_symbol(n);
-        xo = as_i64(res);
-        for (i = 0; i < n; i++)
-            xo[i] = NULL_I64;
-
-        xi = as_i64(v);
-        ei = as_i64(enum_val(val));
-
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (xo[n] == NULL_I64)
-                    xo[n] = xi[ei[ids[i]]];
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (xo[n] == NULL_I64)
-                    xo[n] = xi[ei[i]];
-            }
-        }
-
-        drop_obj(v);
-
-        return res;
-    case TYPE_ANYMAP:
-        v = ray_value(val);
-        res = aggr_first(v, bins, filter);
-        drop_obj(v);
-        return res;
-    default:
-        return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
-    }
-}
-
-obj_p aggr_last(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_last(obj_p val, obj_p index)
 {
     u64_t i, l, n;
     i64_t *xi, *xm, *xo, *ids;
     obj_p res;
 
-    n = as_list(bins)[0]->i64;
-    l = as_list(bins)[1]->len;
+    n = as_list(index)[0]->i64;
+    l = as_list(index)[1]->len;
 
     switch (val->type)
     {
     case TYPE_I64:
     case TYPE_TIMESTAMP:
     case TYPE_SYMBOL:
-        xi = as_i64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector(val->type, n);
-        xo = as_i64(res);
-        for (i = 0; i < n; i++)
-            xo[i] = NULL_I64;
+        // xi = as_i64(val);
+        // xm = as_i64(as_list(index)[1]);
+        // res = vector(val->type, n);
+        // xo = as_i64(res);
+        // for (i = 0; i < n; i++)
+        //     xo[i] = NULL_I64;
 
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                xo[n] = xi[ids[i]];
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                xo[n] = xi[i];
-            }
-        }
-        return res;
+        // if (filter != NULL_OBJ)
+        // {
+        //     ids = as_i64(filter);
+        //     for (i = 0; i < l; i++)
+        //     {
+        //         n = xm[i];
+        //         xo[n] = xi[ids[i]];
+        //     }
+        // }
+        // else
+        // {
+        //     for (i = 0; i < l; i++)
+        //     {
+        //         n = xm[i];
+        //         xo[n] = xi[i];
+        //     }
+        // }
+        // return res;
 
     default:
         return error(ERR_TYPE, "last: unsupported type: '%s'", type_name(val->type));
     }
 }
 
-obj_p aggr_max(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_max(obj_p val, obj_p index)
 {
     u64_t i, l, n;
     i64_t *xi, *xm, *xo, *ids;
     f64_t *xf, *fo;
     obj_p res;
 
-    n = as_list(bins)[0]->i64;
-    l = as_list(bins)[1]->len;
+    n = as_list(index)[0]->i64;
+    l = as_list(index)[1]->len;
 
     switch (val->type)
     {
-    case TYPE_I64:
-    case TYPE_TIMESTAMP:
-    case TYPE_SYMBOL:
-        xi = as_i64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector(val->type, n);
-        xo = as_i64(res);
-        for (i = 0; i < n; i++)
-            xo[i] = NULL_I64;
+    // case TYPE_I64:
+    // case TYPE_TIMESTAMP:
+    // case TYPE_SYMBOL:
+    //     xi = as_i64(val);
+    //     xm = as_i64(as_list(index)[1]);
+    //     res = vector(val->type, n);
+    //     xo = as_i64(res);
+    //     for (i = 0; i < n; i++)
+    //         xo[i] = NULL_I64;
 
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                xo[n] = maxi64(xo[n], xi[ids[i]]);
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                xo[n] = maxi64(xo[n], xi[i]);
-            }
-        }
-        return res;
-    case TYPE_F64:
-        xf = as_f64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        for (i = 0; i < n; i++)
-            fo[i] = NULL_F64;
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = xm[i];
+    //             xo[n] = maxi64(xo[n], xi[ids[i]]);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = xm[i];
+    //             xo[n] = maxi64(xo[n], xi[i]);
+    //         }
+    //     }
+    //     return res;
+    // case TYPE_F64:
+    //     xf = as_f64(val);
+    //     xm = as_i64(as_list(bins)[1]);
+    //     res = vector_f64(n);
+    //     fo = as_f64(res);
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = NULL_F64;
 
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                fo[n] = maxf64(fo[n], xf[ids[i]]);
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                fo[n] = maxf64(fo[n], xf[i]);
-            }
-        }
-        return res;
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = xm[i];
+    //             fo[n] = maxf64(fo[n], xf[ids[i]]);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = xm[i];
+    //             fo[n] = maxf64(fo[n], xf[i]);
+    //         }
+    //     }
+    //     return res;
     default:
         return error(ERR_TYPE, "max: unsupported type: '%s'", type_name(val->type));
     }
 }
 
-obj_p aggr_min(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_min(obj_p val, obj_p index)
 {
     u64_t i, l, n;
     i64_t *xi, *xm, *xo, *ids;
     f64_t *xf, *fo;
     obj_p res;
 
-    n = as_list(bins)[0]->i64;
-    l = as_list(bins)[1]->len;
+    n = as_list(index)[0]->i64;
+    l = as_list(index)[1]->len;
 
     switch (val->type)
     {
-    case TYPE_I64:
-    case TYPE_TIMESTAMP:
-        xi = as_i64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector(val->type, n);
-        xo = as_i64(res);
-        for (i = 0; i < n; i++)
-            xo[i] = NULL_I64;
+    // case TYPE_I64:
+    // case TYPE_TIMESTAMP:
+    //     xi = as_i64(val);
+    //     xm = as_i64(as_list(bins)[1]);
+    //     res = vector(val->type, n);
+    //     xo = as_i64(res);
+    //     for (i = 0; i < n; i++)
+    //         xo[i] = NULL_I64;
 
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                if (xo[n] == NULL_I64 || xi[ids[i]] < xo[n])
-                    xo[n] = xi[ids[i]];
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                xo[n] = mini64(xo[n], xi[i]);
-            }
-        }
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = xm[i];
+    //             if (xo[n] == NULL_I64 || xi[ids[i]] < xo[n])
+    //                 xo[n] = xi[ids[i]];
+    //         }
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = xm[i];
+    //             xo[n] = mini64(xo[n], xi[i]);
+    //         }
+    //     }
 
-        return res;
-    case TYPE_F64:
-        xf = as_f64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        for (i = 0; i < n; i++)
-            fo[i] = NULL_F64;
+    //     return res;
+    // case TYPE_F64:
+    //     xf = as_f64(val);
+    //     xm = as_i64(as_list(bins)[1]);
+    //     res = vector_f64(n);
+    //     fo = as_f64(res);
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = NULL_F64;
 
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                fo[n] = minf64(fo[n], xf[ids[i]]);
-            }
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-            {
-                n = xm[i];
-                fo[n] = minf64(fo[n], xf[i]);
-            }
-        }
-        return res;
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = xm[i];
+    //             fo[n] = minf64(fo[n], xf[ids[i]]);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = xm[i];
+    //             fo[n] = minf64(fo[n], xf[i]);
+    //         }
+    //     }
+    //     return res;
     default:
         return error(ERR_TYPE, "min: unsupported type: '%s'", type_name(val->type));
     }
 }
 
-obj_p aggr_count_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res)
+obj_p aggr_count_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
     u64_t i, n;
     i64_t *xi, *xm, *xk, *xo, *ids, min;
     f64_t *xf, *fo;
 
-    n = as_list(bins)[0]->i64;
-    min = as_list(bins)[1]->i64;
+    n = as_list(index)[0]->i64;
+    min = as_list(index)[1]->i64;
 
     switch (val->type)
     {
-    case TYPE_I64:
-        xi = as_i64(val) + offset;
-        xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + offset;
-        xo = as_i64(res);
+    // case TYPE_I64:
+    //     xi = as_i64(val) + offset;
+    //     xm = as_i64(as_list(bins)[2]);
+    //     xk = as_i64(as_list(bins)[3]) + offset;
+    //     xo = as_i64(res);
 
-        memset(xo, 0, n * sizeof(i64_t));
+    //     memset(xo, 0, n * sizeof(i64_t));
 
-        for (i = 0; i < len; i++)
-        {
-            n = xk[i] - min;
-            xo[xm[n]]++;
-        }
+    //     for (i = 0; i < len; i++)
+    //     {
+    //         n = xk[i] - min;
+    //         xo[xm[n]]++;
+    //     }
 
-        return res;
+    //     return res;
 
-    case TYPE_F64:
-        xf = as_f64(val) + offset;
-        xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + offset;
-        fo = as_f64(res);
+    // case TYPE_F64:
+    //     xf = as_f64(val) + offset;
+    //     xm = as_i64(as_list(bins)[2]);
+    //     xk = as_i64(as_list(bins)[3]) + offset;
+    //     fo = as_f64(res);
 
-        memset(fo, 0, n * sizeof(f64_t));
+    //     memset(fo, 0, n * sizeof(f64_t));
 
-        for (i = 0; i < len; i++)
-        {
-            n = xk[i] - min;
-            fo[xm[n]] = addf64(fo[xm[n]], xf[i]);
-        }
+    //     for (i = 0; i < len; i++)
+    //     {
+    //         n = xk[i] - min;
+    //         fo[xm[n]] = addf64(fo[xm[n]], xf[i]);
+    //     }
 
-        return res;
+    //     return res;
     default:
         return error(ERR_TYPE, "count: unsupported type: '%s'", type_name(val->type));
     }
 }
 
-obj_p aggr_count(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_count(obj_p val, obj_p index)
 {
     u64_t i, j, l, n;
     i64_t *xi, *xo;
     obj_p res, parts;
 
-    parts = aggr_map(aggr_count_partial, val, bins, filter);
-    n = as_list(bins)[0]->i64;
+    parts = aggr_map(aggr_count_partial, val, index);
+    n = as_list(index)[0]->i64;
     l = parts->len;
 
     res = clone_obj(as_list(parts)[0]);
@@ -714,7 +492,7 @@ obj_p aggr_count(obj_p val, obj_p bins, obj_p filter)
     return res;
 }
 
-obj_p aggr_avg(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_avg(obj_p val, obj_p index)
 {
     u64_t i, l, n;
     i64_t *xi, *xm, *ci, *ids;
@@ -724,8 +502,8 @@ obj_p aggr_avg(obj_p val, obj_p bins, obj_p filter)
     switch (val->type)
     {
     case TYPE_I64:
-        sums = aggr_sum(val, bins, filter);
-        cnts = aggr_count(val, bins, filter);
+        sums = aggr_sum(val, index);
+        cnts = aggr_count(val, index);
 
         xi = as_i64(sums);
         ci = as_i64(cnts);
@@ -741,156 +519,156 @@ obj_p aggr_avg(obj_p val, obj_p bins, obj_p filter)
         drop_obj(cnts);
 
         return res;
-    case TYPE_F64:
-        xf = as_f64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
-        }
+    // case TYPE_F64:
+    //     xf = as_f64(val);
+    //     xm = as_i64(as_list(index)[1]);
+    //     res = vector_f64(n);
+    //     fo = as_f64(res);
+    //     memset(fo, 0, n * sizeof(i64_t));
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
+    //     }
 
-        // calc avgs
-        for (i = 0; i < n; i++)
-            fo[i] = fdivf64(fo[i], ci[i]);
+    //     // calc avgs
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = fdivf64(fo[i], ci[i]);
 
-        return res;
+    //     return res;
     default:
         return error(ERR_TYPE, "avg: unsupported type: '%s'", type_name(val->type));
     }
 }
 
-obj_p aggr_med(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_med(obj_p val, obj_p index)
 {
     u64_t i, l, n;
     i64_t *xi, *xm, *ids;
     f64_t *xf, *fo;
     obj_p res;
 
-    n = as_list(bins)[0]->i64;
-    l = as_list(bins)[1]->len;
+    // n = as_list(bins)[0]->i64;
+    // l = as_list(bins)[1]->len;
 
-    switch (val->type)
-    {
-    case TYPE_I64:
-        xi = as_i64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addi64(fo[xm[i]], xi[ids[i]]);
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addi64(fo[xm[i]], xi[i]);
-        }
+    // switch (val->type)
+    // {
+    // case TYPE_I64:
+    //     xi = as_i64(val);
+    //     xm = as_i64(as_list(bins)[1]);
+    //     res = vector_f64(n);
+    //     fo = as_f64(res);
+    //     memset(fo, 0, n * sizeof(i64_t));
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addi64(fo[xm[i]], xi[ids[i]]);
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addi64(fo[xm[i]], xi[i]);
+    //     }
 
-        // calc medians
-        for (i = 0; i < n; i++)
-            fo[i] = divi64(fo[i], 2);
+    //     // calc medians
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = divi64(fo[i], 2);
 
-        return res;
-    case TYPE_F64:
-        xf = as_f64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
-        }
+    //     return res;
+    // case TYPE_F64:
+    //     xf = as_f64(val);
+    //     xm = as_i64(as_list(bins)[1]);
+    //     res = vector_f64(n);
+    //     fo = as_f64(res);
+    //     memset(fo, 0, n * sizeof(i64_t));
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
+    //     }
 
-        // calc medians
-        for (i = 0; i < n; i++)
-            fo[i] = fdivf64(fo[i], 2);
+    //     // calc medians
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = fdivf64(fo[i], 2);
 
-        return res;
-    default:
-        return error(ERR_TYPE, "median: unsupported type: '%s'", type_name(val->type));
-    }
+    //     return res;
+    // default:
+    return error(ERR_TYPE, "median: unsupported type: '%s'", type_name(val->type));
+    // }
 }
 
-obj_p aggr_dev(obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_dev(obj_p val, obj_p index)
 {
     u64_t i, l, n;
     i64_t *xi, *xm, *ids;
     f64_t *xf, *fo;
     obj_p res;
 
-    n = as_list(bins)[0]->i64;
-    l = as_list(bins)[1]->len;
+    // n = as_list(bins)[0]->i64;
+    // l = as_list(bins)[1]->len;
 
-    switch (val->type)
-    {
-    case TYPE_I64:
-        xi = as_i64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addi64(fo[xm[i]], xi[ids[i]]);
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addi64(fo[xm[i]], xi[i]);
-        }
+    // switch (val->type)
+    // {
+    // case TYPE_I64:
+    //     xi = as_i64(val);
+    //     xm = as_i64(as_list(bins)[1]);
+    //     res = vector_f64(n);
+    //     fo = as_f64(res);
+    //     memset(fo, 0, n * sizeof(i64_t));
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addi64(fo[xm[i]], xi[ids[i]]);
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addi64(fo[xm[i]], xi[i]);
+    //     }
 
-        // calc stddev
-        for (i = 0; i < n; i++)
-            fo[i] = sqrt(fo[i]);
+    //     // calc stddev
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = sqrt(fo[i]);
 
-        return res;
-    case TYPE_F64:
-        xf = as_f64(val);
-        xm = as_i64(as_list(bins)[1]);
-        res = vector_f64(n);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        if (filter != NULL_OBJ)
-        {
-            ids = as_i64(filter);
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
-        }
-        else
-        {
-            for (i = 0; i < l; i++)
-                fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
-        }
+    //     return res;
+    // case TYPE_F64:
+    //     xf = as_f64(val);
+    //     xm = as_i64(as_list(bins)[1]);
+    //     res = vector_f64(n);
+    //     fo = as_f64(res);
+    //     memset(fo, 0, n * sizeof(i64_t));
+    //     if (filter != NULL_OBJ)
+    //     {
+    //         ids = as_i64(filter);
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
+    //     }
+    //     else
+    //     {
+    //         for (i = 0; i < l; i++)
+    //             fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
+    //     }
 
-        // calc stddev
-        for (i = 0; i < n; i++)
-            fo[i] = sqrt(fo[i]);
+    //     // calc stddev
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = sqrt(fo[i]);
 
-        return res;
-    default:
-        return error(ERR_TYPE, "stddev: unsupported type: '%s'", type_name(val->type));
-    }
+    //     return res;
+    // default:
+    return error(ERR_TYPE, "stddev: unsupported type: '%s'", type_name(val->type));
+    // }
 }

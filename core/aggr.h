@@ -26,14 +26,14 @@
 
 #include "rayforce.h"
 
-obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter);
-obj_p aggr_first(obj_p val, obj_p bins, obj_p filter);
-obj_p aggr_last(obj_p val, obj_p bins, obj_p filter);
-obj_p aggr_avg(obj_p val, obj_p bins, obj_p filter);
-obj_p aggr_max(obj_p val, obj_p bins, obj_p filter);
-obj_p aggr_min(obj_p val, obj_p bins, obj_p filter);
-obj_p aggr_count(obj_p val, obj_p bins, obj_p filter);
-obj_p aggr_med(obj_p val, obj_p bins, obj_p filter);
-obj_p aggr_dev(obj_p val, obj_p bins, obj_p filter);
+obj_p aggr_sum(obj_p val, obj_p index);
+obj_p aggr_first(obj_p val, obj_p index);
+obj_p aggr_last(obj_p val, obj_p index);
+obj_p aggr_avg(obj_p val, obj_p index);
+obj_p aggr_max(obj_p val, obj_p index);
+obj_p aggr_min(obj_p val, obj_p index);
+obj_p aggr_count(obj_p val, obj_p index);
+obj_p aggr_med(obj_p val, obj_p index);
+obj_p aggr_dev(obj_p val, obj_p index);
 
 #endif // AGGR_H

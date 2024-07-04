@@ -34,50 +34,29 @@
 
 obj_p group_bins(obj_p obj, obj_p tab, obj_p filter)
 {
-    u64_t l;
-    i64_t *ids;
     obj_p bins, v;
-
-    if (filter != NULL_OBJ)
-    {
-        l = filter->len;
-        ids = as_i64(filter);
-    }
-    else
-    {
-        l = ops_count(obj);
-        ids = NULL;
-    }
-
-    if (l > ops_count(tab))
-        throw(ERR_LENGTH, "'group index': groups count: %lld can't be greater than source length: %lld", l, ops_count(tab));
-
-    if (l == 0)
-        return vn_list(3, i64(0), vector_i64(0), NULL_OBJ);
 
     switch (obj->type)
     {
     case TYPE_B8:
     case TYPE_U8:
     case TYPE_C8:
-        return index_group_i8((i8_t *)as_u8(obj), ids, l);
+        return index_group_i8(obj, filter);
     case TYPE_I64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
-        v = index_group_i64(as_i64(obj), ids, l);
-        as_list(v)[3] = clone_obj(obj);
-        return v;
-    case TYPE_F64:
-        return index_group_i64((i64_t *)as_f64(obj), ids, l);
+        return index_group_i64(obj, filter);
+    // case TYPE_F64:
+    //     return index_group_i64((i64_t *)as_f64(obj), ids, l);
     case TYPE_GUID:
-        return index_group_guid(as_guid(obj), ids, l);
+        return index_group_guid(obj, filter);
     case TYPE_ENUM:
-        return index_group_i64(as_i64(enum_val(obj)), ids, l);
+        return index_group_i64(enum_val(obj), filter);
     case TYPE_LIST:
-        return index_group_obj(as_list(obj), ids, l);
+        return index_group_obj(obj, filter);
     case TYPE_ANYMAP:
         v = ray_value(obj);
-        bins = index_group_obj(as_list(v), ids, l);
+        bins = index_group_obj(v, filter);
         drop_obj(v);
         return bins;
     default:
@@ -91,33 +70,33 @@ obj_p group_bins_list(obj_p obj, obj_p tab, obj_p filter)
     i64_t *ids;
     obj_p bins;
 
-    if (ops_count(obj) == 0)
-        return error(ERR_LENGTH, "group index: empty source");
+    // if (ops_count(obj) == 0)
+    //     return error(ERR_LENGTH, "group index: empty source");
 
-    if (filter != NULL_OBJ)
-    {
-        l = filter->len;
-        ids = as_i64(filter);
-    }
-    else
-    {
-        l = ops_count(as_list(obj)[0]);
-        ids = NULL;
-    }
+    // if (filter != NULL_OBJ)
+    // {
+    //     l = filter->len;
+    //     ids = as_i64(filter);
+    // }
+    // else
+    // {
+    //     l = ops_count(as_list(obj)[0]);
+    //     ids = NULL;
+    // }
 
-    if (l > ops_count(tab))
-        throw(ERR_LENGTH, "'group index': groups count: %lld can't be greater than source length: %lld", l, ops_count(tab));
+    // if (l > ops_count(tab))
+    //     throw(ERR_LENGTH, "'group index': groups count: %lld can't be greater than source length: %lld", l, ops_count(tab));
 
-    n = obj->len;
+    // n = obj->len;
 
-    c = ops_count(as_list(obj)[0]);
-    for (i = 1; i < n; i++)
-    {
-        if (ops_count(as_list(obj)[i]) != c)
-            throw(ERR_LENGTH, "'group index': source length: %lld must be equal to groups count: %lld", ops_count(as_list(obj)[i]), c);
-    }
+    // c = ops_count(as_list(obj)[0]);
+    // for (i = 1; i < n; i++)
+    // {
+    //     if (ops_count(as_list(obj)[i]) != c)
+    //         throw(ERR_LENGTH, "'group index': source length: %lld must be equal to groups count: %lld", ops_count(as_list(obj)[i]), c);
+    // }
 
-    bins = index_group_list(obj, ids, l);
+    // bins = index_group_list(obj, ids, l);
 
     return bins;
 }

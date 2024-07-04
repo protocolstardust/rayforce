@@ -50,7 +50,7 @@ obj_p ray_count(obj_p x)
     switch (x->type)
     {
     case TYPE_GROUPMAP:
-        return aggr_count(as_list(x)[0], as_list(x)[1], as_list(x)[2]);
+        return aggr_count(as_list(x)[0], as_list(x)[1]);
     default:
         return i64(ops_count(x));
     }
