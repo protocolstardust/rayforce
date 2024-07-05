@@ -33,25 +33,8 @@
 #include "group.h"
 #include "string.h"
 #include "runtime.h"
+#include "index.h"
 #include "pool.h"
-
-typedef i64_t (*group_index_next_fn)(obj_p, u64_t);
-
-i64_t group_index_next(obj_p index, u64_t i, group_index_next_fn fn)
-{
-    return fn(index, i);
-}
-
-i64_t group_index_next_simple(obj_p index, u64_t i)
-{
-    i64_t *xm, *xk, shift;
-
-    shift = as_list(index)[2]->i64;
-    xm = as_i64(as_list(index)[1]);
-    xk = as_i64(as_list(index)[3]);
-
-    return xm[xk[i] - shift];
-}
 
 obj_p aggr_map(raw_p aggr, obj_p val, obj_p index)
 {
@@ -96,7 +79,7 @@ obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p re
     i64_t *xi, *xm, *xk, *xo, shift;
     f64_t *xf, *fo;
 
-    n = as_list(index)[0]->i64;
+    n = index_group_count(index);
 
     switch (val->type)
     {
@@ -108,7 +91,7 @@ obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p re
 
         for (i = 0; i < len; i++)
         {
-            n = group_index_next(index, i + offset, group_index_next_simple);
+            n = index_group_get_id(index, i + offset);
             xo[n] = addi64(xo[n], xi[i]);
         }
 
@@ -182,7 +165,7 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
     i64_t *xi, *xo, *ids;
     f64_t *xf, *fo;
 
-    n = as_list(index)[0]->i64;
+    n = index_group_count(index);
 
     switch (val->type)
     {
@@ -196,7 +179,7 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
 
         for (i = 0; i < len; i++)
         {
-            n = group_index_next(index, i + offset, group_index_next_simple);
+            n = index_group_get_id(index, i + offset);
             if (xo[n] == NULL_I64)
                 xo[n] = xi[i];
         }
@@ -214,7 +197,7 @@ obj_p aggr_first(obj_p val, obj_p index)
     obj_p res, parts;
 
     parts = aggr_map(aggr_first_partial, val, index);
-    n = as_list(index)[0]->i64;
+    n = index_group_count(index);
     l = parts->len;
 
     res = clone_obj(as_list(parts)[0]);
@@ -238,7 +221,7 @@ obj_p aggr_last(obj_p val, obj_p index)
     i64_t *xi, *xm, *xo, *ids;
     obj_p res;
 
-    n = as_list(index)[0]->i64;
+    n = index_group_count(index);
     l = as_list(index)[1]->len;
 
     switch (val->type)
@@ -284,7 +267,7 @@ obj_p aggr_max(obj_p val, obj_p index)
     f64_t *xf, *fo;
     obj_p res;
 
-    n = as_list(index)[0]->i64;
+    n = index_group_count(index);
     l = as_list(index)[1]->len;
 
     switch (val->type)
@@ -355,7 +338,7 @@ obj_p aggr_min(obj_p val, obj_p index)
     f64_t *xf, *fo;
     obj_p res;
 
-    n = as_list(index)[0]->i64;
+    n = index_group_count(index);
     l = as_list(index)[1]->len;
 
     switch (val->type)
@@ -426,7 +409,7 @@ obj_p aggr_count_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
     i64_t *xi, *xm, *xk, *xo, *ids, min;
     f64_t *xf, *fo;
 
-    n = as_list(index)[0]->i64;
+    n = index_group_count(index);
     min = as_list(index)[1]->i64;
 
     switch (val->type)

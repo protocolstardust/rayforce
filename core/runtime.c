@@ -189,6 +189,7 @@ i32_t runtime_create(i32_t argc, str_p argv[])
         if (!is_null(arg))
         {
             n = atoi(as_string(arg));
+            drop_obj(arg);
             timeit_activate(n);
         }
     }
