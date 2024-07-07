@@ -140,7 +140,7 @@ extern obj_p f64(f64_t val);                  // f64 atom
 extern obj_p symbol(lit_p ptr, u64_t len);    // symbol
 extern obj_p symboli64(i64_t id);             // symbol from i64
 extern obj_p timestamp(i64_t val);            // timestamp
-extern obj_p guid(u8_t buf[16]);              // GUID
+extern obj_p guid(guid_t buf);                // GUID
 extern obj_p string(u64_t len);               // string 
 extern obj_p vn_string(lit_p fmt, ...);       // string from format
 extern obj_p enumerate(obj_p sym, obj_p vec); // enum

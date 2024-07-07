@@ -204,21 +204,20 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
         }
 
         return res;
-    // case TYPE_GUID:
-    //     xg = as_guid(val) + offset;
-    //     yg = as_guid(res);
+    case TYPE_GUID:
+        xg = as_guid(val) + offset;
+        yg = as_guid(res);
 
-    //     for (i = 0; i < n; i++)
-    //         yg[i] = (guid_t){0};
+        memset(yg, 0, n * sizeof(guid_t));
 
-    //     for (i = 0; i < len; i++)
-    //     {
-    //         n = index_group_get_id(index, i + offset);
-    //         if (yg[n] == NULL_GUID)
-    //             yg[n] = xg[i];
-    //     }
+        for (i = 0; i < len; i++)
+        {
+            n = index_group_get_id(index, i + offset);
+            if (memcmp(yg[n], NULL_GUID, sizeof(guid_t)) == 0)
+                memcpy(yg[n], xg[i], sizeof(guid_t));
+        }
 
-    //     return res;
+        return res;
     default:
         drop_obj(res);
         return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
@@ -228,7 +227,9 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
 obj_p aggr_first(obj_p val, obj_p index)
 {
     u64_t i, j, l, n;
-    i64_t *xi, *xo;
+    i64_t *xi, *yi;
+    f64_t *xf, *yf;
+    guid_t *xg, *yg;
     obj_p res, parts;
 
     parts = aggr_map(aggr_first_partial, val, index);
@@ -243,13 +244,40 @@ obj_p aggr_first(obj_p val, obj_p index)
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
         res = clone_obj(as_list(parts)[0]);
-        xo = as_i64(res);
+        yi = as_i64(res);
 
         for (i = 1; i < l; i++)
         {
             xi = as_i64(as_list(parts)[i]);
             for (j = 0; j < n; j++)
-                xo[j] = (xo[j] == NULL_I64) ? xi[j] : xo[j];
+                yi[j] = (yi[j] == NULL_I64) ? xi[j] : yi[j];
+        }
+
+        drop_obj(parts);
+        return res;
+    case TYPE_F64:
+        res = clone_obj(as_list(parts)[0]);
+        yf = as_f64(res);
+
+        for (i = 1; i < l; i++)
+        {
+            xf = as_f64(as_list(parts)[i]);
+            for (j = 0; j < n; j++)
+                yf[j] = (yf[j] == NULL_F64) ? xf[j] : yf[j];
+        }
+
+        drop_obj(parts);
+        return res;
+    case TYPE_GUID:
+        res = clone_obj(as_list(parts)[0]);
+        yg = as_guid(res);
+
+        for (i = 1; i < l; i++)
+        {
+            xg = as_guid(as_list(parts)[i]);
+            for (j = 0; j < n; j++)
+                if (memcmp(yg[j], NULL_GUID, sizeof(guid_t)) == 0)
+                    memcpy(yg[j], xg[j], sizeof(guid_t));
         }
 
         drop_obj(parts);
