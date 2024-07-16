@@ -57,7 +57,7 @@ interpreter_p interpreter_create(nil_t);
 nil_t interpreter_destroy(nil_t);
 interpreter_p interpreter_current(nil_t);
 obj_p call(obj_p obj, u64_t arity);
-obj_p *deref(obj_p sym);
+obj_p *resolve(i64_t sym);
 obj_p amend(obj_p sym, obj_p val);
 obj_p mount_env(obj_p obj);
 obj_p unmount_env(u64_t n);

@@ -342,7 +342,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
             return unwrap(lambda_call(attrs, car, stack_peek(len - 1), len), (i64_t)obj);
 
         case -TYPE_SYMBOL:
-            val = deref(car);
+            val = resolve(car->i64);
             if (val == NULL)
                 return unwrap(error(ERR_EVAL, "undefined symbol: '%s", str_from_symbol(car->i64)), (i64_t)obj);
             car = *val;
@@ -354,7 +354,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
     case -TYPE_SYMBOL:
         if (obj->attrs & ATTR_QUOTED)
             return symboli64(obj->i64);
-        val = deref(obj);
+        val = resolve(obj->i64);
         if (val == NULL)
             return unwrap(error(ERR_EVAL, "undefined symbol: '%s", str_from_symbol(obj->i64)), (i64_t)obj);
         return clone_obj(*val);
@@ -671,7 +671,7 @@ nil_t interpreter_env_unset(interpreter_p interpreter)
     drop_obj(interpreter->stack[--interpreter->sp]);
 }
 
-obj_p *deref(obj_p sym)
+obj_p *resolve(i64_t sym)
 {
     i64_t bp, *args;
     obj_p lambda, env;
@@ -681,7 +681,7 @@ obj_p *deref(obj_p sym)
     ctx = ctx_get();
     lambda = ctx->lambda;
 
-    if (sym->i64 == SYMBOL_SELF)
+    if (sym == SYMBOL_SELF)
         return &ctx->lambda;
 
     l = as_lambda(lambda)->args->len;
@@ -697,7 +697,7 @@ obj_p *deref(obj_p sym)
         // search in a reverse order
         for (i = n; i > 0; i--)
         {
-            if (as_symbol(as_list(env)[0])[i - 1] == sym->i64)
+            if (as_symbol(as_list(env)[0])[i - 1] == sym)
                 return &as_list(as_list(env)[1])[i - 1];
         }
     }
@@ -706,12 +706,12 @@ obj_p *deref(obj_p sym)
     args = as_symbol(as_lambda(lambda)->args);
     for (i = 0; i < l; i++)
     {
-        if (args[i] == sym->i64)
+        if (args[i] == sym)
             return &__INTERPRETER->stack[bp + i];
     }
 
     // search globals
-    i = find_raw(as_list(runtime_get()->env.variables)[0], &sym->i64);
+    i = find_raw(as_list(runtime_get()->env.variables)[0], &sym);
     if (i == as_list(runtime_get()->env.variables)[0]->len)
         return NULL;
 

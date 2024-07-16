@@ -72,7 +72,7 @@ i64_t __index_list_cmp_row(i64_t row1, i64_t row2, nil_t *seed)
     return 0;
 }
 
-nil_t __index_list_precalc_hash(obj_p cols, u64_t *out, u64_t ncols, u64_t nrows, i64_t filter[], b8_t deref)
+nil_t __index_list_precalc_hash(obj_p cols, u64_t *out, u64_t ncols, u64_t nrows, i64_t filter[], b8_t resolve)
 {
     u64_t i;
 
@@ -80,7 +80,7 @@ nil_t __index_list_precalc_hash(obj_p cols, u64_t *out, u64_t ncols, u64_t nrows
         out[i] = 0x9ddfea08eb382d69ull;
 
     for (i = 0; i < ncols; i++)
-        index_hash_obj(as_list(cols)[i], out, filter, nrows, deref);
+        index_hash_obj(as_list(cols)[i], out, filter, nrows, resolve);
 }
 
 obj_p index_scope_partial(u64_t len, i64_t *values, i64_t *indices, i64_t *pmin, i64_t *pmax)
@@ -1097,7 +1097,7 @@ obj_p index_group_list(obj_p obj, obj_p filter)
     return index_group_build(g, res, NULL_I64, index_group_get_indexed, NULL_OBJ, clone_obj(filter));
 }
 
-nil_t index_hash_obj(obj_p obj, u64_t out[], i64_t filter[], u64_t len, b8_t deref)
+nil_t index_hash_obj(obj_p obj, u64_t out[], i64_t filter[], u64_t len, b8_t resolve)
 {
     u8_t *u8v;
     f64_t *f64v;
@@ -1179,7 +1179,7 @@ nil_t index_hash_obj(obj_p obj, u64_t out[], i64_t filter[], u64_t len, b8_t der
                 out[i] = hash_index_u64(hash_index_obj(as_list(obj)[i]), out[i]);
         break;
     case TYPE_ENUM:
-        if (deref)
+        if (resolve)
         {
             k = ray_key(obj);
             v = ray_get(k);

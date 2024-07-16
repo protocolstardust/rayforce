@@ -142,7 +142,7 @@ obj_p ray_get(obj_p x)
     switch (x->type)
     {
     case -TYPE_SYMBOL:
-        sym = deref(x);
+        sym = resolve(x->i64);
         if (sym == NULL)
             return error(ERR_TYPE, "get: symbol '%s' not found", str_from_symbol(x->i64));
 
@@ -196,22 +196,25 @@ obj_p ray_get(obj_p x)
                 as_list(vals)[i] = val;
             }
 
-            // read symbol data (if any)
-            s = cstring_from_str("sym", 3);
-            col = ray_concat(x, s);
-            v = ray_get(col);
-
-            drop_obj(s);
-            drop_obj(col);
-
-            if (!is_error(v))
+            // read symbol data (if any) if sym is not present in current env
+            if (resolve(SYMBOL_SYM) == NULL)
             {
-                s = symbol("sym", 3);
-                drop_obj(ray_set(s, v));
-                drop_obj(s);
-            }
+                s = cstring_from_str("sym", 3);
+                col = ray_concat(x, s);
+                v = ray_get(col);
 
-            drop_obj(v);
+                drop_obj(s);
+                drop_obj(col);
+
+                if (!is_error(v))
+                {
+                    s = symbol("sym", 3);
+                    drop_obj(ray_set(s, v));
+                    drop_obj(s);
+                }
+
+                drop_obj(v);
+            }
 
             return table(keys, vals);
         }

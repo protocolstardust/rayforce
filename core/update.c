@@ -50,7 +50,7 @@ obj_p __fetch(obj_p obj, obj_p **val)
 {
     if (obj->type == -TYPE_SYMBOL)
     {
-        *val = deref(obj);
+        *val = resolve(obj->i64);
         if (*val == NULL)
             throw(ERR_NOT_FOUND, "fetch: symbol not found");
 

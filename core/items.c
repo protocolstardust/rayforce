@@ -910,13 +910,18 @@ obj_p ray_last(obj_p x)
 
 obj_p ray_key(obj_p x)
 {
+    u64_t l;
+    lit_p k;
+
     switch (x->type)
     {
     case TYPE_TABLE:
     case TYPE_DICT:
         return clone_obj(as_list(x)[0]);
     case TYPE_ENUM:
-        return symbol(enum_key(x), enum_key_len(x));
+        k = enum_key(x);
+        l = strlen(k);
+        return symbol(k, l);
     case TYPE_ANYMAP:
         return clone_obj(anymap_key(x));
     default:

@@ -41,6 +41,7 @@ extern i64_t SYMBOL_TAKE;
 extern i64_t SYMBOL_BY;
 extern i64_t SYMBOL_FROM;
 extern i64_t SYMBOL_WHERE;
+extern i64_t SYMBOL_SYM;
 
 /*
  *  Environment

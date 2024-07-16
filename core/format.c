@@ -812,6 +812,7 @@ i64_t enum_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj)
     obj_p s, e, idx;
 
     s = ray_key(obj);
+
     if (enum_val(obj)->len >= TABLE_MAX_HEIGHT)
     {
         limit = TABLE_MAX_HEIGHT;

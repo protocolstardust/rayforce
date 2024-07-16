@@ -59,6 +59,7 @@ i64_t SYMBOL_TAKE;
 i64_t SYMBOL_BY;
 i64_t SYMBOL_FROM;
 i64_t SYMBOL_WHERE;
+i64_t SYMBOL_SYM;
 
 #define regf(r, n, t, f, o)                      \
     {                                            \
@@ -280,6 +281,8 @@ nil_t init_keywords(obj_p *keywords)
     push_raw(keywords, &SYMBOL_FROM);
     SYMBOL_WHERE = symbols_intern("where", 5);
     push_raw(keywords, &SYMBOL_WHERE);
+    SYMBOL_SYM = symbols_intern("sym", 3);
+    push_raw(keywords, &SYMBOL_SYM);
 }
 
 env_t env_create(nil_t)
