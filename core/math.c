@@ -898,7 +898,7 @@ obj_p ray_sum(obj_p x)
 
         pool_add_task(pool, ray_sum_partial, 2, l - i * chunk, xii + i * chunk);
 
-        res = pool_run(pool, chunks);
+        res = pool_run(pool);
 
         for (i = 0, isum = 0; i < chunks; i++)
             isum += as_list(res)[i]->i64;

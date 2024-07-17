@@ -125,7 +125,7 @@ obj_p aggr_map(raw_p aggr, obj_p val, obj_p index)
 
     pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, index, vector(val->type, group_count));
 
-    return pool_run(pool, n);
+    return pool_run(pool);
 }
 
 obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)

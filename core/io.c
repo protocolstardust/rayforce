@@ -377,7 +377,7 @@ obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
     }
 
     pool_prepare(pool, num_batches);
-    res = pool_run(pool, num_batches);
+    res = pool_run(pool);
 
     if (is_error(res))
         return res;

@@ -180,7 +180,7 @@ raw_p executor_run(raw_p arg)
 {
     executor_t *executor = (executor_t *)arg;
     task_data_t data;
-    u64_t i;
+    u64_t i, tasks_count;
     obj_p res;
 
     executor->heap = heap_create(executor->id + 1);
@@ -198,10 +198,11 @@ raw_p executor_run(raw_p arg)
             break;
         }
 
+        tasks_count = executor->pool->tasks_count;
         mutex_unlock(&executor->pool->mutex);
 
         // process tasks
-        for (i = 0;; i++)
+        for (i = 0; i < tasks_count; i++)
         {
             data = mpmc_pop(executor->pool->task_queue);
 
@@ -238,6 +239,7 @@ pool_p pool_create(u64_t executors_count)
     pool = (pool_p)heap_mmap(sizeof(struct pool_t) + (sizeof(executor_t) * executors_count));
     pool->executors_count = executors_count;
     pool->done_count = 0;
+    pool->tasks_count = 0;
     pool->task_queue = mpmc_create(MPMC_SIZE);
     pool->result_queue = mpmc_create(MPMC_SIZE);
     pool->state = POOL_STATE_RUN;
@@ -260,14 +262,15 @@ pool_p pool_create(u64_t executors_count)
 
 nil_t pool_destroy(pool_p pool)
 {
-    u64_t i;
+    u64_t i, n;
 
     mutex_lock(&pool->mutex);
     pool->state = POOL_STATE_STOP;
     cond_broadcast(&pool->run);
     mutex_unlock(&pool->mutex);
 
-    for (i = 0; i < pool->executors_count; i++)
+    n = pool->executors_count;
+    for (i = 0; i < n; i++)
     {
         if (thread_join(pool->executors[i].handle) != 0)
             printf("Pool destroy: failed to join thread %lld\n", i);
@@ -315,6 +318,8 @@ nil_t pool_prepare(pool_p pool, u64_t tasks_count)
         heap_borrow(pool->executors[i].heap);
         interpreter_env_set(pool->executors[i].interpreter, clone_obj(env));
     }
+
+    pool->tasks_count = tasks_count;
 }
 
 nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
@@ -337,12 +342,13 @@ nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
     mpmc_push(pool->task_queue, data);
 }
 
-obj_p pool_run(pool_p pool, u64_t tasks_count)
+obj_p pool_run(pool_p pool)
 {
-    u64_t i, n;
+    u64_t i, n, tasks_count;
     obj_p res;
     task_data_t data;
 
+    tasks_count = pool->tasks_count;
     n = pool->executors_count;
 
     // wake up all executors
@@ -351,7 +357,7 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
     mutex_unlock(&pool->mutex);
 
     // process tasks on self too
-    for (i = 0;; i++)
+    for (i = 0; i < tasks_count; i++)
     {
         data = mpmc_pop(pool->task_queue);
 

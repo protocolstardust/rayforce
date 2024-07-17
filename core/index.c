@@ -140,7 +140,7 @@ index_scope_t index_scope(i64_t values[], i64_t indices[], u64_t len)
 
         pool_add_task(pool, index_scope_partial, 6, len - i * chunk, values, indices, i * chunk, &mins[i], &maxs[i]);
 
-        v = pool_run(pool, chunks);
+        v = pool_run(pool);
         drop_obj(v);
 
         min = max = mins[0];

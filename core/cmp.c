@@ -61,7 +61,7 @@ obj_p cmp_map(raw_p cmp, obj_p lhs, obj_p rhs)
 
     pool_add_task(pool, cmp, 5, l - i * chunk, i * chunk, lhs, rhs, res);
 
-    parts = pool_run(pool, n);
+    parts = pool_run(pool);
     unwrap_list(parts);
     drop_obj(parts);
 

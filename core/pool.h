@@ -95,6 +95,7 @@ typedef struct pool_t
     pool_state_t state;     // Pool's state
     u64_t done_count;       // Number of done executors
     u64_t executors_count;  // Number of executors
+    u64_t tasks_count;      // Number of tasks
     mpmc_p task_queue;      // Pool's task queue
     mpmc_p result_queue;    // Pool's result queue
     executor_t executors[]; // Array of executors
@@ -107,6 +108,6 @@ u64_t pool_executors_count(pool_p pool);
 nil_t pool_prepare(pool_p pool, u64_t tasks_count);
 nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...);
 obj_p pool_call_task_fn(raw_p fn, u64_t argc, raw_p argv[]);
-obj_p pool_run(pool_p pool, u64_t tasks_count);
+obj_p pool_run(pool_p pool);
 
 #endif // POOL_H
