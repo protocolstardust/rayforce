@@ -898,7 +898,13 @@ obj_p ray_union(obj_p x, obj_p y)
 
 obj_p ray_first(obj_p x)
 {
-    return at_idx(x, 0);
+    switch (x->type)
+    {
+    case TYPE_GROUPMAP:
+        return aggr_first(as_list(x)[0], as_list(x)[1]);
+    default:
+        return at_idx(x, 0);
+    }
 }
 
 obj_p ray_last(obj_p x)
