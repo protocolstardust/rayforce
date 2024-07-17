@@ -180,6 +180,7 @@ raw_p executor_run(raw_p arg)
 {
     executor_t *executor = (executor_t *)arg;
     task_data_t data;
+    u64_t i;
     obj_p res;
 
     executor->heap = heap_create(executor->id + 1);
@@ -200,7 +201,7 @@ raw_p executor_run(raw_p arg)
         mutex_unlock(&executor->pool->mutex);
 
         // process tasks
-        for (;;)
+        for (i = 0;; i++)
         {
             data = mpmc_pop(executor->pool->task_queue);
 
@@ -214,10 +215,13 @@ raw_p executor_run(raw_p arg)
             mpmc_push(executor->pool->result_queue, data);
         }
 
-        mutex_lock(&executor->pool->mutex);
-        executor->pool->done_count++;
-        cond_signal(&executor->pool->done);
-        mutex_unlock(&executor->pool->mutex);
+        if (i > 0)
+        {
+            mutex_lock(&executor->pool->mutex);
+            executor->pool->done_count += i;
+            cond_signal(&executor->pool->done);
+            mutex_unlock(&executor->pool->mutex);
+        }
     }
 
     interpreter_destroy();
@@ -347,7 +351,7 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
     mutex_unlock(&pool->mutex);
 
     // process tasks on self too
-    for (;;)
+    for (i = 0;; i++)
     {
         data = mpmc_pop(pool->task_queue);
 
@@ -362,9 +366,10 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
     }
 
     mutex_lock(&pool->mutex);
+    pool->done_count += i;
 
     // wait for all tasks to be done
-    while (pool->done_count < n)
+    while (pool->done_count < tasks_count)
         cond_wait(&pool->done, &pool->mutex);
 
     // merge heaps
