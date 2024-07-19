@@ -234,9 +234,7 @@ raw_p executor_run(raw_p arg)
 pool_p pool_create(u64_t executors_count)
 {
     u64_t i;
-    i32_t rc;
     pool_p pool;
-    cpu_set_t cpuset;
 
     pool = (pool_p)heap_mmap(sizeof(struct pool_t) + (sizeof(executor_t) * executors_count));
     pool->executors_count = executors_count;
@@ -250,18 +248,11 @@ pool_p pool_create(u64_t executors_count)
     pool->done = cond_create();
     mutex_lock(&pool->mutex);
 
-    rc = thread_pin(thread_self(), 0);
-    if (rc != 0)
-        printf("Pool create: failed to pin main thread to core 0\n");
-
     for (i = 0; i < executors_count; i++)
     {
         pool->executors[i].id = i;
         pool->executors[i].pool = pool;
         pool->executors[i].handle = thread_create(executor_run, &pool->executors[i]);
-        rc = thread_pin(pool->executors[i].handle, i + 1);
-        if (rc != 0)
-            printf("Pool create: failed to pin thread %lld to core %lld\n", i, i);
     }
 
     mutex_unlock(&pool->mutex);
