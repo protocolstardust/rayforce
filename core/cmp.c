@@ -31,26 +31,23 @@
 #include "runtime.h"
 #include "pool.h"
 
+typedef obj_p (*ray_cmp_f)(u64_t, u64_t, obj_p, obj_p, obj_p);
+
 obj_p cmp_map(raw_p cmp, obj_p lhs, obj_p rhs)
 {
     pool_p pool = runtime_get()->pool;
     u64_t i, l, n, chunk;
     obj_p res, parts;
-    raw_p argv[6];
+    ray_cmp_f cmp_fn = (ray_cmp_f)cmp;
 
-    n = pool_executors_count(pool);
-    res = vector_b8(lhs->len);
     l = lhs->len;
+    n = pool_executors_count(pool);
+    res = vector_b8(l);
 
     if (n == 1)
     {
-        argv[0] = (raw_p)l;
-        argv[1] = (raw_p)0;
-        argv[2] = lhs;
-        argv[3] = rhs;
-        argv[4] = res;
-        pool_call_task_fn(cmp, 5, argv);
-
+        parts = cmp_fn(l, 0, lhs, rhs, res);
+        drop_obj(parts);
         return res;
     }
 
@@ -100,7 +97,7 @@ obj_p ray_eq_partial(u64_t len, u64_t offset, obj_p lhs, obj_p rhs, obj_p res)
         if (is_null(sym) || sym->type != TYPE_SYMBOL)
         {
             drop_obj(sym);
-            raise(ERR_TYPE, "eq: invalid enum");
+            throw(ERR_TYPE, "eq: invalid enum");
         }
 
         xi = as_i64(sym) + offset;
@@ -113,10 +110,10 @@ obj_p ray_eq_partial(u64_t len, u64_t offset, obj_p lhs, obj_p rhs, obj_p res)
         break;
 
     default:
-        break;
-
-        return NULL_OBJ;
+        throw(ERR_TYPE, "eq: unsupported types: '%s, '%s", type_name(lhs->type), type_name(rhs->type));
     }
+
+    return NULL_OBJ;
 }
 
 obj_p ray_eq(obj_p x, obj_p y)

@@ -252,7 +252,6 @@ obj_p ops_where(b8_t *mask, u64_t len)
     i64_t *ids;
     obj_p res, parts;
     pool_p pool = runtime_get()->pool;
-    raw_p argv[4];
 
     n = pool_executors_count(pool);
 
@@ -261,15 +260,10 @@ obj_p ops_where(b8_t *mask, u64_t len)
 
     if (n == 1 || len <= n)
     {
-        argv[0] = mask;
-        argv[1] = (raw_p)len;
-        argv[2] = (raw_p)ids;
-        argv[3] = 0;
-        parts = pool_call_task_fn(ops_where_partial, 4, argv);
+        parts = ops_where_partial(mask, len, ids, 0);
         ids_len = parts->i64;
         drop_obj(parts);
         resize_obj(&res, ids_len);
-
         return res;
     }
 
