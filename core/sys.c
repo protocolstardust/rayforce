@@ -51,7 +51,7 @@ sys_info_t sys_info(i32_t threads)
     strncpy(info.build_date, __DATE__, sizeof(info.build_date));
     info.build_date[strcspn(info.build_date, "\n")] = 0; // Remove the newline
     info.cores = cpu_cores();
-    info.threads = (threads == 0) ? info.cores : threads;
+    info.threads = (threads == 0 || threads > info.cores) ? info.cores : threads;
     strncpy(info.cpu, "Unknown CPU", sizeof(info.cpu));
     if (getcwd(info.cwd, sizeof(info.cwd)) == NULL)
         printf("Unable to get current working directory\n");
