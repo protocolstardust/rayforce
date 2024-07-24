@@ -98,43 +98,98 @@ i64_t i64_from_str(lit_p str, u64_t len)
     return result * sign;
 }
 
-f64_t f64_from_str(lit_p str, u64_t len)
+f64_t f64_from_str(const char *str, u64_t len)
 {
-    f64_t result = 0.0, factor = 1.0, fraction;
+    f64_t result = 0.0, factor = 1.0, fraction = 0.1, exp_factor = 1.0;
+    i64_t exp;
+    b8_t has_digits = B8_FALSE, exp_negative = B8_FALSE;
 
-    if (len == 0)
+    if (len == 0 || str == NULL)
         return NULL_F64;
 
     // Skip leading whitespace
-    while (is_space(*str))
+    while (len > 0 && is_space(*str))
+    {
         str++;
+        len--;
+    }
 
     // Handle optional sign
-    if (*str == '-')
+    if (len > 0 && *str == '-')
     {
         factor = -1.0;
         str++;
+        len--;
+    }
+    else if (len > 0 && *str == '+')
+    {
+        str++;
+        len--;
     }
 
     // Parse the integer part
-    while (is_digit(*str))
+    while (len > 0 && is_digit(*str))
     {
         result = result * 10.0 + (*str - '0');
         str++;
+        len--;
+        has_digits = B8_TRUE;
     }
 
     // Parse the fractional part
-    if (*str == '.')
+    if (len > 0 && *str == '.')
     {
         str++;
-        fraction = 1.0;
-        while (is_digit(*str))
+        len--;
+        while (len > 0 && is_digit(*str))
         {
-            fraction /= 10.0;
             result += (*str - '0') * fraction;
+            fraction *= 0.1;
             str++;
+            len--;
+            has_digits = B8_TRUE;
         }
     }
+
+    // Handle exponent
+    if (len > 0 && (*str == 'e' || *str == 'E'))
+    {
+        str++;
+        len--;
+        exp = 0;
+        exp_negative = B8_FALSE;
+
+        if (len > 0 && *str == '-')
+        {
+            exp_negative = B8_TRUE;
+            str++;
+            len--;
+        }
+        else if (len > 0 && *str == '+')
+        {
+            str++;
+            len--;
+        }
+
+        while (len > 0 && is_digit(*str))
+        {
+            exp = exp * 10 + (*str - '0');
+            str++;
+            len--;
+        }
+
+        // Apply exponent
+        exp_factor = 1.0;
+        while (exp > 0)
+        {
+            exp_factor *= exp_negative ? 0.1 : 10.0;
+            exp--;
+        }
+        result *= exp_factor;
+    }
+
+    if (has_digits == B8_FALSE)
+        return NULL_F64;
 
     return result * factor;
 }
