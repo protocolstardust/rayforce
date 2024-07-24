@@ -75,7 +75,7 @@
                 for ($i = 0; $i < len; $i++)            \
                 {                                       \
                     $x = filter[$i + offset];           \
-                    $y = group_ids[$x];                 \
+                    $y = group_ids[$i + offset];        \
                     aggr;                               \
                 }                                       \
             }                                           \
@@ -214,7 +214,7 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
     case TYPE_TIMESTAMP:
         xi = as_i64(val);
         yi = as_i64(res);
-
+        debug_obj(index);
         for (i = 0; i < n; i++)
             yi[i] = NULL_I64;
 
@@ -263,7 +263,7 @@ obj_p aggr_first(obj_p val, obj_p index)
     u64_t i, j, l, n;
     i64_t k, *xi, *xo, *group_ids, shift;
     f64_t *fo, *fi;
-    obj_p res, parts;
+    obj_p res, parts, *oi, *oo;
 
     n = index_group_count(index);
 
@@ -325,6 +325,25 @@ obj_p aggr_first(obj_p val, obj_p index)
         drop_obj(parts);
 
         return res;
+
+    case TYPE_LIST:
+        parts = aggr_map(aggr_first_partial, val, index);
+        unwrap_list(parts);
+        l = parts->len;
+        res = clone_obj(as_list(parts)[0]);
+        for (i = 1; i < l; i++)
+        {
+            oo = as_list(res);
+            oi = as_list(as_list(parts)[i]);
+            for (j = 0; j < n; j++)
+                if (oo[j] == NULL_OBJ)
+                    oo[j] = clone_obj(oi[j]);
+        }
+
+        drop_obj(parts);
+
+        return res;
+
     default:
         return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
     }

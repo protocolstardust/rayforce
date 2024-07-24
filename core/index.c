@@ -596,7 +596,7 @@ obj_p index_group_i64_scoped_partial(i64_t input[], i64_t filter[], i64_t group_
 
 obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
 {
-    u64_t i, j, n, len, groups, chunks, chunk;
+    u64_t i, n, len, groups, chunks, chunk;
     i64_t idx, *hk, *hv, *hp, *values, *indices;
     obj_p keys, vals, v, ht;
     pool_p pool;
@@ -605,61 +605,61 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
     indices = is_null(filter) ? NULL : as_i64(filter);
     len = indices ? filter->len : obj->len;
 
-    if (scope.range <= len)
-    {
-        keys = vector_i64(scope.range);
-        hk = as_i64(keys);
+    // if (scope.range <= len)
+    // {
+    //     keys = vector_i64(scope.range);
+    //     hk = as_i64(keys);
 
-        for (i = 0; i < scope.range; i++)
-            hk[i] = NULL_I64;
+    //     for (i = 0; i < scope.range; i++)
+    //         hk[i] = NULL_I64;
 
-        if (indices)
-        {
-            for (i = 0, groups = 0; i < len; i++)
-            {
-                n = values[indices[i]] - scope.min;
-                if (hk[n] == NULL_I64)
-                    hk[n] = groups++;
-            }
-        }
-        else
-        {
-            for (i = 0, groups = 0; i < len; i++)
-            {
-                n = values[i] - scope.min;
-                if (hk[n] == NULL_I64)
-                    hk[n] = groups++;
-            }
-        }
+    //     if (indices)
+    //     {
+    //         for (i = 0, groups = 0; i < len; i++)
+    //         {
+    //             n = values[indices[i]] - scope.min;
+    //             if (hk[n] == NULL_I64)
+    //                 hk[n] = groups++;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         for (i = 0, groups = 0; i < len; i++)
+    //         {
+    //             n = values[i] - scope.min;
+    //             if (hk[n] == NULL_I64)
+    //                 hk[n] = groups++;
+    //         }
+    //     }
 
-        if (scope.range <= INDEX_SCOPE_LIMIT)
-            return index_group_build(groups, keys, scope.min, clone_obj(obj), clone_obj(filter));
+    //     if (scope.range <= INDEX_SCOPE_LIMIT)
+    //         return index_group_build(groups, keys, scope.min, clone_obj(obj), clone_obj(filter));
 
-        vals = vector_i64(len);
-        hv = as_i64(vals);
+    //     vals = vector_i64(len);
+    //     hv = as_i64(vals);
 
-        pool = pool_get();
-        chunks = pool_split_by(pool, len);
+    //     pool = pool_get();
+    //     chunks = pool_split_by(pool, len);
 
-        if (chunks == 1)
-            index_group_i64_scoped_partial(values, indices, hk, len, 0, scope.min, hv);
-        else
-        {
-            pool_prepare(pool);
-            chunk = len / chunks;
-            for (i = 0; i < chunks - 1; i++)
-                pool_add_task(pool, index_group_i64_scoped_partial, 7, values, indices, hk, chunk, i * chunk, scope.min, hv);
+    //     if (chunks == 1)
+    //         index_group_i64_scoped_partial(values, indices, hk, len, 0, scope.min, hv);
+    //     else
+    //     {
+    //         pool_prepare(pool);
+    //         chunk = len / chunks;
+    //         for (i = 0; i < chunks - 1; i++)
+    //             pool_add_task(pool, index_group_i64_scoped_partial, 7, values, indices, hk, chunk, i * chunk, scope.min, hv);
 
-            pool_add_task(pool, index_group_i64_scoped_partial, 7, values, indices, hk, len - i * chunk, i * chunk, scope.min, hv);
+    //         pool_add_task(pool, index_group_i64_scoped_partial, 7, values, indices, hk, len - i * chunk, i * chunk, scope.min, hv);
 
-            v = pool_run(pool);
-            drop_obj(v);
-        }
+    //         v = pool_run(pool);
+    //         drop_obj(v);
+    //     }
 
-        drop_obj(keys);
+    //     drop_obj(keys);
 
-        return index_group_build(groups, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
-    }
+    //     return index_group_build(groups, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    // }
 
     // use hash table if range is large
     ht = ht_oa_create(len, TYPE_I64);
@@ -669,7 +669,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
     // distribute bins
     if (indices)
     {
-        for (i = 0, j = 0; i < len; i++)
+        for (i = 0, groups = 0; i < len; i++)
         {
             n = values[indices[i]] - scope.min;
             idx = ht_oa_tab_next_with(&ht, n, &hash_fnv1a, &hash_cmp_i64, NULL);
@@ -678,7 +678,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
             if (hk[idx] == NULL_I64)
             {
                 hk[idx] = n;
-                hv[idx] = j++;
+                hv[idx] = groups++;
             }
 
             hp[i] = hv[idx];
@@ -686,7 +686,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
     }
     else
     {
-        for (i = 0, j = 0; i < len; i++)
+        for (i = 0, groups = 0; i < len; i++)
         {
             n = values[i] - scope.min;
             idx = ht_oa_tab_next_with(&ht, n, &hash_fnv1a, &hash_cmp_i64, NULL);
@@ -695,7 +695,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
             if (hk[idx] == NULL_I64)
             {
                 hk[idx] = n;
-                hv[idx] = j++;
+                hv[idx] = groups++;
             }
 
             hp[i] = hv[idx];
@@ -704,7 +704,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
 
     drop_obj(ht);
 
-    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(groups, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_i64(obj_p obj, obj_p filter)
