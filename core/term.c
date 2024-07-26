@@ -48,6 +48,7 @@
 
 #define is_cmd(t, c) ((t)->buf_len >= (i32_t)strlen(c) && strncmp((t)->buf, c, strlen(c)) == 0)
 #define is_esc(t, e) ((t)->input_len == (i32_t)strlen(e) && strncmp((t)->input, e, strlen(e)) == 0)
+#define PROGRESS_BAR_WIDTH 40
 
 nil_t cursor_move_start()
 {
@@ -1179,4 +1180,50 @@ obj_p term_read(term_p term)
 #endif
 
     return res;
+}
+
+nil_t term_init_progress_bar(term_p term, u64_t parts)
+{
+    term->pb.parts = parts;
+    term->pb.completed = 0;
+}
+
+nil_t term_update_progress_bar(term_p term, u64_t parts)
+{
+    i32_t i;
+
+    term->pb.completed += parts;
+    if (term->pb.completed > term->pb.parts)
+        term->pb.completed = term->pb.parts;
+
+    int percentage = (term->pb.completed * 100) / term->pb.parts;
+    int filled_width = (PROGRESS_BAR_WIDTH * term->pb.completed) / term->pb.parts;
+
+    printf("\r│");
+    for (i = 0; i < PROGRESS_BAR_WIDTH; i++)
+    {
+        if (i < filled_width)
+            printf("█");
+        else
+            printf("░");
+    }
+    printf("│ %d/%d (%d%%)", term->pb.completed, term->pb.parts, percentage);
+    fflush(stdout);
+}
+
+nil_t term_finalize_progress_bar(term_p term)
+{
+    unused(term);
+    i32_t i;
+
+    // Move cursor to the beginning of the line
+    printf("\r");
+
+    // Overwrite the progress bar with spaces
+    for (i = 0; i < PROGRESS_BAR_WIDTH + 20; i++)
+        printf(" ");
+
+    // Move cursor to the beginning of the line again
+    printf("\r");
+    fflush(stdout);
 }

@@ -32,6 +32,7 @@
 #include "string.h"
 #include "runtime.h"
 #include "pool.h"
+#include "term.h"
 
 u64_t __hash_get(i64_t row, nil_t *seed)
 {

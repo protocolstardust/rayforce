@@ -80,6 +80,12 @@ typedef struct
     u64_t sbidx;
 } autocp_idx_t;
 
+typedef struct
+{
+    i32_t parts;
+    i32_t completed;
+} progress_bar_t;
+
 typedef struct term_t
 {
 #if defined(OS_WINDOWS)
@@ -101,6 +107,7 @@ typedef struct term_t
     c8_t buf[TERM_BUF_SIZE];
     autocp_idx_t autocp_idx;
     hist_p hist;
+    progress_bar_t pb;
 } *term_p;
 
 hist_p hist_create();
@@ -116,5 +123,8 @@ nil_t term_prompt(term_p term);
 nil_t term_destroy(term_p term);
 i64_t term_getc(term_p term);
 obj_p term_read(term_p term);
+nil_t term_init_progress_bar(term_p term, u64_t parts);
+nil_t term_update_progress_bar(term_p term, u64_t parts);
+nil_t term_finalize_progress_bar(term_p term);
 
 #endif // TERM_H

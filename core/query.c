@@ -38,6 +38,7 @@
 #include "group.h"
 #include "filter.h"
 #include "update.h"
+#include "term.h"
 #include "pool.h"
 #include "time.h"
 #include "runtime.h"
