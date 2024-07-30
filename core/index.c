@@ -34,53 +34,54 @@
 #include "pool.h"
 #include "term.h"
 
-u64_t __hash_get(i64_t row, nil_t *seed)
+u64_t __hash_get(i64_t row, raw_p seed)
 {
     __index_find_ctx_t *ctx = (__index_find_ctx_t *)seed;
     return ctx->hashes[row];
 }
 
-i64_t __cmp_obj(i64_t row1, i64_t row2, nil_t *seed)
+i64_t __cmp_obj(i64_t row1, i64_t row2, raw_p seed)
 {
     __index_find_ctx_t *ctx = (__index_find_ctx_t *)seed;
     return cmp_obj(((obj_p *)ctx->lobj)[row1], ((obj_p *)ctx->robj)[row2]);
 }
 
-i64_t __hash_cmp_guid(i64_t row1, i64_t row2, nil_t *seed)
+i64_t __hash_cmp_guid(i64_t row1, i64_t row2, raw_p seed)
 {
     __index_find_ctx_t *ctx = (__index_find_ctx_t *)seed;
     return memcmp((guid_t *)ctx->lobj + row1, (guid_t *)ctx->robj + row2, sizeof(guid_t));
 }
 
-u64_t __index_list_hash_get(i64_t row, nil_t *seed)
+u64_t __index_list_hash_get(i64_t row, raw_p seed)
 {
     __index_list_ctx_t *ctx = (__index_list_ctx_t *)seed;
     return ctx->hashes[row];
 }
 
-i64_t __index_list_cmp_row(i64_t row1, i64_t row2, nil_t *seed)
+i64_t __index_list_cmp_row(i64_t row1, i64_t row2, raw_p seed)
 {
-    u64_t i, l, x, y;
+    u64_t i, l;
     __index_list_ctx_t *ctx = (__index_list_ctx_t *)seed;
+    i64_t *filter = ctx->filter;
     obj_p *lcols = as_list(ctx->lcols);
     obj_p *rcols = as_list(ctx->rcols);
 
     l = ctx->lcols->len;
 
-    if (ctx->filter)
+    if (filter)
     {
-        x = ctx->filter[row1];
-        y = ctx->filter[row2];
+        for (i = 0; i < l; i++)
+        {
+            if (ops_eq_idx(lcols[i], filter[row1], rcols[i], filter[row2]) == 0)
+                return 1;
+        }
     }
     else
     {
-        x = row1;
-        y = row2;
+        for (i = 0; i < l; i++)
+            if (ops_eq_idx(lcols[i], row1, rcols[i], row2) == 0)
+                return 1;
     }
-
-    for (i = 0; i < l; i++)
-        if (ops_eq_idx(lcols[i], x, rcols[i], y) == 0)
-            return 1;
 
     return 0;
 }
@@ -1333,25 +1334,6 @@ obj_p index_group_list(obj_p obj, obj_p filter)
     timeit_tick("group index list");
 
     return index_group_build(g, res, NULL_I64, NULL_OBJ, clone_obj(filter));
-}
-
-obj_p index_group_cnts(obj_p grp)
-{
-    u64_t i, l, n;
-    i64_t *grps, *ids;
-    obj_p res;
-
-    // Count groups
-    n = as_list(grp)[0]->i64;
-    l = as_list(grp)[1]->len;
-    res = vector_i64(n);
-    grps = as_i64(res);
-    memset(grps, 0, n * sizeof(i64_t));
-    ids = as_i64(as_list(grp)[1]);
-    for (i = 0; i < l; i++)
-        grps[ids[i]]++;
-
-    return res;
 }
 
 obj_p index_join_obj(obj_p lcols, obj_p rcols, u64_t len)
