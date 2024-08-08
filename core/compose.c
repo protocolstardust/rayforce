@@ -594,7 +594,7 @@ obj_p ray_group(obj_p x)
     u64_t i, m, n, l;
 
     // return index_group(x, NULL_OBJ);
-    return i64(group_build_index(as_i64(x), x->len, &hash_fnv1a, &hash_cmp_i64));
+    return group_build_index(as_i64(x), x->len, &hash_fnv1a, &hash_cmp_i64, NULL);
 
     switch (x->type)
     {

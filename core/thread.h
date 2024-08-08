@@ -79,5 +79,7 @@ i32_t thread_destroy(thread_t *thread);
 i32_t thread_join(thread_t thread);
 i32_t thread_detach(thread_t thread);
 nil_t thread_exit(raw_p res);
+thread_t thread_self();
+i32_t thread_pin(thread_t thread, u64_t core);
 
 #endif // THREAD_H

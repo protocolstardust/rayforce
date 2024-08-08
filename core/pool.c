@@ -33,7 +33,6 @@
 #include "string.h"
 
 #define DEFAULT_MPMC_SIZE 2048
-#define POOL_SPLIT_THRESHOLD 4096
 
 mpmc_p mpmc_create(u64_t size)
 {
@@ -255,7 +254,12 @@ pool_p pool_create(u64_t executors_count)
         pool->executors[i].id = i;
         pool->executors[i].pool = pool;
         pool->executors[i].handle = thread_create(executor_run, &pool->executors[i]);
+        if (thread_pin(pool->executors[i].handle, i + 1) != 0)
+            printf("Pool create: failed to pin thread %lld\n", i + 1);
     }
+
+    if (thread_pin(thread_self(), 0) != 0)
+        printf("Pool create: failed to pin main thread\n");
 
     mutex_unlock(&pool->mutex);
 
@@ -452,8 +456,8 @@ u64_t pool_split_by(pool_p pool, u64_t input_len, u64_t groups_len)
         return 1;
     else if (input_len <= pool->executors_count + 1)
         return 1;
-    // else if (groups_len >= POOL_SPLIT_THRESHOLD)
-    //     return 2;
+    // else if (groups_len >= input_len / 2)
+    //     return 1;
     else
         return pool->executors_count + 1;
 }

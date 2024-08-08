@@ -59,99 +59,139 @@ obj_p group_map(obj_p val, obj_p index)
     }
 }
 
-obj_p build_partitions(u64_t partitions, i64_t keys[], u64_t len, hash_f hash, cmp_f cmp)
+obj_p build_partition(u64_t morsels_num, i64_t keys[], u64_t len, hash_f hash, cmp_f cmp, raw_p seed)
 {
-    u64_t i, j, l;
-    i64_t idx, *outkeys;
-    obj_p morsels, *morsel;
+    u64_t i, j, l, ht_len;
+    i64_t idx, *hk;
+    obj_p morsels, *ht;
 
-    morsels = list(partitions);
-    l = len / partitions;
+    ht_len = len / morsels_num;
+    morsels = list(morsels_num);
 
-    for (i = 0; i < partitions; i++)
-        as_list(morsels)[i] = ht_oa_create(l, -1);
+    for (i = 0; i < morsels_num; i++)
+        as_list(morsels)[i] = NULL_OBJ;
 
     for (i = 0; i < len; i++)
     {
-        j = keys[i] % partitions;
-        morsel = as_list(morsels) + j;
-        idx = ht_oa_tab_next(morsel, keys[i]);
-        outkeys = as_i64(as_list(*morsel)[0]);
-        if (outkeys[idx] == NULL_I64)
-            outkeys[idx] = keys[i];
+        j = keys[i] % morsels_num;
+        ht = as_list(morsels) + j;
+        if (*ht == NULL_OBJ)
+            *ht = ht_oa_create(ht_len, TYPE_I64);
+
+        ht_oa_tab_insert_with(ht, keys[i], 0, hash, cmp, seed);
     }
 
     return morsels;
 }
 
-obj_p aggregate_partitions(obj_p partitions, u64_t partition_idx, u64_t len, hash_f hash, cmp_f cmp, u64_t *groups)
+obj_p merge_morsels(u64_t radix_bits, obj_p partitions, u64_t len, hash_f hash, cmp_f cmp, raw_p seed)
 {
-    u64_t i, j, n, l, count;
-    i64_t *inkeys, *outkeys, idx;
-    obj_p partition, morsel;
+    u64_t i, l, j, ht_len;
+    i64_t g, v, *phk, *phv, *mhk;
+    obj_p ht, mht;
 
-    partition = ht_oa_create(len, -1);
     l = partitions->len;
-    count = 0;
+    ht_len = len / as_list(partitions)[i]->len;
 
-    // take morsel from every partition that belows to our idx and merge them into one partition
-    for (i = 0; i < l; i++)
+    // merge morsels from each partition due to radix bits
+    ht = ht_oa_create(ht_len, TYPE_I64);
+
+    // merge each morsel of the partition by radix bits
+    for (i = 0, g = 0; i < l; i++)
     {
-        morsel = as_list(as_list(partitions)[i])[partition_idx];
-        n = as_list(morsel)[0]->len;
-        inkeys = as_i64(as_list(morsel)[0]);
-        for (j = 0; j < n; j++)
-        {
-            if (inkeys[j] == NULL_I64)
-                continue;
+        mht = as_list(as_list(partitions)[i])[radix_bits];
+        if (mht == NULL_OBJ)
+            continue;
+        mhk = as_i64(as_list(mht)[0]);
+        ht_len = as_list(mht)[0]->len;
 
-            idx = ht_oa_tab_next(&partition, inkeys[j]);
-            outkeys = as_i64(as_list(partition)[0]);
-            if (outkeys[idx] == NULL_I64)
+        for (j = 0; j < ht_len; j++)
+        {
+            if (mhk[j] != NULL_I64)
             {
-                as_i64(as_list(partition)[0])[idx] = inkeys[j];
-                count++;
+                // NOTE: assume we never rehash because the length of the hash table is enough
+                v = ht_oa_tab_insert_with(&ht, mhk[j], g, hash, cmp, seed);
+                if (g == v)
+                    g++;
             }
         }
     }
 
-    return partition;
+    return vn_list(2, ht, i64(g));
 }
 
-u64_t group_build_index(i64_t keys[], u64_t len, hash_f hash, cmp_f cmp)
+obj_p group_build_index(i64_t keys[], u64_t len, hash_f hash, cmp_f cmp, raw_p seed)
 {
-    u64_t i, l, groups;
+    u64_t i, groups, partitions_num, partition_len, morsels_num;
     obj_p morsels, partitions;
     pool_p pool;
 
     groups = 0;
     pool = pool_get();
-    l = pool_split_by(pool, len, 0);
+    partitions_num = pool_split_by(pool, len, 0);
+    partition_len = len / partitions_num;
+    morsels_num = (len / L3_CACHE_SIZE) * partitions_num;
 
     // build morsels for every partition
     pool_prepare(pool);
-    for (i = 0; i < l - 1; i++)
-        pool_add_task(pool, build_partitions, 5, l, keys + i * (len / l), len / l, hash, cmp);
+    for (i = 0; i < partitions_num - 1; i++)
+        pool_add_task(pool, build_partition, 6, morsels_num, keys + i * partition_len, partition_len, hash, cmp, seed);
 
-    pool_add_task(pool, build_partitions, 5, l, keys + i * (len / l), len - (i * (len / l)), hash, cmp);
-    morsels = pool_run(pool);
+    pool_add_task(pool, build_partition, 6, morsels_num, keys + i * partition_len, len - (i * partition_len), hash, cmp, seed);
 
+    partitions = pool_run(pool);
     timeit_tick("build partitions");
 
-    // merge morsels into partitions
+    // merge morsels from each partition due to radix bits
     pool_prepare(pool);
-    for (i = 0; i < l - 1; i++)
-        pool_add_task(pool, aggregate_partitions, 5, morsels, i, len / l, hash, cmp);
+    for (i = 0; i < morsels_num; i++)
+        pool_add_task(pool, merge_morsels, 5, i, partitions, len, hash, cmp, seed);
 
-    pool_add_task(pool, aggregate_partitions, 5, morsels, i, len - (i * (len / l)), hash, cmp);
-    partitions = pool_run(pool);
+    morsels = pool_run(pool);
+    timeit_tick("merge morsels");
 
-    timeit_tick("aggregate partitions");
+    partitions_num = morsels->len;
+    for (i = 0; i < partitions_num; i++)
+        groups += as_list(as_list(morsels)[i])[1]->i64;
 
-    drop_obj(morsels);
-    drop_obj(partitions);
+    return vn_list(3, i64(groups), morsels, partitions);
+}
 
-    timeit_tick("drop morsels and partitions");
+obj_p aggr_morsels(obj_p morsels, u64_t radix_bits, i64_t keys[], i64_t vals[], u64_t len, hash_f hash, cmp_f cmp)
+{
+    u64_t i, j, l, morsels_num, partition_len;
+    i64_t idx, *hk, *hv;
+    obj_p local_morsels, ht;
 
-    return groups;
+    local_morsels = as_list(morsels)[radix_bits];
+    morsels_num = local_morsels->len;
+
+    // initialize morsels values
+    for (i = 0; i < morsels_num; i++)
+        memset(as_list(as_list(local_morsels)[i]) + 1, 0, sizeof(i64_t) * as_list(local_morsels)[i]->len);
+
+    l = len / morsels_num;
+
+    for (i = 0; i < len; i++)
+    {
+        j = hash(keys[i], NULL) % morsels_num;
+        ht = as_list(morsels)[j];
+        idx = ht_oa_tab_get_with(ht, keys[i], hash, cmp, NULL);
+        as_i64(as_list(ht)[1])[idx] += vals[i];
+    }
+
+    return NULL_OBJ;
+}
+
+obj_p aggr_partitions(u64_t radix_bits, i64_t keys[], i64_t vals[], u64_t len, hash_f hash, cmp_f cmp)
+{
+}
+
+obj_p group_aggr_index(i64_t keys[], i64_t vals[], u64_t len, obj_p index)
+{
+    u64_t i, groups, partitions_num, morsels_num, partition_len;
+    obj_p morsels, partitions;
+    pool_p pool;
+
+    return NULL_OBJ;
 }
