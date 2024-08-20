@@ -102,7 +102,7 @@ b8_t is_alphanum(c8_t c)
 
 b8_t is_op(c8_t c)
 {
-    return c && strchr("+-*/%&|^~<>!=._", c) != NULL;
+    return c && strchr("+-*/%&|^~<>!=._?", c) != NULL;
 }
 
 b8_t at_eof(c8_t c)
@@ -153,7 +153,7 @@ obj_p parse_0x(parser_t *parser)
     str_p end, current = parser->current;
     span_t span;
     u64_t num_u64;
-    u8_t NULL_GUID[16] = {0}, num_u8;
+    u8_t num_u8, null_guid[16] = {0};
     obj_p res;
 
     if (*current == '0')
@@ -189,7 +189,7 @@ obj_p parse_0x(parser_t *parser)
 
         if (*(parser->current + 1) == 'g')
         {
-            res = guid(NULL_GUID);
+            res = guid(null_guid);
             shift(parser, 2);
             nfo_insert(parser->nfo, (i64_t)res, span);
 
@@ -479,6 +479,19 @@ obj_p parse_char(parser_t *parser)
 
     if (*pos != '\'')
     {
+        // char?
+        if (*(pos + 1) == '\'')
+        {
+            ch = *pos++;
+            res = c8(ch);
+
+            shift(parser, 3);
+            span_extend(parser, &span);
+            nfo_insert(parser->nfo, (i64_t)res, span);
+
+            return res;
+        }
+
         // continue parsing a symbol
         while (is_alphanum(*pos) || is_op(*pos))
             pos++;
@@ -489,22 +502,13 @@ obj_p parse_char(parser_t *parser)
             nfo_insert(parser->nfo, parser->count, span);
             return parse_error(parser, parser->count++, str_fmt(-1, "Invalid literal: char can not contain more than one symbol"));
         }
-
-        id = symbols_intern(parser->current + 1, pos - (parser->current + 1));
-        res = i64(id);
-        res->type = -TYPE_SYMBOL;
-        res->attrs = ATTR_QUOTED;
-        shift(parser, pos - parser->current);
-        span_extend(parser, &span);
-        nfo_insert(parser->nfo, (i64_t)res, span);
-
-        return res;
     }
 
-    ch = *pos++;
-    res = c8(ch);
-
-    shift(parser, 3);
+    id = symbols_intern(parser->current + 1, pos - (parser->current + 1));
+    res = i64(id);
+    res->type = -TYPE_SYMBOL;
+    res->attrs = ATTR_QUOTED;
+    shift(parser, pos - parser->current);
     span_extend(parser, &span);
     nfo_insert(parser->nfo, (i64_t)res, span);
 
