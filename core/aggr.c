@@ -184,11 +184,11 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
 obj_p aggr_first(obj_p val, obj_p index)
 {
     u64_t i, n;
-    i64_t *xo;
-    obj_p parts, res, *xe, ek, sym;
+    i64_t *xo, *xe;
+    obj_p parts, res, ek, sym;
 
     n = index_group_count(index);
-    parts = aggr_map(aggr_sum_partial, val, index);
+    parts = aggr_map(aggr_first_partial, val, index);
     unwrap_list(parts);
 
     switch (val->type)
@@ -273,11 +273,11 @@ obj_p aggr_last_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p r
 obj_p aggr_last(obj_p val, obj_p index)
 {
     u64_t i, n;
-    i64_t *xo;
-    obj_p parts, res, *xe, ek, sym;
+    i64_t *xo, *xe;
+    obj_p parts, res, ek, sym;
 
     n = index_group_count(index);
-    parts = aggr_map(aggr_sum_partial, val, index);
+    parts = aggr_map(aggr_last_partial, val, index);
     unwrap_list(parts);
 
     switch (val->type)
@@ -377,61 +377,14 @@ obj_p aggr_sum(obj_p val, obj_p index)
 
 obj_p aggr_max_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
-    u64_t i, n;
-    i64_t *xi, *yi;
-    f64_t *xf, *yf;
-    obj_p *xo, *yo;
-    guid_t *xg, *yg;
-
-    n = index_group_count(index);
-
     switch (val->type)
     {
     case TYPE_I64:
-    case TYPE_SYMBOL:
-    case TYPE_ENUM:
     case TYPE_TIMESTAMP:
-        xi = as_i64(val);
-        yi = as_i64(res);
-
-        for (i = 0; i < n; i++)
-            yi[i] = NULL_I64;
-
-        AGGR_ITER(index, len, offset, yi[$y] = maxi64(yi[$y], xi[$x]));
-
+        AGGR_ITER(index, len, offset, val, res, i64, $out[$y] = 0, $out[$y] = maxi64($out[$y], $in[$x]));
         return res;
     case TYPE_F64:
-        xf = as_f64(val);
-        yf = as_f64(res);
-
-        for (i = 0; i < n; i++)
-            yf[i] = NULL_F64;
-
-        AGGR_ITER(index, len, offset, yf[$y] = maxf64(yf[$y], xf[$x]));
-
-        return res;
-    case TYPE_GUID:
-        xg = as_guid(val);
-        yg = as_guid(res);
-
-        memset(yg, 0, n * sizeof(guid_t));
-
-        AGGR_ITER(index, len, offset,
-                  if (memcmp(xg[$y], yg[$x], sizeof(guid_t)) > 0)
-                      memcpy(yg[$y], xg[$x], sizeof(guid_t)));
-
-        return res;
-    case TYPE_LIST:
-        xo = as_list(val);
-        yo = as_list(res);
-
-        for (i = 0; i < n; i++)
-            yo[i] = NULL_OBJ;
-
-        AGGR_ITER(index, len, offset, if (ray_gt(xo[$x], yo[$y])) {
-            drop_obj(yo[$y]);
-            yo[$y] = clone_obj(xo[$x]); });
-
+        AGGR_ITER(index, len, offset, val, res, i64, $out[$y] = 0, $out[$y] = maxf64($out[$y], $in[$x]));
         return res;
     default:
         drop_obj(res);
@@ -441,70 +394,24 @@ obj_p aggr_max_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p re
 
 obj_p aggr_max(obj_p val, obj_p index)
 {
-    u64_t i, j, l, n;
-    i64_t *xi, *yi;
-    f64_t *xf, *yf;
-    guid_t *xg, *yg;
-    obj_p res, parts, *xo, *yo;
+    u64_t n;
+    obj_p parts, res;
 
+    n = index_group_count(index);
     parts = aggr_map(aggr_max_partial, val, index);
     unwrap_list(parts);
-    n = index_group_count(index);
-    l = parts->len;
-    res = clone_obj(as_list(parts)[0]);
 
     switch (val->type)
     {
     case TYPE_I64:
-    case TYPE_SYMBOL:
-    case TYPE_TIMESTAMP:
-        yi = as_i64(res);
-        for (i = 1; i < l; i++)
-        {
-            xi = as_i64(as_list(parts)[i]);
-            for (j = 0; j < n; j++)
-                yi[j] = maxi64(yi[j], xi[j]);
-        }
-
+        res = AGGR_COLLECT(index, n, i64, $out[$y] = maxi64($out[$y], $in[$x]));
         drop_obj(parts);
         return res;
     case TYPE_F64:
-        yf = as_f64(res);
-        for (i = 1; i < l; i++)
-        {
-            xf = as_f64(as_list(parts)[i]);
-            for (j = 0; j < n; j++)
-                yf[j] = maxf64(yf[j], xf[j]);
-        }
-        drop_obj(parts);
-        return res;
-    case TYPE_GUID:
-        yg = as_guid(res);
-        for (i = 1; i < l; i++)
-        {
-            xg = as_guid(as_list(parts)[i]);
-            for (j = 0; j < n; j++)
-                if (memcmp(xg[j], yg[j], sizeof(guid_t)) > 0)
-                    memcpy(yg[j], xg[j], sizeof(guid_t));
-        }
-        drop_obj(parts);
-        return res;
-    case TYPE_LIST:
-        yo = as_list(res);
-        for (i = 1; i < l; i++)
-        {
-            xo = as_list(as_list(parts)[i]);
-            for (j = 0; j < n; j++)
-                if (ray_gt(xo[j], yo[j]))
-                {
-                    drop_obj(yo[j]);
-                    yo[j] = clone_obj(xo[j]);
-                }
-        }
+        res = AGGR_COLLECT(parts, n, f64, $out[$y] = maxf64($out[$y], $in[$x]));
         drop_obj(parts);
         return res;
     default:
-        drop_obj(res);
         drop_obj(parts);
         return error(ERR_TYPE, "max: unsupported type: '%s'", type_name(val->type));
     }
@@ -512,61 +419,14 @@ obj_p aggr_max(obj_p val, obj_p index)
 
 obj_p aggr_min_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
-    u64_t i, n;
-    i64_t *xi, *yi;
-    f64_t *xf, *yf;
-    obj_p *xo, *yo;
-    guid_t *xg, *yg;
-
-    n = index_group_count(index);
-
     switch (val->type)
     {
     case TYPE_I64:
-    case TYPE_SYMBOL:
-    case TYPE_ENUM:
     case TYPE_TIMESTAMP:
-        xi = as_i64(val);
-        yi = as_i64(res);
-
-        for (i = 0; i < n; i++)
-            yi[i] = NULL_I64;
-
-        AGGR_ITER(index, len, offset, yi[$y] = mini64(yi[$y], xi[$x]));
-
+        AGGR_ITER(index, len, offset, val, res, i64, $out[$y] = 0, $out[$y] = mini64($out[$y], $in[$x]));
         return res;
     case TYPE_F64:
-        xf = as_f64(val);
-        yf = as_f64(res);
-
-        for (i = 0; i < n; i++)
-            yf[i] = NULL_F64;
-
-        AGGR_ITER(index, len, offset, yf[$y] = minf64(yf[$y], xf[$x]));
-
-        return res;
-    case TYPE_GUID:
-        xg = as_guid(val);
-        yg = as_guid(res);
-
-        memset(yg, 0, n * sizeof(guid_t));
-
-        AGGR_ITER(index, len, offset,
-                  if (memcmp(xg[$y], yg[$y], sizeof(guid_t)) < 0)
-                      memcpy(yg[$y], xg[$x], sizeof(guid_t)));
-
-        return res;
-    case TYPE_LIST:
-        xo = as_list(val);
-        yo = as_list(res);
-
-        for (i = 0; i < n; i++)
-            yo[i] = NULL_OBJ;
-
-        AGGR_ITER(index, len, offset, if (ray_lt(xo[$x], yo[$y])) {
-            drop_obj(yo[$y]);
-            yo[$y] = clone_obj(xo[$x]); });
-
+        AGGR_ITER(index, len, offset, val, res, i64, $out[$y] = 0, $out[$y] = minf64($out[$y], $in[$x]));
         return res;
     default:
         drop_obj(res);
@@ -576,70 +436,24 @@ obj_p aggr_min_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p re
 
 obj_p aggr_min(obj_p val, obj_p index)
 {
-    u64_t i, j, l, n;
-    i64_t *xi, *yi;
-    f64_t *xf, *yf;
-    guid_t *xg, *yg;
-    obj_p res, parts, *xo, *yo;
+    u64_t n;
+    obj_p parts, res;
 
-    parts = aggr_map(aggr_min_partial, val, index);
-    unwrap_list(parts);
     n = index_group_count(index);
-    l = parts->len;
-    res = clone_obj(as_list(parts)[0]);
+    parts = aggr_map(aggr_max_partial, val, index);
+    unwrap_list(parts);
 
     switch (val->type)
     {
     case TYPE_I64:
-    case TYPE_SYMBOL:
-    case TYPE_TIMESTAMP:
-        yi = as_i64(res);
-        for (i = 1; i < l; i++)
-        {
-            xi = as_i64(as_list(parts)[i]);
-            for (j = 0; j < n; j++)
-                yi[j] = mini64(yi[j], xi[j]);
-        }
-
+        res = AGGR_COLLECT(index, n, i64, $out[$y] = mini64($out[$y], $in[$x]));
         drop_obj(parts);
         return res;
     case TYPE_F64:
-        yf = as_f64(res);
-        for (i = 1; i < l; i++)
-        {
-            xf = as_f64(as_list(parts)[i]);
-            for (j = 0; j < n; j++)
-                yf[j] = minf64(yf[j], xf[j]);
-        }
-        drop_obj(parts);
-        return res;
-    case TYPE_GUID:
-        yg = as_guid(res);
-        for (i = 1; i < l; i++)
-        {
-            xg = as_guid(as_list(parts)[i]);
-            for (j = 0; j < n; j++)
-                if (memcmp(xg[j], yg[j], sizeof(guid_t)) < 0)
-                    memcpy(yg[j], xg[j], sizeof(guid_t));
-        }
-        drop_obj(parts);
-        return res;
-    case TYPE_LIST:
-        yo = as_list(res);
-        for (i = 1; i < l; i++)
-        {
-            xo = as_list(as_list(parts)[i]);
-            for (j = 0; j < n; j++)
-                if (ray_lt(xo[j], yo[j]))
-                {
-                    drop_obj(yo[j]);
-                    yo[j] = clone_obj(xo[j]);
-                }
-        }
+        res = AGGR_COLLECT(parts, n, f64, $out[$y] = minf64($out[$y], $in[$x]));
         drop_obj(parts);
         return res;
     default:
-        drop_obj(res);
         drop_obj(parts);
         return error(ERR_TYPE, "min: unsupported type: '%s'", type_name(val->type));
     }
@@ -657,34 +471,22 @@ obj_p aggr_count_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
     for (i = 0; i < n; i++)
         yi[i] = 0;
 
-    AGGR_ITER(index, len, offset, yi[$y]++);
+    AGGR_ITER(index, len, offset, val, res, i64, $out[$y] = 0, {unused($in); $out[$y]++; });
 
     return res;
 }
 
 obj_p aggr_count(obj_p val, obj_p index)
 {
-    u64_t i, j, l, n;
-    i64_t *xi, *xo;
-    obj_p res, parts;
+    u64_t n;
+    obj_p parts, res;
 
+    n = index_group_count(index);
     parts = aggr_map(aggr_count_partial, val, index);
     unwrap_list(parts);
-    n = as_list(index)[0]->i64;
-    l = parts->len;
 
-    res = clone_obj(as_list(parts)[0]);
-    xo = as_i64(res);
-
-    for (i = 1; i < l; i++)
-    {
-        xi = as_i64(as_list(parts)[i]);
-        for (j = 0; j < n; j++)
-            xo[j] += xi[j];
-    }
-
+    res = AGGR_COLLECT(index, n, i64, $out[$y] += $in[$x]);
     drop_obj(parts);
-
     return res;
 }
 
@@ -741,37 +543,39 @@ obj_p aggr_avg(obj_p val, obj_p index)
 
 obj_p aggr_med_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
-    unused(val);
-    u64_t i, n;
-    i64_t *xi, *xm, *ids;
-    f64_t *xf, *fo;
+    // unused(val);
+    // u64_t i, n;
+    // i64_t *xi, *xm, *ids;
+    // f64_t *xf, *fo;
 
-    n = index_group_count(index);
+    // n = index_group_count(index);
 
-    switch (val->type)
-    {
-    case TYPE_I64:
-        xi = as_i64(val);
-        xm = as_i64(as_list(index)[1]);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        AGGR_ITER(index, len, offset, fo[$y] = addi64(fo[$y], xi[$x]));
-        for (i = 0; i < n; i++)
-            fo[i] = divi64(fo[i], 2);
-        return res;
-    case TYPE_F64:
-        xf = as_f64(val);
-        xm = as_i64(as_list(index)[1]);
-        fo = as_f64(res);
-        memset(fo, 0, n * sizeof(i64_t));
-        AGGR_ITER(index, len, offset, fo[$y] = addf64(fo[$y], xf[$x]));
-        for (i = 0; i < n; i++)
-            fo[i] = fdivf64(fo[i], 2);
-        return res;
-    default:
-        drop_obj(res);
-        return error(ERR_TYPE, "median: unsupported type: '%s'", type_name(val->type));
-    }
+    // switch (val->type)
+    // {
+    // case TYPE_I64:
+    //     xi = as_i64(val);
+    //     xm = as_i64(as_list(index)[1]);
+    //     fo = as_f64(res);
+    //     memset(fo, 0, n * sizeof(i64_t));
+    //     AGGR_ITER(index, len, offset, fo[$y] = addi64(fo[$y], xi[$x]));
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = divi64(fo[i], 2);
+    //     return res;
+    // case TYPE_F64:
+    //     xf = as_f64(val);
+    //     xm = as_i64(as_list(index)[1]);
+    //     fo = as_f64(res);
+    //     memset(fo, 0, n * sizeof(i64_t));
+    //     AGGR_ITER(index, len, offset, fo[$y] = addf64(fo[$y], xf[$x]));
+    //     for (i = 0; i < n; i++)
+    //         fo[i] = fdivf64(fo[i], 2);
+    //     return res;
+    // default:
+    //     drop_obj(res);
+    //     return error(ERR_TYPE, "median: unsupported type: '%s'", type_name(val->type));
+    // }
+
+    return NULL_OBJ;
 }
 
 obj_p aggr_med(obj_p val, obj_p index)
@@ -873,165 +677,165 @@ obj_p aggr_collect(obj_p val, obj_p index)
     i64_t *cnts;
     obj_p cnt, res;
 
-    cnt = aggr_count(val, index);
-    if (is_error(cnt))
-        return cnt;
+    // cnt = aggr_count(val, index);
+    // if (is_error(cnt))
+    //     return cnt;
 
-    cnts = as_i64(cnt);
-    n = cnt->len;
-    l = index_group_len(index);
+    // cnts = as_i64(cnt);
+    // n = cnt->len;
+    // l = index_group_len(index);
 
-    switch (val->type)
-    {
-    case TYPE_I64:
-    case TYPE_SYMBOL:
-    case TYPE_TIMESTAMP:
-        res = list(n);
+    // switch (val->type)
+    // {
+    // case TYPE_I64:
+    // case TYPE_SYMBOL:
+    // case TYPE_TIMESTAMP:
+    //     res = list(n);
 
-        // alloc vectors for each group
-        for (i = 0; i < n; i++)
-        {
-            m = cnts[i];
-            as_list(res)[i] = vector(val->type, m);
-            as_list(res)[i]->len = 0;
-        }
+    //     // alloc vectors for each group
+    //     for (i = 0; i < n; i++)
+    //     {
+    //         m = cnts[i];
+    //         as_list(res)[i] = vector(val->type, m);
+    //         as_list(res)[i]->len = 0;
+    //     }
 
-        // fill vectors with values
-        AGGR_ITER(index, l, 0, as_i64(as_list(res)[$y])[as_list(res)[$y]->len++] = as_i64(val)[$x]);
+    //     AGGR_ITER(index, l, 0, val, res, i64, $out[$y] = 0, $out[$y] = maxi64($out[$y], $in[$x]));
+    //     AGGR_ITER(index, l, 0, as_i64(as_list(res)[$y])[as_list(res)[$y]->len++] = as_i64(val)[$x]);
 
-        drop_obj(cnt);
+    //     drop_obj(cnt);
 
-        return res;
-        // case TYPE_F64:
-        //     res = list(n);
-        //     for (i = 0; i < n; i++)
-        //     {
-        //         m = cnts[i];
-        //         as_list(res)[i] = vector_f64(m);
-        //         as_list(res)[i]->len = 0;
-        //     }
+    return res;
+    // case TYPE_F64:
+    //     res = list(n);
+    //     for (i = 0; i < n; i++)
+    //     {
+    //         m = cnts[i];
+    //         as_list(res)[i] = vector_f64(m);
+    //         as_list(res)[i]->len = 0;
+    //     }
 
-        //     if (filters)
-        //     {
-        //         for (i = 0; i < l; i++)
-        //         {
-        //             n = as_i64(bins)[i];
-        //             as_f64(as_list(res)[n])[as_list(res)[n]->len++] = as_f64(obj)[filters[i]];
-        //         }
+    //     if (filters)
+    //     {
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = as_i64(bins)[i];
+    //             as_f64(as_list(res)[n])[as_list(res)[n]->len++] = as_f64(obj)[filters[i]];
+    //         }
 
-        //         return res;
-        //     }
+    //         return res;
+    //     }
 
-        //     for (i = 0; i < l; i++)
-        //     {
-        //         n = as_i64(bins)[i];
-        //         as_f64(as_list(res)[n])[as_list(res)[n]->len++] = as_f64(obj)[i];
-        //     }
+    //     for (i = 0; i < l; i++)
+    //     {
+    //         n = as_i64(bins)[i];
+    //         as_f64(as_list(res)[n])[as_list(res)[n]->len++] = as_f64(obj)[i];
+    //     }
 
-        //     return res;
-        // case TYPE_ENUM:
-        //     k = ray_key(obj);
-        //     if (is_error(k))
-        //         return k;
+    //     return res;
+    // case TYPE_ENUM:
+    //     k = ray_key(obj);
+    //     if (is_error(k))
+    //         return k;
 
-        //     v = ray_get(k);
-        //     drop_obj(k);
+    //     v = ray_get(k);
+    //     drop_obj(k);
 
-        //     if (is_error(v))
-        //         return v;
+    //     if (is_error(v))
+    //         return v;
 
-        //     if (v->type != TYPE_SYMBOL)
-        //         return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", type_name(v->type));
+    //     if (v->type != TYPE_SYMBOL)
+    //         return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", type_name(v->type));
 
-        //     res = list(n);
-        //     for (i = 0; i < n; i++)
-        //     {
-        //         m = cnts[i];
-        //         as_list(res)[i] = vector_symbol(m);
-        //         as_list(res)[i]->len = 0;
-        //     }
+    //     res = list(n);
+    //     for (i = 0; i < n; i++)
+    //     {
+    //         m = cnts[i];
+    //         as_list(res)[i] = vector_symbol(m);
+    //         as_list(res)[i]->len = 0;
+    //     }
 
-        //     if (filters)
-        //     {
-        //         for (i = 0; i < l; i++)
-        //         {
-        //             n = as_i64(bins)[i];
-        //             as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[filters[i]]];
-        //         }
+    //     if (filters)
+    //     {
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = as_i64(bins)[i];
+    //             as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[filters[i]]];
+    //         }
 
-        //         drop_obj(v);
+    //         drop_obj(v);
 
-        //         return res;
-        //     }
+    //         return res;
+    //     }
 
-        //     for (i = 0; i < l; i++)
-        //     {
-        //         n = as_i64(bins)[i];
-        //         as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[i]];
-        //     }
+    //     for (i = 0; i < l; i++)
+    //     {
+    //         n = as_i64(bins)[i];
+    //         as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[i]];
+    //     }
 
-        //     drop_obj(v);
+    //     drop_obj(v);
 
-        //     return res;
-        // case TYPE_LIST:
-        //     res = list(n);
-        //     for (i = 0; i < n; i++)
-        //     {
-        //         m = cnts[i];
-        //         as_list(res)[i] = list(m);
-        //         as_list(res)[i]->len = 0;
-        //     }
+    //     return res;
+    // case TYPE_LIST:
+    //     res = list(n);
+    //     for (i = 0; i < n; i++)
+    //     {
+    //         m = cnts[i];
+    //         as_list(res)[i] = list(m);
+    //         as_list(res)[i]->len = 0;
+    //     }
 
-        //     if (filters)
-        //     {
-        //         for (i = 0; i < l; i++)
-        //         {
-        //             n = as_i64(bins)[i];
-        //             as_list(as_list(res)[n])[as_list(res)[n]->len++] = clone_obj(as_list(obj)[filters[i]]);
-        //         }
+    //     if (filters)
+    //     {
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = as_i64(bins)[i];
+    //             as_list(as_list(res)[n])[as_list(res)[n]->len++] = clone_obj(as_list(obj)[filters[i]]);
+    //         }
 
-        //         return res;
-        //     }
+    //         return res;
+    //     }
 
-        //     for (i = 0; i < l; i++)
-        //     {
-        //         n = as_i64(bins)[i];
-        //         as_list(as_list(res)[n])[as_list(res)[n]->len++] = clone_obj(as_list(obj)[i]);
-        //     }
+    //     for (i = 0; i < l; i++)
+    //     {
+    //         n = as_i64(bins)[i];
+    //         as_list(as_list(res)[n])[as_list(res)[n]->len++] = clone_obj(as_list(obj)[i]);
+    //     }
 
-        //     return res;
-        // case TYPE_ANYMAP:
-        //     res = list(n);
-        //     for (i = 0; i < n; i++)
-        //     {
-        //         m = cnts[i];
-        //         as_list(res)[i] = list(m);
-        //         as_list(res)[i]->len = 0;
-        //     }
+    //     return res;
+    // case TYPE_ANYMAP:
+    //     res = list(n);
+    //     for (i = 0; i < n; i++)
+    //     {
+    //         m = cnts[i];
+    //         as_list(res)[i] = list(m);
+    //         as_list(res)[i]->len = 0;
+    //     }
 
-        //     if (filters)
-        //     {
-        //         for (i = 0; i < l; i++)
-        //         {
-        //             n = as_i64(bins)[i];
-        //             as_list(as_list(res)[n])[as_list(res)[n]->len++] = at_idx(obj, filters[i]);
-        //         }
+    //     if (filters)
+    //     {
+    //         for (i = 0; i < l; i++)
+    //         {
+    //             n = as_i64(bins)[i];
+    //             as_list(as_list(res)[n])[as_list(res)[n]->len++] = at_idx(obj, filters[i]);
+    //         }
 
-        //         return res;
-        //     }
+    //         return res;
+    //     }
 
-        //     for (i = 0; i < l; i++)
-        //     {
-        //         n = as_i64(bins)[i];
-        //         as_list(as_list(res)[n])[as_list(res)[n]->len++] = at_idx(obj, i);
-        //     }
+    //     for (i = 0; i < l; i++)
+    //     {
+    //         n = as_i64(bins)[i];
+    //         as_list(as_list(res)[n])[as_list(res)[n]->len++] = at_idx(obj, i);
+    //     }
 
-        //     return res;
+    //     return res;
 
-    default:
-        drop_obj(cnt);
-        throw(ERR_TYPE, "aggr collect: unsupported type: '%s", type_name(val->type));
-    }
+    // default:
+    //     drop_obj(cnt);
+    //     throw(ERR_TYPE, "aggr collect: unsupported type: '%s", type_name(val->type));
+    // }
 }
 
 obj_p aggr_indices(obj_p val, obj_p index)
@@ -1040,28 +844,28 @@ obj_p aggr_indices(obj_p val, obj_p index)
     i64_t *cnts;
     obj_p cnt, res;
 
-    cnt = aggr_count(val, index);
-    if (is_error(cnt))
-        return cnt;
+    // cnt = aggr_count(val, index);
+    // if (is_error(cnt))
+    //     return cnt;
 
-    cnts = as_i64(cnt);
-    n = cnt->len;
-    l = ops_count(val);
+    // cnts = as_i64(cnt);
+    // n = cnt->len;
+    // l = ops_count(val);
 
-    res = list(n);
+    // res = list(n);
 
-    // alloc vectors for each group
-    for (i = 0; i < n; i++)
-    {
-        m = cnts[i];
-        as_list(res)[i] = vector_i64(m);
-        as_list(res)[i]->len = 0;
-    }
+    // // alloc vectors for each group
+    // for (i = 0; i < n; i++)
+    // {
+    //     m = cnts[i];
+    //     as_list(res)[i] = vector_i64(m);
+    //     as_list(res)[i]->len = 0;
+    // }
 
-    // fill vectors with indices
-    AGGR_ITER(index, l, 0, as_i64(as_list(res)[$y])[as_list(res)[$y]->len++] = $x);
+    // // fill vectors with indices
+    // AGGR_ITER(index, l, 0, as_i64(as_list(res)[$y])[as_list(res)[$y]->len++] = $x);
 
-    drop_obj(cnt);
+    // drop_obj(cnt);
 
     return res;
 }

@@ -84,7 +84,7 @@ typedef struct
     heap_p heap;               // Executor's heap
     interpreter_p interpreter; // Executor's interpreter
     pool_p pool;               // Executor's pool
-    thread_t handle;           // Executor's thread handle
+    ray_thread_t handle;       // Executor's thread handle
 } executor_t;
 
 typedef struct pool_t

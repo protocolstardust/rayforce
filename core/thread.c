@@ -81,9 +81,9 @@ i32_t cond_broadcast(cond_t *cond)
 }
 
 // Thread functions
-thread_t thread_create(raw_p (*fn)(raw_p), raw_p arg)
+ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg)
 {
-    thread_t t;
+    ray_thread_t t;
     raw_p (*orig_fn)(raw_p) = fn;
     DWORD(*cfn)
     (raw_p) = (DWORD(*)(raw_p))(raw_p)orig_fn;
@@ -91,17 +91,17 @@ thread_t thread_create(raw_p (*fn)(raw_p), raw_p arg)
     return t;
 }
 
-i32_t thread_destroy(thread_t *thread)
+i32_t thread_destroy(ray_thread_t *thread)
 {
     return CloseHandle(thread->handle) ? 0 : -1;
 }
 
-i32_t thread_join(thread_t thread)
+i32_t thread_join(ray_thread_t thread)
 {
     return WaitForSingleObject(thread.handle, INFINITE) == WAIT_OBJECT_0 ? 0 : -1;
 }
 
-i32_t thread_detach(thread_t thread)
+i32_t thread_detach(ray_thread_t thread)
 {
     return CloseHandle(thread.handle) ? 0 : -1;
 }
@@ -185,23 +185,23 @@ i32_t cond_broadcast(cond_t *cond)
     return pthread_cond_broadcast(&cond->inner);
 }
 
-thread_t thread_create(raw_p (*fn)(raw_p), raw_p arg)
+ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg)
 {
-    thread_t thread;
+    ray_thread_t thread;
     pthread_create(&thread.handle, NULL, fn, arg);
     return thread;
 }
 
-i32_t thread_destroy(thread_t *thread)
+i32_t thread_destroy(ray_thread_t *thread)
 {
     return pthread_cancel(thread->handle);
 }
-i32_t thread_join(thread_t thread)
+i32_t thread_join(ray_thread_t thread)
 {
     return pthread_join(thread.handle, NULL);
 }
 
-i32_t thread_detach(thread_t thread)
+i32_t thread_detach(ray_thread_t thread)
 {
     return pthread_detach(thread.handle);
 }
@@ -211,14 +211,15 @@ nil_t thread_exit(raw_p res)
     return pthread_exit(res);
 }
 
-thread_t thread_self()
+ray_thread_t thread_self()
 {
-    thread_t t;
+    ray_thread_t t;
     t.handle = pthread_self();
     return t;
 }
+#if defined(OS_LINUX)
 
-i32_t thread_pin(thread_t thread, u64_t core)
+i32_t thread_pin(ray_thread_t thread, u64_t core)
 {
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
@@ -239,5 +240,28 @@ i32_t thread_pin(thread_t thread, u64_t core)
 
     return 0;
 }
+
+#else
+
+i32_t thread_pin(ray_thread_t thread, u64_t core)
+{
+    thread_port_t mach_thread;
+    thread_affinity_policy_data_t policy;
+    kern_return_t kr;
+
+    mach_thread = pthread_mach_thread_np(thread.handle);
+    policy.affinity_tag = core;
+    kr = thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, THREAD_AFFINITY_POLICY_COUNT);
+
+    if (kr != KERN_SUCCESS)
+    {
+        fprintf(stderr, "Error setting thread policy: %s\n", mach_error_string(kr));
+        return -1;
+    }
+
+    return 0;
+}
+
+#endif
 
 #endif

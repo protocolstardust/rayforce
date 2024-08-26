@@ -253,7 +253,7 @@ pool_p pool_create(u64_t executors_count)
     {
         pool->executors[i].id = i;
         pool->executors[i].pool = pool;
-        pool->executors[i].handle = thread_create(executor_run, &pool->executors[i]);
+        pool->executors[i].handle = ray_thread_create(executor_run, &pool->executors[i]);
         if (thread_pin(pool->executors[i].handle, i + 1) != 0)
             printf("Pool create: failed to pin thread %lld\n", i + 1);
     }

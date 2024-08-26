@@ -31,7 +31,7 @@
 typedef struct
 {
     HANDLE handle;
-} thread_t;
+} ray_thread_t;
 
 typedef struct
 {
@@ -48,7 +48,7 @@ typedef struct
 typedef struct
 {
     pthread_t handle;
-} thread_t;
+} ray_thread_t;
 
 typedef struct
 {
@@ -74,12 +74,12 @@ i32_t cond_wait_timeout(cond_t *cond, mutex_t *mutex, u64_t timeout_ms);
 i32_t cond_signal(cond_t *cond);
 i32_t cond_broadcast(cond_t *cond);
 
-thread_t thread_create(raw_p (*fn)(raw_p), raw_p arg);
-i32_t thread_destroy(thread_t *thread);
-i32_t thread_join(thread_t thread);
-i32_t thread_detach(thread_t thread);
+ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg);
+i32_t thread_destroy(ray_thread_t *thread);
+i32_t thread_join(ray_thread_t thread);
+i32_t thread_detach(ray_thread_t thread);
 nil_t thread_exit(raw_p res);
-thread_t thread_self();
-i32_t thread_pin(thread_t thread, u64_t core);
+ray_thread_t thread_self();
+i32_t thread_pin(ray_thread_t thread, u64_t core);
 
 #endif // THREAD_H

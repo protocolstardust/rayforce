@@ -385,7 +385,7 @@ obj_p __ray_set(obj_p x, obj_p y)
     u64_t i, l, sz, size;
     u8_t *b, mmod;
     obj_p res, col, s, p, k, v, e, cols, sym, path, buf;
-    c8_t objbuf[PAGE_SIZE] = {0};
+    c8_t objbuf[4096] = {0};
 
     switch (x->type)
     {

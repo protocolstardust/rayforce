@@ -79,6 +79,8 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include <pthread.h>
+#include <mach/mach.h>
+#include <mach/thread_policy.h>
 #elif defined(__EMSCRIPTEN__)
 #define OS_WASM
 #define PAGE_SIZE 65536
