@@ -25,17 +25,7 @@
 #define GROUP_H
 
 #include "rayforce.h"
-#include "hash.h"
-
-// #define L1_CACHE_SIZE (64ull * 1024ull / 2)          // 64 KB
-// #define L2_CACHE_SIZE (1024ull * 1024ull / 2)        // 1 MB
-// #define L3_CACHE_SIZE (8ull * 1024ull * 1024ull / 2) // 8 MB
-
-#define L1_CACHE_SIZE (32768 / 2)   // 32KB L1 cache per core, divided by two because hyperthreading
-#define L2_CACHE_SIZE (1048576 / 2) // 1MB L2 cache per core, divided by two because hyperthreading
-#define L3_CACHE_SIZE (1572864 / 2) // 1.5MB L3 cache per core (shared), divided by two because hyperthreading
 
 obj_p group_map(obj_p val, obj_p index);
-obj_p group_build_index(i64_t keys[], u64_t len, hash_f hash, cmp_f cmp, raw_p seed);
 
 #endif // GROUP_H

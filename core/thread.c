@@ -245,6 +245,8 @@ i32_t thread_pin(ray_thread_t thread, u64_t core)
 
 i32_t thread_pin(ray_thread_t thread, u64_t core)
 {
+    unused(thread);
+    unused(core);
     // thread_port_t mach_thread;
     // thread_affinity_policy_data_t policy;
     // kern_return_t kr;
