@@ -34,8 +34,7 @@
 #include "ops.h"
 #include "atomic.h"
 
-str_p string_intern(symbols_p symbols, lit_p str, u64_t len)
-{
+str_p string_intern(symbols_p symbols, lit_p str, u64_t len) {
     u64_t rounds = 0, cap;
     str_p curr, node;
 
@@ -43,29 +42,24 @@ str_p string_intern(symbols_p symbols, lit_p str, u64_t len)
     curr = __atomic_fetch_add(&symbols->string_curr, cap, __ATOMIC_RELAXED);
     node = __atomic_load_n(&symbols->string_node, __ATOMIC_ACQUIRE);
 
-    while ((i64_t)(curr + cap) >= (i64_t)node)
-    {
-        if ((i64_t)node == NULL_I64)
-        {
+    while ((i64_t)(curr + cap) >= (i64_t)node) {
+        if ((i64_t)node == NULL_I64) {
             backoff_spin(&rounds);
             node = __atomic_load_n(&symbols->string_node, __ATOMIC_ACQUIRE);
             continue;
         }
 
         // Attempt to commit more memory
-        if (__atomic_compare_exchange_n(&symbols->string_node, &node, (str_p)NULL_I64, 1, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
-        {
-            if (mmap_commit(node, STRING_NODE_SIZE) != 0)
-            {
+        if (__atomic_compare_exchange_n(&symbols->string_node, &node, (str_p)NULL_I64, 1, __ATOMIC_ACQUIRE,
+                                        __ATOMIC_RELAXED)) {
+            if (mmap_commit(node, STRING_NODE_SIZE) != 0) {
                 perror("mmap_commit");
                 exit(1);
             }
 
             node += STRING_NODE_SIZE;
             __atomic_store_n(&symbols->string_node, node, __ATOMIC_RELEASE);
-        }
-        else
-        {
+        } else {
             backoff_spin(&rounds);
             node = __atomic_load_n(&symbols->string_node, __ATOMIC_ACQUIRE);
         }
@@ -78,8 +72,7 @@ str_p string_intern(symbols_p symbols, lit_p str, u64_t len)
     return curr;
 }
 
-i64_t symbols_intern(lit_p str, u64_t len)
-{
+i64_t symbols_intern(lit_p str, u64_t len) {
     u64_t rounds = 0;
     i64_t index;
     str_p intr;
@@ -93,33 +86,28 @@ load:
     current_bucket = __atomic_load_n(&syms[index], __ATOMIC_ACQUIRE);
     b = current_bucket;
 
-    if ((i64_t)b == NULL_I64)
-    {
+    if ((i64_t)b == NULL_I64) {
         backoff_spin(&rounds);
         goto load;
     }
 
-    while (b != NULL)
-    {
+    while (b != NULL) {
         if (str_cmp(b->str, b->len, str, len) == 0)
             return (i64_t)b->str;
 
         b = __atomic_load_n(&b->next, __ATOMIC_ACQUIRE);
     }
 
-    if (!__atomic_compare_exchange_n(&syms[index], &current_bucket, (symbol_p)NULL_I64,
-                                     1, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
-    {
+    if (!__atomic_compare_exchange_n(&syms[index], &current_bucket, (symbol_p)NULL_I64, 1, __ATOMIC_ACQUIRE,
+                                     __ATOMIC_RELAXED)) {
         backoff_spin(&rounds);
         goto load;
     }
 
     b = current_bucket;
 
-    while (b != NULL)
-    {
-        if (str_cmp(b->str, b->len, str, len) == 0)
-        {
+    while (b != NULL) {
+        if (str_cmp(b->str, b->len, str, len) == 0) {
             __atomic_store_n(&syms[index], current_bucket, __ATOMIC_RELEASE);
             return (i64_t)b->str;
         }
@@ -142,16 +130,14 @@ load:
     return (i64_t)intr;
 }
 
-symbols_p symbols_create(nil_t)
-{
+symbols_p symbols_create(nil_t) {
     symbols_p symbols;
     raw_p pooladdr;
     str_p string_pool;
 
     symbols = (symbols_p)heap_mmap(sizeof(struct symbols_t));
 
-    if (symbols == NULL)
-    {
+    if (symbols == NULL) {
         perror("symbols mmap");
         exit(1);
     }
@@ -163,8 +149,7 @@ symbols_p symbols_create(nil_t)
     symbols->syms = (symbol_p *)heap_mmap(SYMBOLS_HT_SIZE * sizeof(symbol_p));
     string_pool = (str_p)mmap_reserve(pooladdr, STRING_POOL_SIZE);
 
-    if (string_pool == NULL)
-    {
+    if (string_pool == NULL) {
         perror("string_pool mmap_reserve");
         exit(1);
     }
@@ -173,8 +158,7 @@ symbols_p symbols_create(nil_t)
     symbols->string_curr = symbols->string_pool;
     symbols->string_node = symbols->string_pool + STRING_NODE_SIZE;
 
-    if (mmap_commit(symbols->string_pool, STRING_NODE_SIZE) == -1)
-    {
+    if (mmap_commit(symbols->string_pool, STRING_NODE_SIZE) == -1) {
         perror("string_pool mmap_commit");
         exit(1);
     }
@@ -182,17 +166,14 @@ symbols_p symbols_create(nil_t)
     return symbols;
 }
 
-nil_t symbols_destroy(symbols_p symbols)
-{
+nil_t symbols_destroy(symbols_p symbols) {
     u64_t i;
     symbol_p b, next;
 
     // free the symbol pool nodes
-    for (i = 0; i < symbols->size; i++)
-    {
+    for (i = 0; i < symbols->size; i++) {
         b = symbols->syms[i];
-        while (b != NULL)
-        {
+        while (b != NULL) {
             next = b->next;
             heap_free(b);
             b = next;
@@ -204,19 +185,12 @@ nil_t symbols_destroy(symbols_p symbols)
     heap_unmap(symbols, sizeof(struct symbols_t));
 }
 
-str_p str_from_symbol(i64_t key)
-{
-    return (str_p)key;
-}
+str_p str_from_symbol(i64_t key) { return (str_p)key; }
 
-u64_t symbols_count(symbols_p symbols)
-{
-    return symbols->count;
-}
+u64_t symbols_count(symbols_p symbols) { return symbols->count; }
 
 // TODO
-nil_t symbols_rebuild(symbols_p symbols)
-{
+nil_t symbols_rebuild(symbols_p symbols) {
     UNUSED(symbols);
     // u64_t i, size, new_size;
     // symbol_p bucket, *syms, *new_syms;

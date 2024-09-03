@@ -32,8 +32,7 @@
 #include "error.h"
 #include "index.h"
 
-obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
-{
+obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len) {
     u64_t i;
     obj_p v, res;
     i64_t idx;
@@ -50,8 +49,7 @@ obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
 
     res = vector(type, len);
 
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         idx = ids[i];
         if (idx != NULL_I64)
             v = at_idx(right_col, idx);
@@ -64,8 +62,7 @@ obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
     return res;
 }
 
-obj_p get_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
-{
+obj_p get_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len) {
     i8_t type;
 
     // there is no such column in the right table
@@ -80,8 +77,7 @@ obj_p get_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
     return at_ids(right_col, ids, len);
 }
 
-obj_p ray_lj(obj_p *x, u64_t n)
-{
+obj_p ray_lj(obj_p *x, u64_t n) {
     u64_t ll;
     i64_t i, j, l;
     obj_p k1, k2, c1, c2, un, col, cols, vals, idx, rescols, resvals;
@@ -108,8 +104,7 @@ obj_p ray_lj(obj_p *x, u64_t n)
         return k1;
 
     k2 = ray_at(x[2], x[0]);
-    if (IS_ERROR(k2))
-    {
+    if (IS_ERROR(k2)) {
         drop_obj(k1);
         return k2;
     }
@@ -117,15 +112,13 @@ obj_p ray_lj(obj_p *x, u64_t n)
     idx = index_join_obj(k1, k2, x[0]->len);
     drop_obj(k2);
 
-    if (IS_ERROR(idx))
-    {
+    if (IS_ERROR(idx)) {
         drop_obj(k1);
         return idx;
     }
 
     un = ray_union(AS_LIST(x[1])[0], AS_LIST(x[2])[0]);
-    if (IS_ERROR(un))
-    {
+    if (IS_ERROR(un)) {
         drop_obj(k1);
         return un;
     }
@@ -134,8 +127,7 @@ obj_p ray_lj(obj_p *x, u64_t n)
     cols = ray_except(un, x[0]);
     drop_obj(un);
 
-    if (IS_ERROR(cols))
-    {
+    if (IS_ERROR(cols)) {
         drop_obj(k1);
         drop_obj(idx);
         return cols;
@@ -143,8 +135,7 @@ obj_p ray_lj(obj_p *x, u64_t n)
 
     l = cols->len;
 
-    if (l == 0)
-    {
+    if (l == 0) {
         drop_obj(k1);
         drop_obj(idx);
         drop_obj(cols);
@@ -155,32 +146,26 @@ obj_p ray_lj(obj_p *x, u64_t n)
     vals = LIST(l);
 
     // process each column
-    for (i = 0; i < l; i++)
-    {
+    for (i = 0; i < l; i++) {
         c1 = NULL_OBJ;
         c2 = NULL_OBJ;
 
-        for (j = 0; j < (i64_t)AS_LIST(x[1])[0]->len; j++)
-        {
-            if (AS_SYMBOL(AS_LIST(x[1])[0])[j] == AS_SYMBOL(cols)[i])
-            {
+        for (j = 0; j < (i64_t)AS_LIST(x[1])[0]->len; j++) {
+            if (AS_SYMBOL(AS_LIST(x[1])[0])[j] == AS_SYMBOL(cols)[i]) {
                 c1 = AS_LIST(AS_LIST(x[1])[1])[j];
                 break;
             }
         }
 
-        for (j = 0; j < (i64_t)AS_LIST(x[2])[0]->len; j++)
-        {
-            if (AS_SYMBOL(AS_LIST(x[2])[0])[j] == AS_SYMBOL(cols)[i])
-            {
+        for (j = 0; j < (i64_t)AS_LIST(x[2])[0]->len; j++) {
+            if (AS_SYMBOL(AS_LIST(x[2])[0])[j] == AS_SYMBOL(cols)[i]) {
                 c2 = AS_LIST(AS_LIST(x[2])[1])[j];
                 break;
             }
         }
 
         col = select_column(c1, c2, AS_I64(idx), ll);
-        if (IS_ERROR(col))
-        {
+        if (IS_ERROR(col)) {
             drop_obj(k1);
             drop_obj(cols);
             drop_obj(idx);
@@ -198,8 +183,7 @@ obj_p ray_lj(obj_p *x, u64_t n)
     drop_obj(cols);
 
     // handle case when columns list is just one-element list
-    if (x[0]->len == 1)
-    {
+    if (x[0]->len == 1) {
         l = rescols->len;
         resvals = vector(TYPE_LIST, l);
         AS_LIST(resvals)
@@ -208,9 +192,7 @@ obj_p ray_lj(obj_p *x, u64_t n)
             AS_LIST(resvals)
         [i] = clone_obj(AS_LIST(vals)[i - 1]);
         drop_obj(vals);
-    }
-    else
-    {
+    } else {
         resvals = ray_concat(k1, vals);
         drop_obj(k1);
         drop_obj(vals);
@@ -219,8 +201,7 @@ obj_p ray_lj(obj_p *x, u64_t n)
     return table(rescols, resvals);
 }
 
-obj_p ray_ij(obj_p *x, u64_t n)
-{
+obj_p ray_ij(obj_p *x, u64_t n) {
     u64_t ll;
     i64_t i, j, l;
     obj_p k1, k2, c1, c2, un, col, cols, vals, idx;
@@ -245,8 +226,7 @@ obj_p ray_ij(obj_p *x, u64_t n)
         return k1;
 
     k2 = ray_at(x[2], x[0]);
-    if (IS_ERROR(k2))
-    {
+    if (IS_ERROR(k2)) {
         drop_obj(k1);
         return k2;
     }
@@ -262,8 +242,7 @@ obj_p ray_ij(obj_p *x, u64_t n)
     l = idx->len;
     for (i = 0, ll = 0; i < l; i++)
         if (AS_I64(idx)[i] != NULL_I64)
-            AS_I64(idx)
-    [ll++] = AS_I64(idx)[i];
+            AS_I64(idx)[ll++] = AS_I64(idx)[i];
 
     un = ray_union(AS_LIST(x[1])[0], AS_LIST(x[2])[0]);
     if (IS_ERROR(un))
@@ -273,14 +252,12 @@ obj_p ray_ij(obj_p *x, u64_t n)
     cols = ray_except(un, x[0]);
     drop_obj(un);
 
-    if (IS_ERROR(cols))
-    {
+    if (IS_ERROR(cols)) {
         drop_obj(idx);
         return cols;
     }
 
-    if (cols->len == 0)
-    {
+    if (cols->len == 0) {
         drop_obj(idx);
         drop_obj(cols);
         THROW(ERR_LENGTH, "ij: no columns to join on");
@@ -296,32 +273,26 @@ obj_p ray_ij(obj_p *x, u64_t n)
     vals = LIST(l);
 
     // process each column
-    for (i = 0; i < l; i++)
-    {
+    for (i = 0; i < l; i++) {
         c1 = NULL_OBJ;
         c2 = NULL_OBJ;
 
-        for (j = 0; j < (i64_t)AS_LIST(x[1])[0]->len; j++)
-        {
-            if (AS_SYMBOL(AS_LIST(x[1])[0])[j] == AS_SYMBOL(cols)[i])
-            {
+        for (j = 0; j < (i64_t)AS_LIST(x[1])[0]->len; j++) {
+            if (AS_SYMBOL(AS_LIST(x[1])[0])[j] == AS_SYMBOL(cols)[i]) {
                 c1 = AS_LIST(AS_LIST(x[1])[1])[j];
                 break;
             }
         }
 
-        for (j = 0; j < (i64_t)AS_LIST(x[2])[0]->len; j++)
-        {
-            if (AS_SYMBOL(AS_LIST(x[2])[0])[j] == AS_SYMBOL(cols)[i])
-            {
+        for (j = 0; j < (i64_t)AS_LIST(x[2])[0]->len; j++) {
+            if (AS_SYMBOL(AS_LIST(x[2])[0])[j] == AS_SYMBOL(cols)[i]) {
                 c2 = AS_LIST(AS_LIST(x[2])[1])[j];
                 break;
             }
         }
 
         col = get_column(c1, c2, AS_I64(idx), ll);
-        if (IS_ERROR(col))
-        {
+        if (IS_ERROR(col)) {
             drop_obj(cols);
             drop_obj(idx);
             drop_obj(vals);

@@ -46,24 +46,20 @@
         return r;                     \
     };
 
-obj_p __fetch(obj_p obj, obj_p **val)
-{
-    if (obj->type == -TYPE_SYMBOL)
-    {
+obj_p __fetch(obj_p obj, obj_p **val) {
+    if (obj->type == -TYPE_SYMBOL) {
         *val = resolve(obj->i64);
         if (*val == NULL)
             THROW(ERR_NOT_FOUND, "fetch: symbol not found");
 
         obj = cow_obj(**val);
-    }
-    else
+    } else
         obj = cow_obj(obj);
 
     return obj;
 }
 
-b8_t __suitable_types(obj_p x, obj_p y)
-{
+b8_t __suitable_types(obj_p x, obj_p y) {
     i8_t yt;
 
     if (y->type < 0)
@@ -71,32 +67,26 @@ b8_t __suitable_types(obj_p x, obj_p y)
     else
         yt = y->type;
 
-    if ((x->type != TYPE_LIST) &&
-        (x->type != TYPE_ANYMAP) &&
-        (x->type != yt) &&
-        (x->type != TYPE_ENUM && yt != TYPE_SYMBOL))
-    {
+    if ((x->type != TYPE_LIST) && (x->type != TYPE_ANYMAP) && (x->type != yt) &&
+        (x->type != TYPE_ENUM && yt != TYPE_SYMBOL)) {
         return B8_FALSE;
     }
 
     return B8_TRUE;
 }
 
-b8_t __suitable_lengths(obj_p x, obj_p y)
-{
+b8_t __suitable_lengths(obj_p x, obj_p y) {
     if (x->type != TYPE_LIST && (IS_VECTOR(y) && (ops_count(y) != ops_count(x))))
         return B8_FALSE;
 
     return B8_TRUE;
 }
 
-obj_p __alter(obj_p *obj, obj_p *x, u64_t n)
-{
+obj_p __alter(obj_p *obj, obj_p *x, u64_t n) {
     obj_p v, idx, res;
 
     // special case for set
-    if (x[1]->i64 == (i64_t)ray_set || x[1]->i64 == (i64_t)ray_let)
-    {
+    if (x[1]->i64 == (i64_t)ray_set || x[1]->i64 == (i64_t)ray_let) {
         if (n != 4)
             THROW(ERR_LENGTH, "alter: set expected a value");
 
@@ -121,12 +111,9 @@ obj_p __alter(obj_p *obj, obj_p *x, u64_t n)
     return set_obj(obj, idx, res);
 }
 
-obj_p __commit(obj_p src, obj_p obj, obj_p *val)
-{
-    if (src->type == -TYPE_SYMBOL)
-    {
-        if ((val != NULL) && (*val != obj))
-        {
+obj_p __commit(obj_p src, obj_p obj, obj_p *val) {
+    if (src->type == -TYPE_SYMBOL) {
+        if ((val != NULL) && (*val != obj)) {
             drop_obj(*val);
             *val = obj;
         }
@@ -137,8 +124,7 @@ obj_p __commit(obj_p src, obj_p obj, obj_p *val)
     return obj;
 }
 
-obj_p ray_alter(obj_p *x, u64_t n)
-{
+obj_p ray_alter(obj_p *x, u64_t n) {
     obj_p *val = NULL, obj, res;
 
     if (n < 3)
@@ -153,8 +139,7 @@ obj_p ray_alter(obj_p *x, u64_t n)
         return obj;
 
     res = __alter(&obj, x, n);
-    if (IS_ERROR(res))
-    {
+    if (IS_ERROR(res)) {
         uncow_obj(obj, val, res);
         return res;
     }
@@ -162,13 +147,11 @@ obj_p ray_alter(obj_p *x, u64_t n)
     return __commit(x[0], obj, val);
 }
 
-obj_p __modify(obj_p *obj, obj_p *x, u64_t n)
-{
+obj_p __modify(obj_p *obj, obj_p *x, u64_t n) {
     obj_p v, idx, res;
 
     // special case for set
-    if (x[1]->i64 == (i64_t)ray_set || x[1]->i64 == (i64_t)ray_let)
-    {
+    if (x[1]->i64 == (i64_t)ray_set || x[1]->i64 == (i64_t)ray_let) {
         if (n != 4)
             THROW(ERR_LENGTH, "alter: set expected a value");
 
@@ -193,8 +176,7 @@ obj_p __modify(obj_p *obj, obj_p *x, u64_t n)
     return set_obj(obj, idx, res);
 }
 
-obj_p ray_modify(obj_p *x, u64_t n)
-{
+obj_p ray_modify(obj_p *x, u64_t n) {
     obj_p *val = NULL, obj, res;
 
     if (n < 3)
@@ -218,8 +200,7 @@ obj_p ray_modify(obj_p *x, u64_t n)
 /*
  * inserts for tables
  */
-obj_p ray_insert(obj_p *x, u64_t n)
-{
+obj_p ray_insert(obj_p *x, u64_t n) {
     u64_t i, m, l;
     obj_p lst, col, *val = NULL, obj, res;
     b8_t need_drop;
@@ -232,8 +213,7 @@ obj_p ray_insert(obj_p *x, u64_t n)
     if (IS_ERROR(obj))
         return obj;
 
-    if (obj->type != TYPE_TABLE)
-    {
+    if (obj->type != TYPE_TABLE) {
         res = error(ERR_TYPE, "insert: expected 'Table as 1st argument, got '%s", type_name(obj->type));
         uncow_obj(obj, val, res);
     }
@@ -241,113 +221,101 @@ obj_p ray_insert(obj_p *x, u64_t n)
     // Check integrity of the table with the new object
     lst = x[1];
 insert:
-    switch (lst->type)
-    {
-    case TYPE_LIST:
-        l = lst->len;
-        if (l != AS_LIST(obj)[0]->len)
-        {
-            res = error(ERR_LENGTH, "insert: expected list of length %lld, got %lld", AS_LIST(obj)[0]->len, l);
-            uncow_obj(obj, val, res);
-        }
-
-        // There is one record to be inserted
-        if (IS_ATOM(AS_LIST(lst)[0]))
-        {
-            // Check all the elements of the list
-            for (i = 0; i < l; i++)
-            {
-                if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i]))
-                {
-                    res = error(ERR_TYPE, "insert: expected '%s' as %lldth element in a values list, got '%s'", type_name(-AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
-                    uncow_obj(obj, val, res);
-                }
-            }
-
-            // Insert the record now
-            for (i = 0; i < l; i++)
-            {
-                col = cow_obj(AS_LIST(AS_LIST(obj)[1])[i]);
-                need_drop = (col != AS_LIST(AS_LIST(obj)[1])[i]);
-                push_obj(&col, clone_obj(AS_LIST(lst)[i]));
-                if (need_drop)
-                    drop_obj(AS_LIST(AS_LIST(obj)[1])[i]);
-                AS_LIST(AS_LIST(obj)[1])
-                [i] = col;
-            }
-        }
-        else
-        {
-            // There are multiple records to be inserted
-            m = AS_LIST(lst)[0]->len;
-            if (m == 0)
-            {
-                res = error(ERR_LENGTH, "insert: expected non-empty list of records");
+    switch (lst->type) {
+        case TYPE_LIST:
+            l = lst->len;
+            if (l != AS_LIST(obj)[0]->len) {
+                res = error(ERR_LENGTH, "insert: expected list of length %lld, got %lld", AS_LIST(obj)[0]->len, l);
                 uncow_obj(obj, val, res);
             }
 
-            // Check all the elements of the list
-            for (i = 0; i < l; i++)
-            {
-                if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i]))
-                {
-                    res = error(ERR_TYPE, "insert: expected '%s' as %lldth element, got '%s'", type_name(AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
+            // There is one record to be inserted
+            if (IS_ATOM(AS_LIST(lst)[0])) {
+                // Check all the elements of the list
+                for (i = 0; i < l; i++) {
+                    if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i])) {
+                        res = error(ERR_TYPE, "insert: expected '%s' as %lldth element in a values list, got '%s'",
+                                    type_name(-AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
+                        uncow_obj(obj, val, res);
+                    }
+                }
+
+                // Insert the record now
+                for (i = 0; i < l; i++) {
+                    col = cow_obj(AS_LIST(AS_LIST(obj)[1])[i]);
+                    need_drop = (col != AS_LIST(AS_LIST(obj)[1])[i]);
+                    push_obj(&col, clone_obj(AS_LIST(lst)[i]));
+                    if (need_drop)
+                        drop_obj(AS_LIST(AS_LIST(obj)[1])[i]);
+                    AS_LIST(AS_LIST(obj)[1])
+                    [i] = col;
+                }
+            } else {
+                // There are multiple records to be inserted
+                m = AS_LIST(lst)[0]->len;
+                if (m == 0) {
+                    res = error(ERR_LENGTH, "insert: expected non-empty list of records");
                     uncow_obj(obj, val, res);
                 }
 
-                if (AS_LIST(lst)[i]->len != m)
-                {
-                    res = error(ERR_LENGTH, "insert: expected list of length %lld, as %lldth element in a values, got %lld", AS_LIST(AS_LIST(obj)[1])[i]->len, i, n);
-                    uncow_obj(obj, val, res);
+                // Check all the elements of the list
+                for (i = 0; i < l; i++) {
+                    if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i])) {
+                        res = error(ERR_TYPE, "insert: expected '%s' as %lldth element, got '%s'",
+                                    type_name(AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
+                        uncow_obj(obj, val, res);
+                    }
+
+                    if (AS_LIST(lst)[i]->len != m) {
+                        res = error(ERR_LENGTH,
+                                    "insert: expected list of length %lld, as %lldth element in a values, got %lld",
+                                    AS_LIST(AS_LIST(obj)[1])[i]->len, i, n);
+                        uncow_obj(obj, val, res);
+                    }
+                }
+
+                // Insert all the records now
+                for (i = 0; i < l; i++) {
+                    col = cow_obj(AS_LIST(AS_LIST(obj)[1])[i]);
+                    need_drop = (col != AS_LIST(AS_LIST(obj)[1])[i]);
+                    append_list(&col, AS_LIST(lst)[i]);
+                    if (need_drop)
+                        drop_obj(AS_LIST(AS_LIST(obj)[1])[i]);
+                    AS_LIST(AS_LIST(obj)[1])
+                    [i] = col;
                 }
             }
 
-            // Insert all the records now
-            for (i = 0; i < l; i++)
-            {
-                col = cow_obj(AS_LIST(AS_LIST(obj)[1])[i]);
-                need_drop = (col != AS_LIST(AS_LIST(obj)[1])[i]);
-                append_list(&col, AS_LIST(lst)[i]);
-                if (need_drop)
-                    drop_obj(AS_LIST(AS_LIST(obj)[1])[i]);
-                AS_LIST(AS_LIST(obj)[1])
-                [i] = col;
-            }
-        }
+            break;
 
-        break;
-
-    case TYPE_DICT:
-        if (AS_LIST(lst)[0]->type != TYPE_SYMBOL)
-        {
-            res = error(ERR_TYPE, "insert: expected 'Symbol as 1st element in a dictionary, got '%s'", type_name(AS_LIST(lst)[0]->type));
-            uncow_obj(obj, val, res);
-        }
-        // Fall through
-    case TYPE_TABLE:
-        // Check columns
-        l = AS_LIST(lst)[0]->len;
-        if (l != AS_LIST(obj)[0]->len)
-        {
-            res = error(ERR_LENGTH, "insert: expected 'Table with the same number of columns");
-            uncow_obj(obj, val, res);
-        }
-
-        for (i = 0; i < l; i++)
-        {
-            if (AS_SYMBOL(AS_LIST(lst)[0])[i] != AS_SYMBOL(AS_LIST(obj)[0])[i])
-            {
-                res = error(ERR_TYPE, "insert: expected 'Table with the same columns");
+        case TYPE_DICT:
+            if (AS_LIST(lst)[0]->type != TYPE_SYMBOL) {
+                res = error(ERR_TYPE, "insert: expected 'Symbol as 1st element in a dictionary, got '%s'",
+                            type_name(AS_LIST(lst)[0]->type));
                 uncow_obj(obj, val, res);
             }
-        }
+            // Fall through
+        case TYPE_TABLE:
+            // Check columns
+            l = AS_LIST(lst)[0]->len;
+            if (l != AS_LIST(obj)[0]->len) {
+                res = error(ERR_LENGTH, "insert: expected 'Table with the same number of columns");
+                uncow_obj(obj, val, res);
+            }
 
-        lst = AS_LIST(lst)[1];
-        goto insert;
+            for (i = 0; i < l; i++) {
+                if (AS_SYMBOL(AS_LIST(lst)[0])[i] != AS_SYMBOL(AS_LIST(obj)[0])[i]) {
+                    res = error(ERR_TYPE, "insert: expected 'Table with the same columns");
+                    uncow_obj(obj, val, res);
+                }
+            }
 
-    default:
-        res = error(ERR_TYPE, "insert: unsupported type '%s' as 2nd argument", type_name(lst->type));
-        uncow_obj(obj, val, res);
+            lst = AS_LIST(lst)[1];
+            goto insert;
+
+        default:
+            res = error(ERR_TYPE, "insert: unsupported type '%s' as 2nd argument", type_name(lst->type));
+            uncow_obj(obj, val, res);
     }
 
     return __commit(x[0], obj, val);
@@ -356,8 +324,7 @@ insert:
 /*
  * update/inserts for tables
  */
-obj_p ray_upsert(obj_p *x, u64_t n)
-{
+obj_p ray_upsert(obj_p *x, u64_t n) {
     u64_t i, j, m, p, l, keys;
     i64_t row, *rows;
     obj_p obj, k1, k2, idx, col, lst, *val = NULL, v;
@@ -377,8 +344,7 @@ obj_p ray_upsert(obj_p *x, u64_t n)
     if (IS_ERROR(obj))
         return obj;
 
-    if (obj->type != TYPE_TABLE)
-    {
+    if (obj->type != TYPE_TABLE) {
         drop_obj(obj);
         return error(ERR_TYPE, "upsert: expected 'Table as 1st argument, got '%s'", type_name(obj->type));
     }
@@ -388,158 +354,141 @@ obj_p ray_upsert(obj_p *x, u64_t n)
     lst = x[2];
 
 upsert:
-    switch (lst->type)
-    {
-    case TYPE_LIST:
-        l = ops_count(lst);
+    switch (lst->type) {
+        case TYPE_LIST:
+            l = ops_count(lst);
 
-        single_rec = IS_ATOM(AS_LIST(lst)[0]);
+            single_rec = IS_ATOM(AS_LIST(lst)[0]);
 
-        if (l > p)
-        {
-            drop_obj(obj);
-            return error(ERR_LENGTH, "upsert: list length %lld is greater than %lld", l, p);
-        }
-
-        if (keys == 1)
-        {
-            k1 = at_idx(AS_LIST(obj)[1], 0);
-            k2 = at_idx(lst, 0);
-            m = ops_count(k2);
-        }
-        else
-        {
-            k1 = ray_take(x[1], AS_LIST(obj)[1]);
-            k2 = ray_take(x[1], lst);
-            m = ops_count(AS_LIST(k2)[0]);
-        }
-
-        idx = index_join_obj(k2, k1, x[1]->i64);
-
-        drop_obj(k1);
-        drop_obj(k2);
-
-        if (IS_ERROR(idx))
-        {
-            drop_obj(obj);
-            return idx;
-        }
-
-        // Check integrity of the table with the new object
-        if (single_rec)
-        {
-            // Check all the elements of the list
-            for (i = 0; i < l; i++)
-            {
-                if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i]))
-                {
-                    drop_obj(idx);
-                    drop_obj(obj);
-                    return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'", type_name(-AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
-                }
-            }
-        }
-        else
-        {
-            // Check all the elements of the list
-            for (i = 0; i < l; i++)
-            {
-                if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i]))
-                {
-                    drop_obj(idx);
-                    drop_obj(obj);
-                    return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'", type_name(AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
-                }
-
-                if (AS_LIST(lst)[i]->len != m)
-                {
-                    drop_obj(idx);
-                    drop_obj(obj);
-                    return error(ERR_LENGTH, "upsert: expected list of length %lld, as %lldth element in a values, got %lld", AS_LIST(AS_LIST(obj)[1])[i]->len, i, n);
-                }
-            }
-        }
-
-        rows = AS_I64(idx);
-
-        // Process each column
-        for (i = 0; i < p; i++)
-        {
-            col = cow_obj(AS_LIST(AS_LIST(obj)[1])[i]);
-            if (col != AS_LIST(AS_LIST(obj)[1])[i])
-            {
-                drop_obj(AS_LIST(AS_LIST(obj)[1])[i]);
-                AS_LIST(AS_LIST(obj)[1])
-                [i] = col;
-            }
-
-            for (j = 0; j < m; j++)
-            {
-                row = rows[j];
-
-                // Insert record
-                if (row == NULL_I64)
-                {
-                    v = (i < l) ? (single_rec ? clone_obj(AS_LIST(lst)[i]) : at_idx(AS_LIST(lst)[i], j)) : null(AS_LIST(AS_LIST(obj)[1])[i]->type);
-                    push_obj(AS_LIST(AS_LIST(obj)[1]) + i, v);
-                }
-                // Update record (we can skip the keys since they are matches)
-                else if (i >= keys && i < l)
-                {
-                    v = single_rec ? clone_obj(AS_LIST(lst)[i]) : at_idx(AS_LIST(lst)[i], j);
-                    set_idx(AS_LIST(AS_LIST(obj)[1]) + i, row, v);
-                }
-            }
-        }
-
-        drop_obj(idx);
-
-        return __commit(x[0], obj, val);
-    case TYPE_DICT:
-        if (AS_LIST(lst)[0]->type != TYPE_SYMBOL)
-        {
-            drop_obj(obj);
-            return error(ERR_TYPE, "upsert: expected 'Symbol as 1st element in a dictionary, got '%s'", type_name(AS_LIST(lst)[0]->type));
-        }
-        // Fall through
-    case TYPE_TABLE:
-        // Check columns
-        l = AS_LIST(lst)[0]->len;
-
-        if (l > p)
-        {
-            drop_obj(obj);
-            return error(ERR_LENGTH, "upsert: 'Table with inconsistent columns");
-        }
-
-        for (i = 0; i < l; i++)
-        {
-            if (AS_SYMBOL(AS_LIST(lst)[0])[i] != AS_SYMBOL(AS_LIST(obj)[0])[i])
-            {
+            if (l > p) {
                 drop_obj(obj);
-                return error(ERR_TYPE, "upsert: expected 'Table with inconsistent columns: '%s != '%s",
-                             str_from_symbol(AS_SYMBOL(AS_LIST(lst)[0])[i]), str_from_symbol(AS_SYMBOL(AS_LIST(obj)[0])[i]));
+                return error(ERR_LENGTH, "upsert: list length %lld is greater than %lld", l, p);
             }
-        }
 
-        lst = AS_LIST(lst)[1];
-        goto upsert;
+            if (keys == 1) {
+                k1 = at_idx(AS_LIST(obj)[1], 0);
+                k2 = at_idx(lst, 0);
+                m = ops_count(k2);
+            } else {
+                k1 = ray_take(x[1], AS_LIST(obj)[1]);
+                k2 = ray_take(x[1], lst);
+                m = ops_count(AS_LIST(k2)[0]);
+            }
 
-    default:
-        drop_obj(obj);
-        return error(ERR_TYPE, "upsert: unsupported type '%s' as 2nd argument", type_name(lst->type));
+            idx = index_join_obj(k2, k1, x[1]->i64);
+
+            drop_obj(k1);
+            drop_obj(k2);
+
+            if (IS_ERROR(idx)) {
+                drop_obj(obj);
+                return idx;
+            }
+
+            // Check integrity of the table with the new object
+            if (single_rec) {
+                // Check all the elements of the list
+                for (i = 0; i < l; i++) {
+                    if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i])) {
+                        drop_obj(idx);
+                        drop_obj(obj);
+                        return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'",
+                                     type_name(-AS_LIST(AS_LIST(obj)[1])[i]->type), i,
+                                     type_name(AS_LIST(lst)[i]->type));
+                    }
+                }
+            } else {
+                // Check all the elements of the list
+                for (i = 0; i < l; i++) {
+                    if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i])) {
+                        drop_obj(idx);
+                        drop_obj(obj);
+                        return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'",
+                                     type_name(AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
+                    }
+
+                    if (AS_LIST(lst)[i]->len != m) {
+                        drop_obj(idx);
+                        drop_obj(obj);
+                        return error(ERR_LENGTH,
+                                     "upsert: expected list of length %lld, as %lldth element in a values, got %lld",
+                                     AS_LIST(AS_LIST(obj)[1])[i]->len, i, n);
+                    }
+                }
+            }
+
+            rows = AS_I64(idx);
+
+            // Process each column
+            for (i = 0; i < p; i++) {
+                col = cow_obj(AS_LIST(AS_LIST(obj)[1])[i]);
+                if (col != AS_LIST(AS_LIST(obj)[1])[i]) {
+                    drop_obj(AS_LIST(AS_LIST(obj)[1])[i]);
+                    AS_LIST(AS_LIST(obj)[1])
+                    [i] = col;
+                }
+
+                for (j = 0; j < m; j++) {
+                    row = rows[j];
+
+                    // Insert record
+                    if (row == NULL_I64) {
+                        v = (i < l) ? (single_rec ? clone_obj(AS_LIST(lst)[i]) : at_idx(AS_LIST(lst)[i], j))
+                                    : null(AS_LIST(AS_LIST(obj)[1])[i]->type);
+                        push_obj(AS_LIST(AS_LIST(obj)[1]) + i, v);
+                    }
+                    // Update record (we can skip the keys since they are matches)
+                    else if (i >= keys && i < l) {
+                        v = single_rec ? clone_obj(AS_LIST(lst)[i]) : at_idx(AS_LIST(lst)[i], j);
+                        set_idx(AS_LIST(AS_LIST(obj)[1]) + i, row, v);
+                    }
+                }
+            }
+
+            drop_obj(idx);
+
+            return __commit(x[0], obj, val);
+        case TYPE_DICT:
+            if (AS_LIST(lst)[0]->type != TYPE_SYMBOL) {
+                drop_obj(obj);
+                return error(ERR_TYPE, "upsert: expected 'Symbol as 1st element in a dictionary, got '%s'",
+                             type_name(AS_LIST(lst)[0]->type));
+            }
+            // Fall through
+        case TYPE_TABLE:
+            // Check columns
+            l = AS_LIST(lst)[0]->len;
+
+            if (l > p) {
+                drop_obj(obj);
+                return error(ERR_LENGTH, "upsert: 'Table with inconsistent columns");
+            }
+
+            for (i = 0; i < l; i++) {
+                if (AS_SYMBOL(AS_LIST(lst)[0])[i] != AS_SYMBOL(AS_LIST(obj)[0])[i]) {
+                    drop_obj(obj);
+                    return error(ERR_TYPE, "upsert: expected 'Table with inconsistent columns: '%s != '%s",
+                                 str_from_symbol(AS_SYMBOL(AS_LIST(lst)[0])[i]),
+                                 str_from_symbol(AS_SYMBOL(AS_LIST(obj)[0])[i]));
+                }
+            }
+
+            lst = AS_LIST(lst)[1];
+            goto upsert;
+
+        default:
+            drop_obj(obj);
+            return error(ERR_TYPE, "upsert: unsupported type '%s' as 2nd argument", type_name(lst->type));
     }
 }
 
-obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p groupby)
-{
+obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p groupby) {
     u64_t i, j, l, m, n;
     i64_t *ids;
     obj_p prm, obj, *val = NULL, gids, v, col, index, res;
 
     // No filters nor groupings
-    if (filters == NULL_OBJ && groupby == NULL_OBJ)
-    {
+    if (filters == NULL_OBJ && groupby == NULL_OBJ) {
         prm = vn_list(4, tab, env_get_internal_function_by_id(SYMBOL_SET), keys, vals);
         obj = ray_alter(AS_LIST(prm), prm->len);
         drop_obj(prm);
@@ -547,11 +496,9 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
         return obj;
     }
     // Groupings
-    else if (groupby != NULL_OBJ)
-    {
+    else if (groupby != NULL_OBJ) {
         obj = __fetch(tab, &val);
-        if (IS_ERROR(obj))
-        {
+        if (IS_ERROR(obj)) {
             drop_obj(tab);
             drop_obj(keys);
             drop_obj(vals);
@@ -570,24 +517,19 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
         n = gids->len;
 
         // Check each column
-        for (i = 0; i < l; i++)
-        {
+        for (i = 0; i < l; i++) {
             j = find_raw(AS_LIST(obj)[0], AS_I64(keys) + i);
 
             // Add new column
-            if (j == AS_LIST(obj)[0]->len)
-            {
+            if (j == AS_LIST(obj)[0]->len) {
                 push_raw(AS_LIST(obj), AS_SYMBOL(keys) + i);
                 push_obj(AS_LIST(obj) + 1, nullv(AS_LIST(vals)[i]->type, ops_count(obj)));
             }
             // Check existing column
-            else
-            {
-                for (m = 0; m < n; m++)
-                {
+            else {
+                for (m = 0; m < n; m++) {
                     v = at_idx(AS_LIST(vals)[i], m);
-                    if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[j], v))
-                    {
+                    if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[j], v)) {
                         res = error(ERR_TYPE, "update: expected '%s as %lldth element, got '%s",
                                     type_name(AS_LIST(AS_LIST(obj)[1])[j]->type), j, type_name(v->type));
                         drop_obj(v);
@@ -599,11 +541,12 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
                         uncow_obj(obj, val, res);
                     }
 
-                    if (!__suitable_lengths(AS_LIST(AS_LIST(obj)[1])[j], obj))
-                    {
-                        res = error(ERR_LENGTH, "update: expected '%s of length %lld, as %lldth element in a values, got '%s of %lld",
-                                    type_name(AS_LIST(AS_LIST(obj)[1])[j]->type), AS_LIST(AS_LIST(obj)[1])[j]->len,
-                                    j, type_name(v->type), ops_count(v));
+                    if (!__suitable_lengths(AS_LIST(AS_LIST(obj)[1])[j], obj)) {
+                        res =
+                            error(ERR_LENGTH,
+                                  "update: expected '%s of length %lld, as %lldth element in a values, got '%s of %lld",
+                                  type_name(AS_LIST(AS_LIST(obj)[1])[j]->type), AS_LIST(AS_LIST(obj)[1])[j]->len, j,
+                                  type_name(v->type), ops_count(v));
                         drop_obj(v);
                         drop_obj(tab);
                         drop_obj(keys);
@@ -619,13 +562,11 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
         }
 
         // Cow each column
-        for (i = 0; i < l; i++)
-        {
+        for (i = 0; i < l; i++) {
             j = find_raw(AS_LIST(obj)[0], AS_I64(keys) + i);
 
             col = cow_obj(AS_LIST(AS_LIST(obj)[1])[j]);
-            if (col != AS_LIST(AS_LIST(obj)[1])[j])
-            {
+            if (col != AS_LIST(AS_LIST(obj)[1])[j]) {
                 drop_obj(AS_LIST(AS_LIST(obj)[1])[j]);
                 AS_LIST(AS_LIST(obj)[1])
                 [j] = col;
@@ -633,12 +574,10 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
         }
 
         // Update by groups
-        for (i = 0; i < l; i++)
-        {
+        for (i = 0; i < l; i++) {
             j = find_raw(AS_LIST(obj)[0], AS_I64(keys) + i);
 
-            for (m = 0; m < n; m++)
-            {
+            for (m = 0; m < n; m++) {
                 ids = AS_I64(AS_LIST(gids)[m]);
                 set_ids(AS_LIST(AS_LIST(obj)[1]) + j, ids, AS_LIST(gids)[m]->len, at_idx(AS_LIST(vals)[i], m));
             }
@@ -655,11 +594,9 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
         return res;
     }
     // Filters
-    else
-    {
+    else {
         obj = __fetch(tab, &val);
-        if (IS_ERROR(obj))
-        {
+        if (IS_ERROR(obj)) {
             drop_obj(tab);
             drop_obj(keys);
             drop_obj(vals);
@@ -671,21 +608,17 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
         l = keys->len;
 
         // Check each column
-        for (i = 0; i < l; i++)
-        {
+        for (i = 0; i < l; i++) {
             j = find_raw(AS_LIST(obj)[0], AS_I64(keys) + i);
 
             // Add new column
-            if (j == AS_LIST(obj)[0]->len)
-            {
+            if (j == AS_LIST(obj)[0]->len) {
                 push_raw(AS_LIST(obj), AS_SYMBOL(keys) + i);
                 push_obj(AS_LIST(obj) + 1, nullv(AS_LIST(vals)[i]->type, ops_count(obj)));
             }
             // Check existing column
-            else
-            {
-                if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[j], AS_LIST(vals)[i]))
-                {
+            else {
+                if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[j], AS_LIST(vals)[i])) {
                     res = error(ERR_TYPE, "update: expected '%s as %lldth element, got '%s",
                                 type_name(AS_LIST(AS_LIST(obj)[1])[j]->type), j, type_name(AS_LIST(vals)[i]->type));
                     drop_obj(tab);
@@ -695,11 +628,11 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
                     uncow_obj(obj, val, res);
                 }
 
-                if (!__suitable_lengths(AS_LIST(AS_LIST(obj)[1])[j], AS_LIST(vals)[i]))
-                {
-                    res = error(ERR_LENGTH, "update: expected '%s of length %lld, as %lldth element in a values, got '%s of %lld",
-                                type_name(AS_LIST(AS_LIST(obj)[1])[j]->type), AS_LIST(AS_LIST(obj)[1])[j]->len,
-                                j, type_name(AS_LIST(vals)[i]->type), ops_count(AS_LIST(vals)[i]));
+                if (!__suitable_lengths(AS_LIST(AS_LIST(obj)[1])[j], AS_LIST(vals)[i])) {
+                    res = error(ERR_LENGTH,
+                                "update: expected '%s of length %lld, as %lldth element in a values, got '%s of %lld",
+                                type_name(AS_LIST(AS_LIST(obj)[1])[j]->type), AS_LIST(AS_LIST(obj)[1])[j]->len, j,
+                                type_name(AS_LIST(vals)[i]->type), ops_count(AS_LIST(vals)[i]));
                     drop_obj(tab);
                     drop_obj(keys);
                     drop_obj(vals);
@@ -710,13 +643,11 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
         }
 
         // Cow each column
-        for (i = 0; i < l; i++)
-        {
+        for (i = 0; i < l; i++) {
             j = find_raw(AS_LIST(obj)[0], AS_I64(keys) + i);
 
             col = cow_obj(AS_LIST(AS_LIST(obj)[1])[j]);
-            if (col != AS_LIST(AS_LIST(obj)[1])[j])
-            {
+            if (col != AS_LIST(AS_LIST(obj)[1])[j]) {
                 drop_obj(AS_LIST(AS_LIST(obj)[1])[j]);
                 AS_LIST(AS_LIST(obj)[1])
                 [j] = col;
@@ -725,8 +656,7 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
 
         ids = AS_I64(filters);
 
-        for (i = 0; i < l; i++)
-        {
+        for (i = 0; i < l; i++) {
             j = find_raw(AS_LIST(obj)[0], AS_I64(keys) + i);
             set_ids(AS_LIST(AS_LIST(obj)[1]) + j, ids, filters->len, at_idx(vals, i));
         }
@@ -742,11 +672,10 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
     }
 }
 
-obj_p ray_update(obj_p obj)
-{
+obj_p ray_update(obj_p obj) {
     u64_t i, keyslen, tablen;
-    obj_p tabsym, keys = NULL_OBJ, vals = NULL_OBJ, filters = NULL_OBJ,
-                  bins = NULL_OBJ, groupby = NULL_OBJ, tab, sym, prm, val;
+    obj_p tabsym, keys = NULL_OBJ, vals = NULL_OBJ, filters = NULL_OBJ, bins = NULL_OBJ, groupby = NULL_OBJ, tab, sym,
+                  prm, val;
 
     if (obj->type != TYPE_DICT)
         THROW(ERR_LENGTH, "'update' takes dict of params");
@@ -761,26 +690,21 @@ obj_p ray_update(obj_p obj)
         THROW(ERR_LENGTH, "'update' expects 'from' param");
 
     tab = eval(tabsym);
-    if (IS_ERROR(tab))
-    {
+    if (IS_ERROR(tab)) {
         drop_obj(tabsym);
         return tab;
     }
 
-    if (tab->type == -TYPE_SYMBOL)
-    {
+    if (tab->type == -TYPE_SYMBOL) {
         val = eval(tab);
         drop_obj(tab);
         tab = val;
-    }
-    else
-    {
+    } else {
         drop_obj(tabsym);
         tabsym = clone_obj(tab);
     }
 
-    if (tab->type != TYPE_TABLE)
-    {
+    if (tab->type != TYPE_TABLE) {
         drop_obj(tabsym);
         drop_obj(tab);
         THROW(ERR_TYPE, "'update' from: expects table");
@@ -789,8 +713,7 @@ obj_p ray_update(obj_p obj)
     keys = ray_except(AS_LIST(obj)[0], runtime_get()->env.keywords);
     keyslen = keys->len;
 
-    if (keyslen == 0)
-    {
+    if (keyslen == 0) {
         drop_obj(tabsym);
         drop_obj(keys);
         drop_obj(tab);
@@ -803,12 +726,10 @@ obj_p ray_update(obj_p obj)
 
     // Apply filters
     prm = at_sym(obj, "where", 5);
-    if (prm != NULL_OBJ)
-    {
+    if (prm != NULL_OBJ) {
         val = eval(prm);
         drop_obj(prm);
-        if (IS_ERROR(val))
-        {
+        if (IS_ERROR(val)) {
             drop_obj(tabsym);
             drop_obj(tab);
             return val;
@@ -816,8 +737,7 @@ obj_p ray_update(obj_p obj)
 
         filters = ray_where(val);
         drop_obj(val);
-        if (IS_ERROR(filters))
-        {
+        if (IS_ERROR(filters)) {
             drop_obj(tabsym);
             drop_obj(tab);
             return filters;
@@ -826,15 +746,13 @@ obj_p ray_update(obj_p obj)
 
     // Apply groupping
     prm = at_sym(obj, "by", 2);
-    if (prm != NULL_OBJ)
-    {
+    if (prm != NULL_OBJ) {
         groupby = eval(prm);
         drop_obj(prm);
 
         unmount_env(tablen);
 
-        if (IS_ERROR(groupby))
-        {
+        if (IS_ERROR(groupby)) {
             drop_obj(tabsym);
             drop_obj(tab);
             return groupby;
@@ -844,8 +762,7 @@ obj_p ray_update(obj_p obj)
         drop_obj(groupby);
         prm = group_map(tab, bins);
 
-        if (IS_ERROR(prm))
-        {
+        if (IS_ERROR(prm)) {
             drop_obj(tabsym);
             drop_obj(tab);
             drop_obj(filters);
@@ -855,9 +772,7 @@ obj_p ray_update(obj_p obj)
 
         mount_env(prm);
         drop_obj(prm);
-    }
-    else if (filters != NULL_OBJ)
-    {
+    } else if (filters != NULL_OBJ) {
         // Unmount table columns from a local env
         unmount_env(tablen);
         // Create filtermaps over table
@@ -868,16 +783,14 @@ obj_p ray_update(obj_p obj)
 
     // Apply mappings
     vals = LIST(keyslen);
-    for (i = 0; i < keyslen; i++)
-    {
+    for (i = 0; i < keyslen; i++) {
         sym = at_idx(keys, i);
         prm = at_obj(obj, sym);
         drop_obj(sym);
         val = eval(prm);
         drop_obj(prm);
 
-        if (IS_ERROR(val))
-        {
+        if (IS_ERROR(val)) {
             vals->len = i;
             drop_obj(tabsym);
             drop_obj(vals);
@@ -889,27 +802,21 @@ obj_p ray_update(obj_p obj)
         }
 
         // Materialize fields
-        if (val->type == TYPE_GROUPMAP)
-        {
+        if (val->type == TYPE_GROUPMAP) {
             prm = aggr_collect(AS_LIST(val)[0], AS_LIST(val)[1]);
             drop_obj(val);
             val = prm;
-        }
-        else if (val->type == TYPE_FILTERMAP)
-        {
+        } else if (val->type == TYPE_FILTERMAP) {
             prm = filter_collect(AS_LIST(val)[0], AS_LIST(val)[1]);
             drop_obj(val);
             val = prm;
-        }
-        else if (val->type == TYPE_ENUM)
-        {
+        } else if (val->type == TYPE_ENUM) {
             prm = ray_value(val);
             drop_obj(val);
             val = prm;
         }
 
-        if (IS_ERROR(val))
-        {
+        if (IS_ERROR(val)) {
             vals->len = i;
             drop_obj(tabsym);
             drop_obj(vals);

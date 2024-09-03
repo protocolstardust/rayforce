@@ -24,15 +24,14 @@
 #ifndef LAMBDA_H
 #define LAMBDA_H
 
-#include "rayforce.h"
 #include "nfo.h"
+#include "rayforce.h"
 
-typedef struct lambda_t
-{
-    obj_p name; // name of lambda
-    obj_p args; // vector of arguments names
-    obj_p body; // body of lambda
-    obj_p nfo;  // nfo from cc phase
+typedef struct lambda_t {
+    obj_p name;  // name of lambda
+    obj_p args;  // vector of arguments names
+    obj_p body;  // body of lambda
+    obj_p nfo;   // nfo from cc phase
 } *lambda_p;
 
 #define AS_LAMBDA(o) ((lambda_p)(AS_C8(o)))
@@ -40,4 +39,4 @@ typedef struct lambda_t
 obj_p lambda(obj_p args, obj_p body, obj_p nfo);
 obj_p lambda_call(u8_t attrs, obj_p f, obj_p *x, u64_t n);
 
-#endif // LAMBDA_H
+#endif  // LAMBDA_H

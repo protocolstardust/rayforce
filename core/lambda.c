@@ -29,8 +29,7 @@
 #include "group.h"
 #include "pool.h"
 
-obj_p lambda(obj_p args, obj_p body, obj_p nfo)
-{
+obj_p lambda(obj_p args, obj_p body, obj_p nfo) {
     obj_p obj;
     lambda_p f;
 
@@ -48,8 +47,7 @@ obj_p lambda(obj_p args, obj_p body, obj_p nfo)
     return obj;
 }
 
-obj_p lambda_map_partial(obj_p f, obj_p *lst, u64_t n, u64_t arg)
-{
+obj_p lambda_map_partial(obj_p f, obj_p *lst, u64_t n, u64_t arg) {
     u64_t i;
 
     for (i = 0; i < n; i++)
@@ -58,8 +56,7 @@ obj_p lambda_map_partial(obj_p f, obj_p *lst, u64_t n, u64_t arg)
     return call(f, n);
 }
 
-obj_p lambda_map(obj_p f, obj_p *x, u64_t n)
-{
+obj_p lambda_map(obj_p f, obj_p *x, u64_t n) {
     u64_t i, j, l, executors;
     obj_p v, res;
     pool_p pool;
@@ -72,8 +69,7 @@ obj_p lambda_map(obj_p f, obj_p *x, u64_t n)
     pool = pool_get();
     executors = pool_split_by(pool, l, 0);
 
-    if (executors > 1)
-    {
+    if (executors > 1) {
         pool_prepare(pool);
 
         for (j = 0; j < l; j++)
@@ -90,8 +86,7 @@ obj_p lambda_map(obj_p f, obj_p *x, u64_t n)
 
     v = call(f, n);
 
-    if (IS_ERROR(v))
-    {
+    if (IS_ERROR(v)) {
         res = v;
         goto cleanup;
     }
@@ -100,15 +95,13 @@ obj_p lambda_map(obj_p f, obj_p *x, u64_t n)
 
     ins_obj(&res, 0, v);
 
-    for (i = 1; i < l; i++)
-    {
+    for (i = 1; i < l; i++) {
         for (j = 0; j < n; j++)
             stack_push(at_idx(x[j], i));
 
         v = call(f, n);
 
-        if (IS_ERROR(v))
-        {
+        if (IS_ERROR(v)) {
             res->len = i;
             drop_obj(res);
             res = v;
@@ -126,8 +119,7 @@ cleanup:
     return res;
 }
 
-obj_p lambda_call(u8_t attrs, obj_p f, obj_p *x, u64_t n)
-{
+obj_p lambda_call(u8_t attrs, obj_p f, obj_p *x, u64_t n) {
     UNUSED(attrs);
     UNUSED(x);
     return call(f, n);

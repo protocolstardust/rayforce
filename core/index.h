@@ -28,23 +28,20 @@
 
 #define INDEX_SCOPE_LIMIT 8192
 
-typedef struct __index_list_ctx_t
-{
+typedef struct __index_list_ctx_t {
     obj_p lcols;
     obj_p rcols;
     u64_t *hashes;
     i64_t *filter;
 } __index_list_ctx_t;
 
-typedef struct __index_find_ctx_t
-{
+typedef struct __index_find_ctx_t {
     raw_p lobj;
     raw_p robj;
     u64_t *hashes;
 } __index_find_ctx_t;
 
-typedef struct index_scope_t
-{
+typedef struct index_scope_t {
     i64_t min;
     i64_t max;
     u64_t range;
@@ -65,4 +62,4 @@ obj_p index_group_LIST(obj_p obj, obj_p filter);
 obj_p index_join_obj(obj_p lcols, obj_p rcols, u64_t len);
 nil_t index_hash_obj(obj_p obj, u64_t out[], i64_t filter[], u64_t len, b8_t resolve);
 
-#endif // INDEX_H
+#endif  // INDEX_H

@@ -26,8 +26,7 @@
 
 #include "rayforce.h"
 
-typedef struct freelist_t
-{
+typedef struct freelist_t {
     i64_t data_size;
     i64_t data_pos;
     i64_t *data;
@@ -43,4 +42,4 @@ i64_t freelist_push(freelist_p freelist, i64_t val);
 i64_t freelist_pop(freelist_p freelist, i64_t val);
 i64_t freelist_get(freelist_p freelist, i64_t idx);
 
-#endif // FREELIST_H
+#endif  // FREELIST_H

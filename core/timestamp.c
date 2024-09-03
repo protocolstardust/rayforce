@@ -48,39 +48,29 @@ const u32_t MONTHDAYS_ABS[2][12] = {
     {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
 };
 
-typedef struct date_t
-{
+typedef struct date_t {
     u16_t year;
     u8_t month;
     u8_t day;
 } date_t;
 
-typedef struct timespan_t
-{
+typedef struct timespan_t {
     u8_t hours;
     u8_t mins;
     u8_t secs;
     u32_t nanos;
 } timespan_t;
 
-u8_t leap_year(u16_t year)
-{
-    return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
-}
+u8_t leap_year(u16_t year) { return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0; }
 
-i64_t years_by_days(u16_t yy)
-{
-    return (yy * 365 + yy / 4 - yy / 100 + yy / 400);
-}
+i64_t years_by_days(u16_t yy) { return (yy * 365 + yy / 4 - yy / 100 + yy / 400); }
 
-u8_t days_in_month(u16_t year, u8_t month)
-{
+u8_t days_in_month(u16_t year, u8_t month) {
     u8_t leap = leap_year(year);
     return (MONTHDAYS_ABS[leap][month > 0 ? month - 1 : 0]);
 }
 
-date_t date_from_days(i64_t v)
-{
+date_t date_from_days(i64_t v) {
     v += years_by_days(EPOCH - 1);
     i64_t years = roundf64(((f64_t)v / 365.2425));
 
@@ -109,8 +99,7 @@ date_t date_from_days(i64_t v)
     };
 }
 
-timespan_t timespan_from_nanos(i64_t nanos)
-{
+timespan_t timespan_from_nanos(i64_t nanos) {
     i64_t secs = nanos / 1000000000;
     i64_t ns = nanos % 1000000000;
     i64_t hh = secs / 3600;
@@ -126,15 +115,13 @@ timespan_t timespan_from_nanos(i64_t nanos)
     };
 }
 
-i64_t timespan_into_nanos(timespan_t ts)
-{
+i64_t timespan_into_nanos(timespan_t ts) {
     i64_t hrs = (i64_t)ts.hours * 3600;
     i64_t mns = (i64_t)ts.mins * 60;
     return ((hrs + mns + (i64_t)ts.secs) * 1000000000 + ts.nanos);
 }
 
-i64_t date_into_days(date_t dt)
-{
+i64_t date_into_days(date_t dt) {
     i64_t ydays = years_by_days(dt.year > 0 ? dt.year - 1 : dt.year);
     u8_t leap = leap_year(dt.year);
     u32_t mdays = MONTHDAYS_FWD[leap][dt.month > 0 ? dt.month - 1 : 0];
@@ -142,13 +129,11 @@ i64_t date_into_days(date_t dt)
 }
 
 //
-timestamp_t timestamp_from_i64(i64_t offset)
-{
+timestamp_t timestamp_from_i64(i64_t offset) {
     i64_t days = offset / NSECS_IN_DAY;
     i64_t span = offset % NSECS_IN_DAY;
 
-    if (span < 0)
-    {
+    if (span < 0) {
         days -= 1;
         span += NSECS_IN_DAY;
     }
@@ -170,8 +155,7 @@ timestamp_t timestamp_from_i64(i64_t offset)
     return ts;
 }
 
-i64_t timestamp_into_i64(timestamp_t ts)
-{
+i64_t timestamp_into_i64(timestamp_t ts) {
     if (ts.null)
         return NULL_I64;
 
@@ -191,8 +175,7 @@ i64_t timestamp_into_i64(timestamp_t ts)
     i64_t dss = date_into_days(dt);
     i64_t offs = timespan_into_nanos(sp);
 
-    if (dss < 0)
-    {
+    if (dss < 0) {
         offs = NSECS_IN_DAY - offs;
         return ((dss + 1) * NSECS_IN_DAY - offs);
     }
@@ -200,8 +183,7 @@ i64_t timestamp_into_i64(timestamp_t ts)
     return (dss * NSECS_IN_DAY + offs);
 }
 
-timestamp_t timestamp_from_str(str_p src)
-{
+timestamp_t timestamp_from_str(str_p src) {
     i64_t cnt, val;
     timestamp_t ts = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0, .hours = 0, .mins = 0, .secs = 0, .nanos = 0};
     c8_t *cur, *end;
@@ -212,10 +194,9 @@ timestamp_t timestamp_from_str(str_p src)
     cur = src;
     cnt = 0;
 
-    while (*cur != '\0' && cnt < 7)
-    {
-        errno = 0;                    // reset errno before the call
-        val = strtoll(cur, &end, 10); // base 10 for decimal
+    while (*cur != '\0' && cnt < 7) {
+        errno = 0;                     // reset errno before the call
+        val = strtoll(cur, &end, 10);  // base 10 for decimal
 
         if ((val == LONG_MAX || val == LONG_MIN) && errno == ERANGE)
             goto null;
@@ -226,43 +207,42 @@ timestamp_t timestamp_from_str(str_p src)
         if (errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
             goto null;
 
-        switch (cnt)
-        {
-        case 0:
-            if (val < 0)
-                goto null;
-            ts.year = (u16_t)val;
-            break;
-        case 1:
-            if (val < 1 || val > 12)
-                goto null;
-            ts.month = (u8_t)val;
-            break;
-        case 2:
-            if (val < 1 || val > 31)
-                goto null;
-            ts.day = (u8_t)val;
-            break;
-        case 3:
-            if (val < 0 || val > 23)
-                goto null;
-            ts.hours = (u8_t)val;
-            break;
-        case 4:
-            if (val < 0 || val > 59)
-                goto null;
-            ts.mins = (u8_t)val;
-            break;
-        case 5:
-            if (val < 0 || val > 59)
-                goto null;
-            ts.secs = (u8_t)val;
-            break;
-        case 6:
-            ts.nanos = (u32_t)val;
-            break;
-        default:
-            break;
+        switch (cnt) {
+            case 0:
+                if (val < 0)
+                    goto null;
+                ts.year = (u16_t)val;
+                break;
+            case 1:
+                if (val < 1 || val > 12)
+                    goto null;
+                ts.month = (u8_t)val;
+                break;
+            case 2:
+                if (val < 1 || val > 31)
+                    goto null;
+                ts.day = (u8_t)val;
+                break;
+            case 3:
+                if (val < 0 || val > 23)
+                    goto null;
+                ts.hours = (u8_t)val;
+                break;
+            case 4:
+                if (val < 0 || val > 59)
+                    goto null;
+                ts.mins = (u8_t)val;
+                break;
+            case 5:
+                if (val < 0 || val > 59)
+                    goto null;
+                ts.secs = (u8_t)val;
+                break;
+            case 6:
+                ts.nanos = (u32_t)val;
+                break;
+            default:
+                break;
         }
 
         cnt++;
@@ -273,8 +253,7 @@ timestamp_t timestamp_from_str(str_p src)
             cur++;
     }
 
-    if (cnt < 3)
-    {
+    if (cnt < 3) {
     null:
         ts.null = B8_TRUE;
     }
@@ -283,8 +262,7 @@ timestamp_t timestamp_from_str(str_p src)
 }
 #if defined(OS_WINDOWS)
 
-timestamp_t timestamp_current(lit_p tz)
-{
+timestamp_t timestamp_current(lit_p tz) {
     time_t rawtime;
     struct tm *timeinfo;
 
@@ -293,9 +271,9 @@ timestamp_t timestamp_current(lit_p tz)
 
     // Determine if UTC or local time should be used based on the argument
     if (tz != NULL && strcmp(tz, "utc") == 0)
-        timeinfo = gmtime(&rawtime); // UTC time
+        timeinfo = gmtime(&rawtime);  // UTC time
     else
-        timeinfo = localtime(&rawtime); // Local time
+        timeinfo = localtime(&rawtime);  // Local time
 
     // Populate the timestamp_t struct
     timestamp_t ts = {
@@ -306,7 +284,7 @@ timestamp_t timestamp_current(lit_p tz)
         .hours = (u8_t)timeinfo->tm_hour,
         .mins = (u8_t)timeinfo->tm_min,
         .secs = (u8_t)timeinfo->tm_sec,
-        .nanos = 0 // Windows does not support nanoseconds in time_t
+        .nanos = 0  // Windows does not support nanoseconds in time_t
     };
 
     return ts;
@@ -314,8 +292,7 @@ timestamp_t timestamp_current(lit_p tz)
 
 #else
 
-timestamp_t timestamp_current(lit_p tz)
-{
+timestamp_t timestamp_current(lit_p tz) {
     time_t rawtime;
     struct tm *timeinfo;
 
@@ -324,9 +301,9 @@ timestamp_t timestamp_current(lit_p tz)
 
     // Choose local time or UTC based on the argument
     if (tz != NULL && strcmp(tz, "utc") == 0)
-        timeinfo = gmtime(&rawtime); // UTC time
+        timeinfo = gmtime(&rawtime);  // UTC time
     else
-        timeinfo = localtime(&rawtime); // Local time
+        timeinfo = localtime(&rawtime);  // Local time
 
     timestamp_t ts = {
         .null = B8_FALSE,
@@ -344,8 +321,7 @@ timestamp_t timestamp_current(lit_p tz)
 
 #endif
 
-obj_p ray_timestamp(obj_p arg)
-{
+obj_p ray_timestamp(obj_p arg) {
     if (arg->type != -TYPE_SYMBOL)
         THROW(ERR_TYPE, "timestamp: expected 'Symbol, got '%s'", type_name(arg->type));
 

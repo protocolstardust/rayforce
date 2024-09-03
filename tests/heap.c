@@ -21,9 +21,8 @@
  *   SOFTWARE.
  */
 
-test_result_t test_allocate_and_free()
-{
-    u64_t size = 1024; // size of the memory block to allocate
+test_result_t test_allocate_and_free() {
+    u64_t size = 1024;  // size of the memory block to allocate
     nil_t *ptr = heap_alloc(size);
     TEST_ASSERT(ptr != NULL, "ptr != NULL");
     heap_free(ptr);
@@ -31,8 +30,7 @@ test_result_t test_allocate_and_free()
     PASS();
 }
 
-test_result_t test_multiple_allocations()
-{
+test_result_t test_multiple_allocations() {
     u64_t size = 1024;
     nil_t *ptr1 = heap_alloc(size);
     nil_t *ptr2 = heap_alloc(size);
@@ -45,14 +43,12 @@ test_result_t test_multiple_allocations()
     PASS();
 }
 
-test_result_t test_multiple_allocs_and_frees()
-{
+test_result_t test_multiple_allocs_and_frees() {
     u64_t i, size, n = 6;
     nil_t *ptrs[n];
 
     // Allocate multiple blocks of different sizes
-    for (i = 0; i < n; i++)
-    {
+    for (i = 0; i < n; i++) {
         size = i % 3;
         ptrs[i] = heap_alloc(size);
         TEST_ASSERT((size != 0 && ptrs[i] != NULL) || (size == 0 && ptrs[i] == NULL), "ptrs[i] != NULL");
@@ -65,16 +61,14 @@ test_result_t test_multiple_allocs_and_frees()
     PASS();
 }
 
-test_result_t test_multiple_allocs_and_frees_rand()
-{
+test_result_t test_multiple_allocs_and_frees_rand() {
     nil_t *ptrs[100];
     u64_t sizes[100];
     u64_t i, j, temp, num_allocs = 100;
 
     // Allocate multiple blocks of different sizes
-    for (i = 0; i < num_allocs; i++)
-    {
-        sizes[i] = rand() % 1024; // Random size between 0 and 1023
+    for (i = 0; i < num_allocs; i++) {
+        sizes[i] = rand() % 1024;  // Random size between 0 and 1023
         ptrs[i] = heap_alloc(sizes[i]);
         TEST_ASSERT(ptrs[i] != NULL, "ptrs[i] != NULL");
     }
@@ -85,8 +79,7 @@ test_result_t test_multiple_allocs_and_frees_rand()
         indices[i] = i;
 
     // Shuffle the indices array
-    for (i = num_allocs - 1; i > 0; i--)
-    {
+    for (i = num_allocs - 1; i > 0; i--) {
         j = rand() % (i + 1);
         temp = indices[i];
         indices[i] = indices[j];
@@ -94,24 +87,21 @@ test_result_t test_multiple_allocs_and_frees_rand()
     }
 
     // Free the allocated blocks in the shuffled order
-    for (i = 0; i < num_allocs; i++)
-    {
+    for (i = 0; i < num_allocs; i++) {
         i32_t index = indices[i];
         heap_free(ptrs[index]);
         ptrs[index] = NULL;
     }
 
     // Verify that all pointers are set to NULL after freeing
-    for (i = 0; i < num_allocs; i++)
-    {
+    for (i = 0; i < num_allocs; i++) {
         TEST_ASSERT(ptrs[i] == NULL, "ptrs[i] == NULL");
     }
 
     PASS();
 }
 
-test_result_t test_realloc_larger_and_smaller()
-{
+test_result_t test_realloc_larger_and_smaller() {
     u64_t initial_size = 32;
     nil_t *ptr = heap_alloc(initial_size);
     TEST_ASSERT(ptr != NULL, "ptr != NULL");
@@ -131,8 +121,7 @@ test_result_t test_realloc_larger_and_smaller()
     PASS();
 }
 
-test_result_t test_realloc_same_size()
-{
+test_result_t test_realloc_same_size() {
     u64_t size = 64;
     nil_t *ptr = heap_alloc(size);
     TEST_ASSERT(ptr != NULL, "ptr != NULL");
@@ -146,31 +135,23 @@ test_result_t test_realloc_same_size()
     PASS();
 }
 
-test_result_t test_alloc_dealloc_stress()
-{
+test_result_t test_alloc_dealloc_stress() {
     u64_t i, j, n = 10000, m = 100, size;
     nil_t *ptrs[n];
 
-    for (i = 0; i < n; i++)
-    {
-        size = rand() % 4096; // Random size between 0 and 4095
+    for (i = 0; i < n; i++) {
+        size = rand() % 4096;  // Random size between 0 and 4095
         ptrs[i] = heap_alloc(size);
 
-        if (size == 0)
-        {
+        if (size == 0) {
             TEST_ASSERT(ptrs[i] == NULL, "ptrs[i] == NULL for size 0");
-        }
-        else
-        {
+        } else {
             TEST_ASSERT(ptrs[i] != NULL, "ptrs[i] != NULL for size > 0");
         }
 
-        if (i % m == 0)
-        {
-            for (j = 0; j < i; j++)
-            {
-                if (ptrs[j] != NULL)
-                {
+        if (i % m == 0) {
+            for (j = 0; j < i; j++) {
+                if (ptrs[j] != NULL) {
                     heap_free(ptrs[j]);
                     ptrs[j] = NULL;
                 }
@@ -178,8 +159,7 @@ test_result_t test_alloc_dealloc_stress()
         }
     }
 
-    for (i = 0; i < n; i++)
-    {
+    for (i = 0; i < n; i++) {
         if (ptrs[i] != NULL)
             heap_free(ptrs[i]);
     }
@@ -187,8 +167,7 @@ test_result_t test_alloc_dealloc_stress()
     PASS();
 }
 
-test_result_t test_allocation_after_free()
-{
+test_result_t test_allocation_after_free() {
     u64_t size = 1024;
     nil_t *ptr1 = heap_alloc(size);
     TEST_ASSERT(ptr1 != NULL, "ptr1 != NULL");
@@ -205,8 +184,7 @@ test_result_t test_allocation_after_free()
     PASS();
 }
 
-test_result_t test_out_of_memory()
-{
+test_result_t test_out_of_memory() {
     u64_t size = 1ull << 39;
     nil_t *ptr = heap_alloc(size);
     TEST_ASSERT(ptr == NULL, "ptr == NULL");
@@ -214,14 +192,12 @@ test_result_t test_out_of_memory()
     PASS();
 }
 
-test_result_t test_varying_sizes()
-{
+test_result_t test_varying_sizes() {
     i64_t size = 16, i, num_allocs = 10;
     nil_t *ptrs[num_allocs];
 
-    for (i = 0; i < num_allocs; i++)
-    {
-        ptrs[i] = heap_alloc(size << i); // double the size at each iteration
+    for (i = 0; i < num_allocs; i++) {
+        ptrs[i] = heap_alloc(size << i);  // double the size at each iteration
         TEST_ASSERT(ptrs[i] != NULL, "ptrs[i] != NULL");
     }
     // Free memory in reverse order
@@ -231,8 +207,7 @@ test_result_t test_varying_sizes()
     PASS();
 }
 
-test_result_t test_realloc()
-{
+test_result_t test_realloc() {
     u64_t size = 13;
     nil_t *ptr = heap_alloc(size);
     TEST_ASSERT(ptr != NULL, "ptr != NULL");
@@ -247,8 +222,7 @@ test_result_t test_realloc()
     PASS();
 }
 
-test_result_t test_allocate_and_free_obj()
-{
+test_result_t test_allocate_and_free_obj() {
     // obj_p ht1 = I64(12);
     // obj_p ht2 = vn_list(2, i64(1), i64(7));
     // obj_p ht3 = I64(12);

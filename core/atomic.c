@@ -25,24 +25,21 @@
 
 #define BACKOFF_SPIN_LIMIT 8
 
-static inline void cpu_relax()
-{
+static inline void cpu_relax() {
 #if defined(__x86_64__) || defined(__i386__)
     __builtin_ia32_pause();
 #elif defined(__arm__) || defined(__aarch64__)
     __asm__ volatile("yield" ::: "memory");
 #else
     // Generic fallback: no-op or compiler barrier
-    __asm__ volatile("" ::: "memory"); // acts as a compiler barrier
+    __asm__ volatile("" ::: "memory");  // acts as a compiler barrier
 #endif
 }
 
-nil_t backoff_spin(u64_t *rounds)
-{
+nil_t backoff_spin(u64_t *rounds) {
     u64_t i;
 
-    for (i = 0; i < (1ull << *rounds); i++)
-        cpu_relax();
+    for (i = 0; i < (1ull << *rounds); i++) cpu_relax();
 
     if (*rounds <= BACKOFF_SPIN_LIMIT)
         (*rounds)++;

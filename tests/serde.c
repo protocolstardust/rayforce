@@ -21,8 +21,7 @@
  *   SOFTWARE.
  */
 
-test_result_t test_serde_different_sizes()
-{
+test_result_t test_serde_different_sizes() {
     u8_t buf[4096];
     i32_t size, size1;
     obj_p x;

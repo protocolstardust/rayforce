@@ -40,4 +40,4 @@ obj_p ray_guid(obj_p x);
 obj_p ray_list(obj_p *x, u64_t n);
 obj_p ray_enlist(obj_p *x, u64_t n);
 
-#endif // COMPOSE_H
+#endif  // COMPOSE_H

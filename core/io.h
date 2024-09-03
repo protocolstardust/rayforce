@@ -36,4 +36,4 @@ obj_p ray_eval(obj_p x);
 obj_p ray_load(obj_p x);
 obj_p io_write(i64_t fd, u8_t msg_type, obj_p obj);
 
-#endif // IO_H
+#endif  // IO_H

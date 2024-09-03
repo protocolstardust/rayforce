@@ -35,4 +35,4 @@ obj_p ray_bins(obj_p x);
 obj_p ray_unicode_format(obj_p x);
 obj_p ray_is_null(obj_p x);
 
-#endif // UNARY_H
+#endif  // UNARY_H

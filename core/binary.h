@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2023 Anton Kundenko <singaraiona@gmail.com>
+ *   Copyright (c) 2024 Anton Kundenko <singaraiona@gmail.com>
  *   All rights reserved.
 
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,12 +24,12 @@
 #ifndef BINARY_H
 #define BINARY_H
 
-#include "rayforce.h"
-#include "ops.h"
 #include "math.h"
+#include "ops.h"
+#include "rayforce.h"
 
 obj_p binary_call(u8_t attrs, binary_f f, obj_p x, obj_p y);
 obj_p ray_set(obj_p x, obj_p y);
 obj_p ray_let(obj_p x, obj_p y);
 
-#endif // BINARY_H
+#endif  // BINARY_H

@@ -27,8 +27,7 @@
 #include <time.h>
 #include "rayforce.h"
 
-typedef struct timestamp_t
-{
+typedef struct timestamp_t {
     b8_t null;
     u16_t year;
     u8_t month;
@@ -45,4 +44,4 @@ i64_t timestamp_into_i64(timestamp_t ts);
 
 obj_p ray_timestamp(obj_p arg);
 
-#endif // TIMESTAMP_H
+#endif  // TIMESTAMP_H

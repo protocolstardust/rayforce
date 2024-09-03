@@ -31,85 +31,75 @@
 // Global runtime reference
 runtime_p __RUNTIME = NULL;
 
-nil_t usage(nil_t)
-{
+nil_t usage(nil_t) {
     printf("%s%s%s", BOLD, YELLOW, "Usage: rayforce [-f file...] [-p port] [file] [-t threads]\n");
     exit(EXIT_FAILURE);
 }
 
-obj_p parse_cmdline(i32_t argc, str_p argv[])
-{
+obj_p parse_cmdline(i32_t argc, str_p argv[]) {
     i32_t opt;
     obj_p keys = SYMBOL(0), vals = LIST(0), str;
-    b8_t file_handled = B8_FALSE; // flag to indicate if the file has been handled
+    b8_t file_handled = B8_FALSE;  // flag to indicate if the file has been handled
 
-    for (opt = 1; opt < argc; opt++)
-    {
-        if (argv[opt][0] == '-')
-        {
-            switch (argv[opt][1])
-            {
-            case 'f':
-                opt++;
+    for (opt = 1; opt < argc; opt++) {
+        if (argv[opt][0] == '-') {
+            switch (argv[opt][1]) {
+                case 'f':
+                    opt++;
 
-                if (argv[opt] == NULL)
+                    if (argv[opt] == NULL)
+                        usage();
+
+                    push_sym(&keys, "file");
+                    str = cstring_from_str(argv[opt], strlen(argv[opt]));
+                    push_obj(&vals, str);
+                    file_handled = B8_TRUE;
+                    break;
+
+                case 'p':
+                    opt++;
+
+                    if (argv[opt] == NULL)
+                        usage();
+
+                    push_sym(&keys, "port");
+                    str = cstring_from_str(argv[opt], strlen(argv[opt]));
+                    push_obj(&vals, str);
+                    break;
+
+                case 'c':
+                    opt++;
+
+                    if (argv[opt] == NULL)
+                        usage();
+
+                    push_sym(&keys, "cores");
+                    str = cstring_from_str(argv[opt], strlen(argv[opt]));
+                    push_obj(&vals, str);
+                    break;
+
+                case 't':
+                    opt++;
+
+                    if (argv[opt] == NULL)
+                        usage();
+
+                    push_sym(&keys, "timeit");
+                    str = cstring_from_str(argv[opt], strlen(argv[opt]));
+                    push_obj(&vals, str);
+                    break;
+
+                default:
                     usage();
-
-                push_sym(&keys, "file");
-                str = cstring_from_str(argv[opt], strlen(argv[opt]));
-                push_obj(&vals, str);
-                file_handled = B8_TRUE;
-                break;
-
-            case 'p':
-                opt++;
-
-                if (argv[opt] == NULL)
-                    usage();
-
-                push_sym(&keys, "port");
-                str = cstring_from_str(argv[opt], strlen(argv[opt]));
-                push_obj(&vals, str);
-                break;
-
-            case 'c':
-                opt++;
-
-                if (argv[opt] == NULL)
-                    usage();
-
-                push_sym(&keys, "cores");
-                str = cstring_from_str(argv[opt], strlen(argv[opt]));
-                push_obj(&vals, str);
-                break;
-
-            case 't':
-                opt++;
-
-                if (argv[opt] == NULL)
-                    usage();
-
-                push_sym(&keys, "timeit");
-                str = cstring_from_str(argv[opt], strlen(argv[opt]));
-                push_obj(&vals, str);
-                break;
-
-            default:
-                usage();
             }
-        }
-        else
-        {
+        } else {
             // Handle non-option argument (file path)
-            if (!file_handled)
-            {
+            if (!file_handled) {
                 push_sym(&keys, "file");
                 str = cstring_from_str(argv[opt], strlen(argv[opt]));
                 push_obj(&vals, str);
                 file_handled = B8_TRUE;
-            }
-            else
-            {
+            } else {
                 // If a file path has already been handled, treat as an error
                 usage();
             }
@@ -119,8 +109,7 @@ obj_p parse_cmdline(i32_t argc, str_p argv[])
     return dict(keys, vals);
 }
 
-i32_t runtime_create(i32_t argc, str_p argv[])
-{
+i32_t runtime_create(i32_t argc, str_p argv[]) {
     u64_t n;
     obj_p arg, fmt, res;
     symbols_p symbols = symbols_create();
@@ -137,31 +126,26 @@ i32_t runtime_create(i32_t argc, str_p argv[])
 
     interpreter_create(0);
 
-    if (argc)
-    {
+    if (argc) {
         __RUNTIME->args = parse_cmdline(argc, argv);
 
         // thread count
         arg = runtime_get_arg("cores");
-        if (!is_null(arg))
-        {
+        if (!is_null(arg)) {
             n = atoi(AS_C8(arg));
             if (n > 1)
-                __RUNTIME->pool = pool_create(n - 1); // -1 for the main thread
+                __RUNTIME->pool = pool_create(n - 1);  // -1 for the main thread
 
             __RUNTIME->sys_info = sys_info(n);
             drop_obj(arg);
-        }
-        else
-        {
+        } else {
             __RUNTIME->sys_info = sys_info(0);
             if (__RUNTIME->sys_info.threads > 1)
                 __RUNTIME->pool = pool_create(__RUNTIME->sys_info.threads - 1);
         }
 
         arg = runtime_get_arg("port");
-        if (!is_null(arg))
-        {
+        if (!is_null(arg)) {
             __RUNTIME->addr.port = atoi(AS_C8(arg));
             drop_obj(arg);
         }
@@ -170,13 +154,11 @@ i32_t runtime_create(i32_t argc, str_p argv[])
 
         // load file
         arg = runtime_get_arg("file");
-        if (!is_null(arg))
-        {
+        if (!is_null(arg)) {
             res = ray_load(arg);
             drop_obj(arg);
 
-            if (res)
-            {
+            if (res) {
                 fmt = obj_fmt(res, B8_TRUE);
                 printf("%.*s\n", (i32_t)fmt->len, AS_C8(fmt));
                 drop_obj(fmt);
@@ -186,15 +168,12 @@ i32_t runtime_create(i32_t argc, str_p argv[])
 
         // timeit
         arg = runtime_get_arg("timeit");
-        if (!is_null(arg))
-        {
+        if (!is_null(arg)) {
             n = atoi(AS_C8(arg));
             drop_obj(arg);
             timeit_activate(n);
         }
-    }
-    else
-    {
+    } else {
         __RUNTIME->poll = NULL;
         __RUNTIME->sys_info = sys_info(1);
         // if (__RUNTIME->sys_info.threads > 1)
@@ -204,16 +183,14 @@ i32_t runtime_create(i32_t argc, str_p argv[])
     return 0;
 }
 
-i32_t runtime_run(nil_t)
-{
+i32_t runtime_run(nil_t) {
     if (__RUNTIME->poll)
         return poll_run(__RUNTIME->poll);
 
     return 0;
 }
 
-nil_t runtime_destroy(nil_t)
-{
+nil_t runtime_destroy(nil_t) {
     drop_obj(__RUNTIME->args);
     if (__RUNTIME->poll)
         poll_destroy(__RUNTIME->poll);
@@ -229,8 +206,7 @@ nil_t runtime_destroy(nil_t)
     __RUNTIME = NULL;
 }
 
-obj_p runtime_get_arg(lit_p key)
-{
+obj_p runtime_get_arg(lit_p key) {
     i64_t i = find_sym(AS_LIST(__RUNTIME->args)[0], key);
     if (i < (i64_t)AS_LIST(__RUNTIME->args)[0]->len)
         return at_idx(AS_LIST(__RUNTIME->args)[1], i);

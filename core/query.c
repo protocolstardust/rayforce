@@ -43,164 +43,147 @@
 #include "time.h"
 #include "runtime.h"
 
-obj_p remap_filter(obj_p tab, obj_p index)
-{
-    return filter_map(tab, index);
-}
+obj_p remap_filter(obj_p tab, obj_p index) { return filter_map(tab, index); }
 
-obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys, obj_p gcols)
-{
+obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys, obj_p gcols) {
     u64_t i, l;
     obj_p index, v, lst, res;
 
-    switch (gkeys->type)
-    {
-    case -TYPE_SYMBOL:
-        index = index_group(cols, filter);
-        timeit_tick("build index");
+    switch (gkeys->type) {
+        case -TYPE_SYMBOL:
+            index = index_group(cols, filter);
+            timeit_tick("build index");
 
-        if (IS_ERROR(index))
-            return index;
+            if (IS_ERROR(index))
+                return index;
 
-        res = group_map(tab, index);
-        v = (gcols == NULL_OBJ) ? aggr_first(cols, index) : aggr_first(gcols, index);
-        if (IS_ERROR(v))
-        {
-            drop_obj(index);
-            drop_obj(res);
-            return v;
-        }
-
-        *gvals = v;
-        drop_obj(index);
-
-        timeit_tick("apply 'first' on group columns");
-
-        return res;
-    case TYPE_SYMBOL:
-        index = index_group_LIST(cols, filter);
-        timeit_tick("build compound index");
-
-        if (IS_ERROR(index))
-            return index;
-
-        res = group_map(tab, index);
-
-        l = cols->len;
-        lst = LIST(l);
-
-        for (i = 0; i < l; i++)
-        {
-            v = aggr_first(AS_LIST(cols)[i], index);
-
-            if (IS_ERROR(v))
-            {
-                lst->len = i;
-                drop_obj(res);
+            res = group_map(tab, index);
+            v = (gcols == NULL_OBJ) ? aggr_first(cols, index) : aggr_first(gcols, index);
+            if (IS_ERROR(v)) {
                 drop_obj(index);
+                drop_obj(res);
                 return v;
             }
 
-            AS_LIST(lst)
-            [i] = v;
-        }
+            *gvals = v;
+            drop_obj(index);
 
-        *gvals = lst;
-        drop_obj(index);
+            timeit_tick("apply 'first' on group columns");
 
-        timeit_tick("apply 'first' on group columns");
+            return res;
+        case TYPE_SYMBOL:
+            index = index_group_LIST(cols, filter);
+            timeit_tick("build compound index");
 
-        return res;
-    default:
-        return error(ERR_TYPE, "grouping key mapping(s) must be a symbol(s)");
+            if (IS_ERROR(index))
+                return index;
+
+            res = group_map(tab, index);
+
+            l = cols->len;
+            lst = LIST(l);
+
+            for (i = 0; i < l; i++) {
+                v = aggr_first(AS_LIST(cols)[i], index);
+
+                if (IS_ERROR(v)) {
+                    lst->len = i;
+                    drop_obj(res);
+                    drop_obj(index);
+                    return v;
+                }
+
+                AS_LIST(lst)
+                [i] = v;
+            }
+
+            *gvals = lst;
+            drop_obj(index);
+
+            timeit_tick("apply 'first' on group columns");
+
+            return res;
+        default:
+            return error(ERR_TYPE, "grouping key mapping(s) must be a symbol(s)");
     }
 }
 
-obj_p get_gkeys(obj_p cols, obj_p obj)
-{
+obj_p get_gkeys(obj_p cols, obj_p obj) {
     u64_t i, l;
     obj_p x;
 
-    switch (obj->type)
-    {
-    case -TYPE_SYMBOL:
-        l = cols->len;
-        for (i = 0; i < l; i++)
-            if (AS_I64(cols)[i] == obj->i64)
-                return symboli64(obj->i64);
-        return NULL_OBJ;
-    case TYPE_LIST:
-        l = obj->len;
-        for (i = 0; i < l; i++)
-        {
-            x = get_gkeys(cols, AS_LIST(obj)[i]);
-            if (x != NULL_OBJ)
-                return x;
-        }
-        return NULL_OBJ;
-    case TYPE_DICT:
-        x = AS_LIST(obj)[0];
-        if (x->type != TYPE_SYMBOL)
-            return error(ERR_TYPE, "grouping key(s) must be a symbol(s)");
+    switch (obj->type) {
+        case -TYPE_SYMBOL:
+            l = cols->len;
+            for (i = 0; i < l; i++)
+                if (AS_I64(cols)[i] == obj->i64)
+                    return symboli64(obj->i64);
+            return NULL_OBJ;
+        case TYPE_LIST:
+            l = obj->len;
+            for (i = 0; i < l; i++) {
+                x = get_gkeys(cols, AS_LIST(obj)[i]);
+                if (x != NULL_OBJ)
+                    return x;
+            }
+            return NULL_OBJ;
+        case TYPE_DICT:
+            x = AS_LIST(obj)[0];
+            if (x->type != TYPE_SYMBOL)
+                return error(ERR_TYPE, "grouping key(s) must be a symbol(s)");
 
-        if (x->len == 1)
-            return at_idx(AS_LIST(obj)[0], 0);
+            if (x->len == 1)
+                return at_idx(AS_LIST(obj)[0], 0);
 
-        return clone_obj(AS_LIST(obj)[0]);
+            return clone_obj(AS_LIST(obj)[0]);
 
-    default:
-        return NULL_OBJ;
+        default:
+            return NULL_OBJ;
     }
 }
 
-obj_p get_gvals(obj_p obj)
-{
+obj_p get_gvals(obj_p obj) {
     u64_t i, l;
     obj_p vals, v, r, res;
 
-    switch (obj->type)
-    {
-    case TYPE_DICT:
-        vals = AS_LIST(obj)[1];
-        l = vals->len;
+    switch (obj->type) {
+        case TYPE_DICT:
+            vals = AS_LIST(obj)[1];
+            l = vals->len;
 
-        if (l == 0)
-            return NULL_OBJ;
+            if (l == 0)
+                return NULL_OBJ;
 
-        if (l == 1)
-        {
-            v = at_idx(vals, 0);
-            res = eval(v);
-            drop_obj(v);
-            return res;
-        }
-
-        res = LIST(l);
-        for (i = 0; i < l; i++)
-        {
-            v = at_idx(vals, i);
-            r = eval(v);
-            drop_obj(v);
-
-            if (IS_ERROR(r))
-            {
-                res->len = i;
-                drop_obj(res);
-                return r;
+            if (l == 1) {
+                v = at_idx(vals, 0);
+                res = eval(v);
+                drop_obj(v);
+                return res;
             }
 
-            AS_LIST(res)
-            [i] = r;
-        }
+            res = LIST(l);
+            for (i = 0; i < l; i++) {
+                v = at_idx(vals, i);
+                r = eval(v);
+                drop_obj(v);
 
-        return res;
-    default:
-        return eval(obj);
+                if (IS_ERROR(r)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return r;
+                }
+
+                AS_LIST(res)
+                [i] = r;
+            }
+
+            return res;
+        default:
+            return eval(obj);
     }
 }
 
-nil_t query_ctx_init(query_ctx_p ctx)
-{
+nil_t query_ctx_init(query_ctx_p ctx) {
     ctx->tablen = 0;
     ctx->table = NULL_OBJ;
     ctx->filter = NULL_OBJ;
@@ -210,8 +193,7 @@ nil_t query_ctx_init(query_ctx_p ctx)
     ctx->query_values = NULL_OBJ;
 }
 
-nil_t query_ctx_destroy(query_ctx_p ctx)
-{
+nil_t query_ctx_destroy(query_ctx_p ctx) {
     drop_obj(ctx->table);
     drop_obj(ctx->filter);
     drop_obj(ctx->group_fields);
@@ -220,8 +202,7 @@ nil_t query_ctx_destroy(query_ctx_p ctx)
     drop_obj(ctx->query_values);
 }
 
-obj_p select_fetch_table(obj_p obj, query_ctx_p ctx)
-{
+obj_p select_fetch_table(obj_p obj, query_ctx_p ctx) {
     obj_p prm, val;
 
     prm = at_sym(obj, "from", 4);
@@ -235,8 +216,7 @@ obj_p select_fetch_table(obj_p obj, query_ctx_p ctx)
     if (IS_ERROR(val))
         return val;
 
-    if (val->type != TYPE_TABLE)
-    {
+    if (val->type != TYPE_TABLE) {
         drop_obj(val);
         THROW(ERR_TYPE, "'select' from: expects table");
     }
@@ -249,13 +229,11 @@ obj_p select_fetch_table(obj_p obj, query_ctx_p ctx)
     return NULL_OBJ;
 }
 
-obj_p select_apply_filters(obj_p obj, query_ctx_p ctx)
-{
+obj_p select_apply_filters(obj_p obj, query_ctx_p ctx) {
     obj_p prm, val, fil;
 
     prm = at_sym(obj, "where", 5);
-    if (prm != NULL_OBJ)
-    {
+    if (prm != NULL_OBJ) {
         val = eval(prm);
         drop_obj(prm);
 
@@ -276,15 +254,12 @@ obj_p select_apply_filters(obj_p obj, query_ctx_p ctx)
     return NULL_OBJ;
 }
 
-obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx)
-{
+obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx) {
     u64_t tablen;
-    obj_p prm, val, gkeys = NULL_OBJ, gvals = NULL_OBJ,
-                    groupby = NULL_OBJ, gcol = NULL_OBJ;
+    obj_p prm, val, gkeys = NULL_OBJ, gvals = NULL_OBJ, groupby = NULL_OBJ, gcol = NULL_OBJ;
 
     prm = at_sym(obj, "by", 2);
-    if (prm != NULL_OBJ)
-    {
+    if (prm != NULL_OBJ) {
         timeit_span_start("group");
 
         gkeys = get_gkeys(AS_LIST(ctx->table)[0], prm);
@@ -301,8 +276,7 @@ obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx)
         unmount_env(ctx->tablen);
         ctx->tablen = 0;
 
-        if (IS_ERROR(groupby))
-        {
+        if (IS_ERROR(groupby)) {
             drop_obj(gkeys);
             drop_obj(gvals);
             timeit_span_end("group");
@@ -316,8 +290,7 @@ obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx)
         drop_obj(gvals);
         drop_obj(groupby);
 
-        if (IS_ERROR(prm))
-        {
+        if (IS_ERROR(prm)) {
             drop_obj(gkeys);
             timeit_span_end("group");
             return prm;
@@ -327,8 +300,7 @@ obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx)
         ctx->tablen = tablen;
         drop_obj(prm);
 
-        if (IS_ERROR(gcol))
-        {
+        if (IS_ERROR(gcol)) {
             drop_obj(gkeys);
             timeit_span_end("group");
             return gcol;
@@ -338,9 +310,7 @@ obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx)
         ctx->group_values = gcol;
 
         timeit_span_end("group");
-    }
-    else if (ctx->filter != NULL_OBJ)
-    {
+    } else if (ctx->filter != NULL_OBJ) {
         // Unmount table columns from a local env
         tablen = ctx->tablen;
         unmount_env(ctx->tablen);
@@ -359,8 +329,7 @@ obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx)
     return NULL_OBJ;
 }
 
-obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx)
-{
+obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx) {
     u64_t i, l;
     obj_p prm, sym, val, keys, res;
 
@@ -369,20 +338,17 @@ obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx)
     l = keys->len;
 
     // Mapppings specified
-    if (l)
-    {
+    if (l) {
         res = LIST(l);
 
-        for (i = 0; i < l; i++)
-        {
+        for (i = 0; i < l; i++) {
             sym = at_idx(keys, i);
             prm = at_obj(obj, sym);
             drop_obj(sym);
             val = eval(prm);
             drop_obj(prm);
 
-            if (IS_ERROR(val))
-            {
+            if (IS_ERROR(val)) {
                 res->len = i;
                 drop_obj(res);
                 drop_obj(keys);
@@ -390,20 +356,15 @@ obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx)
             }
 
             // Materialize fields
-            if (val->type == TYPE_GROUPMAP)
-            {
+            if (val->type == TYPE_GROUPMAP) {
                 prm = aggr_collect(AS_LIST(val)[0], AS_LIST(val)[1]);
                 drop_obj(val);
                 val = prm;
-            }
-            else if (val->type == TYPE_FILTERMAP)
-            {
+            } else if (val->type == TYPE_FILTERMAP) {
                 prm = filter_collect(AS_LIST(val)[0], AS_LIST(val)[1]);
                 drop_obj(val);
                 val = prm;
-            }
-            else if (val->type == TYPE_ENUM)
-            {
+            } else if (val->type == TYPE_ENUM) {
                 prm = ray_value(val);
                 drop_obj(val);
                 val = prm;
@@ -426,8 +387,7 @@ obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx)
     return NULL_OBJ;
 }
 
-obj_p select_collect_fields(query_ctx_p ctx)
-{
+obj_p select_collect_fields(query_ctx_p ctx) {
     u64_t i, l;
     obj_p prm, sym, val, keys, res;
 
@@ -436,20 +396,17 @@ obj_p select_collect_fields(query_ctx_p ctx)
         return NULL_OBJ;
 
     // Groupings
-    if (!is_null(ctx->group_fields))
-    {
+    if (!is_null(ctx->group_fields)) {
         keys = ray_except(AS_LIST(ctx->table)[0], ctx->group_fields);
         l = keys->len;
         res = LIST(l);
 
-        for (i = 0; i < l; i++)
-        {
+        for (i = 0; i < l; i++) {
             sym = at_idx(keys, i);
             prm = ray_get(sym);
             drop_obj(sym);
 
-            if (IS_ERROR(prm))
-            {
+            if (IS_ERROR(prm)) {
                 res->len = i;
                 drop_obj(res);
                 drop_obj(keys);
@@ -475,27 +432,21 @@ obj_p select_collect_fields(query_ctx_p ctx)
     l = keys->len;
     res = LIST(l);
 
-    for (i = 0; i < l; i++)
-    {
+    for (i = 0; i < l; i++) {
         sym = at_idx(keys, i);
         prm = ray_get(sym);
         drop_obj(sym);
 
-        if (prm->type == TYPE_FILTERMAP)
-        {
+        if (prm->type == TYPE_FILTERMAP) {
             val = filter_collect(AS_LIST(prm)[0], AS_LIST(prm)[1]);
             drop_obj(prm);
-        }
-        else if (prm->type == TYPE_ENUM)
-        {
+        } else if (prm->type == TYPE_ENUM) {
             val = ray_value(prm);
             drop_obj(prm);
-        }
-        else
+        } else
             val = prm;
 
-        if (IS_ERROR(val))
-        {
+        if (IS_ERROR(val)) {
             res->len = i;
             drop_obj(res);
             drop_obj(keys);
@@ -514,43 +465,37 @@ obj_p select_collect_fields(query_ctx_p ctx)
     return NULL_OBJ;
 }
 
-obj_p select_build_table(query_ctx_p ctx)
-{
+obj_p select_build_table(query_ctx_p ctx) {
     u64_t i, l, m;
     obj_p res, keys, vals;
 
-    switch (ctx->group_fields->type)
-    {
-    case -TYPE_SYMBOL: // Grouped by one column
-        keys = ray_concat(ctx->group_fields, ctx->query_fields);
-        l = ctx->query_values->len;
-        vals = LIST(l + 1);
-        AS_LIST(vals)
-        [0] = clone_obj(ctx->group_values);
+    switch (ctx->group_fields->type) {
+        case -TYPE_SYMBOL:  // Grouped by one column
+            keys = ray_concat(ctx->group_fields, ctx->query_fields);
+            l = ctx->query_values->len;
+            vals = LIST(l + 1);
+            AS_LIST(vals)[0] = clone_obj(ctx->group_values);
 
-        for (i = 0; i < l; i++)
-            AS_LIST(vals)
-        [i + 1] = clone_obj(AS_LIST(ctx->query_values)[i]);
+            for (i = 0; i < l; i++)
+                AS_LIST(vals)[i + 1] = clone_obj(AS_LIST(ctx->query_values)[i]);
 
-        break;
-    case TYPE_SYMBOL: // Grouped by multiple columns
-        keys = ray_concat(ctx->group_fields, ctx->query_fields);
-        l = ctx->group_values->len;
-        m = ctx->query_values->len;
-        vals = LIST(l + m);
+            break;
+        case TYPE_SYMBOL:  // Grouped by multiple columns
+            keys = ray_concat(ctx->group_fields, ctx->query_fields);
+            l = ctx->group_values->len;
+            m = ctx->query_values->len;
+            vals = LIST(l + m);
 
-        for (i = 0; i < l; i++)
-            AS_LIST(vals)
-        [i] = clone_obj(AS_LIST(ctx->group_values)[i]);
+            for (i = 0; i < l; i++)
+                AS_LIST(vals)[i] = clone_obj(AS_LIST(ctx->group_values)[i]);
 
-        for (i = 0; i < m; i++)
-            AS_LIST(vals)
-        [i + l] = clone_obj(AS_LIST(ctx->query_values)[i]);
+            for (i = 0; i < m; i++)
+                AS_LIST(vals)[i + l] = clone_obj(AS_LIST(ctx->query_values)[i]);
 
-        break;
-    default:
-        keys = clone_obj(ctx->query_fields);
-        vals = clone_obj(ctx->query_values);
+            break;
+        default:
+            keys = clone_obj(ctx->query_fields);
+            vals = clone_obj(ctx->query_values);
     }
 
     res = ray_table(keys, vals);
@@ -562,8 +507,7 @@ obj_p select_build_table(query_ctx_p ctx)
     return res;
 }
 
-obj_p ray_select(obj_p obj)
-{
+obj_p ray_select(obj_p obj) {
     obj_p res;
     struct query_ctx_t ctx;
 

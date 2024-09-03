@@ -34,4 +34,4 @@ i64_t mmap_sync(raw_p addr, u64_t size);
 raw_p mmap_reserve(raw_p addr, u64_t size);
 i64_t mmap_commit(raw_p addr, u64_t size);
 
-#endif // MMAP_H
+#endif  // MMAP_H

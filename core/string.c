@@ -31,8 +31,7 @@
 #define is_space(c) ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\r')
 
 // Creates new obj_p string from a C string.
-obj_p string_from_str(lit_p str, u64_t len)
-{
+obj_p string_from_str(lit_p str, u64_t len) {
     obj_p s;
 
     s = C8(len);
@@ -42,20 +41,16 @@ obj_p string_from_str(lit_p str, u64_t len)
 }
 
 // Null terminated string
-obj_p cstring_from_str(lit_p str, u64_t len)
-{
+obj_p cstring_from_str(lit_p str, u64_t len) {
     obj_p s;
 
     if (len <= 0)
         return C8(0);
 
-    if (str[len - 1] == '\0')
-    {
+    if (str[len - 1] == '\0') {
         s = C8(len);
         strncpy(AS_C8(s), str, len);
-    }
-    else
-    {
+    } else {
         s = C8(len + 1);
         memcpy(AS_C8(s), str, len);
         AS_C8(s)
@@ -66,13 +61,9 @@ obj_p cstring_from_str(lit_p str, u64_t len)
     return s;
 }
 
-obj_p cstring_from_obj(obj_p obj)
-{
-    return cstring_from_str(AS_C8(obj), obj->len);
-}
+obj_p cstring_from_obj(obj_p obj) { return cstring_from_str(AS_C8(obj), obj->len); }
 
-i64_t i64_from_str(lit_p str, u64_t len)
-{
+i64_t i64_from_str(lit_p str, u64_t len) {
     i64_t result = 0, sign = 1;
 
     if (len == 0)
@@ -83,15 +74,13 @@ i64_t i64_from_str(lit_p str, u64_t len)
         str++;
 
     // Handle optional sign
-    if (*str == '-')
-    {
+    if (*str == '-') {
         sign = -1;
         str++;
     }
 
     // Parse the digits
-    while (is_digit(*str))
-    {
+    while (is_digit(*str)) {
         result = result * 10 + (*str - '0');
         str++;
     }
@@ -99,8 +88,7 @@ i64_t i64_from_str(lit_p str, u64_t len)
     return result * sign;
 }
 
-f64_t f64_from_str(const char *str, u64_t len)
-{
+f64_t f64_from_str(const char *str, u64_t len) {
     f64_t result = 0.0, factor = 1.0, fraction = 0.1, exp_factor = 1.0;
     i64_t exp;
     b8_t has_digits = B8_FALSE, exp_negative = B8_FALSE;
@@ -109,28 +97,23 @@ f64_t f64_from_str(const char *str, u64_t len)
         return NULL_F64;
 
     // Skip leading whitespace
-    while (len > 0 && is_space(*str))
-    {
+    while (len > 0 && is_space(*str)) {
         str++;
         len--;
     }
 
     // Handle optional sign
-    if (len > 0 && *str == '-')
-    {
+    if (len > 0 && *str == '-') {
         factor = -1.0;
         str++;
         len--;
-    }
-    else if (len > 0 && *str == '+')
-    {
+    } else if (len > 0 && *str == '+') {
         str++;
         len--;
     }
 
     // Parse the integer part
-    while (len > 0 && is_digit(*str))
-    {
+    while (len > 0 && is_digit(*str)) {
         result = result * 10.0 + (*str - '0');
         str++;
         len--;
@@ -138,12 +121,10 @@ f64_t f64_from_str(const char *str, u64_t len)
     }
 
     // Parse the fractional part
-    if (len > 0 && *str == '.')
-    {
+    if (len > 0 && *str == '.') {
         str++;
         len--;
-        while (len > 0 && is_digit(*str))
-        {
+        while (len > 0 && is_digit(*str)) {
             result += (*str - '0') * fraction;
             fraction *= 0.1;
             str++;
@@ -153,27 +134,22 @@ f64_t f64_from_str(const char *str, u64_t len)
     }
 
     // Handle exponent
-    if (len > 0 && (*str == 'e' || *str == 'E'))
-    {
+    if (len > 0 && (*str == 'e' || *str == 'E')) {
         str++;
         len--;
         exp = 0;
         exp_negative = B8_FALSE;
 
-        if (len > 0 && *str == '-')
-        {
+        if (len > 0 && *str == '-') {
             exp_negative = B8_TRUE;
             str++;
             len--;
-        }
-        else if (len > 0 && *str == '+')
-        {
+        } else if (len > 0 && *str == '+') {
             str++;
             len--;
         }
 
-        while (len > 0 && is_digit(*str))
-        {
+        while (len > 0 && is_digit(*str)) {
             exp = exp * 10 + (*str - '0');
             str++;
             len--;
@@ -181,8 +157,7 @@ f64_t f64_from_str(const char *str, u64_t len)
 
         // Apply exponent
         exp_factor = 1.0;
-        while (exp > 0)
-        {
+        while (exp > 0) {
             exp_factor *= exp_negative ? 0.1 : 10.0;
             exp--;
         }
@@ -198,8 +173,7 @@ f64_t f64_from_str(const char *str, u64_t len)
 /*
  * Checks if pattern is like *?**literal.
  */
-str_p str_chk_from_end(str_p pat)
-{
+str_p str_chk_from_end(str_p pat) {
     u64_t l;
     str_p p, s;
 
@@ -228,8 +202,7 @@ str_p str_chk_from_end(str_p pat)
 /*
  * Checks if string starts with a literal.
  */
-b8_t str_starts_with(str_p str, str_p pat)
-{
+b8_t str_starts_with(str_p str, str_p pat) {
     u64_t str_len = strlen(str);
     u64_t pat_len = strlen(pat);
 
@@ -244,8 +217,7 @@ b8_t str_starts_with(str_p str, str_p pat)
 /*
  * Checks if string ends with a literal.
  */
-b8_t str_ends_with(str_p str, str_p pat)
-{
+b8_t str_ends_with(str_p str, str_p pat) {
     // Pointers to the ends of the strings
     const char *s = str, *p = pat;
 
@@ -256,10 +228,8 @@ b8_t str_ends_with(str_p str, str_p pat)
         ++p;
 
     // Check character by character from the end
-    while (s >= str && p >= pat)
-    {
-        if (*s != *p)
-        {
+    while (s >= str && p >= pat) {
+        if (*s != *p) {
             return B8_FALSE;
         }
         s--;
@@ -277,91 +247,77 @@ b8_t str_ends_with(str_p str, str_p pat)
  * Note that this implementation assumes that the pattern and text strings do not contain any null characters ('\0').
  * If this is not the case, a more sophisticated implementation may be required.
  */
-b8_t str_match(str_p str, u64_t str_len, str_p pat, u64_t pat_len)
-{
+b8_t str_match(str_p str, u64_t str_len, str_p pat, u64_t pat_len) {
     str_p s = NULL;
     b8_t inv = B8_FALSE, match = B8_FALSE;
     u64_t str_pos = 0, pat_pos = 0, s_pos;
 
-    while (str_pos < str_len)
-    {
+    while (str_pos < str_len) {
         if (pat_pos >= pat_len)
             return B8_FALSE;
 
-        switch (pat[pat_pos])
-        {
-        case '*':
-            while (pat_pos < pat_len && pat[pat_pos] == '*')
-                pat_pos++;
-            if (pat_pos == pat_len)
-                return B8_TRUE;
-            if (pat[pat_pos] != '[' && pat[pat_pos] != '?')
-            {
-                s = str + str_pos;
-                s_pos = str_pos;
-                while (s_pos < str_len && str[s_pos] != pat[pat_pos])
-                    s_pos++;
-                if (s_pos == str_len)
-                    return B8_FALSE;
-                str_pos = s_pos;
-            }
-            else
-            {
-                s = str + str_pos;
-            }
-            break;
-        case '?':
-            str_pos++;
-            pat_pos++;
-            break;
-        case '[':
-            pat_pos++;
-            if (pat_pos >= pat_len)
-                return B8_FALSE;
-            inv = (pat[pat_pos] == '^') ? B8_TRUE : B8_FALSE;
-            if (inv)
-                pat_pos++;
-            match = B8_FALSE;
-            while (pat_pos < pat_len && pat[pat_pos] != ']')
-            {
-                if (str[str_pos] == pat[pat_pos])
-                    match = B8_TRUE;
-                pat_pos++;
-            }
-            if (pat_pos == pat_len)
-                return B8_FALSE; // unmatched '['
-            if ((match && inv) || (!match && !inv))
-            {
-                if (!s)
-                    return B8_FALSE;
-                str_pos = (s - str) + 1;
-                pat_pos -= (inv ? 2 : 1);
-            }
-            else
-            {
+        switch (pat[pat_pos]) {
+            case '*':
+                while (pat_pos < pat_len && pat[pat_pos] == '*')
+                    pat_pos++;
+                if (pat_pos == pat_len)
+                    return B8_TRUE;
+                if (pat[pat_pos] != '[' && pat[pat_pos] != '?') {
+                    s = str + str_pos;
+                    s_pos = str_pos;
+                    while (s_pos < str_len && str[s_pos] != pat[pat_pos])
+                        s_pos++;
+                    if (s_pos == str_len)
+                        return B8_FALSE;
+                    str_pos = s_pos;
+                } else {
+                    s = str + str_pos;
+                }
+                break;
+            case '?':
                 str_pos++;
                 pat_pos++;
-            }
-            break;
-        default:
-            if (str[str_pos] != pat[pat_pos])
-            {
-                if (!s)
-                    return B8_FALSE;
-                str_pos = (s - str) + 1;
-                pat_pos -= 2;
-            }
-            else
-            {
-                str_pos++;
+                break;
+            case '[':
                 pat_pos++;
-            }
-            break;
+                if (pat_pos >= pat_len)
+                    return B8_FALSE;
+                inv = (pat[pat_pos] == '^') ? B8_TRUE : B8_FALSE;
+                if (inv)
+                    pat_pos++;
+                match = B8_FALSE;
+                while (pat_pos < pat_len && pat[pat_pos] != ']') {
+                    if (str[str_pos] == pat[pat_pos])
+                        match = B8_TRUE;
+                    pat_pos++;
+                }
+                if (pat_pos == pat_len)
+                    return B8_FALSE;  // unmatched '['
+                if ((match && inv) || (!match && !inv)) {
+                    if (!s)
+                        return B8_FALSE;
+                    str_pos = (s - str) + 1;
+                    pat_pos -= (inv ? 2 : 1);
+                } else {
+                    str_pos++;
+                    pat_pos++;
+                }
+                break;
+            default:
+                if (str[str_pos] != pat[pat_pos]) {
+                    if (!s)
+                        return B8_FALSE;
+                    str_pos = (s - str) + 1;
+                    pat_pos -= 2;
+                } else {
+                    str_pos++;
+                    pat_pos++;
+                }
+                break;
         }
     }
 
-    while (pat_pos < pat_len)
-    {
+    while (pat_pos < pat_len) {
         if (pat[pat_pos] == '?')
             return B8_FALSE;
         if (pat[pat_pos] != '*')
@@ -373,16 +329,14 @@ b8_t str_match(str_p str, u64_t str_len, str_p pat, u64_t pat_len)
     return B8_TRUE;
 }
 
-u64_t str_len(str_p s, u64_t n)
-{
+u64_t str_len(str_p s, u64_t n) {
     u64_t i;
     for (i = 0; i < n && s[i] != '\0'; ++i)
         ;
     return i;
 }
 
-u64_t str_cpy(str_p dst, str_p src)
-{
+u64_t str_cpy(str_p dst, str_p src) {
     u64_t i;
     for (i = 0; src[i] != '\0'; ++i)
         dst[i] = src[i];
@@ -391,8 +345,7 @@ u64_t str_cpy(str_p dst, str_p src)
     return i;
 }
 
-obj_p vn_vC8(lit_p fmt, va_list args)
-{
+obj_p vn_vC8(lit_p fmt, va_list args) {
     obj_p res = NULL_OBJ;
 
     str_vfmt_into(&res, -1, fmt, args);
@@ -400,8 +353,7 @@ obj_p vn_vC8(lit_p fmt, va_list args)
     return res;
 }
 
-obj_p vn_c8(lit_p fmt, ...)
-{
+obj_p vn_c8(lit_p fmt, ...) {
     obj_p res;
     va_list args;
 
@@ -412,13 +364,11 @@ obj_p vn_c8(lit_p fmt, ...)
     return res;
 }
 
-i64_t str_cmp(lit_p lhs, u64_t m, lit_p rhs, u64_t n)
-{
+i64_t str_cmp(lit_p lhs, u64_t m, lit_p rhs, u64_t n) {
     u64_t len = (m < n) ? m : n;
     i64_t res = __builtin_memcmp(lhs, rhs, len);
 
-    if (res == 0)
-    {
+    if (res == 0) {
         if (m < n)
             return -1;
         else if (m > n)
@@ -430,15 +380,13 @@ i64_t str_cmp(lit_p lhs, u64_t m, lit_p rhs, u64_t n)
     return res;
 }
 
-str_p str_rchr(lit_p s, i32_t c, u64_t n)
-{
+str_p str_rchr(lit_p s, i32_t c, u64_t n) {
     lit_p ptr, last_ptr, found_ptr;
 
     ptr = s;
     last_ptr = NULL;
 
-    while ((found_ptr = (lit_p)memchr(ptr, c, n - (ptr - s))) != NULL)
-    {
+    while ((found_ptr = (lit_p)memchr(ptr, c, n - (ptr - s))) != NULL) {
         last_ptr = found_ptr;
         ptr = found_ptr + 1;
     }
@@ -449,8 +397,7 @@ str_p str_rchr(lit_p s, i32_t c, u64_t n)
 /*
  * Simplefied version of murmurhash
  */
-u64_t str_hash(lit_p str, u64_t len)
-{
+u64_t str_hash(lit_p str, u64_t len) {
     u64_t i, k, k1;
     u64_t hash = 0x1234ABCD1234ABCD;
     u64_t c1 = 0x87c37b91114253d5ULL;
@@ -461,15 +408,9 @@ u64_t str_hash(lit_p str, u64_t len)
     const u64_t n = 0x52dce729ULL;
 
     // Process each 8-byte block of the key
-    for (i = 0; i + 7 < len; i += 8)
-    {
-        k = (u64_t)str[i] |
-            ((u64_t)str[i + 1] << 8) |
-            ((u64_t)str[i + 2] << 16) |
-            ((u64_t)str[i + 3] << 24) |
-            ((u64_t)str[i + 4] << 32) |
-            ((u64_t)str[i + 5] << 40) |
-            ((u64_t)str[i + 6] << 48) |
+    for (i = 0; i + 7 < len; i += 8) {
+        k = (u64_t)str[i] | ((u64_t)str[i + 1] << 8) | ((u64_t)str[i + 2] << 16) | ((u64_t)str[i + 3] << 24) |
+            ((u64_t)str[i + 4] << 32) | ((u64_t)str[i + 5] << 40) | ((u64_t)str[i + 6] << 48) |
             ((u64_t)str[i + 7] << 56);
 
         k *= c1;
@@ -482,26 +423,25 @@ u64_t str_hash(lit_p str, u64_t len)
 
     // Process the tail of the data
     k1 = 0;
-    switch (len & 7)
-    {
-    case 7:
-        k1 ^= ((u64_t)str[i + 6]) << 48; // fall through
-    case 6:
-        k1 ^= ((u64_t)str[i + 5]) << 40; // fall through
-    case 5:
-        k1 ^= ((u64_t)str[i + 4]) << 32; // fall through
-    case 4:
-        k1 ^= ((u64_t)str[i + 3]) << 24; // fall through
-    case 3:
-        k1 ^= ((u64_t)str[i + 2]) << 16; // fall through
-    case 2:
-        k1 ^= ((u64_t)str[i + 1]) << 8; // fall through
-    case 1:
-        k1 ^= ((u64_t)str[i]);
-        k1 *= c1;
-        k1 = (k1 << r1) | (k1 >> (64 - r1));
-        k1 *= c2;
-        hash ^= k1;
+    switch (len & 7) {
+        case 7:
+            k1 ^= ((u64_t)str[i + 6]) << 48;  // fall through
+        case 6:
+            k1 ^= ((u64_t)str[i + 5]) << 40;  // fall through
+        case 5:
+            k1 ^= ((u64_t)str[i + 4]) << 32;  // fall through
+        case 4:
+            k1 ^= ((u64_t)str[i + 3]) << 24;  // fall through
+        case 3:
+            k1 ^= ((u64_t)str[i + 2]) << 16;  // fall through
+        case 2:
+            k1 ^= ((u64_t)str[i + 1]) << 8;  // fall through
+        case 1:
+            k1 ^= ((u64_t)str[i]);
+            k1 *= c1;
+            k1 = (k1 << r1) | (k1 >> (64 - r1));
+            k1 *= c2;
+            hash ^= k1;
     }
 
     // Finalize the hash

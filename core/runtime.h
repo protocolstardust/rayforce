@@ -37,16 +37,15 @@
 /*
  * Runtime structure.
  */
-typedef struct runtime_t
-{
-    obj_p args;          // Command line arguments.
-    sys_info_t sys_info; // System information.
-    env_t env;           // Environment.
-    symbols_p symbols;   // vector_symbols pool.
-    poll_p poll;         // I/O event loop handle.
-    obj_p fds;           // File descriptors.
-    sock_addr_t addr;    // Socket address that a process listen.
-    pool_p pool;         // Executors pool.
+typedef struct runtime_t {
+    obj_p args;           // Command line arguments.
+    sys_info_t sys_info;  // System information.
+    env_t env;            // Environment.
+    symbols_p symbols;    // vector_symbols pool.
+    poll_p poll;          // I/O event loop handle.
+    obj_p fds;            // File descriptors.
+    sock_addr_t addr;     // Socket address that a process listen.
+    pool_p pool;          // Executors pool.
 } *runtime_p;
 
 extern runtime_p __RUNTIME;
@@ -57,4 +56,4 @@ nil_t runtime_destroy(nil_t);
 obj_p runtime_get_arg(lit_p key);
 inline __attribute__((always_inline)) runtime_p runtime_get(nil_t) { return __RUNTIME; }
 
-#endif // RUNTIME_H
+#endif  // RUNTIME_H

@@ -26,8 +26,7 @@
 
 #include "rayforce.h"
 
-typedef struct queue_t
-{
+typedef struct queue_t {
     i64_t size;
     i64_t head;
     i64_t tail;
@@ -39,4 +38,4 @@ nil_t queue_free(queue_p queue);
 nil_t queue_push(queue_p queue, raw_p val);
 raw_p queue_pop(queue_p queue);
 
-#endif // QUEUE_H
+#endif  // QUEUE_H

@@ -41,10 +41,9 @@
 #define MSG_TYPE_RESP 2
 
 #define TX_QUEUE_SIZE 16
-#define SELECTOR_ID_OFFSET 3 // shifts all selector ids by 2 to avoid 0, 1 ,2 ids (stdin, stdout, stderr)
+#define SELECTOR_ID_OFFSET 3  // shifts all selector ids by 2 to avoid 0, 1 ,2 ids (stdin, stdout, stderr)
 
-typedef enum poll_result_t
-{
+typedef enum poll_result_t {
     POLL_DONE = 0,
     POLL_PENDING = 1,
     POLL_ERROR = 2,
@@ -52,14 +51,12 @@ typedef enum poll_result_t
 
 #if defined(OS_WINDOWS)
 
-typedef struct selector_t
-{
-    i64_t fd; // socket fd
-    i64_t id; // selector id
+typedef struct selector_t {
+    i64_t fd;  // socket fd
+    i64_t id;  // selector id
     u8_t version;
 
-    struct
-    {
+    struct {
         b8_t ignore;
         u8_t msgtype;
         b8_t header;
@@ -71,8 +68,7 @@ typedef struct selector_t
         WSABUF wsa_buf;
     } rx;
 
-    struct
-    {
+    struct {
         b8_t ignore;
         OVERLAPPED overlapped;
         DWORD flags;
@@ -80,50 +76,46 @@ typedef struct selector_t
         i64_t size;
         u8_t *buf;
         WSABUF wsa_buf;
-        queue_p queue; // queue for async messages waiting to be sent
+        queue_p queue;  // queue for async messages waiting to be sent
     } tx;
 
 } *selector_p;
 
 #else
 
-typedef struct selector_t
-{
-    i64_t fd; // socket fd
-    i64_t id; // selector id
+typedef struct selector_t {
+    i64_t fd;  // socket fd
+    i64_t id;  // selector id
     u8_t version;
 
-    struct
-    {
+    struct {
         u8_t msgtype;
         i64_t bytes_transfered;
         i64_t size;
         u8_t *buf;
     } rx;
 
-    struct
-    {
+    struct {
         b8_t isset;
         i64_t bytes_transfered;
         i64_t size;
         u8_t *buf;
-        queue_p queue; // queue for async messages waiting to be sent
+        queue_p queue;  // queue for async messages waiting to be sent
     } tx;
 
 } *selector_p;
 
 #endif
 
-typedef struct poll_t
-{
+typedef struct poll_t {
     i64_t code;
     i64_t poll_fd;
     i64_t ipc_fd;
     obj_p replfile;
     obj_p ipcfile;
     term_p term;
-    freelist_p selectors; // freelist of selectors
-    timers_p timers;      // timers heap
+    freelist_p selectors;  // freelist of selectors
+    timers_p timers;       // timers heap
 } *poll_p;
 
 poll_p poll_init(i64_t port);
@@ -139,4 +131,4 @@ obj_p ipc_send_async(poll_p poll, i64_t id, obj_p msg);
 // Exit the app
 nil_t poll_exit(poll_p poll, i64_t code);
 
-#endif // POLL_H
+#endif  // POLL_H

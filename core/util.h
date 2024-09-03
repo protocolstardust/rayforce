@@ -52,8 +52,7 @@
 nil_t dump_stack(nil_t);
 
 #define DEBUG_PRINT(fmt, ...)                \
-    do                                       \
-    {                                        \
+    do {                                     \
         fprintf(stderr, fmt, ##__VA_ARGS__); \
         fprintf(stderr, "\n");               \
         fflush(stderr);                      \
@@ -61,8 +60,7 @@ nil_t dump_stack(nil_t);
 
 #define DEBUG_ASSERT(x, fmt, ...)                      \
     {                                                  \
-        if (!(x))                                      \
-        {                                              \
+        if (!(x)) {                                    \
             fprintf(stderr, "-- ASSERTION FAILED:\n"); \
             fprintf(stderr, fmt, ##__VA_ARGS__);       \
             fprintf(stderr, "\n--\n");                 \
@@ -105,7 +103,8 @@ nil_t dump_stack(nil_t);
         printf("%f\n", ((f64_t)(clock() - timer)) / CLOCKS_PER_SEC * 1000); \
     }
 
-#define ENUM_KEY(x) (x->mmod == MMOD_INTERNAL ? str_from_symbol(AS_LIST(x)[0]->i64) : AS_C8((obj_p)((str_p)x - RAY_PAGE_SIZE)))
+#define ENUM_KEY(x) \
+    (x->mmod == MMOD_INTERNAL ? str_from_symbol(AS_LIST(x)[0]->i64) : AS_C8((obj_p)((str_p)x - RAY_PAGE_SIZE)))
 #define ENUM_VAL(x) (x->mmod == MMOD_INTERNAL ? AS_LIST(x)[1] : x)
 
 #define ANYMAP_KEY(x) (((obj_p)((str_p)x - RAY_PAGE_SIZE))->obj)
@@ -116,10 +115,8 @@ nil_t dump_stack(nil_t);
         u64_t _i, _l;                             \
         obj_p _res;                               \
         _l = (x)->len;                            \
-        for (_i = 0; _i < _l; _i++)               \
-        {                                         \
-            if (IS_ERROR(AS_LIST(x)[_i]))         \
-            {                                     \
+        for (_i = 0; _i < _l; _i++) {             \
+            if (IS_ERROR(AS_LIST(x)[_i])) {       \
                 _res = clone_obj(AS_LIST(x)[_i]); \
                 drop_obj(x);                      \
                 return _res;                      \
@@ -131,4 +128,4 @@ b8_t is_valid(obj_p obj);
 u32_t next_power_of_two_u32(u32_t n);
 u64_t next_power_of_two_u64(u64_t n);
 
-#endif // UTIL_H
+#endif  // UTIL_H

@@ -34,8 +34,7 @@
 
 #define DEFAULT_MPMC_SIZE 2048
 
-mpmc_p mpmc_create(u64_t size)
-{
+mpmc_p mpmc_create(u64_t size) {
     size = next_power_of_two_u64(size);
 
     i64_t i;
@@ -64,37 +63,31 @@ mpmc_p mpmc_create(u64_t size)
     return queue;
 }
 
-nil_t mpmc_destroy(mpmc_p queue)
-{
+nil_t mpmc_destroy(mpmc_p queue) {
     if (queue->buf)
         heap_unmap(queue->buf, (queue->mask + 1) * sizeof(struct cell_t));
 
     heap_unmap(queue, sizeof(struct mpmc_t));
 }
 
-i64_t mpmc_push(mpmc_p queue, task_data_t data)
-{
+i64_t mpmc_push(mpmc_p queue, task_data_t data) {
     cell_p cell;
     i64_t pos, seq, dif;
     u64_t rounds = 0;
 
     pos = __atomic_load_n(&queue->tail, __ATOMIC_RELAXED);
 
-    for (;;)
-    {
+    for (;;) {
         cell = &queue->buf[pos & queue->mask];
         seq = __atomic_load_n(&cell->seq, __ATOMIC_ACQUIRE);
 
         dif = seq - pos;
-        if (dif == 0)
-        {
+        if (dif == 0) {
             if (__atomic_compare_exchange_n(&queue->tail, &pos, pos + 1, 1, __ATOMIC_RELAXED, __ATOMIC_RELAXED))
                 break;
-        }
-        else if (dif < 0)
+        } else if (dif < 0)
             return -1;
-        else
-        {
+        else {
             backoff_spin(&rounds);
             pos = __atomic_load_n(&queue->tail, __ATOMIC_RELAXED);
         }
@@ -106,8 +99,7 @@ i64_t mpmc_push(mpmc_p queue, task_data_t data)
     return 0;
 }
 
-task_data_t mpmc_pop(mpmc_p queue)
-{
+task_data_t mpmc_pop(mpmc_p queue) {
     cell_p cell;
     task_data_t data = {.id = -1, .fn = NULL, .argc = 0, .result = NULL_OBJ};
     i64_t pos, seq, dif;
@@ -115,20 +107,16 @@ task_data_t mpmc_pop(mpmc_p queue)
 
     pos = __atomic_load_n(&queue->head, __ATOMIC_RELAXED);
 
-    for (;;)
-    {
+    for (;;) {
         cell = &queue->buf[pos & queue->mask];
         seq = __atomic_load_n(&cell->seq, __ATOMIC_ACQUIRE);
         dif = seq - (pos + 1);
-        if (dif == 0)
-        {
+        if (dif == 0) {
             if (__atomic_compare_exchange_n(&queue->head, &pos, pos + 1, 1, __ATOMIC_RELAXED, __ATOMIC_RELAXED))
                 break;
-        }
-        else if (dif < 0)
+        } else if (dif < 0)
             return data;
-        else
-        {
+        else {
             backoff_spin(&rounds);
             pos = __atomic_load_n(&queue->head, __ATOMIC_RELAXED);
         }
@@ -140,45 +128,38 @@ task_data_t mpmc_pop(mpmc_p queue)
     return data;
 }
 
-u64_t mpmc_count(mpmc_p queue)
-{
+u64_t mpmc_count(mpmc_p queue) {
     return __atomic_load_n(&queue->tail, __ATOMIC_SEQ_CST) - __atomic_load_n(&queue->head, __ATOMIC_SEQ_CST);
 }
 
-u64_t mpmc_size(mpmc_p queue)
-{
-    return queue->mask + 1;
-}
+u64_t mpmc_size(mpmc_p queue) { return queue->mask + 1; }
 
-obj_p pool_call_task_fn(raw_p fn, u64_t argc, raw_p argv[])
-{
-    switch (argc)
-    {
-    case 0:
-        return ((fn0)fn)();
-    case 1:
-        return ((fn1)fn)(argv[0]);
-    case 2:
-        return ((fn2)fn)(argv[0], argv[1]);
-    case 3:
-        return ((fn3)fn)(argv[0], argv[1], argv[2]);
-    case 4:
-        return ((fn4)fn)(argv[0], argv[1], argv[2], argv[3]);
-    case 5:
-        return ((fn5)fn)(argv[0], argv[1], argv[2], argv[3], argv[4]);
-    case 6:
-        return ((fn6)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
-    case 7:
-        return ((fn7)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
-    case 8:
-        return ((fn8)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7]);
-    default:
-        return NULL_OBJ;
+obj_p pool_call_task_fn(raw_p fn, u64_t argc, raw_p argv[]) {
+    switch (argc) {
+        case 0:
+            return ((fn0)fn)();
+        case 1:
+            return ((fn1)fn)(argv[0]);
+        case 2:
+            return ((fn2)fn)(argv[0], argv[1]);
+        case 3:
+            return ((fn3)fn)(argv[0], argv[1], argv[2]);
+        case 4:
+            return ((fn4)fn)(argv[0], argv[1], argv[2], argv[3]);
+        case 5:
+            return ((fn5)fn)(argv[0], argv[1], argv[2], argv[3], argv[4]);
+        case 6:
+            return ((fn6)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+        case 7:
+            return ((fn7)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
+        case 8:
+            return ((fn8)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7]);
+        default:
+            return NULL_OBJ;
     }
 }
 
-raw_p executor_run(raw_p arg)
-{
+raw_p executor_run(raw_p arg) {
     executor_t *executor = (executor_t *)arg;
     task_data_t data;
     u64_t i, tasks_count;
@@ -188,13 +169,11 @@ raw_p executor_run(raw_p arg)
     executor->interpreter = interpreter_create(executor->id + 1);
     rc_sync(B8_TRUE);
 
-    for (;;)
-    {
+    for (;;) {
         mutex_lock(&executor->pool->mutex);
         cond_wait(&executor->pool->run, &executor->pool->mutex);
 
-        if (executor->pool->state == POOL_STATE_STOP)
-        {
+        if (executor->pool->state == POOL_STATE_STOP) {
             mutex_unlock(&executor->pool->mutex);
             break;
         }
@@ -203,8 +182,7 @@ raw_p executor_run(raw_p arg)
         mutex_unlock(&executor->pool->mutex);
 
         // process tasks
-        for (i = 0; i < tasks_count; i++)
-        {
+        for (i = 0; i < tasks_count; i++) {
             data = mpmc_pop(executor->pool->task_queue);
 
             // Nothing to do
@@ -217,8 +195,7 @@ raw_p executor_run(raw_p arg)
             mpmc_push(executor->pool->result_queue, data);
         }
 
-        if (i > 0)
-        {
+        if (i > 0) {
             mutex_lock(&executor->pool->mutex);
             executor->pool->done_count += i;
             cond_signal(&executor->pool->done);
@@ -232,8 +209,7 @@ raw_p executor_run(raw_p arg)
     return NULL;
 }
 
-pool_p pool_create(u64_t executors_count)
-{
+pool_p pool_create(u64_t executors_count) {
     u64_t i;
     pool_p pool;
 
@@ -249,8 +225,7 @@ pool_p pool_create(u64_t executors_count)
     pool->done = cond_create();
     mutex_lock(&pool->mutex);
 
-    for (i = 0; i < executors_count; i++)
-    {
+    for (i = 0; i < executors_count; i++) {
         pool->executors[i].id = i;
         pool->executors[i].pool = pool;
         pool->executors[i].handle = ray_thread_create(executor_run, &pool->executors[i]);
@@ -266,8 +241,7 @@ pool_p pool_create(u64_t executors_count)
     return pool;
 }
 
-nil_t pool_destroy(pool_p pool)
-{
+nil_t pool_destroy(pool_p pool) {
     u64_t i, n;
 
     mutex_lock(&pool->mutex);
@@ -276,8 +250,7 @@ nil_t pool_destroy(pool_p pool)
     mutex_unlock(&pool->mutex);
 
     n = pool->executors_count;
-    for (i = 0; i < n; i++)
-    {
+    for (i = 0; i < n; i++) {
         if (thread_join(pool->executors[i].handle) != 0)
             printf("Pool destroy: failed to join thread %lld\n", i);
     }
@@ -291,13 +264,9 @@ nil_t pool_destroy(pool_p pool)
     heap_unmap(pool, sizeof(struct pool_t) + sizeof(executor_t) * pool->executors_count);
 }
 
-pool_p pool_get(nil_t)
-{
-    return runtime_get()->pool;
-}
+pool_p pool_get(nil_t) { return runtime_get()->pool; }
 
-nil_t pool_prepare(pool_p pool)
-{
+nil_t pool_prepare(pool_p pool) {
     u64_t i, n;
     obj_p env;
 
@@ -312,8 +281,7 @@ nil_t pool_prepare(pool_p pool)
     pool->done_count = 0;
 
     n = pool->executors_count;
-    for (i = 0; i < n; i++)
-    {
+    for (i = 0; i < n; i++) {
         heap_borrow(pool->executors[i].heap);
         interpreter_env_set(pool->executors[i].interpreter, clone_obj(env));
     }
@@ -321,8 +289,7 @@ nil_t pool_prepare(pool_p pool)
     mutex_unlock(&pool->mutex);
 }
 
-nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
-{
+nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...) {
     u64_t i, size;
     va_list args;
     task_data_t data, old_data;
@@ -344,14 +311,13 @@ nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
 
     va_end(args);
 
-    if (mpmc_push(pool->task_queue, data) == -1) // queue is full
+    if (mpmc_push(pool->task_queue, data) == -1)  // queue is full
     {
         size = pool->tasks_count * 2;
         // Grow task queue
         queue = mpmc_create(size);
 
-        for (;;)
-        {
+        for (;;) {
             old_data = mpmc_pop(pool->task_queue);
             if (old_data.id == -1)
                 break;
@@ -371,8 +337,7 @@ nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
     mutex_unlock(&pool->mutex);
 }
 
-obj_p pool_run(pool_p pool)
-{
+obj_p pool_run(pool_p pool) {
     u64_t i, n, tasks_count, executors_count;
     obj_p res;
     task_data_t data;
@@ -388,19 +353,16 @@ obj_p pool_run(pool_p pool)
     executors_count = pool->executors_count;
 
     // wake up needed executors
-    if (executors_count < tasks_count)
-    {
+    if (executors_count < tasks_count) {
         for (i = 0; i < executors_count; i++)
             cond_signal(&pool->run);
-    }
-    else
+    } else
         cond_broadcast(&pool->run);
 
     mutex_unlock(&pool->mutex);
 
     // process tasks on self too
-    for (i = 0; i < tasks_count; i++)
-    {
+    for (i = 0; i < tasks_count; i++) {
         data = mpmc_pop(pool->task_queue);
 
         // Nothing to do
@@ -424,8 +386,7 @@ obj_p pool_run(pool_p pool)
     // collect results
     res = LIST(tasks_count);
 
-    for (i = 0; i < tasks_count; i++)
-    {
+    for (i = 0; i < tasks_count; i++) {
         data = mpmc_pop(pool->result_queue);
         if (data.id < 0 || data.id >= (i64_t)tasks_count)
             PANIC("Pool run: corrupted data: %lld\n", data.id);
@@ -435,8 +396,7 @@ obj_p pool_run(pool_p pool)
 
     // merge heaps
     n = pool->executors_count;
-    for (i = 0; i < n; i++)
-    {
+    for (i = 0; i < n; i++) {
         heap_merge(pool->executors[i].heap);
         interpreter_env_unset(pool->executors[i].interpreter);
     }
@@ -448,8 +408,7 @@ obj_p pool_run(pool_p pool)
     return res;
 }
 
-u64_t pool_split_by(pool_p pool, u64_t input_len, u64_t groups_len)
-{
+u64_t pool_split_by(pool_p pool, u64_t input_len, u64_t groups_len) {
     if (pool == NULL)
         return 1;
     else if (interpreter_current()->id != 0)

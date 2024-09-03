@@ -37,7 +37,4 @@
 
 #include "eval.h"
 
-nil_t poll_exit(poll_p poll, i64_t code)
-{
-    poll->code = code;
-}
+nil_t poll_exit(poll_p poll, i64_t code) { poll->code = code; }

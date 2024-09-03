@@ -27,8 +27,7 @@
 #include "format.h"
 #include "runtime.h"
 
-i32_t cpu_cores()
-{
+i32_t cpu_cores() {
 #if defined(OS_WASM)
     return 1;
 #elif defined(OS_WINDOWS)
@@ -42,14 +41,13 @@ i32_t cpu_cores()
 #endif
 }
 
-sys_info_t sys_info(i32_t threads)
-{
+sys_info_t sys_info(i32_t threads) {
     sys_info_t info;
 
     info.major_version = RAYFORCE_MAJOR_VERSION;
     info.minor_version = RAYFORCE_MINOR_VERSION;
     strncpy(info.build_date, __DATE__, sizeof(info.build_date));
-    info.build_date[strcspn(info.build_date, "\n")] = 0; // Remove the newline
+    info.build_date[strcspn(info.build_date, "\n")] = 0;  // Remove the newline
     info.cores = cpu_cores();
     info.threads = (threads == 0 || threads > info.cores) ? info.cores : threads;
     strncpy(info.cpu, "Unknown CPU", sizeof(info.cpu));
@@ -70,12 +68,10 @@ sys_info_t sys_info(i32_t threads)
     FILE *cpuFile = fopen("/proc/cpuinfo", "r");
     c8_t line[256];
 
-    while (fgets(line, sizeof(line), cpuFile))
-    {
-        if (strncmp(line, "model name", 10) == 0)
-        {
+    while (fgets(line, sizeof(line), cpuFile)) {
+        if (strncmp(line, "model name", 10) == 0) {
             strncpy(info.cpu, strchr(line, ':') + 2, sizeof(info.cpu) - 1);
-            info.cpu[strcspn(info.cpu, "\n")] = 0; // Remove the newline
+            info.cpu[strcspn(info.cpu, "\n")] = 0;  // Remove the newline
             break;
         }
     }
@@ -83,10 +79,8 @@ sys_info_t sys_info(i32_t threads)
     fclose(cpuFile);
 
     FILE *memFile = fopen("/proc/meminfo", "r");
-    while (fgets(line, sizeof(line), memFile))
-    {
-        if (strncmp(line, "MemTotal:", 9) == 0)
-        {
+    while (fgets(line, sizeof(line), memFile)) {
+        if (strncmp(line, "MemTotal:", 9) == 0) {
             i32_t totalKB;
             sscanf(strchr(line, ':') + 1, "%d", &totalKB);
             info.mem = totalKB / 1024;

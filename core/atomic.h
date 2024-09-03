@@ -33,4 +33,4 @@
 
 nil_t backoff_spin(u64_t *rounds);
 
-#endif // ATOMIC_H
+#endif  // ATOMIC_H

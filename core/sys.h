@@ -26,8 +26,7 @@
 
 #include "rayforce.h"
 
-typedef struct sys_info_t
-{
+typedef struct sys_info_t {
     i32_t major_version;
     i32_t minor_version;
     c8_t build_date[256];
@@ -41,4 +40,4 @@ typedef struct sys_info_t
 
 sys_info_t sys_info(i32_t threads);
 
-#endif // SYS_H
+#endif  // SYS_H

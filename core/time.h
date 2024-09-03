@@ -29,56 +29,45 @@
 #define TIMEOUT_INFINITY -1
 #define TIMEIT_SPANS_MAX 1024
 
-typedef struct ray_timer_t
-{
-    i64_t id;  // Timer ID
-    i64_t tic; // Interval between timer calls
-    i64_t exp; // Expiration time of the timer
-    i64_t num; // Number of times the timer has to be called
-    obj_p clb; // Callback function to be called when timer expires
+typedef struct ray_timer_t {
+    i64_t id;   // Timer ID
+    i64_t tic;  // Interval between timer calls
+    i64_t exp;  // Expiration time of the timer
+    i64_t num;  // Number of times the timer has to be called
+    obj_p clb;  // Callback function to be called when timer expires
 } *ray_timer_p;
 
-typedef struct timers_t
-{
-    ray_timer_p *timers; // Array of timer pointers
-    u64_t capacity;      // Maximum size of the heap
-    u64_t size;          // Current number of timers in the heap
-    i64_t counter;       // Counter to assign unique IDs to timers
+typedef struct timers_t {
+    ray_timer_p *timers;  // Array of timer pointers
+    u64_t capacity;       // Maximum size of the heap
+    u64_t size;           // Current number of timers in the heap
+    i64_t counter;        // Counter to assign unique IDs to timers
 } *timers_p;
 
 #if defined(OS_WINDOWS)
 
-typedef struct
-{
+typedef struct {
     LARGE_INTEGER clock;
     LARGE_INTEGER freq;
 } ray_clock_t;
 
 #else
 
-typedef struct
-{
+typedef struct {
     struct timespec clock;
 } ray_clock_t;
 
 #endif
 
-typedef enum
-{
-    TIMEIT_SPAN_START,
-    TIMEIT_SPAN_END,
-    TIMEIT_SPAN_TICK
-} timeit_span_type_t;
+typedef enum { TIMEIT_SPAN_START, TIMEIT_SPAN_END, TIMEIT_SPAN_TICK } timeit_span_type_t;
 
-typedef struct
-{
+typedef struct {
     timeit_span_type_t type;
     lit_p msg;
     ray_clock_t clock;
 } timeit_span_t;
 
-typedef struct
-{
+typedef struct {
     b8_t active;
     u64_t n;
     timeit_span_t spans[TIMEIT_SPANS_MAX];
@@ -102,4 +91,4 @@ nil_t timer_sleep(u64_t ms);
 obj_p ray_timer(obj_p *x, u64_t n);
 obj_p ray_timeit(obj_p x);
 
-#endif // TIME_H
+#endif  // TIME_H

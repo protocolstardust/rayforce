@@ -31,21 +31,19 @@
 #define STRING_NODE_SIZE RAY_PAGE_SIZE
 #define STRING_POOL_SIZE (RAY_PAGE_SIZE * 1024ull * 1024ull)
 
-typedef struct symbol_t
-{
+typedef struct symbol_t {
     u64_t len;
     lit_p str;
     struct symbol_t *next;
 } *symbol_p;
 
-typedef struct symbols_t
-{
+typedef struct symbols_t {
     u64_t size;
     u64_t count;
     symbol_p *syms;
-    str_p string_pool; // string pool
-    str_p string_node; // string pool current node
-    str_p string_curr; // string pool cursor
+    str_p string_pool;  // string pool
+    str_p string_node;  // string pool current node
+    str_p string_curr;  // string pool cursor
 } *symbols_p;
 
 i64_t symbols_intern(lit_p s, u64_t len);
@@ -55,4 +53,4 @@ str_p str_from_symbol(i64_t key);
 u64_t symbols_count(symbols_p symbols);
 nil_t symbols_rebuild(symbols_p symbols);
 
-#endif // SYMBOLS_H
+#endif  // SYMBOLS_H

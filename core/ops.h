@@ -67,7 +67,8 @@ extern struct obj_t __NULL_OBJECT;
 #define fdivi64(x, y) (((x) == NULL_I64 || (y) == NULL_I64) ? NULL_F64 : ((f64_t)(x) / (f64_t)(y)))
 #define divf64(x, y) ((i64_t)((x) / (y)))
 #define fdivf64(x, y) ((x) / (y))
-#define modi64(x, y) (((y) == 0) ? NULL_I64 : (((x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : (((i64_t)(x)) % ((i64_t)(y)))))
+#define modi64(x, y) \
+    (((y) == 0) ? NULL_I64 : (((x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : (((i64_t)(x)) % ((i64_t)(y)))))
 #define modf64(x, y) ((x) - (y) * ((i64_t)((x) / (y))))
 #define maxi64(x, y) ((x) > (y) ? (x) : (y))
 #define maxf64(x, y) ((x) > (y) ? (x) : (y))
@@ -88,14 +89,9 @@ typedef obj_p (*unary_f)(obj_p);
 typedef obj_p (*binary_f)(obj_p, obj_p);
 typedef obj_p (*vary_f)(obj_p *, u64_t);
 
-typedef enum
-{
-    ERROR_TYPE_OS,
-    ERROR_TYPE_SYS,
-    ERROR_TYPE_SOCK
-} os_ray_error_type_t;
+typedef enum { ERROR_TYPE_OS, ERROR_TYPE_SYS, ERROR_TYPE_SOCK } os_ray_error_type_t;
 
-b8_t ops_AS_B8(obj_p x);
+b8_t ops_as_b8(obj_p x);
 b8_t ops_is_nan(f64_t x);
 b8_t ops_is_prime(u64_t x);
 u64_t ops_next_prime(u64_t x);
@@ -108,4 +104,4 @@ obj_p index_find_i64(i64_t x[], u64_t xl, i64_t y[], u64_t yl);
 obj_p ops_where(b8_t *mask, u64_t n);
 obj_p sys_error(os_ray_error_type_t, lit_p msg);
 
-#endif // OPS_H
+#endif  // OPS_H

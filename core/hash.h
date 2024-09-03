@@ -40,15 +40,13 @@ i64_t ht_oa_tab_get_with(obj_p obj, i64_t key, hash_f hash, cmp_f cmp, raw_p see
 nil_t ht_oa_rehash(obj_p *obj, hash_f hash, raw_p seed);
 
 // Multithreaded lockfree hash table
-typedef struct bucket_t
-{
+typedef struct bucket_t {
     i64_t key;
     i64_t val;
     struct bucket_t *next;
 } *bucket_p;
 
-typedef struct ht_bk_t
-{
+typedef struct ht_bk_t {
     u64_t size;
     u64_t count;
     bucket_p table[];
@@ -59,10 +57,8 @@ nil_t ht_bk_destroy(ht_bk_p ht);
 nil_t ht_bk_rehash(ht_bk_p *ht, u64_t new_size);
 i64_t ht_bk_insert(ht_bk_p ht, i64_t key, i64_t val);
 i64_t ht_bk_insert_par(ht_bk_p ht, i64_t key, i64_t val);
-i64_t ht_bk_insert_with(ht_bk_p ht, i64_t key, i64_t val,
-                        hash_f hash, cmp_f cmp, raw_p seed);
-i64_t ht_bk_insert_with_par(ht_bk_p ht, i64_t key, i64_t val,
-                            hash_f hash, cmp_f cmp, raw_p seed);
+i64_t ht_bk_insert_with(ht_bk_p ht, i64_t key, i64_t val, hash_f hash, cmp_f cmp, raw_p seed);
+i64_t ht_bk_insert_with_par(ht_bk_p ht, i64_t key, i64_t val, hash_f hash, cmp_f cmp, raw_p seed);
 i64_t ht_bk_get(ht_bk_p ht, i64_t key);
 
 // Knuth's multiplicative hash
@@ -82,8 +78,7 @@ i64_t hash_cmp_i64(i64_t a, i64_t b, raw_p seed);
 
 // Special hashes
 u64_t hash_index_obj(obj_p obj);
-inline __attribute__((always_inline)) u64_t hash_index_u64(u64_t h, u64_t k)
-{
+inline __attribute__((always_inline)) u64_t hash_index_u64(u64_t h, u64_t k) {
     const u64_t s = U64_HASH_SEED;
     u64_t a, b;
 
@@ -96,4 +91,4 @@ inline __attribute__((always_inline)) u64_t hash_index_u64(u64_t h, u64_t k)
     return b;
 }
 
-#endif // HASH_H
+#endif  // HASH_H

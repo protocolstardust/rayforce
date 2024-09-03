@@ -21,34 +21,34 @@
  *   SOFTWARE.
  */
 
-#include <stdarg.h>
 #include "env.h"
-#include "util.h"
-#include "unary.h"
+#include <stdarg.h>
 #include "binary.h"
-#include "vary.h"
-#include "guid.h"
-#include "runtime.h"
-#include "format.h"
-#include "ops.h"
-#include "serde.h"
-#include "math.h"
 #include "cmp.h"
-#include "logic.h"
-#include "items.h"
 #include "compose.h"
-#include "order.h"
-#include "misc.h"
-#include "io.h"
-#include "update.h"
-#include "join.h"
-#include "query.h"
 #include "cond.h"
-#include "iter.h"
 #include "dynlib.h"
-#include "time.h"
+#include "format.h"
+#include "guid.h"
+#include "io.h"
+#include "items.h"
+#include "iter.h"
+#include "join.h"
+#include "logic.h"
+#include "math.h"
+#include "misc.h"
+#include "ops.h"
+#include "order.h"
+#include "query.h"
+#include "runtime.h"
+#include "serde.h"
 #include "string.h"
+#include "time.h"
 #include "timestamp.h"
+#include "unary.h"
+#include "update.h"
+#include "util.h"
+#include "vary.h"
 
 i64_t SYMBOL_FN;
 i64_t SYMBOL_SELF;
@@ -78,15 +78,13 @@ i64_t SYMBOL_SYM;
         push_sym(&AS_LIST(r)[1], s);   \
     };
 
-obj_p ray_env(obj_p *x, u64_t n)
-{
+obj_p ray_env(obj_p *x, u64_t n) {
     UNUSED(x);
     UNUSED(n);
     return clone_obj(runtime_get()->env.variables);
 }
 
-obj_p ray_memstat(obj_p *x, u64_t n)
-{
+obj_p ray_memstat(obj_p *x, u64_t n) {
     UNUSED(x);
     UNUSED(n);
     obj_p keys, vals;
@@ -268,8 +266,7 @@ nil_t init_typenames(obj_p typenames)
 }
 // clang-format on
 
-nil_t init_keywords(obj_p *keywords)
-{
+nil_t init_keywords(obj_p *keywords) {
     SYMBOL_FN = symbols_intern("fn", 2);
     push_raw(keywords, &SYMBOL_FN);
     SYMBOL_DO = symbols_intern("do", 2);
@@ -292,8 +289,7 @@ nil_t init_keywords(obj_p *keywords)
     push_raw(keywords, &SYMBOL_SYM);
 }
 
-env_t env_create(nil_t)
-{
+env_t env_create(nil_t) {
     obj_p keywords = SYMBOL(0);
     obj_p functions = dict(SYMBOL(0), LIST(0));
     obj_p variables = dict(SYMBOL(0), LIST(0));
@@ -313,16 +309,14 @@ env_t env_create(nil_t)
     return env;
 }
 
-nil_t env_destroy(env_t *env)
-{
+nil_t env_destroy(env_t *env) {
     drop_obj(env->keywords);
     drop_obj(env->functions);
     drop_obj(env->variables);
     drop_obj(env->typenames);
 }
 
-i64_t env_get_typename_by_type(env_t *env, i8_t type)
-{
+i64_t env_get_typename_by_type(env_t *env, i8_t type) {
     i64_t t, i;
 
     t = type;
@@ -334,8 +328,7 @@ i64_t env_get_typename_by_type(env_t *env, i8_t type)
     return AS_SYMBOL(AS_LIST(env->typenames)[1])[i];
 }
 
-i8_t env_get_type_by_type_name(env_t *env, i64_t name)
-{
+i8_t env_get_type_by_type_name(env_t *env, i64_t name) {
     i64_t n, i;
 
     n = name;
@@ -347,25 +340,21 @@ i8_t env_get_type_by_type_name(env_t *env, i64_t name)
     return (i8_t)AS_I64(AS_LIST(env->typenames)[0])[i];
 }
 
-str_p env_get_type_name(i8_t type)
-{
+str_p env_get_type_name(i8_t type) {
     env_t *env = &runtime_get()->env;
     i64_t name = env_get_typename_by_type(env, type);
 
     return str_from_symbol(name);
 }
 
-str_p env_get_internal_name(obj_p obj)
-{
+str_p env_get_internal_name(obj_p obj) {
     obj_p functions = runtime_get()->env.functions;
     i64_t sym = 0;
     u64_t i, l;
 
     l = AS_LIST(functions)[1]->len;
-    for (i = 0; i < l; i++)
-    {
-        if (AS_LIST(AS_LIST(functions)[1])[i]->i64 == obj->i64)
-        {
+    for (i = 0; i < l; i++) {
+        if (AS_LIST(AS_LIST(functions)[1])[i]->i64 == obj->i64) {
             sym = AS_SYMBOL(AS_LIST(functions)[0])[i];
             break;
         }
@@ -377,8 +366,7 @@ str_p env_get_internal_name(obj_p obj)
     return (str_p) "@fn";
 }
 
-obj_p env_get_internal_function(lit_p name)
-{
+obj_p env_get_internal_function(lit_p name) {
     i64_t i;
 
     i = find_sym(AS_LIST(runtime_get()->env.functions)[0], name);
@@ -389,8 +377,7 @@ obj_p env_get_internal_function(lit_p name)
     return NULL_OBJ;
 }
 
-obj_p env_get_internal_function_by_id(i64_t id)
-{
+obj_p env_get_internal_function_by_id(i64_t id) {
     i64_t i;
 
     i = find_raw(AS_LIST(runtime_get()->env.functions)[0], &id);
@@ -401,8 +388,7 @@ obj_p env_get_internal_function_by_id(i64_t id)
     return NULL_OBJ;
 }
 
-str_p env_get_internal_entry_name(lit_p name, u64_t len, obj_p entries, u64_t *index, b8_t exact)
-{
+str_p env_get_internal_entry_name(lit_p name, u64_t len, obj_p entries, u64_t *index, b8_t exact) {
     i64_t i, l, *names;
     u64_t n;
     str_p nm;
@@ -410,24 +396,18 @@ str_p env_get_internal_entry_name(lit_p name, u64_t len, obj_p entries, u64_t *i
     l = entries->len;
     names = AS_SYMBOL(entries);
 
-    if (exact)
-    {
-        for (i = 0; i < l; i++)
-        {
+    if (exact) {
+        for (i = 0; i < l; i++) {
             nm = str_from_symbol(names[i]);
             n = strlen(nm);
             if (n == len && strncmp(name, nm, len) == 0)
                 return nm;
         }
-    }
-    else
-    {
-        for (i = *index; i < l; i++)
-        {
+    } else {
+        for (i = *index; i < l; i++) {
             nm = str_from_symbol(names[i]);
             n = strlen(nm);
-            if (len < n && strncmp(name, nm, len) == 0)
-            {
+            if (len < n && strncmp(name, nm, len) == 0) {
                 *index = i + 1;
                 return nm;
             }
@@ -437,18 +417,15 @@ str_p env_get_internal_entry_name(lit_p name, u64_t len, obj_p entries, u64_t *i
     return NULL;
 }
 
-str_p env_get_internal_keyword_name(lit_p name, u64_t len, u64_t *index, b8_t exact)
-{
+str_p env_get_internal_keyword_name(lit_p name, u64_t len, u64_t *index, b8_t exact) {
     return env_get_internal_entry_name(name, len, runtime_get()->env.keywords, index, exact);
 }
 
-str_p env_get_internal_function_name(lit_p name, u64_t len, u64_t *index, b8_t exact)
-{
+str_p env_get_internal_function_name(lit_p name, u64_t len, u64_t *index, b8_t exact) {
     return env_get_internal_entry_name(name, len, AS_LIST(runtime_get()->env.functions)[0], index, exact);
 }
 
-str_p env_get_global_name(lit_p name, u64_t len, u64_t *index, u64_t *sbidx)
-{
+str_p env_get_global_name(lit_p name, u64_t len, u64_t *index, u64_t *sbidx) {
     i64_t *names, *cols;
     u64_t i, j, n, l, m;
     str_p nm;
@@ -458,26 +435,21 @@ str_p env_get_global_name(lit_p name, u64_t len, u64_t *index, u64_t *sbidx)
     names = AS_I64(AS_LIST(runtime_get()->env.variables)[0]);
     vals = AS_LIST(AS_LIST(runtime_get()->env.variables)[1]);
 
-    for (i = *index; i < l; i++)
-    {
+    for (i = *index; i < l; i++) {
         nm = str_from_symbol(names[i]);
         n = strlen(nm);
-        if (len < n && strncmp(name, nm, len) == 0)
-        {
+        if (len < n && strncmp(name, nm, len) == 0) {
             *index = i + 1;
             return nm;
         }
 
-        if (vals[i]->type == TYPE_TABLE)
-        {
+        if (vals[i]->type == TYPE_TABLE) {
             cols = AS_I64(AS_LIST(vals[i])[0]);
             m = AS_LIST(vals[i])[0]->len;
-            for (j = *sbidx; j < m; j++)
-            {
+            for (j = *sbidx; j < m; j++) {
                 nm = str_from_symbol(cols[j]);
                 n = strlen(nm);
-                if (len < n && strncmp(name, nm, len) == 0)
-                {
+                if (len < n && strncmp(name, nm, len) == 0) {
                     *sbidx = j + 1;
                     return nm;
                 }

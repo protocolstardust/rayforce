@@ -28,8 +28,7 @@
 
 #define COUNTING_SORT_LIMIT 1024 * 1024
 
-inline __attribute__((always_inline)) nil_t swap(i64_t *a, i64_t *b)
-{
+inline __attribute__((always_inline)) nil_t swap(i64_t *a, i64_t *b) {
     i64_t t = *a;
     *a = *b;
     *b = t;
@@ -37,15 +36,12 @@ inline __attribute__((always_inline)) nil_t swap(i64_t *a, i64_t *b)
 
 // quick sort
 // https://www.geeksforgeeks.org/quick-sort/
-i64_t partition_asc(i64_t array[], i64_t indices[], i64_t low, i64_t high)
-{
+i64_t partition_asc(i64_t array[], i64_t indices[], i64_t low, i64_t high) {
     i64_t pivot = array[indices[high]];
     i64_t i = (low - 1);
 
-    for (i64_t j = low; j <= high - 1; j++)
-    {
-        if (array[indices[j]] < pivot)
-        {
+    for (i64_t j = low; j <= high - 1; j++) {
+        if (array[indices[j]] < pivot) {
             i++;
             swap(&indices[i], &indices[j]);
         }
@@ -55,15 +51,12 @@ i64_t partition_asc(i64_t array[], i64_t indices[], i64_t low, i64_t high)
     return i + 1;
 }
 
-i64_t partition_desc(i64_t array[], i64_t indices[], i64_t low, i64_t high)
-{
+i64_t partition_desc(i64_t array[], i64_t indices[], i64_t low, i64_t high) {
     i64_t pivot = array[indices[high]];
     i64_t i = (low - 1);
 
-    for (i64_t j = low; j <= high - 1; j++)
-    {
-        if (array[indices[j]] > pivot)
-        {
+    for (i64_t j = low; j <= high - 1; j++) {
+        if (array[indices[j]] > pivot) {
             i++;
             swap(&indices[i], &indices[j]);
         }
@@ -73,24 +66,20 @@ i64_t partition_desc(i64_t array[], i64_t indices[], i64_t low, i64_t high)
     return i + 1;
 }
 
-nil_t quick_sort_asc(i64_t array[], i64_t indices[], i64_t low, i64_t high)
-{
+nil_t quick_sort_asc(i64_t array[], i64_t indices[], i64_t low, i64_t high) {
     i64_t pi;
 
-    if (low < high)
-    {
+    if (low < high) {
         pi = partition_asc(array, indices, low, high);
         quick_sort_asc(array, indices, low, pi - 1);
         quick_sort_asc(array, indices, pi + 1, high);
     }
 }
 
-nil_t quick_sort_desc(i64_t array[], i64_t indices[], i64_t low, i64_t high)
-{
+nil_t quick_sort_desc(i64_t array[], i64_t indices[], i64_t low, i64_t high) {
     i64_t pi;
 
-    if (low < high)
-    {
+    if (low < high) {
         pi = partition_desc(array, indices, low, high);
         quick_sort_desc(array, indices, low, pi - 1);
         quick_sort_desc(array, indices, pi + 1, high);
@@ -98,8 +87,7 @@ nil_t quick_sort_desc(i64_t array[], i64_t indices[], i64_t low, i64_t high)
 }
 
 // heap sort
-nil_t heapify_asc(i64_t array[], i64_t indices[], i64_t n, i64_t i)
-{
+nil_t heapify_asc(i64_t array[], i64_t indices[], i64_t n, i64_t i) {
     i64_t largest = i;
     i64_t left = 2 * i + 1;
     i64_t right = 2 * i + 2;
@@ -110,15 +98,13 @@ nil_t heapify_asc(i64_t array[], i64_t indices[], i64_t n, i64_t i)
     if (right < n && array[indices[right]] > array[indices[largest]])
         largest = right;
 
-    if (largest != i)
-    {
+    if (largest != i) {
         swap(&indices[i], &indices[largest]);
         heapify_asc(array, indices, n, largest);
     }
 }
 
-nil_t heapify_desc(i64_t array[], i64_t indices[], i64_t n, i64_t i)
-{
+nil_t heapify_desc(i64_t array[], i64_t indices[], i64_t n, i64_t i) {
     i64_t largest = i;
     i64_t left = 2 * i + 1;
     i64_t right = 2 * i + 2;
@@ -129,46 +115,38 @@ nil_t heapify_desc(i64_t array[], i64_t indices[], i64_t n, i64_t i)
     if (right < n && array[indices[right]] < array[indices[largest]])
         largest = right;
 
-    if (largest != i)
-    {
+    if (largest != i) {
         swap(&indices[i], &indices[largest]);
         heapify_desc(array, indices, n, largest);
     }
 }
 
-nil_t heap_sort_asc(i64_t array[], i64_t indices[], i64_t n)
-{
+nil_t heap_sort_asc(i64_t array[], i64_t indices[], i64_t n) {
     for (i64_t i = n / 2 - 1; i >= 0; i--)
         heapify_asc(array, indices, n, i);
 
-    for (i64_t i = n - 1; i >= 0; i--)
-    {
+    for (i64_t i = n - 1; i >= 0; i--) {
         swap(&indices[0], &indices[i]);
         heapify_asc(array, indices, i, 0);
     }
 }
 
-nil_t heap_sort_desc(i64_t array[], i64_t indices[], i64_t n)
-{
+nil_t heap_sort_desc(i64_t array[], i64_t indices[], i64_t n) {
     for (i64_t i = n / 2 - 1; i >= 0; i--)
         heapify_asc(array, indices, n, i);
 
-    for (i64_t i = n - 1; i >= 0; i--)
-    {
+    for (i64_t i = n - 1; i >= 0; i--) {
         swap(&indices[0], &indices[i]);
         heapify_desc(array, indices, i, 0);
     }
 }
 
 // insertion sort
-nil_t insertion_sort_asc(i64_t array[], i64_t indices[], i64_t left, i64_t right)
-{
-    for (i64_t i = left + 1; i <= right; i++)
-    {
+nil_t insertion_sort_asc(i64_t array[], i64_t indices[], i64_t left, i64_t right) {
+    for (i64_t i = left + 1; i <= right; i++) {
         i64_t temp = indices[i];
         i64_t j = i - 1;
-        while (j >= left && array[indices[j]] > array[temp])
-        {
+        while (j >= left && array[indices[j]] > array[temp]) {
             indices[j + 1] = indices[j];
             j--;
         }
@@ -176,14 +154,11 @@ nil_t insertion_sort_asc(i64_t array[], i64_t indices[], i64_t left, i64_t right
     }
 }
 
-nil_t insertion_sort_desc(i64_t array[], i64_t indices[], i64_t left, i64_t right)
-{
-    for (i64_t i = left + 1; i <= right; i++)
-    {
+nil_t insertion_sort_desc(i64_t array[], i64_t indices[], i64_t left, i64_t right) {
+    for (i64_t i = left + 1; i <= right; i++) {
         i64_t temp = indices[i];
         i64_t j = i - 1;
-        while (j >= left && array[indices[j]] < array[temp])
-        {
+        while (j >= left && array[indices[j]] < array[temp]) {
             indices[j + 1] = indices[j];
             j--;
         }
@@ -193,8 +168,7 @@ nil_t insertion_sort_desc(i64_t array[], i64_t indices[], i64_t left, i64_t righ
 //
 
 // counting sort
-nil_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max)
-{
+nil_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max) {
     i64_t i, j = 0, n, p, range, *m;
     obj_p mask;
 
@@ -204,26 +178,22 @@ nil_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i6
 
     memset(m, 0, range * sizeof(i64_t));
 
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         n = array[i] - min;
         m[n]++;
     }
 
     j = 0;
     p = 0;
-    for (i = 0; i < range; i++)
-    {
-        if (m[i] > 0)
-        {
+    for (i = 0; i < range; i++) {
+        if (m[i] > 0) {
             p = j;
             j += m[i];
             m[i] = p;
         }
     }
 
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         n = array[i] - min;
         indices[m[n]++] = i;
     }
@@ -231,8 +201,7 @@ nil_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i6
     drop_obj(mask);
 }
 
-nil_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max)
-{
+nil_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max) {
     i64_t i, j = 0, n, p, range, *m;
     obj_p mask;
 
@@ -242,26 +211,22 @@ nil_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i
 
     memset(m, 0, range * sizeof(i64_t));
 
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         n = array[i] - min;
         m[n]++;
     }
 
     j = 0;
     p = 0;
-    for (i = range - 1; i >= 0; i--)
-    {
-        if (m[i] > 0)
-        {
+    for (i = range - 1; i >= 0; i--) {
+        if (m[i] > 0) {
             p = j;
             j += m[i];
             m[i] = p;
         }
     }
 
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         n = array[i] - min;
         indices[m[n]++] = i;
     }
@@ -269,21 +234,18 @@ nil_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i
     drop_obj(mask);
 }
 
-obj_p ray_sort_asc(obj_p vec)
-{
+obj_p ray_sort_asc(obj_p vec) {
     i64_t i, len = vec->len, out_of_order = 0, inrange = 0, min, max;
     obj_p indices = I64(len);
     i64_t *iv = AS_I64(vec), *ov = AS_I64(indices);
 
-    if (vec->attrs & ATTR_ASC)
-    {
+    if (vec->attrs & ATTR_ASC) {
         for (i = 0; i < len; i++)
             ov[i] = i;
         return indices;
     }
 
-    if (vec->attrs & ATTR_DESC)
-    {
+    if (vec->attrs & ATTR_DESC) {
         for (i = 0; i < len; i++)
             ov[i] = len - i - 1;
         return indices;
@@ -291,8 +253,7 @@ obj_p ray_sort_asc(obj_p vec)
 
     max = min = iv[0];
 
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         if (iv[i] < min)
             min = iv[i];
         else if (iv[i] > max)
@@ -306,8 +267,7 @@ obj_p ray_sort_asc(obj_p vec)
     }
 
     // ascending order
-    if (out_of_order == 0)
-    {
+    if (out_of_order == 0) {
         vec->attrs |= ATTR_ASC;
         for (i = 0; i < len; i++)
             ov[i] = i;
@@ -315,16 +275,14 @@ obj_p ray_sort_asc(obj_p vec)
     }
 
     // descending order
-    if (out_of_order == len - 1)
-    {
+    if (out_of_order == len - 1) {
         vec->attrs |= ATTR_DESC;
         for (i = 0; i < len; i++)
             ov[i] = len - i - 1;
         return indices;
     }
 
-    if (inrange == len)
-    {
+    if (inrange == len) {
         counting_sort_asc(iv, ov, len, min, max);
         return indices;
     }
@@ -333,15 +291,13 @@ obj_p ray_sort_asc(obj_p vec)
     for (i = 0; i < len; i++)
         ov[i] = i;
 
-    if (len < 100)
-    {
+    if (len < 100) {
         insertion_sort_asc(iv, ov, 0, len - 1);
         return indices;
     }
 
     // mainly ordered
-    if (out_of_order < len / 3)
-    {
+    if (out_of_order < len / 3) {
         heap_sort_asc(iv, ov, len);
         return indices;
     }
@@ -350,21 +306,18 @@ obj_p ray_sort_asc(obj_p vec)
     return indices;
 }
 
-obj_p ray_sort_desc(obj_p vec)
-{
+obj_p ray_sort_desc(obj_p vec) {
     i64_t i, len = vec->len, out_of_order = 0, inrange = 0, min, max;
     obj_p indices = I64(len);
     i64_t *iv = AS_I64(vec), *ov = AS_I64(indices);
 
-    if (vec->attrs & ATTR_DESC)
-    {
+    if (vec->attrs & ATTR_DESC) {
         for (i64_t i = 0; i < len; i++)
             ov[i] = i;
         return indices;
     }
 
-    if (vec->attrs & ATTR_ASC)
-    {
+    if (vec->attrs & ATTR_ASC) {
         for (i64_t i = 0; i < len; i++)
             ov[i] = len - i - 1;
         return indices;
@@ -372,8 +325,7 @@ obj_p ray_sort_desc(obj_p vec)
 
     max = min = iv[0];
 
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         if (iv[i] < min)
             min = iv[i];
         else if (iv[i] > max)
@@ -387,8 +339,7 @@ obj_p ray_sort_desc(obj_p vec)
     }
 
     // descending order
-    if (out_of_order == 0)
-    {
+    if (out_of_order == 0) {
         vec->attrs |= ATTR_DESC;
         for (i64_t i = 0; i < len; i++)
             ov[i] = i;
@@ -396,16 +347,14 @@ obj_p ray_sort_desc(obj_p vec)
     }
 
     // ascending order
-    if (out_of_order == len - 1)
-    {
+    if (out_of_order == len - 1) {
         vec->attrs |= ATTR_ASC;
         for (i64_t i = 0; i < len; i++)
             ov[i] = len - i - 1;
         return indices;
     }
 
-    if (inrange == len)
-    {
+    if (inrange == len) {
         counting_sort_desc(iv, ov, len, min, max);
         return indices;
     }
@@ -414,15 +363,13 @@ obj_p ray_sort_desc(obj_p vec)
     for (i = 0; i < len; i++)
         ov[i] = i;
 
-    if (len < 100)
-    {
+    if (len < 100) {
         insertion_sort_desc(iv, ov, 0, len - 1);
         return indices;
     }
 
     // mainly ordered
-    if (out_of_order < len / 3)
-    {
+    if (out_of_order < len / 3) {
         heap_sort_desc(iv, ov, len);
         return indices;
     }

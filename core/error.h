@@ -41,25 +41,21 @@
         return _e;                           \
     }
 
-#define PANIC(...)                                              \
-    do                                                          \
-    {                                                           \
-        fprintf(stderr, "process panicked at: %s:%d in %s(): ", \
-                __FILE__, __LINE__, __func__);                  \
-        fprintf(stderr, __VA_ARGS__);                           \
-        fprintf(stderr, "\n");                                  \
-        exit(1);                                                \
+#define PANIC(...)                                                                             \
+    do {                                                                                       \
+        fprintf(stderr, "process panicked at: %s:%d in %s(): ", __FILE__, __LINE__, __func__); \
+        fprintf(stderr, __VA_ARGS__);                                                          \
+        fprintf(stderr, "\n");                                                                 \
+        exit(1);                                                                               \
     } while (0)
 
-typedef struct loc_t
-{
+typedef struct loc_t {
     span_t span;
     obj_p file;
     obj_p source;
 } loc_t;
 
-typedef struct ray_error_t
-{
+typedef struct ray_error_t {
     i64_t code;
     obj_p msg;
     obj_p locs;
@@ -68,4 +64,4 @@ typedef struct ray_error_t
 obj_p error_obj(i8_t code, obj_p msg);
 obj_p error_str(i8_t code, lit_p msg);
 
-#endif // ERROR_H
+#endif  // ERROR_H

@@ -21,7 +21,4 @@
  *   SOFTWARE.
  */
 
-test_result_t test_hash()
-{
-    PASS();
-}
+test_result_t test_hash() { PASS(); }

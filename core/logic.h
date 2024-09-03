@@ -30,4 +30,4 @@ obj_p ray_and(obj_p x, obj_p y);
 obj_p ray_or(obj_p x, obj_p y);
 obj_p ray_like(obj_p x, obj_p y);
 
-#endif // LOGIC_H
+#endif  // LOGIC_H

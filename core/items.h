@@ -40,4 +40,4 @@ obj_p ray_key(obj_p x);
 obj_p ray_value(obj_p x);
 obj_p ray_where(obj_p x);
 
-#endif // ITEMS_H
+#endif  // ITEMS_H

@@ -44,4 +44,4 @@ str_p str_rchr(lit_p s, i32_t c, u64_t n);
 u64_t str_hash(lit_p str, u64_t len);
 obj_p vn_vC8(lit_p fmt, va_list args);
 
-#endif // STRING_H
+#endif  // STRING_H

@@ -27,26 +27,20 @@
 #include "ops.h"
 #include "util.h"
 
-obj_p nfo(obj_p filename, obj_p source)
-{
-    return vn_list(3, filename, source, ht_oa_create(32, TYPE_I64));
-}
+obj_p nfo(obj_p filename, obj_p source) { return vn_list(3, filename, source, ht_oa_create(32, TYPE_I64)); }
 
-nil_t nfo_insert(obj_p nfo, i64_t index, span_t span)
-{
+nil_t nfo_insert(obj_p nfo, i64_t index, span_t span) {
     i64_t i;
 
     if (nfo == NULL_OBJ)
         return;
 
     i = ht_oa_tab_next(&AS_LIST(nfo)[2], index);
-    AS_I64(AS_LIST(AS_LIST(nfo)[2])[0])
-    [i] = index;
+    AS_I64(AS_LIST(AS_LIST(nfo)[2])[0])[i] = index;
     memcpy(&AS_I64(AS_LIST(AS_LIST(nfo)[2])[1])[i], &span, sizeof(span_t));
 }
 
-span_t nfo_get(obj_p nfo, i64_t index)
-{
+span_t nfo_get(obj_p nfo, i64_t index) {
     i64_t i;
     span_t span = {0};
 

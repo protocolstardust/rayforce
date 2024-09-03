@@ -33,4 +33,4 @@ obj_p ray_gt(obj_p x, obj_p y);
 obj_p ray_le(obj_p x, obj_p y);
 obj_p ray_ge(obj_p x, obj_p y);
 
-#endif // CMP_H
+#endif  // CMP_H

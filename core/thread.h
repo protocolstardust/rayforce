@@ -28,35 +28,29 @@
 
 #if defined(OS_WINDOWS)
 
-typedef struct
-{
+typedef struct {
     HANDLE handle;
 } ray_thread_t;
 
-typedef struct
-{
+typedef struct {
     CRITICAL_SECTION inner;
 } mutex_t;
 
-typedef struct
-{
+typedef struct {
     CONDITION_VARIABLE inner;
 } cond_t;
 
 #else
 
-typedef struct
-{
+typedef struct {
     pthread_t handle;
 } ray_thread_t;
 
-typedef struct
-{
+typedef struct {
     pthread_mutex_t inner;
 } mutex_t;
 
-typedef struct
-{
+typedef struct {
     pthread_cond_t inner;
 } cond_t;
 
@@ -82,4 +76,4 @@ nil_t thread_exit(raw_p res);
 ray_thread_t thread_self();
 i32_t thread_pin(ray_thread_t thread, u64_t core);
 
-#endif // THREAD_H
+#endif  // THREAD_H

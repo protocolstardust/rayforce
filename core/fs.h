@@ -56,4 +56,4 @@ i64_t fs_dopen(lit_p path);
 i64_t fs_dclose(i64_t fd);
 obj_p fs_read_dir(lit_p path);
 
-#endif // FS_H
+#endif  // FS_H

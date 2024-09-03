@@ -25,8 +25,7 @@
 #include "heap.h"
 #include "ops.h"
 
-nil_t guid_generate(guid_t *g)
-{
+nil_t guid_generate(guid_t *g) {
     i64_t i;
 
     for (i = 0; i < 16; i++)

@@ -40,8 +40,7 @@
 
 // #pragma comment(lib, "dbghelp.lib")
 
-nil_t dump_stack(nil_t)
-{
+nil_t dump_stack(nil_t) {
     // // Initialize DbgHelp
     // if (!SymInitialize(GetCurrentProcess(), NULL, TRUE))
     // {
@@ -81,21 +80,19 @@ nil_t dump_stack(nil_t)
 
 #include <execinfo.h>
 
-nil_t dump_stack(nil_t)
-{
-    raw_p array[10]; // Array to store the backtrace addresses
+nil_t dump_stack(nil_t) {
+    raw_p array[10];  // Array to store the backtrace addresses
     u64_t i, size;
     str_p *strings;
 
-    size = backtrace(array, 10);              // Capture the backtrace
-    strings = backtrace_symbols(array, size); // Translate addresses to an array of strings
+    size = backtrace(array, 10);               // Capture the backtrace
+    strings = backtrace_symbols(array, size);  // Translate addresses to an array of strings
 
-    if (strings != NULL)
-    {
+    if (strings != NULL) {
         fprintf(stderr, "Stack trace:\n");
         for (i = 0; i < size; i++)
             fprintf(stderr, "%s\n", strings[i]);
-        free(strings); // Free the memory allocated by backtrace_symbols
+        free(strings);  // Free the memory allocated by backtrace_symbols
     }
 }
 
@@ -107,8 +104,7 @@ nil_t dump_stack(nil_t) {}
 
 #endif
 
-u32_t next_power_of_two_u32(u32_t n)
-{
+u32_t next_power_of_two_u32(u32_t n) {
     if (n == 0)
         return 1;
     // If n is already a power of 2
@@ -118,8 +114,7 @@ u32_t next_power_of_two_u32(u32_t n)
     return 1 << (32 - __builtin_clzl(n));
 }
 
-u64_t next_power_of_two_u64(u64_t n)
-{
+u64_t next_power_of_two_u64(u64_t n) {
     if (n == 0)
         return 1;
     // If n is already a power of 2
@@ -129,8 +124,7 @@ u64_t next_power_of_two_u64(u64_t n)
     return 1ull << (64 - __builtin_clzll(n));
 }
 
-b8_t is_valid(obj_p obj)
-{
+b8_t is_valid(obj_p obj) {
     // clang-format off
     return (obj->type >= -TYPE_C8       && obj->type <= TYPE_C8)
            || obj->type == TYPE_TABLE     || obj->type == TYPE_DICT   

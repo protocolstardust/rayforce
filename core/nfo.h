@@ -30,11 +30,9 @@
 /*
  * Points to a actual error position in a source code
  */
-typedef union span_t
-{
+typedef union span_t {
     i64_t id;
-    struct
-    {
+    struct {
         u16_t start_line;
         u16_t end_line;
         u16_t start_column;
@@ -47,4 +45,4 @@ obj_p nfo(obj_p filename, obj_p source);
 nil_t nfo_insert(obj_p nfo, i64_t index, span_t span);
 span_t nfo_get(obj_p nfo, i64_t index);
 
-#endif // NFO_H
+#endif  // NFO_H

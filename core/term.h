@@ -54,8 +54,7 @@
 
 #define TERM_BUF_SIZE 4096
 
-typedef struct hist_t
-{
+typedef struct hist_t {
     i64_t fd;
     str_p lines;
     u64_t size;
@@ -67,27 +66,23 @@ typedef struct hist_t
     c8_t curr[TERM_BUF_SIZE];
 } *hist_p;
 
-typedef struct
-{
+typedef struct {
     i32_t pos;
     c8_t type;
 } paren_t;
 
-typedef struct
-{
+typedef struct {
     u64_t entry;
     u64_t index;
     u64_t sbidx;
 } autocp_idx_t;
 
-typedef struct
-{
+typedef struct {
     i32_t parts;
     i32_t completed;
 } progress_bar_t;
 
-typedef struct term_t
-{
+typedef struct term_t {
 #if defined(OS_WINDOWS)
     HANDLE h_stdin;
     HANDLE h_stdout;
@@ -97,8 +92,8 @@ typedef struct term_t
     DWORD new_stdout_mode;
     mutex_t lock;
 #else
-    struct termios oldattr; // Store the old terminal attributes
-    struct termios newattr; // Store the new terminal attributes
+    struct termios oldattr;  // Store the old terminal attributes
+    struct termios newattr;  // Store the new terminal attributes
 #endif
     i32_t input_len;
     c8_t input[8];
@@ -127,4 +122,4 @@ nil_t term_init_progress_bar(term_p term, u64_t parts);
 nil_t term_update_progress_bar(term_p term, u64_t parts);
 nil_t term_finalize_progress_bar(term_p term);
 
-#endif // TERM_H
+#endif  // TERM_H

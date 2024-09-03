@@ -27,62 +27,46 @@
 #if defined(OS_WINDOWS)
 
 // Mutex functions
-mutex_t mutex_create()
-{
+mutex_t mutex_create() {
     mutex_t m;
     InitializeCriticalSection(&m.inner);
     return m;
 }
 
-nil_t mutex_destroy(mutex_t *mutex)
-{
-    DeleteCriticalSection(&mutex->inner);
-}
+nil_t mutex_destroy(mutex_t *mutex) { DeleteCriticalSection(&mutex->inner); }
 
-nil_t mutex_lock(mutex_t *mutex)
-{
-    EnterCriticalSection(&mutex->inner);
-}
+nil_t mutex_lock(mutex_t *mutex) { EnterCriticalSection(&mutex->inner); }
 
-nil_t mutex_unlock(mutex_t *mutex)
-{
-    LeaveCriticalSection(&mutex->inner);
-}
+nil_t mutex_unlock(mutex_t *mutex) { LeaveCriticalSection(&mutex->inner); }
 
 // Condition variable functions
-cond_t cond_create()
-{
+cond_t cond_create() {
     cond_t c;
     InitializeConditionVariable(&c.inner);
     return c;
 }
 
-nil_t cond_destroy(cond_t *cond)
-{
+nil_t cond_destroy(cond_t *cond) {
     // Windows does not require destruction of condition variables
     UNUSED(cond);
 }
 
-i32_t cond_wait(cond_t *cond, mutex_t *mutex)
-{
+i32_t cond_wait(cond_t *cond, mutex_t *mutex) {
     return SleepConditionVariableCS(&cond->inner, &mutex->inner, INFINITE) ? 0 : -1;
 }
 
-i32_t cond_signal(cond_t *cond)
-{
+i32_t cond_signal(cond_t *cond) {
     WakeConditionVariable(&cond->inner);
     return 0;
 }
 
-i32_t cond_broadcast(cond_t *cond)
-{
+i32_t cond_broadcast(cond_t *cond) {
     WakeAllConditionVariable(&cond->inner);
     return 0;
 }
 
 // Thread functions
-ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg)
-{
+ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg) {
     ray_thread_t t;
     raw_p (*orig_fn)(raw_p) = fn;
     DWORD(*cfn)
@@ -91,70 +75,44 @@ ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg)
     return t;
 }
 
-i32_t thread_destroy(ray_thread_t *thread)
-{
-    return CloseHandle(thread->handle) ? 0 : -1;
-}
+i32_t thread_destroy(ray_thread_t *thread) { return CloseHandle(thread->handle) ? 0 : -1; }
 
-i32_t thread_join(ray_thread_t thread)
-{
+i32_t thread_join(ray_thread_t thread) {
     return WaitForSingleObject(thread.handle, INFINITE) == WAIT_OBJECT_0 ? 0 : -1;
 }
 
-i32_t thread_detach(ray_thread_t thread)
-{
-    return CloseHandle(thread.handle) ? 0 : -1;
-}
+i32_t thread_detach(ray_thread_t thread) { return CloseHandle(thread.handle) ? 0 : -1; }
 
-nil_t thread_exit(raw_p res)
-{
+nil_t thread_exit(raw_p res) {
     i64_t code = (i64_t)res;
     ExitThread((DWORD)code);
 }
 
 #else
 
-mutex_t mutex_create()
-{
+mutex_t mutex_create() {
     mutex_t mutex;
     pthread_mutex_init(&mutex.inner, NULL);
     return mutex;
 }
 
-nil_t mutex_destroy(mutex_t *mutex)
-{
-    pthread_mutex_destroy(&mutex->inner);
-}
+nil_t mutex_destroy(mutex_t *mutex) { pthread_mutex_destroy(&mutex->inner); }
 
-nil_t mutex_lock(mutex_t *mutex)
-{
-    pthread_mutex_lock(&mutex->inner);
-}
+nil_t mutex_lock(mutex_t *mutex) { pthread_mutex_lock(&mutex->inner); }
 
-nil_t mutex_unlock(mutex_t *mutex)
-{
-    pthread_mutex_unlock(&mutex->inner);
-}
+nil_t mutex_unlock(mutex_t *mutex) { pthread_mutex_unlock(&mutex->inner); }
 
-cond_t cond_create()
-{
+cond_t cond_create() {
     cond_t cond;
     pthread_cond_init(&cond.inner, NULL);
     return cond;
 }
 
-nil_t cond_destroy(cond_t *cond)
-{
-    pthread_cond_destroy(&cond->inner);
-}
+nil_t cond_destroy(cond_t *cond) { pthread_cond_destroy(&cond->inner); }
 
-i32_t cond_wait(cond_t *cond, mutex_t *mutex)
-{
-    return pthread_cond_wait(&cond->inner, &mutex->inner);
-}
+i32_t cond_wait(cond_t *cond, mutex_t *mutex) { return pthread_cond_wait(&cond->inner, &mutex->inner); }
 
-i32_t cond_wait_timeout(cond_t *cond, mutex_t *mutex, u64_t timeout_ms)
-{
+i32_t cond_wait_timeout(cond_t *cond, mutex_t *mutex, u64_t timeout_ms) {
     struct timespec ts;
 
     // Get current time
@@ -165,8 +123,7 @@ i32_t cond_wait_timeout(cond_t *cond, mutex_t *mutex, u64_t timeout_ms)
     ts.tv_nsec += (timeout_ms % 1000) * 1000000;
 
     // Normalize the timespec
-    if (ts.tv_nsec >= 1000000000)
-    {
+    if (ts.tv_nsec >= 1000000000) {
         ts.tv_sec += 1;
         ts.tv_nsec -= 1000000000;
     }
@@ -175,52 +132,31 @@ i32_t cond_wait_timeout(cond_t *cond, mutex_t *mutex, u64_t timeout_ms)
     return pthread_cond_timedwait(&cond->inner, &mutex->inner, &ts);
 }
 
-i32_t cond_signal(cond_t *cond)
-{
-    return pthread_cond_signal(&cond->inner);
-}
+i32_t cond_signal(cond_t *cond) { return pthread_cond_signal(&cond->inner); }
 
-i32_t cond_broadcast(cond_t *cond)
-{
-    return pthread_cond_broadcast(&cond->inner);
-}
+i32_t cond_broadcast(cond_t *cond) { return pthread_cond_broadcast(&cond->inner); }
 
-ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg)
-{
+ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg) {
     ray_thread_t thread;
     pthread_create(&thread.handle, NULL, fn, arg);
     return thread;
 }
 
-i32_t thread_destroy(ray_thread_t *thread)
-{
-    return pthread_cancel(thread->handle);
-}
-i32_t thread_join(ray_thread_t thread)
-{
-    return pthread_join(thread.handle, NULL);
-}
+i32_t thread_destroy(ray_thread_t *thread) { return pthread_cancel(thread->handle); }
+i32_t thread_join(ray_thread_t thread) { return pthread_join(thread.handle, NULL); }
 
-i32_t thread_detach(ray_thread_t thread)
-{
-    return pthread_detach(thread.handle);
-}
+i32_t thread_detach(ray_thread_t thread) { return pthread_detach(thread.handle); }
 
-nil_t thread_exit(raw_p res)
-{
-    return pthread_exit(res);
-}
+nil_t thread_exit(raw_p res) { return pthread_exit(res); }
 
-ray_thread_t thread_self()
-{
+ray_thread_t thread_self() {
     ray_thread_t t;
     t.handle = pthread_self();
     return t;
 }
 #if defined(OS_LINUX)
 
-i32_t thread_pin(ray_thread_t thread, u64_t core)
-{
+i32_t thread_pin(ray_thread_t thread, u64_t core) {
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(core, &cpuset);
@@ -243,8 +179,7 @@ i32_t thread_pin(ray_thread_t thread, u64_t core)
 
 #else
 
-i32_t thread_pin(ray_thread_t thread, u64_t core)
-{
+i32_t thread_pin(ray_thread_t thread, u64_t core) {
     UNUSED(thread);
     UNUSED(core);
     // thread_port_t mach_thread;
@@ -253,7 +188,8 @@ i32_t thread_pin(ray_thread_t thread, u64_t core)
 
     // mach_thread = pthread_mach_thread_np(thread.handle);
     // policy.affinity_tag = core;
-    // kr = thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, THREAD_AFFINITY_POLICY_COUNT);
+    // kr = thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy,
+    // THREAD_AFFINITY_POLICY_COUNT);
 
     // if (kr != KERN_SUCCESS)
     // {

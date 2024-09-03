@@ -26,33 +26,26 @@
 #include "util.h"
 #include "ops.h"
 
-obj_p filter_map(obj_p val, obj_p index)
-{
+obj_p filter_map(obj_p val, obj_p index) {
     u64_t i, l;
     obj_p v, res;
 
-    switch (val->type)
-    {
-    case TYPE_TABLE:
-        l = AS_LIST(val)[1]->len;
-        res = LIST(l);
-        for (i = 0; i < l; i++)
-        {
-            v = AS_LIST(AS_LIST(val)[1])[i];
-            AS_LIST(res)
-            [i] = filter_map(v, index);
-        }
+    switch (val->type) {
+        case TYPE_TABLE:
+            l = AS_LIST(val)[1]->len;
+            res = LIST(l);
+            for (i = 0; i < l; i++) {
+                v = AS_LIST(AS_LIST(val)[1])[i];
+                AS_LIST(res)[i] = filter_map(v, index);
+            }
 
-        return table(clone_obj(AS_LIST(val)[0]), res);
+            return table(clone_obj(AS_LIST(val)[0]), res);
 
-    default:
-        res = vn_list(2, clone_obj(val), clone_obj(index));
-        res->type = TYPE_FILTERMAP;
-        return res;
+        default:
+            res = vn_list(2, clone_obj(val), clone_obj(index));
+            res->type = TYPE_FILTERMAP;
+            return res;
     }
 }
 
-obj_p filter_collect(obj_p val, obj_p index)
-{
-    return at_ids(val, AS_I64(index), index->len);
-}
+obj_p filter_collect(obj_p val, obj_p index) { return at_ids(val, AS_I64(index), index->len); }

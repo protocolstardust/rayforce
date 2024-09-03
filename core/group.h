@@ -28,4 +28,4 @@
 
 obj_p group_map(obj_p val, obj_p index);
 
-#endif // GROUP_H
+#endif  // GROUP_H

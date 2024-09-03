@@ -27,9 +27,9 @@
 #include "rayforce.h"
 
 #define AVAIL_MASK ((u64_t)0xffffffffffffffff)
-#define MIN_BLOCK_ORDER 5  // 2^5 = 32B
-#define MAX_BLOCK_ORDER 26 // 2^26 = 64MB
-#define MAX_POOL_ORDER 38  // 2^38 = 256GB
+#define MIN_BLOCK_ORDER 5   // 2^5 = 32B
+#define MAX_BLOCK_ORDER 26  // 2^26 = 64MB
+#define MAX_POOL_ORDER 38   // 2^38 = 256GB
 
 // Memory modes
 #define MMOD_INTERNAL 0xff
@@ -37,15 +37,13 @@
 #define MMOD_EXTERNAL_COMPOUND 0xfe
 #define MMOD_EXTERNAL_SERIALIZED 0xfa
 
-typedef struct memstat_t
-{
-    u64_t system; // system memory used
-    u64_t heap;   // total heap memory
-    u64_t free;   // free heap memory
+typedef struct memstat_t {
+    u64_t system;  // system memory used
+    u64_t heap;    // total heap memory
+    u64_t free;    // free heap memory
 } memstat_t;
 
-typedef struct block_t
-{
+typedef struct block_t {
     u8_t order;
     u8_t used;
     u8_t pool_order;
@@ -56,11 +54,10 @@ typedef struct block_t
     struct block_t *next;
 } *block_p;
 
-typedef struct heap_t
-{
+typedef struct heap_t {
     u64_t id;
-    block_p freelist[MAX_POOL_ORDER + 2]; // free list of blocks by order
-    u64_t avail;                          // mask of available blocks by order
+    block_p freelist[MAX_POOL_ORDER + 2];  // free list of blocks by order
+    u64_t avail;                           // mask of available blocks by order
     memstat_t memstat;
 } *heap_p;
 
@@ -79,4 +76,4 @@ nil_t heap_merge(heap_p heap);
 memstat_t heap_memstat(nil_t);
 nil_t heap_print_blocks(heap_p heap);
 
-#endif // HEAP_H
+#endif  // HEAP_H

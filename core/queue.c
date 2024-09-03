@@ -26,8 +26,7 @@
 #include "util.h"
 #include "ops.h"
 
-queue_p queue_create(i64_t size)
-{
+queue_p queue_create(i64_t size) {
     queue_p queue = (queue_p)heap_alloc(sizeof(struct queue_t));
 
     queue->size = size;
@@ -38,16 +37,13 @@ queue_p queue_create(i64_t size)
     return queue;
 }
 
-nil_t queue_free(queue_p queue)
-{
+nil_t queue_free(queue_p queue) {
     heap_free(queue->data);
     heap_free(queue);
 }
 
-nil_t queue_push(queue_p queue, raw_p val)
-{
-    if (queue->tail - queue->head == queue->size)
-    {
+nil_t queue_push(queue_p queue, raw_p val) {
+    if (queue->tail - queue->head == queue->size) {
         queue->size *= 2;
         queue->data = (raw_p *)heap_realloc(queue->data, queue->size * sizeof(raw_p));
     }
@@ -56,8 +52,7 @@ nil_t queue_push(queue_p queue, raw_p val)
     queue->tail++;
 }
 
-raw_p queue_pop(queue_p queue)
-{
+raw_p queue_pop(queue_p queue) {
     raw_p v;
 
     if (queue->head == queue->tail)

@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2023 Anton Kundenko <singaraiona@gmail.com>
+ *   Copyright (c) 2024 Anton Kundenko <singaraiona@gmail.com>
  *   All rights reserved.
 
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,171 +21,158 @@
  *   SOFTWARE.
  */
 
-#include <time.h>
-#include <errno.h>
-#include "runtime.h"
-#include "unary.h"
 #include "binary.h"
-#include "vary.h"
-#include "util.h"
-#include "format.h"
-#include "hash.h"
-#include "fs.h"
-#include "serde.h"
-#include "ops.h"
-#include "sock.h"
-#include "items.h"
+#include <errno.h>
+#include <time.h>
 #include "compose.h"
 #include "error.h"
+#include "format.h"
+#include "fs.h"
+#include "hash.h"
+#include "items.h"
+#include "ops.h"
+#include "runtime.h"
+#include "serde.h"
+#include "sock.h"
 #include "string.h"
+#include "unary.h"
+#include "util.h"
+#include "vary.h"
 
-obj_p binary_call_left_atomic(binary_f f, obj_p x, obj_p y)
-{
+obj_p binary_call_left_atomic(binary_f f, obj_p x, obj_p y) {
     u64_t i, l;
     obj_p res, item, a;
 
-    switch (x->type)
-    {
-    case TYPE_LIST:
-        l = ops_count(x);
-        a = AS_LIST(x)[0];
-        item = binary_call_left_atomic(f, a, y);
-
-        if (IS_ERROR(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : LIST(l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            a = AS_LIST(x)[i];
+    switch (x->type) {
+        case TYPE_LIST:
+            l = ops_count(x);
+            a = AS_LIST(x)[0];
             item = binary_call_left_atomic(f, a, y);
 
             if (IS_ERROR(item))
-            {
-                res->len = i;
-                drop_obj(res);
                 return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                a = AS_LIST(x)[i];
+                item = binary_call_left_atomic(f, a, y);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
             }
 
-            ins_obj(&res, i, item);
-        }
+            return res;
 
-        return res;
-
-    case TYPE_ANYMAP:
-        l = ops_count(x);
-        a = at_idx(x, 0);
-        item = binary_call_left_atomic(f, a, y);
-        drop_obj(a);
-
-        if (item->type == TYPE_ERROR)
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : LIST(l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            a = at_idx(x, i);
+        case TYPE_ANYMAP:
+            l = ops_count(x);
+            a = at_idx(x, 0);
             item = binary_call_left_atomic(f, a, y);
             drop_obj(a);
 
-            if (IS_ERROR(item))
-            {
-                res->len = i;
-                drop_obj(res);
+            if (item->type == TYPE_ERROR)
                 return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                a = at_idx(x, i);
+                item = binary_call_left_atomic(f, a, y);
+                drop_obj(a);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
             }
 
-            ins_obj(&res, i, item);
-        }
+            return res;
 
-        return res;
-
-    default:
-        return f(x, y);
+        default:
+            return f(x, y);
     }
 }
 
-obj_p binary_call_right_atomic(binary_f f, obj_p x, obj_p y)
-{
+obj_p binary_call_right_atomic(binary_f f, obj_p x, obj_p y) {
     u64_t i, l;
     obj_p res, item, b;
 
-    switch (y->type)
-    {
-    case TYPE_LIST:
-        l = ops_count(y);
-        b = AS_LIST(y)[0];
-        item = binary_call_right_atomic(f, x, b);
-
-        if (IS_ERROR(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : LIST(l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            b = AS_LIST(y)[i];
+    switch (y->type) {
+        case TYPE_LIST:
+            l = ops_count(y);
+            b = AS_LIST(y)[0];
             item = binary_call_right_atomic(f, x, b);
 
             if (IS_ERROR(item))
-            {
-                res->len = i;
-                drop_obj(res);
                 return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                b = AS_LIST(y)[i];
+                item = binary_call_right_atomic(f, x, b);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
             }
 
-            ins_obj(&res, i, item);
-        }
+            return res;
 
-        return res;
-
-    case TYPE_ANYMAP:
-        l = ops_count(y);
-        b = at_idx(y, 0);
-        item = binary_call_right_atomic(f, x, b);
-        drop_obj(b);
-
-        if (IS_ERROR(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : LIST(l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            b = at_idx(y, i);
+        case TYPE_ANYMAP:
+            l = ops_count(y);
+            b = at_idx(y, 0);
             item = binary_call_right_atomic(f, x, b);
             drop_obj(b);
 
-            if (item->type == TYPE_ERROR)
-            {
-                res->len = i;
-                drop_obj(res);
+            if (IS_ERROR(item))
                 return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                b = at_idx(y, i);
+                item = binary_call_right_atomic(f, x, b);
+                drop_obj(b);
+
+                if (item->type == TYPE_ERROR) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
             }
 
-            ins_obj(&res, i, item);
-        }
+            return res;
 
-        return res;
-
-    default:
-        return f(x, y);
+        default:
+            return f(x, y);
     }
 }
 
 // Atomic binary functions (iterates through list of arguments down to atoms)
-obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
-{
+obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y) {
     u64_t i, l;
     obj_p res, item, a, b;
     i8_t xt, yt;
@@ -196,8 +183,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
     xt = x->type;
     yt = y->type;
     if (((xt == TYPE_LIST || xt == TYPE_ANYMAP) && IS_VECTOR(y)) ||
-        ((yt == TYPE_LIST || yt == TYPE_ANYMAP) && IS_VECTOR(x)))
-    {
+        ((yt == TYPE_LIST || yt == TYPE_ANYMAP) && IS_VECTOR(x))) {
         l = ops_count(x);
 
         if (l != ops_count(y))
@@ -222,8 +208,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
 
         ins_obj(&res, 0, item);
 
-        for (i = 1; i < l; i++)
-        {
+        for (i = 1; i < l; i++) {
             a = xt == TYPE_LIST ? AS_LIST(x)[i] : at_idx(x, i);
             b = yt == TYPE_LIST ? AS_LIST(y)[i] : at_idx(y, i);
             item = binary_call_atomic(f, a, b);
@@ -233,8 +218,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
             if (yt != TYPE_LIST)
                 drop_obj(b);
 
-            if (IS_ERROR(item))
-            {
+            if (IS_ERROR(item)) {
                 res->len = i;
                 drop_obj(res);
                 return item;
@@ -244,9 +228,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
         }
 
         return res;
-    }
-    else if (xt == TYPE_LIST || xt == TYPE_ANYMAP)
-    {
+    } else if (xt == TYPE_LIST || xt == TYPE_ANYMAP) {
         l = ops_count(x);
         if (l == 0)
             return NULL_OBJ;
@@ -262,15 +244,13 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
 
         ins_obj(&res, 0, item);
 
-        for (i = 1; i < l; i++)
-        {
+        for (i = 1; i < l; i++) {
             a = xt == TYPE_LIST ? AS_LIST(x)[i] : at_idx(x, i);
             item = binary_call_atomic(f, a, y);
             if (xt != TYPE_LIST)
                 drop_obj(a);
 
-            if (IS_ERROR(item))
-            {
+            if (IS_ERROR(item)) {
                 res->len = i;
                 drop_obj(res);
                 return item;
@@ -280,9 +260,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
         }
 
         return res;
-    }
-    else if (yt == TYPE_LIST || yt == TYPE_ANYMAP)
-    {
+    } else if (yt == TYPE_LIST || yt == TYPE_ANYMAP) {
         l = ops_count(y);
         if (l == 0)
             return NULL_OBJ;
@@ -298,15 +276,13 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
 
         ins_obj(&res, 0, item);
 
-        for (i = 1; i < l; i++)
-        {
+        for (i = 1; i < l; i++) {
             b = yt == TYPE_LIST ? AS_LIST(y)[i] : at_idx(y, i);
             item = binary_call_atomic(f, x, b);
             if (yt != TYPE_LIST)
                 drop_obj(b);
 
-            if (IS_ERROR(item))
-            {
+            if (IS_ERROR(item)) {
                 res->len = i;
                 drop_obj(res);
                 return item;
@@ -321,23 +297,20 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
     return f(x, y);
 }
 
-obj_p binary_call(u8_t attrs, binary_f f, obj_p x, obj_p y)
-{
-    switch (attrs & FN_ATOMIC_MASK)
-    {
-    case FN_ATOMIC:
-        return binary_call_atomic(f, x, y);
-    case FN_LEFT_ATOMIC:
-        return binary_call_left_atomic(f, x, y);
-    case FN_RIGHT_ATOMIC:
-        return binary_call_right_atomic(f, x, y);
-    default:
-        return f(x, y);
+obj_p binary_call(u8_t attrs, binary_f f, obj_p x, obj_p y) {
+    switch (attrs & FN_ATOMIC_MASK) {
+        case FN_ATOMIC:
+            return binary_call_atomic(f, x, y);
+        case FN_LEFT_ATOMIC:
+            return binary_call_left_atomic(f, x, y);
+        case FN_RIGHT_ATOMIC:
+            return binary_call_right_atomic(f, x, y);
+        default:
+            return f(x, y);
     }
 }
 
-obj_p distinct_syms(obj_p *x, u64_t n)
-{
+obj_p distinct_syms(obj_p *x, u64_t n) {
     i64_t p;
     u64_t i, j, h, l;
     obj_p vec, set, a;
@@ -349,14 +322,11 @@ obj_p distinct_syms(obj_p *x, u64_t n)
 
     set = ht_oa_create(l, -1);
 
-    for (i = 0, h = 0; i < n; i++)
-    {
+    for (i = 0, h = 0; i < n; i++) {
         a = *(x + i);
-        for (j = 0; j < l; j++)
-        {
+        for (j = 0; j < l; j++) {
             p = ht_oa_tab_next(&set, AS_SYMBOL(a)[j]);
-            if (AS_SYMBOL(AS_LIST(set)[0])[p] == NULL_I64)
-            {
+            if (AS_SYMBOL(AS_LIST(set)[0])[p] == NULL_I64) {
                 AS_SYMBOL(AS_LIST(set)[0])
                 [p] = AS_SYMBOL(a)[j];
                 h++;
@@ -367,11 +337,9 @@ obj_p distinct_syms(obj_p *x, u64_t n)
     vec = SYMBOL(h);
     l = AS_LIST(set)[0]->len;
 
-    for (i = 0, j = 0; i < l; i++)
-    {
+    for (i = 0, j = 0; i < l; i++) {
         if (AS_SYMBOL(AS_LIST(set)[0])[i] != NULL_I64)
-            AS_SYMBOL(vec)
-        [j++] = AS_SYMBOL(AS_LIST(set)[0])[i];
+            AS_SYMBOL(vec)[j++] = AS_SYMBOL(AS_LIST(set)[0])[i];
     }
 
     vec->attrs |= ATTR_DISTINCT;
@@ -381,384 +349,356 @@ obj_p distinct_syms(obj_p *x, u64_t n)
     return vec;
 }
 
-obj_p __ray_set(obj_p x, obj_p y)
-{
+obj_p __ray_set(obj_p x, obj_p y) {
     i64_t fd, c = 0;
     u64_t i, l, sz, size;
     u8_t *b, mmod;
     obj_p res, col, s, p, k, v, e, cols, sym, path, buf;
     c8_t objbuf[RAY_PAGE_SIZE] = {0};
 
-    switch (x->type)
-    {
-    case -TYPE_SYMBOL:
-        res = set_obj(&runtime_get()->env.variables, x, clone_obj(y));
+    switch (x->type) {
+        case -TYPE_SYMBOL:
+            res = set_obj(&runtime_get()->env.variables, x, clone_obj(y));
 
-        if (y && y->type == TYPE_LAMBDA)
-        {
-            if (is_null(AS_LAMBDA(y)->name))
-                AS_LAMBDA(y)->name = clone_obj(x);
-        }
-
-        if (IS_ERROR(res))
-            return res;
-
-        return clone_obj(y);
-
-    case TYPE_C8:
-        switch (y->type)
-        {
-        case TYPE_SYMBOL:
-            path = cstring_from_obj(x);
-            fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);
-
-            if (fd == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                drop_obj(path);
-                return res;
+            if (y && y->type == TYPE_LAMBDA) {
+                if (is_null(AS_LAMBDA(y)->name))
+                    AS_LAMBDA(y)->name = clone_obj(x);
             }
-
-            buf = ser_obj(y);
-
-            if (IS_ERROR(buf))
-            {
-                fs_fclose(fd);
-                drop_obj(path);
-                return buf;
-            }
-
-            c = fs_fwrite(fd, (str_p)AS_U8(buf), buf->len);
-            fs_fclose(fd);
-            drop_obj(buf);
-
-            if (c == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                drop_obj(path);
-                return res;
-            }
-
-            drop_obj(path);
-
-            return clone_obj(x);
-        case TYPE_TABLE:
-            if (x->len < 2 || AS_C8(x)[x->len - 1] != '/')
-                THROW(ERR_TYPE, "set: table path must be a directory");
-
-            // save columns schema
-            s = cstring_from_str(".d", 2);
-            col = ray_concat(x, s);
-            res = __ray_set(col, AS_LIST(y)[0]);
-
-            drop_obj(s);
-            drop_obj(col);
 
             if (IS_ERROR(res))
                 return res;
 
-            drop_obj(res);
+            return clone_obj(y);
 
-            l = AS_LIST(y)[0]->len;
+        case TYPE_C8:
+            switch (y->type) {
+                case TYPE_SYMBOL:
+                    path = cstring_from_obj(x);
+                    fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);
 
-            cols = LIST(0);
+                    if (fd == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        drop_obj(path);
+                        return res;
+                    }
 
-            // find symbol columns
-            for (i = 0, c = 0; i < l; i++)
-            {
-                if (AS_LIST(AS_LIST(y)[1])[i]->type == TYPE_SYMBOL)
-                    push_obj(&cols, clone_obj(AS_LIST(AS_LIST(y)[1])[i]));
-            }
+                    buf = ser_obj(y);
 
-            sym = distinct_syms(AS_LIST(cols), cols->len);
+                    if (IS_ERROR(buf)) {
+                        fs_fclose(fd);
+                        drop_obj(path);
+                        return buf;
+                    }
 
-            if (sym->len > 0)
-            {
-                s = cstring_from_str("sym", 3);
-                col = ray_concat(x, s);
-                res = __ray_set(col, sym);
+                    c = fs_fwrite(fd, (str_p)AS_U8(buf), buf->len);
+                    fs_fclose(fd);
+                    drop_obj(buf);
 
-                drop_obj(s);
-                drop_obj(col);
+                    if (c == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        drop_obj(path);
+                        return res;
+                    }
 
-                if (IS_ERROR(res))
-                    return res;
-
-                drop_obj(res);
-
-                s = symbol("sym", 3);
-                res = __ray_set(s, sym);
-
-                drop_obj(s);
-
-                if (IS_ERROR(res))
-                    return res;
-
-                drop_obj(res);
-            }
-
-            drop_obj(cols);
-            drop_obj(sym);
-            // --
-
-            // save columns data
-            for (i = 0; i < l; i++)
-            {
-                v = at_idx(AS_LIST(y)[1], i);
-
-                // symbol column need to be converted to enum
-                if (v->type == TYPE_SYMBOL)
-                {
-                    s = symbol("sym", 3);
-                    e = ray_enum(s, v);
-                    drop_obj(s);
-                    drop_obj(v);
-
-                    if (IS_ERROR(e))
-                        return e;
-
-                    v = e;
-                }
-
-                p = at_idx(AS_LIST(y)[0], i);
-                s = cast_obj(TYPE_C8, p);
-                col = ray_concat(x, s);
-                res = __ray_set(col, v);
-
-                drop_obj(p);
-                drop_obj(v);
-                drop_obj(s);
-                drop_obj(col);
-
-                if (IS_ERROR(res))
-                    return res;
-
-                drop_obj(res);
-            }
-
-            return clone_obj(x);
-
-        case TYPE_ENUM:
-            path = cstring_from_obj(x);
-            fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);
-
-            if (fd == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                drop_obj(path);
-                return res;
-            }
-
-            if (is_external_compound(y))
-            {
-                size = RAY_PAGE_SIZE + sizeof(struct obj_t) + y->len * sizeof(i64_t);
-
-                c = fs_fwrite(fd, (str_p)y - RAY_PAGE_SIZE, size);
-                fs_fclose(fd);
-
-                if (c == -1)
-                {
-                    res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
                     drop_obj(path);
-                    return res;
-                }
 
-                drop_obj(path);
+                    return clone_obj(x);
+                case TYPE_TABLE:
+                    if (x->len < 2 || AS_C8(x)[x->len - 1] != '/')
+                        THROW(ERR_TYPE, "set: table path must be a directory");
 
-                return clone_obj(x);
-            }
+                    // save columns schema
+                    s = cstring_from_str(".d", 2);
+                    col = ray_concat(x, s);
+                    res = __ray_set(col, AS_LIST(y)[0]);
 
-            memset(objbuf, 0, RAY_PAGE_SIZE);
-            p = (obj_p)objbuf;
-            strncpy(AS_C8(p), str_from_symbol(AS_LIST(y)[0]->i64), RAY_PAGE_SIZE - sizeof(struct obj_t));
-            p->mmod = MMOD_EXTERNAL_COMPOUND;
+                    drop_obj(s);
+                    drop_obj(col);
 
-            c = fs_fwrite(fd, objbuf, RAY_PAGE_SIZE);
-            if (c == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                fs_fclose(fd);
-                drop_obj(path);
-                return res;
-            }
+                    if (IS_ERROR(res))
+                        return res;
 
-            p->type = TYPE_ENUM;
-            p->len = AS_LIST(y)[1]->len;
+                    drop_obj(res);
 
-            c = fs_fwrite(fd, objbuf, sizeof(struct obj_t));
-            if (c == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                fs_fclose(fd);
-                drop_obj(path);
-                return res;
-            }
+                    l = AS_LIST(y)[0]->len;
 
-            size = AS_LIST(y)[1]->len * sizeof(i64_t);
+                    cols = LIST(0);
 
-            c = fs_fwrite(fd, AS_C8(AS_LIST(y)[1]), size);
-            fs_fclose(fd);
+                    // find symbol columns
+                    for (i = 0, c = 0; i < l; i++) {
+                        if (AS_LIST(AS_LIST(y)[1])[i]->type == TYPE_SYMBOL)
+                            push_obj(&cols, clone_obj(AS_LIST(AS_LIST(y)[1])[i]));
+                    }
 
-            if (c == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                drop_obj(path);
-                return res;
-            }
+                    sym = distinct_syms(AS_LIST(cols), cols->len);
 
-            drop_obj(path);
+                    if (sym->len > 0) {
+                        s = cstring_from_str("sym", 3);
+                        col = ray_concat(x, s);
+                        res = __ray_set(col, sym);
 
-            return clone_obj(x);
+                        drop_obj(s);
+                        drop_obj(col);
 
-        case TYPE_LIST:
-            s = cstring_from_str("#", 1);
-            col = ray_concat(x, s);
-            drop_obj(s);
+                        if (IS_ERROR(res))
+                            return res;
 
-            l = y->len;
-            size = size_obj(y) - sizeof(i8_t) - sizeof(u64_t);
-            buf = U8(size);
-            b = AS_U8(buf);
-            k = I64(l);
+                        drop_obj(res);
 
-            for (i = 0, size = 0; i < l; i++)
-            {
-                v = AS_LIST(y)[i];
-                sz = save_obj(b, l, v);
+                        s = symbol("sym", 3);
+                        res = __ray_set(s, sym);
 
-                if (sz == 0)
-                {
+                        drop_obj(s);
+
+                        if (IS_ERROR(res))
+                            return res;
+
+                        drop_obj(res);
+                    }
+
+                    drop_obj(cols);
+                    drop_obj(sym);
+                    // --
+
+                    // save columns data
+                    for (i = 0; i < l; i++) {
+                        v = at_idx(AS_LIST(y)[1], i);
+
+                        // symbol column need to be converted to enum
+                        if (v->type == TYPE_SYMBOL) {
+                            s = symbol("sym", 3);
+                            e = ray_enum(s, v);
+                            drop_obj(s);
+                            drop_obj(v);
+
+                            if (IS_ERROR(e))
+                                return e;
+
+                            v = e;
+                        }
+
+                        p = at_idx(AS_LIST(y)[0], i);
+                        s = cast_obj(TYPE_C8, p);
+                        col = ray_concat(x, s);
+                        res = __ray_set(col, v);
+
+                        drop_obj(p);
+                        drop_obj(v);
+                        drop_obj(s);
+                        drop_obj(col);
+
+                        if (IS_ERROR(res))
+                            return res;
+
+                        drop_obj(res);
+                    }
+
+                    return clone_obj(x);
+
+                case TYPE_ENUM:
+                    path = cstring_from_obj(x);
+                    fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);
+
+                    if (fd == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        drop_obj(path);
+                        return res;
+                    }
+
+                    if (is_external_compound(y)) {
+                        size = RAY_PAGE_SIZE + sizeof(struct obj_t) + y->len * sizeof(i64_t);
+
+                        c = fs_fwrite(fd, (str_p)y - RAY_PAGE_SIZE, size);
+                        fs_fclose(fd);
+
+                        if (c == -1) {
+                            res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                            drop_obj(path);
+                            return res;
+                        }
+
+                        drop_obj(path);
+
+                        return clone_obj(x);
+                    }
+
+                    memset(objbuf, 0, RAY_PAGE_SIZE);
+                    p = (obj_p)objbuf;
+                    strncpy(AS_C8(p), str_from_symbol(AS_LIST(y)[0]->i64), RAY_PAGE_SIZE - sizeof(struct obj_t));
+                    p->mmod = MMOD_EXTERNAL_COMPOUND;
+
+                    c = fs_fwrite(fd, objbuf, RAY_PAGE_SIZE);
+                    if (c == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        fs_fclose(fd);
+                        drop_obj(path);
+                        return res;
+                    }
+
+                    p->type = TYPE_ENUM;
+                    p->len = AS_LIST(y)[1]->len;
+
+                    c = fs_fwrite(fd, objbuf, sizeof(struct obj_t));
+                    if (c == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        fs_fclose(fd);
+                        drop_obj(path);
+                        return res;
+                    }
+
+                    size = AS_LIST(y)[1]->len * sizeof(i64_t);
+
+                    c = fs_fwrite(fd, AS_C8(AS_LIST(y)[1]), size);
+                    fs_fclose(fd);
+
+                    if (c == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        drop_obj(path);
+                        return res;
+                    }
+
+                    drop_obj(path);
+
+                    return clone_obj(x);
+
+                case TYPE_LIST:
+                    s = cstring_from_str("#", 1);
+                    col = ray_concat(x, s);
+                    drop_obj(s);
+
+                    l = y->len;
+                    size = size_obj(y) - sizeof(i8_t) - sizeof(u64_t);
+                    buf = U8(size);
+                    b = AS_U8(buf);
+                    k = I64(l);
+
+                    for (i = 0, size = 0; i < l; i++) {
+                        v = AS_LIST(y)[i];
+                        sz = save_obj(b, l, v);
+
+                        if (sz == 0) {
+                            drop_obj(col);
+                            drop_obj(buf);
+                            drop_obj(k);
+
+                            THROW(ERR_NOT_SUPPORTED, "set: unsupported type: %s", type_name(y->type));
+                        }
+
+                        AS_I64(k)
+                        [i] = size;
+
+                        size += sz;
+                        b += sz;
+                    }
+
+                    res = __ray_set(col, buf);
+
                     drop_obj(col);
                     drop_obj(buf);
+
+                    if (IS_ERROR(res))
+                        return res;
+
+                    drop_obj(res);
+
+                    // save anymap
+                    path = cstring_from_obj(x);
+                    fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);
+
+                    if (fd == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        drop_obj(path);
+                        return res;
+                    }
+
+                    memset(objbuf, 0, RAY_PAGE_SIZE);
+                    p = (obj_p)objbuf;
+
+                    p->mmod = MMOD_EXTERNAL_COMPOUND;
+
+                    c = fs_fwrite(fd, objbuf, RAY_PAGE_SIZE);
+                    if (c == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        fs_fclose(fd);
+                        drop_obj(path);
+                        return res;
+                    }
+
+                    p->type = TYPE_ANYMAP;
+                    p->len = y->len;
+
+                    c = fs_fwrite(fd, objbuf, sizeof(struct obj_t));
+                    if (c == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        fs_fclose(fd);
+                        drop_obj(path);
+                        return res;
+                    }
+
+                    size = k->len * sizeof(i64_t);
+
+                    c = fs_fwrite(fd, AS_C8(k), size);
                     drop_obj(k);
+                    fs_fclose(fd);
 
-                    THROW(ERR_NOT_SUPPORTED, "set: unsupported type: %s", type_name(y->type));
-                }
+                    if (c == -1) {
+                        res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                        drop_obj(path);
+                        return res;
+                    }
 
-                AS_I64(k)
-                [i] = size;
+                    drop_obj(path);
 
-                size += sz;
-                b += sz;
+                    return clone_obj(x);
+
+                default:
+                    if (IS_VECTOR(y)) {
+                        path = cstring_from_obj(x);
+                        fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);
+
+                        if (fd == -1) {
+                            res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                            drop_obj(path);
+                            return res;
+                        }
+
+                        size = size_of(y);
+
+                        c = fs_fwrite(fd, (str_p)y, size);
+
+                        if (c == -1) {
+                            e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                            drop_obj(path);
+                            fs_fclose(fd);
+                            return e;
+                        }
+
+                        // write mmod
+                        lseek(fd, 0, SEEK_SET);
+                        mmod = MMOD_EXTERNAL_SIMPLE;
+                        c = fs_fwrite(fd, (str_p)&mmod, sizeof(u8_t));
+                        if (c == -1) {
+                            e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                            drop_obj(path);
+                            fs_fclose(fd);
+                            return e;
+                        }
+
+                        drop_obj(path);
+                        fs_fclose(fd);
+
+                        return clone_obj(x);
+                    }
+
+                    THROW(ERR_TYPE, "set: unsupported types: %s %s", type_name(x->type), type_name(y->type));
             }
-
-            res = __ray_set(col, buf);
-
-            drop_obj(col);
-            drop_obj(buf);
-
-            if (IS_ERROR(res))
-                return res;
-
-            drop_obj(res);
-
-            // save anymap
-            path = cstring_from_obj(x);
-            fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);
-
-            if (fd == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                drop_obj(path);
-                return res;
-            }
-
-            memset(objbuf, 0, RAY_PAGE_SIZE);
-            p = (obj_p)objbuf;
-
-            p->mmod = MMOD_EXTERNAL_COMPOUND;
-
-            c = fs_fwrite(fd, objbuf, RAY_PAGE_SIZE);
-            if (c == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                fs_fclose(fd);
-                drop_obj(path);
-                return res;
-            }
-
-            p->type = TYPE_ANYMAP;
-            p->len = y->len;
-
-            c = fs_fwrite(fd, objbuf, sizeof(struct obj_t));
-            if (c == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                fs_fclose(fd);
-                drop_obj(path);
-                return res;
-            }
-
-            size = k->len * sizeof(i64_t);
-
-            c = fs_fwrite(fd, AS_C8(k), size);
-            drop_obj(k);
-            fs_fclose(fd);
-
-            if (c == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                drop_obj(path);
-                return res;
-            }
-
-            drop_obj(path);
-
-            return clone_obj(x);
 
         default:
-            if (IS_VECTOR(y))
-            {
-                path = cstring_from_obj(x);
-                fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);
-
-                if (fd == -1)
-                {
-                    res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                    drop_obj(path);
-                    return res;
-                }
-
-                size = size_of(y);
-
-                c = fs_fwrite(fd, (str_p)y, size);
-
-                if (c == -1)
-                {
-                    e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                    drop_obj(path);
-                    fs_fclose(fd);
-                    return e;
-                }
-
-                // write mmod
-                lseek(fd, 0, SEEK_SET);
-                mmod = MMOD_EXTERNAL_SIMPLE;
-                c = fs_fwrite(fd, (str_p)&mmod, sizeof(u8_t));
-                if (c == -1)
-                {
-                    e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                    drop_obj(path);
-                    fs_fclose(fd);
-                    return e;
-                }
-
-                drop_obj(path);
-                fs_fclose(fd);
-
-                return clone_obj(x);
-            }
-
             THROW(ERR_TYPE, "set: unsupported types: %s %s", type_name(x->type), type_name(y->type));
-        }
-
-    default:
-        THROW(ERR_TYPE, "set: unsupported types: %s %s", type_name(x->type), type_name(y->type));
     }
 }
 
-obj_p ray_set(obj_p x, obj_p y)
-{
+obj_p ray_set(obj_p x, obj_p y) {
     obj_p e, res;
 
     e = eval(y);
@@ -771,21 +711,19 @@ obj_p ray_set(obj_p x, obj_p y)
     return res;
 }
 
-obj_p ray_let(obj_p x, obj_p y)
-{
+obj_p ray_let(obj_p x, obj_p y) {
     obj_p e;
 
-    switch (x->type)
-    {
-    case -TYPE_SYMBOL:
-        e = eval(y);
+    switch (x->type) {
+        case -TYPE_SYMBOL:
+            e = eval(y);
 
-        if (IS_ERROR(e))
-            return e;
+            if (IS_ERROR(e))
+                return e;
 
-        return amend(x, e);
+            return amend(x, e);
 
-    default:
-        THROW(ERR_TYPE, "let: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
+        default:
+            THROW(ERR_TYPE, "let: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
     }
 }

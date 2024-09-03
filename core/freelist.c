@@ -25,8 +25,7 @@
 #include "heap.h"
 #include "util.h"
 
-freelist_p freelist_create(i64_t size)
-{
+freelist_p freelist_create(i64_t size) {
     freelist_p freelist;
 
     freelist = (freelist_p)heap_alloc(sizeof(struct freelist_t));
@@ -40,26 +39,22 @@ freelist_p freelist_create(i64_t size)
     return freelist;
 }
 
-nil_t freelist_free(freelist_p freelist)
-{
+nil_t freelist_free(freelist_p freelist) {
     heap_free(freelist->data);
     heap_free(freelist->free);
     heap_free(freelist);
 }
 
-i64_t freelist_push(freelist_p freelist, i64_t val)
-{
+i64_t freelist_push(freelist_p freelist, i64_t val) {
     i64_t pos;
 
-    if (freelist->free_pos > 0)
-    {
+    if (freelist->free_pos > 0) {
         pos = freelist->free[--freelist->free_pos];
         freelist->data[pos] = val;
         return pos;
     }
 
-    if (freelist->data_pos == freelist->data_size)
-    {
+    if (freelist->data_pos == freelist->data_size) {
         freelist->data_size *= 2;
         freelist->data = (i64_t *)heap_realloc(freelist->data, freelist->data_size * sizeof(i64_t));
     }
@@ -71,15 +66,13 @@ i64_t freelist_push(freelist_p freelist, i64_t val)
     return pos;
 }
 
-i64_t freelist_pop(freelist_p freelist, i64_t pos)
-{
+i64_t freelist_pop(freelist_p freelist, i64_t pos) {
     i64_t val;
 
     if (pos < 0 || pos >= freelist->data_pos)
         return NULL_I64;
 
-    if (freelist->free_pos == freelist->free_size)
-    {
+    if (freelist->free_pos == freelist->free_size) {
         freelist->free_size *= 2;
         freelist->free = (i64_t *)heap_realloc(freelist->free, freelist->free_size * sizeof(i64_t));
     }
@@ -91,8 +84,7 @@ i64_t freelist_pop(freelist_p freelist, i64_t pos)
     return val;
 }
 
-i64_t freelist_get(freelist_p freelist, i64_t idx)
-{
+i64_t freelist_get(freelist_p freelist, i64_t idx) {
     if (idx < 0 || idx >= freelist->data_pos)
         return NULL_I64;
 

@@ -28,4 +28,4 @@
 
 obj_p ray_cond(obj_p *x, u64_t n);
 
-#endif // COND_H
+#endif  // COND_H

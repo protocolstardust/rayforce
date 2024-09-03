@@ -21,8 +21,4 @@
  *   SOFTWARE.
  */
 
-test_result_t test_env()
-{
-
-    PASS();
-}
+test_result_t test_env() { PASS(); }

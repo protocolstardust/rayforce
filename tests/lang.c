@@ -25,15 +25,12 @@
     {                                                                                                                  \
         obj_p le = eval_str(lhs);                                                                                      \
         obj_p lns = obj_fmt(le, B8_TRUE);                                                                              \
-        if (IS_ERROR(le))                                                                                              \
-        {                                                                                                              \
+        if (IS_ERROR(le)) {                                                                                            \
             obj_p fmt = str_fmt(-1, "Input error: %s\n -- at: %s:%d", AS_C8(lns), __FILE__, __LINE__);                 \
             TEST_ASSERT(0, AS_C8(lns));                                                                                \
             drop_obj(lns);                                                                                             \
             drop_obj(fmt);                                                                                             \
-        }                                                                                                              \
-        else                                                                                                           \
-        {                                                                                                              \
+        } else {                                                                                                       \
             obj_p re = eval_str(rhs);                                                                                  \
             obj_p rns = obj_fmt(re, B8_TRUE);                                                                          \
             obj_p fmt = str_fmt(-1, "Expected %s, got %s\n -- at: %s:%d", AS_C8(rns), AS_C8(lns), __FILE__, __LINE__); \
@@ -46,8 +43,7 @@
         }                                                                                                              \
     }
 
-test_result_t test_lang_basic()
-{
+test_result_t test_lang_basic() {
     TEST_ASSERT_EQ("null", "null");
     TEST_ASSERT_EQ("0x1a", "0x1a");
     TEST_ASSERT_EQ("[0x1a 0x1b]", "[0x1a 0x1b]");
@@ -63,7 +59,8 @@ test_result_t test_lang_basic()
     TEST_ASSERT_EQ("\"asd\"", "\"asd\"");
     TEST_ASSERT_EQ("{a: \"asd\" b: 1 c: [1 2 3]}", "{a: \"asd\" b: 1 c: [1 2 3]}");
     TEST_ASSERT_EQ("{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2}}", "{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2}}");
-    TEST_ASSERT_EQ("{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2 g: {h: 1 i: 2}}}", "{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2 g: {h: 1 i: 2}}}");
+    TEST_ASSERT_EQ("{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2 g: {h: 1 i: 2}}}",
+                   "{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2 g: {h: 1 i: 2}}}");
     TEST_ASSERT_EQ("(list 1 2 3 \"asd\")", "(list 1 2 3 \"asd\")");
     TEST_ASSERT_EQ("(list 1 2 3 \"asd\" (list 1 2 3))", "(list 1 2 3 \"asd\" (list 1 2 3))");
     TEST_ASSERT_EQ("(list 1 2 3 \"asd\" (list 1 2 3 (list 1 2 3)))", "(list 1 2 3 \"asd\" (list 1 2 3 (list 1 2 3)))");
@@ -73,8 +70,7 @@ test_result_t test_lang_basic()
     PASS();
 }
 
-test_result_t test_lang_math()
-{
+test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(+ 1 2)", "3");
     TEST_ASSERT_EQ("(+ 1 2.2)", "3.20");
     TEST_ASSERT_EQ("(+ 1.1 2)", "3.10");
@@ -108,25 +104,27 @@ test_result_t test_lang_math()
     PASS();
 }
 
-test_result_t test_lang_query()
-{
-    TEST_ASSERT_EQ("(set t (table [sym price volume tape] (list [apl vod god] [102 99 203] [500 400 900] (list \"A\"\"B\"\"C\"))))",
-                   "(table [sym price volume tape] (list [apl vod god] [102 99 203] [500 400 900] (list \"A\"\"B\"\"C\")))");
+test_result_t test_lang_query() {
+    TEST_ASSERT_EQ(
+        "(set t (table [sym price volume tape] (list [apl vod god] [102 99 203] [500 400 900] (list "
+        "\"A\"\"B\"\"C\"))))",
+        "(table [sym price volume tape] (list [apl vod god] [102 99 203] [500 400 900] (list \"A\"\"B\"\"C\")))");
     TEST_ASSERT_EQ("(at t 'sym)", "[apl vod god]");
     TEST_ASSERT_EQ("(at t 'price)", "[102 99 203]");
     TEST_ASSERT_EQ("(at t 'volume)", "[500 400 900]");
     TEST_ASSERT_EQ("(at t 'tape)", "(list \"A\"\"B\"\"C\")");
-    TEST_ASSERT_EQ("(set n 10)"
-                   "(set gds (take n (guid 3)))"
-                   "(set t (table [OrderId Symbol Price Size Tape Timestamp]"
-                   "(list gds"
-                   "(take n [apll good msfk ibmd amznt fbad baba])"
-                   "(as 'F64 (til n))"
-                   "(take n (+ 1 (til 3)))"
-                   "(map (fn [x] (as 'String x)) (take n (til 10)))"
-                   "(as 'Timestamp (til n)))))"
-                   "null",
-                   "null");
+    TEST_ASSERT_EQ(
+        "(set n 10)"
+        "(set gds (take n (guid 3)))"
+        "(set t (table [OrderId Symbol Price Size Tape Timestamp]"
+        "(list gds"
+        "(take n [apll good msfk ibmd amznt fbad baba])"
+        "(as 'F64 (til n))"
+        "(take n (+ 1 (til 3)))"
+        "(map (fn [x] (as 'String x)) (take n (til 10)))"
+        "(as 'Timestamp (til n)))))"
+        "null",
+        "null");
     TEST_ASSERT_EQ("(select {from: t by: Symbol})",
                    "(table [Symbol OrderId Price Size Tape Timestamp]"
                    "(list [apll good msfk ibmd amznt fbad baba]"
@@ -146,13 +144,9 @@ test_result_t test_lang_query()
     PASS();
 }
 
-test_result_t test_lang_update()
-{
-    PASS();
-}
+test_result_t test_lang_update() { PASS(); }
 
-test_result_t test_lang_serde()
-{
+test_result_t test_lang_serde() {
     TEST_ASSERT_EQ("(de (ser null))", "null");
 
     PASS();

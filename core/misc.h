@@ -32,4 +32,4 @@ obj_p ray_rc(obj_p x);
 obj_p ray_quote(obj_p x);
 obj_p ray_ids(obj_p x);
 
-#endif // MISC_H
+#endif  // MISC_H

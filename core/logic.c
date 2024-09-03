@@ -28,106 +28,96 @@
 #include "error.h"
 #include "string.h"
 
-obj_p ray_and(obj_p x, obj_p y)
-{
+obj_p ray_and(obj_p x, obj_p y) {
     i32_t i;
     i64_t l;
     obj_p res;
 
-    switch (mtype2(x->type, y->type))
-    {
-    case mtype2(-TYPE_B8, -TYPE_B8):
-        return (b8(x->b8 && y->b8));
+    switch (mtype2(x->type, y->type)) {
+        case mtype2(-TYPE_B8, -TYPE_B8):
+            return (b8(x->b8 && y->b8));
 
-    case mtype2(TYPE_B8, TYPE_B8):
-        l = x->len;
-        res = B8(x->len);
-        for (i = 0; i < l; i++)
-            AS_B8(res)
-        [i] = AS_B8(x)[i] & AS_B8(y)[i];
+        case mtype2(TYPE_B8, TYPE_B8):
+            l = x->len;
+            res = B8(x->len);
+            for (i = 0; i < l; i++)
+                AS_B8(res)
+            [i] = AS_B8(x)[i] & AS_B8(y)[i];
 
-        return res;
+            return res;
 
-    default:
-        THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        default:
+            THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
-obj_p ray_or(obj_p x, obj_p y)
-{
+obj_p ray_or(obj_p x, obj_p y) {
     i32_t i;
     i64_t l;
     obj_p res;
 
-    switch (mtype2(x->type, y->type))
-    {
-    case mtype2(-TYPE_B8, -TYPE_B8):
-        return (b8(x->b8 || y->b8));
+    switch (mtype2(x->type, y->type)) {
+        case mtype2(-TYPE_B8, -TYPE_B8):
+            return (b8(x->b8 || y->b8));
 
-    case mtype2(TYPE_B8, TYPE_B8):
-        l = x->len;
-        res = B8(x->len);
-        for (i = 0; i < l; i++)
-            AS_B8(res)
-        [i] = AS_B8(x)[i] | AS_B8(y)[i];
+        case mtype2(TYPE_B8, TYPE_B8):
+            l = x->len;
+            res = B8(x->len);
+            for (i = 0; i < l; i++)
+                AS_B8(res)
+            [i] = AS_B8(x)[i] | AS_B8(y)[i];
 
-        return res;
+            return res;
 
-    default:
-        THROW(ERR_TYPE, "or: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        default:
+            THROW(ERR_TYPE, "or: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
-obj_p ray_like(obj_p x, obj_p y)
-{
+obj_p ray_like(obj_p x, obj_p y) {
     i64_t i, l;
     obj_p res, e;
 
-    switch (mtype2(x->type, y->type))
-    {
-    case mtype2(TYPE_C8, TYPE_C8):
-        return (b8(str_match(AS_C8(x), x->len, AS_C8(y), y->len)));
-    case mtype2(TYPE_LIST, TYPE_C8):
-        l = x->len;
-        res = B8(l);
-        for (i = 0; i < l; i++)
-        {
-            e = AS_LIST(x)[i];
-            if (!e || e->type != TYPE_C8)
-            {
-                res->len = i;
-                drop_obj(res);
-                THROW(ERR_TYPE, "like: unsupported types: '%s, %s", type_name(e->type), type_name(y->type));
+    switch (mtype2(x->type, y->type)) {
+        case mtype2(TYPE_C8, TYPE_C8):
+            return (b8(str_match(AS_C8(x), x->len, AS_C8(y), y->len)));
+        case mtype2(TYPE_LIST, TYPE_C8):
+            l = x->len;
+            res = B8(l);
+            for (i = 0; i < l; i++) {
+                e = AS_LIST(x)[i];
+                if (!e || e->type != TYPE_C8) {
+                    res->len = i;
+                    drop_obj(res);
+                    THROW(ERR_TYPE, "like: unsupported types: '%s, %s", type_name(e->type), type_name(y->type));
+                }
+
+                AS_B8(res)
+                [i] = str_match(AS_C8(e), e->len, AS_C8(y), y->len);
             }
 
-            AS_B8(res)
-            [i] = str_match(AS_C8(e), e->len, AS_C8(y), y->len);
-        }
+            return res;
 
-        return res;
+        case mtype2(TYPE_ANYMAP, TYPE_C8):
+            l = x->len;
+            res = B8(l);
+            for (i = 0; i < l; i++) {
+                e = at_idx(x, i);
+                if (!e || e->type != TYPE_C8) {
+                    res->len = i;
+                    drop_obj(res);
+                    drop_obj(e);
+                    THROW(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(e->type), type_name(y->type));
+                }
 
-    case mtype2(TYPE_ANYMAP, TYPE_C8):
-        l = x->len;
-        res = B8(l);
-        for (i = 0; i < l; i++)
-        {
-            e = at_idx(x, i);
-            if (!e || e->type != TYPE_C8)
-            {
-                res->len = i;
-                drop_obj(res);
+                AS_B8(res)
+                [i] = str_match(AS_C8(e), e->len, AS_C8(y), y->len);
                 drop_obj(e);
-                THROW(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(e->type), type_name(y->type));
             }
 
-            AS_B8(res)
-            [i] = str_match(AS_C8(e), e->len, AS_C8(y), y->len);
-            drop_obj(e);
-        }
+            return res;
 
-        return res;
-
-    default:
-        THROW(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        default:
+            THROW(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }

@@ -43,8 +43,7 @@ typedef obj_p (*fn6)(raw_p, raw_p, raw_p, raw_p, raw_p, raw_p);
 typedef obj_p (*fn7)(raw_p, raw_p, raw_p, raw_p, raw_p, raw_p, raw_p);
 typedef obj_p (*fn8)(raw_p, raw_p, raw_p, raw_p, raw_p, raw_p, raw_p, raw_p);
 
-typedef struct
-{
+typedef struct {
     i64_t id;
     raw_p fn;
     u64_t argc;
@@ -52,14 +51,12 @@ typedef struct
     obj_p result;
 } task_data_t;
 
-typedef struct cell_t
-{
+typedef struct cell_t {
     u64_t seq;
     task_data_t data;
 } *cell_p;
 
-typedef struct mpmc_t
-{
+typedef struct mpmc_t {
     cachepad_t pad0;
     cell_p buf;
     i64_t mask;
@@ -72,33 +69,27 @@ typedef struct mpmc_t
 
 typedef struct pool_t *pool_p;
 
-typedef enum pool_state_t
-{
-    POOL_STATE_RUN = 0,
-    POOL_STATE_STOP = 1
-} pool_state_t;
+typedef enum pool_state_t { POOL_STATE_RUN = 0, POOL_STATE_STOP = 1 } pool_state_t;
 
-typedef struct
-{
+typedef struct {
     u64_t id;
-    heap_p heap;               // Executor's heap
-    interpreter_p interpreter; // Executor's interpreter
-    pool_p pool;               // Executor's pool
-    ray_thread_t handle;       // Executor's thread handle
+    heap_p heap;                // Executor's heap
+    interpreter_p interpreter;  // Executor's interpreter
+    pool_p pool;                // Executor's pool
+    ray_thread_t handle;        // Executor's thread handle
 } executor_t;
 
-typedef struct pool_t
-{
-    mutex_t mutex;          // Mutex for condition variable
-    cond_t run;             // Condition variable for run executors
-    cond_t done;            // Condition variable for signal that executor is done
-    pool_state_t state;     // Pool's state
-    u64_t done_count;       // Number of done executors
-    u64_t executors_count;  // Number of executors
-    u64_t tasks_count;      // Number of tasks
-    mpmc_p task_queue;      // Pool's task queue
-    mpmc_p result_queue;    // Pool's result queue
-    executor_t executors[]; // Array of executors
+typedef struct pool_t {
+    mutex_t mutex;           // Mutex for condition variable
+    cond_t run;              // Condition variable for run executors
+    cond_t done;             // Condition variable for signal that executor is done
+    pool_state_t state;      // Pool's state
+    u64_t done_count;        // Number of done executors
+    u64_t executors_count;   // Number of executors
+    u64_t tasks_count;       // Number of tasks
+    mpmc_p task_queue;       // Pool's task queue
+    mpmc_p result_queue;     // Pool's result queue
+    executor_t executors[];  // Array of executors
 } *pool_p;
 
 pool_p pool_create(u64_t executors_count);
@@ -110,4 +101,4 @@ obj_p pool_call_task_fn(raw_p fn, u64_t argc, raw_p argv[]);
 obj_p pool_run(pool_p pool);
 u64_t pool_split_by(pool_p pool, u64_t input_len, u64_t groups_len);
 
-#endif // POOL_H
+#endif  // POOL_H

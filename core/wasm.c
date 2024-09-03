@@ -38,7 +38,8 @@
 #include "sys.h"
 #include "fs.h"
 
-#define __ABOUT "\
+#define __ABOUT \
+    "\
   %s%sRayforceDB: %d.%d %s\n\
   WASM target\n\
   Started from: %s\n\
@@ -46,61 +47,49 @@
   Github: https://github.com/singaraiona/rayforce%s\n"
 
 // Declare rayforce_ready callback on js side
-EM_JS(nil_t, js_rayforce_ready, (str_p text), {
-    Module.rayforce_ready(UTF8ToC8(text));
-});
+EM_JS(nil_t, js_rayforce_ready, (str_p text), { Module.rayforce_ready(UTF8ToC8(text)); });
 
-poll_p poll_init(i64_t port)
-{
+poll_p poll_init(i64_t port) {
     poll_p poll = (poll_p)heap_alloc(sizeof(struct poll_t));
     poll->code = NULL_I64;
 
     return poll;
 }
 
-nil_t poll_destroy(poll_p poll)
-{
-    heap_free(poll);
-}
+nil_t poll_destroy(poll_p poll) { heap_free(poll); }
 
-i64_t poll_run(poll_p poll)
-{
+i64_t poll_run(poll_p poll) {
     UNUSED(poll);
     return 0;
 }
 
-i64_t poll_register(poll_p poll, i64_t fd, u8_t version)
-{
+i64_t poll_register(poll_p poll, i64_t fd, u8_t version) {
     UNUSED(poll);
     UNUSED(fd);
     UNUSED(version);
     return 0;
 }
 
-nil_t poll_deregister(poll_p poll, i64_t id)
-{
+nil_t poll_deregister(poll_p poll, i64_t id) {
     UNUSED(poll);
     UNUSED(id);
 }
 
-obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg)
-{
-    UNUSED(poll);
-    UNUSED(id);
-    UNUSED(msg);
-    return NULL_OBJ;
-}
-
-obj_p ipc_send_async(poll_p poll, i64_t id, obj_p msg)
-{
+obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
     UNUSED(poll);
     UNUSED(id);
     UNUSED(msg);
     return NULL_OBJ;
 }
 
-nil_t list_examples(obj_p *dst)
-{
+obj_p ipc_send_async(poll_p poll, i64_t id, obj_p msg) {
+    UNUSED(poll);
+    UNUSED(id);
+    UNUSED(msg);
+    return NULL_OBJ;
+}
+
+nil_t list_examples(obj_p *dst) {
     DIR *dir;
     struct dirent *entry;
 
@@ -112,8 +101,7 @@ nil_t list_examples(obj_p *dst)
         return;
 
     // Read each entry in the directory
-    while ((entry = readdir(dir)) != NULL)
-    {
+    while ((entry = readdir(dir)) != NULL) {
         if (strncmp(entry->d_name, ".", 1) == 0 || strncmp(entry->d_name, "..", 2) == 0)
             continue;
         str_fmt_into(dst, -1, "  |- %s\n", entry->d_name);
@@ -127,19 +115,15 @@ nil_t list_examples(obj_p *dst)
     return;
 }
 
-EMSCRIPTEN_KEEPALIVE str_p strof_obj(obj_p obj)
-{
-    return AS_C8(obj);
-}
+EMSCRIPTEN_KEEPALIVE str_p strof_obj(obj_p obj) { return AS_C8(obj); }
 
-EMSCRIPTEN_KEEPALIVE i32_t main(i32_t argc, str_p argv[])
-{
+EMSCRIPTEN_KEEPALIVE i32_t main(i32_t argc, str_p argv[]) {
     i32_t code;
     sys_info_t info = sys_info(1);
     obj_p fmt = NULL_OBJ;
 
-    str_fmt_into(&fmt, -1, __ABOUT, BOLD, YELLOW,
-                 info.major_version, info.minor_version, info.build_date, info.cwd, RESET);
+    str_fmt_into(&fmt, -1, __ABOUT, BOLD, YELLOW, info.major_version, info.minor_version, info.build_date, info.cwd,
+                 RESET);
 
     list_examples(&fmt);
 

@@ -35,8 +35,7 @@
 #include "group.h"
 #include "ops.h"
 
-obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n)
-{
+obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n) {
     u64_t i, j, l;
     obj_p v, res;
 
@@ -52,8 +51,7 @@ obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n)
 
     v = f(x + n, n);
 
-    if (IS_ERROR(v))
-    {
+    if (IS_ERROR(v)) {
         res = v;
     }
 
@@ -61,8 +59,7 @@ obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n)
 
     ins_obj(&res, 0, v);
 
-    for (i = 1; i < l; i++)
-    {
+    for (i = 1; i < l; i++) {
         for (j = 0; j < n; j++)
             stack_push(at_idx(x[j], i));
 
@@ -72,8 +69,7 @@ obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n)
         for (j = 0; j < n; j++)
             drop_obj(stack_pop());
 
-        if (IS_ERROR(v))
-        {
+        if (IS_ERROR(v)) {
             res->len = i;
             drop_obj(res);
             return v;
@@ -85,21 +81,18 @@ obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n)
     return res;
 }
 
-obj_p vary_call(u8_t attrs, vary_f f, obj_p *x, u64_t n)
-{
+obj_p vary_call(u8_t attrs, vary_f f, obj_p *x, u64_t n) {
     if ((attrs & FN_ATOMIC) || (attrs & FN_GROUP_MAP))
         return vary_call_atomic(f, x, n);
     else
         return f(x, n);
 }
 
-obj_p ray_do(obj_p *x, u64_t n)
-{
+obj_p ray_do(obj_p *x, u64_t n) {
     u64_t i;
     obj_p res = NULL_OBJ;
 
-    for (i = 0; i < n; i++)
-    {
+    for (i = 0; i < n; i++) {
         drop_obj(res);
         res = eval(x[i]);
         if (IS_ERROR(res))
@@ -109,20 +102,15 @@ obj_p ray_do(obj_p *x, u64_t n)
     return res;
 }
 
-obj_p ray_gc(obj_p *x, u64_t n)
-{
+obj_p ray_gc(obj_p *x, u64_t n) {
     UNUSED(x);
     UNUSED(n);
     return i64(heap_gc());
 }
 
-obj_p ray_format(obj_p *x, u64_t n)
-{
-    return obj_fmt_n(x, n);
-}
+obj_p ray_format(obj_p *x, u64_t n) { return obj_fmt_n(x, n); }
 
-obj_p ray_print(obj_p *x, u64_t n)
-{
+obj_p ray_print(obj_p *x, u64_t n) {
     obj_p s = obj_fmt_n(x, n);
 
     if (s == NULL_OBJ)
@@ -134,8 +122,7 @@ obj_p ray_print(obj_p *x, u64_t n)
     return NULL_OBJ;
 }
 
-obj_p ray_println(obj_p *x, u64_t n)
-{
+obj_p ray_println(obj_p *x, u64_t n) {
     obj_p s = obj_fmt_n(x, n);
 
     if (s == NULL_OBJ)
@@ -147,15 +134,13 @@ obj_p ray_println(obj_p *x, u64_t n)
     return NULL_OBJ;
 }
 
-obj_p ray_args(obj_p *x, u64_t n)
-{
+obj_p ray_args(obj_p *x, u64_t n) {
     UNUSED(x);
     UNUSED(n);
     return clone_obj(runtime_get()->args);
 }
 
-obj_p ray_exit(obj_p *x, u64_t n)
-{
+obj_p ray_exit(obj_p *x, u64_t n) {
     i64_t code;
 
     if (n == 0)

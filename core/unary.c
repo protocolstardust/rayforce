@@ -48,272 +48,248 @@
 #include "pool.h"
 
 // Atomic unary functions (iterates through list of argument items down to atoms)
-obj_p unary_call_atomic(unary_f f, obj_p x)
-{
+obj_p unary_call_atomic(unary_f f, obj_p x) {
     u64_t i, l, n;
     obj_p res = NULL_OBJ, item = NULL_OBJ, a, *v, parts;
     pool_p pool;
 
     pool = pool_get();
 
-    switch (x->type)
-    {
-    case TYPE_LIST:
-        l = ops_count(x);
+    switch (x->type) {
+        case TYPE_LIST:
+            l = ops_count(x);
 
-        if (l == 0)
-            return NULL_OBJ;
+            if (l == 0)
+                return NULL_OBJ;
 
-        v = AS_LIST(x);
-        n = pool_split_by(pool, l, 0);
+            v = AS_LIST(x);
+            n = pool_split_by(pool, l, 0);
 
-        if (n > 1)
-        {
-            pool_prepare(pool);
+            if (n > 1) {
+                pool_prepare(pool);
 
-            for (i = 0; i < l; i++)
-                pool_add_task(pool, unary_call_atomic, 2, f, v[i]);
+                for (i = 0; i < l; i++)
+                    pool_add_task(pool, unary_call_atomic, 2, f, v[i]);
 
-            parts = pool_run(pool);
-            UNWRAP_LIST(parts);
+                parts = pool_run(pool);
+                UNWRAP_LIST(parts);
 
-            return parts;
-        }
-
-        item = unary_call_atomic(f, v[0]);
-
-        if (IS_ERROR(item))
-            return item;
-
-        res = item->type < 0 ? vector(item->type, l) : LIST(l);
-
-        ins_obj(&res, 0, item);
-
-        for (i = 1; i < l; i++)
-        {
-            item = unary_call_atomic(f, v[i]);
-
-            if (IS_ERROR(item))
-            {
-                res->len = i;
-                drop_obj(res);
-                return item;
+                return parts;
             }
 
-            ins_obj(&res, i, item);
-        }
+            item = unary_call_atomic(f, v[0]);
 
-        return res;
+            if (IS_ERROR(item))
+                return item;
 
-    case TYPE_ANYMAP:
-        l = ops_count(x);
-        if (l == 0)
-            return NULL_OBJ;
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
 
-        a = at_idx(x, 0);
-        item = unary_call_atomic(f, a);
-        drop_obj(a);
+            ins_obj(&res, 0, item);
 
-        if (IS_ERROR(item))
-            return item;
+            for (i = 1; i < l; i++) {
+                item = unary_call_atomic(f, v[i]);
 
-        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
 
-        ins_obj(&res, 0, item);
+                ins_obj(&res, i, item);
+            }
 
-        for (i = 1; i < l; i++)
-        {
-            a = at_idx(x, i);
+            return res;
+
+        case TYPE_ANYMAP:
+            l = ops_count(x);
+            if (l == 0)
+                return NULL_OBJ;
+
+            a = at_idx(x, 0);
             item = unary_call_atomic(f, a);
             drop_obj(a);
 
             if (IS_ERROR(item))
-            {
-                res->len = i;
-                drop_obj(res);
                 return item;
+
+            res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                a = at_idx(x, i);
+                item = unary_call_atomic(f, a);
+                drop_obj(a);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
             }
 
-            ins_obj(&res, i, item);
-        }
+            return res;
 
-        return res;
-
-    default:
-        return f(x);
+        default:
+            return f(x);
     }
 }
 
-obj_p unary_call(u8_t attrs, unary_f f, obj_p x)
-{
+obj_p unary_call(u8_t attrs, unary_f f, obj_p x) {
     if (attrs & FN_ATOMIC)
         return unary_call_atomic(f, x);
 
     return f(x);
 }
 
-obj_p ray_get(obj_p x)
-{
+obj_p ray_get(obj_p x) {
     i64_t fd;
     obj_p res, col, keys, vals, val, s, v, id, *sym, path;
     u64_t i, l, size;
 
-    switch (x->type)
-    {
-    case -TYPE_SYMBOL:
-        sym = resolve(x->i64);
-        if (sym == NULL)
-            return error(ERR_TYPE, "get: symbol '%s' not found", str_from_symbol(x->i64));
+    switch (x->type) {
+        case -TYPE_SYMBOL:
+            sym = resolve(x->i64);
+            if (sym == NULL)
+                return error(ERR_TYPE, "get: symbol '%s' not found", str_from_symbol(x->i64));
 
-        return clone_obj(*sym);
-    case TYPE_C8:
-        if (x->len == 0)
-            THROW(ERR_LENGTH, "get: empty string path");
+            return clone_obj(*sym);
+        case TYPE_C8:
+            if (x->len == 0)
+                THROW(ERR_LENGTH, "get: empty string path");
 
-        // get splayed table
-        if (x->len > 1 && AS_C8(x)[x->len - 1] == '/')
-        {
-            // first try to read columns schema
-            s = cstring_from_str(".d", 2);
-            col = ray_concat(x, s);
-            keys = ray_get(col);
-            drop_obj(s);
-            drop_obj(col);
-
-            if (IS_ERROR(keys))
-                return keys;
-
-            if (keys->type != TYPE_SYMBOL)
-            {
-                drop_obj(keys);
-                THROW(ERR_TYPE, "get: expected table schema as a symbol vector, got: '%s", type_name(keys->type));
-            }
-
-            l = keys->len;
-            vals = LIST(l);
-
-            for (i = 0; i < l; i++)
-            {
-                v = at_idx(keys, i);
-                s = cast_obj(TYPE_C8, v);
-                col = ray_concat(x, s);
-                val = ray_get(col);
-
-                drop_obj(v);
-                drop_obj(s);
-                drop_obj(col);
-
-                if (IS_ERROR(val))
-                {
-                    vals->len = i;
-                    drop_obj(vals);
-                    drop_obj(keys);
-
-                    return val;
-                }
-
-                AS_LIST(vals)
-                [i] = val;
-            }
-
-            // read symbol data (if any) if sym is not present in current env
-            if (resolve(SYMBOL_SYM) == NULL)
-            {
-                s = cstring_from_str("sym", 3);
-                col = ray_concat(x, s);
-                v = ray_get(col);
-
-                drop_obj(s);
-                drop_obj(col);
-
-                if (!IS_ERROR(v))
-                {
-                    s = symbol("sym", 3);
-                    drop_obj(ray_set(s, v));
-                    drop_obj(s);
-                }
-
-                drop_obj(v);
-            }
-
-            return table(keys, vals);
-        }
-        // get other obj
-        else
-        {
-            path = cstring_from_obj(x);
-            fd = fs_fopen(AS_C8(path), ATTR_RDWR);
-
-            if (fd == -1)
-            {
-                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                drop_obj(path);
-                return res;
-            }
-
-            size = fs_fsize(fd);
-
-            if (size < sizeof(struct obj_t))
-            {
-                res = error(ERR_LENGTH, "get: file '%s': invalid size: %d", AS_C8(path), size);
-                drop_obj(path);
-                fs_fclose(fd);
-                return res;
-            }
-
-            drop_obj(path);
-
-            res = (obj_p)mmap_file(fd, size, 0);
-
-            if (is_external_serialized(res))
-            {
-                v = de_raw((u8_t *)res, size);
-                mmap_free(res, size);
-                fs_fclose(fd);
-                return v;
-            }
-            else
-            {
-                // insert fd into runtime fds
-                id = i64((i64_t)res);
-                set_obj(&runtime_get()->fds, id, i64(fd));
-                drop_obj(id);
-            }
-
-            if (is_external_compound(res))
-                res = (obj_p)((str_p)res + RAY_PAGE_SIZE);
-
-            // anymap needs additional nested mapping of dependencies
-            if (res->type == TYPE_ANYMAP)
-            {
-                s = cstring_from_str("#", 1);
+            // get splayed table
+            if (x->len > 1 && AS_C8(x)[x->len - 1] == '/') {
+                // first try to read columns schema
+                s = cstring_from_str(".d", 2);
                 col = ray_concat(x, s);
                 keys = ray_get(col);
                 drop_obj(s);
                 drop_obj(col);
 
-                if (keys->type != TYPE_U8)
-                {
+                if (IS_ERROR(keys))
+                    return keys;
+
+                if (keys->type != TYPE_SYMBOL) {
                     drop_obj(keys);
-                    mmap_free(res, size);
-                    THROW(ERR_TYPE, "get: expected anymap schema as a byte vector, got: '%s", type_name(keys->type));
+                    THROW(ERR_TYPE, "get: expected table schema as a symbol vector, got: '%s", type_name(keys->type));
                 }
 
-                ((obj_p)((str_p)res - RAY_PAGE_SIZE))->obj = keys;
+                l = keys->len;
+                vals = LIST(l);
+
+                for (i = 0; i < l; i++) {
+                    v = at_idx(keys, i);
+                    s = cast_obj(TYPE_C8, v);
+                    col = ray_concat(x, s);
+                    val = ray_get(col);
+
+                    drop_obj(v);
+                    drop_obj(s);
+                    drop_obj(col);
+
+                    if (IS_ERROR(val)) {
+                        vals->len = i;
+                        drop_obj(vals);
+                        drop_obj(keys);
+
+                        return val;
+                    }
+
+                    AS_LIST(vals)
+                    [i] = val;
+                }
+
+                // read symbol data (if any) if sym is not present in current env
+                if (resolve(SYMBOL_SYM) == NULL) {
+                    s = cstring_from_str("sym", 3);
+                    col = ray_concat(x, s);
+                    v = ray_get(col);
+
+                    drop_obj(s);
+                    drop_obj(col);
+
+                    if (!IS_ERROR(v)) {
+                        s = symbol("sym", 3);
+                        drop_obj(ray_set(s, v));
+                        drop_obj(s);
+                    }
+
+                    drop_obj(v);
+                }
+
+                return table(keys, vals);
+            }
+            // get other obj
+            else {
+                path = cstring_from_obj(x);
+                fd = fs_fopen(AS_C8(path), ATTR_RDWR);
+
+                if (fd == -1) {
+                    res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                    drop_obj(path);
+                    return res;
+                }
+
+                size = fs_fsize(fd);
+
+                if (size < sizeof(struct obj_t)) {
+                    res = error(ERR_LENGTH, "get: file '%s': invalid size: %d", AS_C8(path), size);
+                    drop_obj(path);
+                    fs_fclose(fd);
+                    return res;
+                }
+
+                drop_obj(path);
+
+                res = (obj_p)mmap_file(fd, size, 0);
+
+                if (is_external_serialized(res)) {
+                    v = de_raw((u8_t *)res, size);
+                    mmap_free(res, size);
+                    fs_fclose(fd);
+                    return v;
+                } else {
+                    // insert fd into runtime fds
+                    id = i64((i64_t)res);
+                    set_obj(&runtime_get()->fds, id, i64(fd));
+                    drop_obj(id);
+                }
+
+                if (is_external_compound(res))
+                    res = (obj_p)((str_p)res + RAY_PAGE_SIZE);
+
+                // anymap needs additional nested mapping of dependencies
+                if (res->type == TYPE_ANYMAP) {
+                    s = cstring_from_str("#", 1);
+                    col = ray_concat(x, s);
+                    keys = ray_get(col);
+                    drop_obj(s);
+                    drop_obj(col);
+
+                    if (keys->type != TYPE_U8) {
+                        drop_obj(keys);
+                        mmap_free(res, size);
+                        THROW(ERR_TYPE, "get: expected anymap schema as a byte vector, got: '%s",
+                              type_name(keys->type));
+                    }
+
+                    ((obj_p)((str_p)res - RAY_PAGE_SIZE))->obj = keys;
+                }
+
+                res->rc = 1;
+
+                return res;
             }
 
-            res->rc = 1;
-
-            return res;
-        }
-
-    default:
-        THROW(ERR_TYPE, "get: unsupported type: '%s", type_name(x->type));
+        default:
+            THROW(ERR_TYPE, "get: unsupported type: '%s", type_name(x->type));
     }
 }
 
-obj_p ray_resolve(obj_p x)
-{
+obj_p ray_resolve(obj_p x) {
     if (x->type != -TYPE_SYMBOL)
         return error(ERR_TYPE, "resolve: expected symbol, got: '%s'", type_name(x->type));
 
@@ -322,33 +298,31 @@ obj_p ray_resolve(obj_p x)
     return (res == NULL) ? NULL_OBJ : clone_obj(*res);
 }
 
-obj_p ray_bins(obj_p x)
-{
+obj_p ray_bins(obj_p x) {
     obj_p bins, res;
 
-    switch (x->type)
-    {
-    // case TYPE_B8:
-    // case TYPE_U8:
-    // case TYPE_C8:
-    //     bins = index_group_i8((i8_t *)AS_U8(x), NULL, x->len);
-    //     break;
-    // case TYPE_I64:
-    // case TYPE_SYMBOL:
-    // case TYPE_TIMESTAMP:
-    //     bins = index_group_i64(AS_I64(x), NULL, x->len);
-    //     break;
-    // case TYPE_F64:
-    //     bins = index_group_i64((i64_t *)AS_F64(x), NULL, x->len);
-    //     break;
-    // case TYPE_LIST:
-    //     bins = index_group_obj(AS_LIST(x), NULL, x->len);
-    //     break;
-    // case TYPE_GUID:
-    //     bins = index_group_guid(AS_GUID(x), NULL, x->len);
-    //     break;
-    default:
-        THROW(ERR_TYPE, "bins: unsupported type: '%s", type_name(x->type));
+    switch (x->type) {
+        // case TYPE_B8:
+        // case TYPE_U8:
+        // case TYPE_C8:
+        //     bins = index_group_i8((i8_t *)AS_U8(x), NULL, x->len);
+        //     break;
+        // case TYPE_I64:
+        // case TYPE_SYMBOL:
+        // case TYPE_TIMESTAMP:
+        //     bins = index_group_i64(AS_I64(x), NULL, x->len);
+        //     break;
+        // case TYPE_F64:
+        //     bins = index_group_i64((i64_t *)AS_F64(x), NULL, x->len);
+        //     break;
+        // case TYPE_LIST:
+        //     bins = index_group_obj(AS_LIST(x), NULL, x->len);
+        //     break;
+        // case TYPE_GUID:
+        //     bins = index_group_guid(AS_GUID(x), NULL, x->len);
+        //     break;
+        default:
+            THROW(ERR_TYPE, "bins: unsupported type: '%s", type_name(x->type));
     }
 
     res = clone_obj(AS_LIST(bins)[1]);
@@ -357,8 +331,7 @@ obj_p ray_bins(obj_p x)
     return res;
 }
 
-obj_p ray_unicode_format(obj_p x)
-{
+obj_p ray_unicode_format(obj_p x) {
     if (x->type != -TYPE_B8)
         return error(ERR_TYPE, "graphic_format: expected bool, got: '%s'", type_name(x->type));
 
@@ -367,7 +340,4 @@ obj_p ray_unicode_format(obj_p x)
     return null(0);
 }
 
-obj_p ray_is_null(obj_p x)
-{
-    return b8(is_null(x));
-}
+obj_p ray_is_null(obj_p x) { return b8(is_null(x)); }

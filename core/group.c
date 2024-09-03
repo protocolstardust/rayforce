@@ -34,28 +34,25 @@
 #include "hash.h"
 #include "pool.h"
 
-obj_p group_map(obj_p val, obj_p index)
-{
+obj_p group_map(obj_p val, obj_p index) {
     u64_t i, l;
     obj_p v, res;
 
-    switch (val->type)
-    {
-    case TYPE_TABLE:
-        l = AS_LIST(val)[1]->len;
-        res = LIST(l);
-        for (i = 0; i < l; i++)
-        {
-            v = AS_LIST(AS_LIST(val)[1])[i];
-            AS_LIST(res)
-            [i] = group_map(v, index);
-        }
+    switch (val->type) {
+        case TYPE_TABLE:
+            l = AS_LIST(val)[1]->len;
+            res = LIST(l);
+            for (i = 0; i < l; i++) {
+                v = AS_LIST(AS_LIST(val)[1])[i];
+                AS_LIST(res)
+                [i] = group_map(v, index);
+            }
 
-        return table(clone_obj(AS_LIST(val)[0]), res);
+            return table(clone_obj(AS_LIST(val)[0]), res);
 
-    default:
-        res = vn_list(2, clone_obj(val), clone_obj(index));
-        res->type = TYPE_GROUPMAP;
-        return res;
+        default:
+            res = vn_list(2, clone_obj(val), clone_obj(index));
+            res->type = TYPE_GROUPMAP;
+            return res;
     }
 }

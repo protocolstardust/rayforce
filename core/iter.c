@@ -34,8 +34,7 @@
 #include "runtime.h"
 #include "pool.h"
 
-obj_p ray_apply(obj_p *x, u64_t n)
-{
+obj_p ray_apply(obj_p *x, u64_t n) {
     u64_t i;
     obj_p f;
 
@@ -46,33 +45,31 @@ obj_p ray_apply(obj_p *x, u64_t n)
     x++;
     n--;
 
-    switch (f->type)
-    {
-    case TYPE_UNARY:
-        if (n != 1)
-            THROW(ERR_LENGTH, "'apply': unary call with wrong arguments count");
-        return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
-    case TYPE_BINARY:
-        if (n != 2)
-            THROW(ERR_LENGTH, "'apply': binary call with wrong arguments count");
-        return binary_call(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
-    case TYPE_VARY:
-        return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
-    case TYPE_LAMBDA:
-        if (n != AS_LAMBDA(f)->args->len)
-            THROW(ERR_LENGTH, "'apply': lambda call with wrong arguments count");
+    switch (f->type) {
+        case TYPE_UNARY:
+            if (n != 1)
+                THROW(ERR_LENGTH, "'apply': unary call with wrong arguments count");
+            return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
+        case TYPE_BINARY:
+            if (n != 2)
+                THROW(ERR_LENGTH, "'apply': binary call with wrong arguments count");
+            return binary_call(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
+        case TYPE_VARY:
+            return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
+        case TYPE_LAMBDA:
+            if (n != AS_LAMBDA(f)->args->len)
+                THROW(ERR_LENGTH, "'apply': lambda call with wrong arguments count");
 
-        for (i = 0; i < n; i++)
-            stack_push(clone_obj(x[i]));
+            for (i = 0; i < n; i++)
+                stack_push(clone_obj(x[i]));
 
-        return call(f, n);
-    default:
-        THROW(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
+            return call(f, n);
+        default:
+            THROW(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
     }
 }
 
-obj_p ray_map(obj_p *x, u64_t n)
-{
+obj_p ray_map(obj_p *x, u64_t n) {
     u64_t i, j, l;
     obj_p f, v, *b, res;
 
@@ -83,70 +80,64 @@ obj_p ray_map(obj_p *x, u64_t n)
     x++;
     n--;
 
-    switch (f->type)
-    {
-    case TYPE_UNARY:
-        if (n != 1)
-            THROW(ERR_LENGTH, "'map': unary call with wrong arguments count");
-        return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
-    case TYPE_BINARY:
-        if (n != 2)
-            THROW(ERR_LENGTH, "'map': binary call with wrong arguments count");
-        return binary_call(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
-    case TYPE_VARY:
-        return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
-    case TYPE_LAMBDA:
-        if (n != AS_LAMBDA(f)->args->len)
-            THROW(ERR_LENGTH, "'map': lambda call with wrong arguments count");
+    switch (f->type) {
+        case TYPE_UNARY:
+            if (n != 1)
+                THROW(ERR_LENGTH, "'map': unary call with wrong arguments count");
+            return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
+        case TYPE_BINARY:
+            if (n != 2)
+                THROW(ERR_LENGTH, "'map': binary call with wrong arguments count");
+            return binary_call(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
+        case TYPE_VARY:
+            return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
+        case TYPE_LAMBDA:
+            if (n != AS_LAMBDA(f)->args->len)
+                THROW(ERR_LENGTH, "'map': lambda call with wrong arguments count");
 
-        l = ops_rank(x, n);
-        if (l == 0xfffffffffffffffful)
-            THROW(ERR_LENGTH, "'map': arguments have different lengths");
+            l = ops_rank(x, n);
+            if (l == 0xfffffffffffffffful)
+                THROW(ERR_LENGTH, "'map': arguments have different lengths");
 
-        // first item to get type of res
-        for (j = 0; j < n; j++)
-        {
-            b = x + j;
-            v = (IS_VECTOR(*b) || (*b)->type == TYPE_GROUPMAP) ? at_idx(*b, 0) : clone_obj(*b);
-            stack_push(v);
-        }
-
-        v = call(f, n);
-        if (IS_ERROR(v))
-            return v;
-
-        res = v->type < 0 ? vector(v->type, l) : vector(TYPE_LIST, l);
-
-        ins_obj(&res, 0, v);
-
-        for (i = 1; i < l; i++)
-        {
-            for (j = 0; j < n; j++)
-            {
+            // first item to get type of res
+            for (j = 0; j < n; j++) {
                 b = x + j;
-                v = (IS_VECTOR(*b) || (*b)->type == TYPE_GROUPMAP) ? at_idx(*b, i) : clone_obj(*b);
+                v = (IS_VECTOR(*b) || (*b)->type == TYPE_GROUPMAP) ? at_idx(*b, 0) : clone_obj(*b);
                 stack_push(v);
             }
 
             v = call(f, n);
             if (IS_ERROR(v))
-            {
-                res->len = i;
-                drop_obj(res);
                 return v;
+
+            res = v->type < 0 ? vector(v->type, l) : vector(TYPE_LIST, l);
+
+            ins_obj(&res, 0, v);
+
+            for (i = 1; i < l; i++) {
+                for (j = 0; j < n; j++) {
+                    b = x + j;
+                    v = (IS_VECTOR(*b) || (*b)->type == TYPE_GROUPMAP) ? at_idx(*b, i) : clone_obj(*b);
+                    stack_push(v);
+                }
+
+                v = call(f, n);
+                if (IS_ERROR(v)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return v;
+                }
+
+                ins_obj(&res, i, v);
             }
 
-            ins_obj(&res, i, v);
-        }
-
-        return res;
-    default:
-        THROW(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
+            return res;
+        default:
+            THROW(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
     }
 }
 
-obj_p ray_fold(obj_p *x, u64_t n)
-{
+obj_p ray_fold(obj_p *x, u64_t n) {
     u64_t o, i, j, l;
     obj_p f, v, *b, x1, x2;
 
@@ -157,86 +148,75 @@ obj_p ray_fold(obj_p *x, u64_t n)
     x++;
     n--;
 
-    switch (f->type)
-    {
-    case TYPE_UNARY:
-        if (n != 1)
-            THROW(ERR_LENGTH, "'fold': unary call with wrong arguments count");
-        return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
-    case TYPE_BINARY:
-        l = ops_rank(x, n);
-        if (l == 0xfffffffffffffffful)
-            THROW(ERR_LENGTH, "'map': arguments have different lengths");
+    switch (f->type) {
+        case TYPE_UNARY:
+            if (n != 1)
+                THROW(ERR_LENGTH, "'fold': unary call with wrong arguments count");
+            return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
+        case TYPE_BINARY:
+            l = ops_rank(x, n);
+            if (l == 0xfffffffffffffffful)
+                THROW(ERR_LENGTH, "'map': arguments have different lengths");
 
-        if (n == 1)
-        {
-            o = 1;
-            b = x;
-            v = at_idx(x[0], 0);
-        }
-        else if (n == 2)
-        {
-            o = 0;
-            b = x + 1;
-            v = clone_obj(x[0]);
-        }
-        else
-            THROW(ERR_LENGTH, "'fold': binary call with wrong arguments count");
+            if (n == 1) {
+                o = 1;
+                b = x;
+                v = at_idx(x[0], 0);
+            } else if (n == 2) {
+                o = 0;
+                b = x + 1;
+                v = clone_obj(x[0]);
+            } else
+                THROW(ERR_LENGTH, "'fold': binary call with wrong arguments count");
 
-        for (i = o; i < l; i++)
-        {
-            x1 = v;
-            x2 = at_idx(*b, i);
-            v = binary_call(FN_ATOMIC, (binary_f)f->i64, x1, x2);
-            drop_obj(x1);
-            drop_obj(x2);
+            for (i = o; i < l; i++) {
+                x1 = v;
+                x2 = at_idx(*b, i);
+                v = binary_call(FN_ATOMIC, (binary_f)f->i64, x1, x2);
+                drop_obj(x1);
+                drop_obj(x2);
 
-            if (IS_ERROR(v))
-                return v;
-        }
-
-        return v;
-    case TYPE_VARY:
-        return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
-    case TYPE_LAMBDA:
-        if (n != AS_LAMBDA(f)->args->len)
-            THROW(ERR_LENGTH, "'fold': lambda call with wrong arguments count");
-
-        l = ops_rank(x, n);
-        if (l == 0xfffffffffffffffful)
-            THROW(ERR_LENGTH, "'fold': arguments have different lengths");
-
-        // interpret first arg as an initial value
-        if (n > 1)
-        {
-            o = 1;
-            v = clone_obj(x[0]);
-        }
-        else
-        {
-            o = 0;
-            v = null(x[0]->type);
-        }
-
-        for (i = 0; i < l; i++)
-        {
-            stack_push(v);
-
-            for (j = o; j < n; j++)
-            {
-                b = x + j;
-                v = at_idx(*b, i);
-                stack_push(v);
+                if (IS_ERROR(v))
+                    return v;
             }
 
-            v = call(f, n);
+            return v;
+        case TYPE_VARY:
+            return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
+        case TYPE_LAMBDA:
+            if (n != AS_LAMBDA(f)->args->len)
+                THROW(ERR_LENGTH, "'fold': lambda call with wrong arguments count");
 
-            if (IS_ERROR(v))
-                return v;
-        }
+            l = ops_rank(x, n);
+            if (l == 0xfffffffffffffffful)
+                THROW(ERR_LENGTH, "'fold': arguments have different lengths");
 
-        return v;
-    default:
-        THROW(ERR_TYPE, "'fold': unsupported function type: '%s", type_name(f->type));
+            // interpret first arg as an initial value
+            if (n > 1) {
+                o = 1;
+                v = clone_obj(x[0]);
+            } else {
+                o = 0;
+                v = null(x[0]->type);
+            }
+
+            for (i = 0; i < l; i++) {
+                stack_push(v);
+
+                for (j = o; j < n; j++) {
+                    b = x + j;
+                    v = at_idx(*b, i);
+                    stack_push(v);
+                }
+
+                v = call(f, n);
+
+                if (IS_ERROR(v))
+                    return v;
+            }
+
+            return v;
+        default:
+            THROW(ERR_TYPE, "'fold': unsupported function type: '%s", type_name(f->type));
     }
 }

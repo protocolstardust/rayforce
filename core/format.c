@@ -42,28 +42,27 @@
 #include "time.h"
 
 #define FORMAT_TRAILER_SIZE 4
-#define ERR_STACK_MAX_HEIGHT 10 // Maximum number of error stack frames
+#define ERR_STACK_MAX_HEIGHT 10  // Maximum number of error stack frames
 #define MAX_ERROR_LEN 4096
 #define NO_LIMIT -1
 
-#define TABLE_MAX_WIDTH 10       // Maximum number of columns
-#define TABLE_MAX_HEIGHT 20      // Maximum number of rows
-#define LIST_MAX_HEIGHT 50       // Maximum number of list/dict rows
-#define DEFAULT_MAX_ROW_WIDTH 80 // Maximum number of characters in a row
-#define DEFAULT_F64_PRECISION 2  // Number of decimal places for floating point numbers
+#define TABLE_MAX_WIDTH 10        // Maximum number of columns
+#define TABLE_MAX_HEIGHT 20       // Maximum number of rows
+#define LIST_MAX_HEIGHT 50        // Maximum number of list/dict rows
+#define DEFAULT_MAX_ROW_WIDTH 80  // Maximum number of characters in a row
+#define DEFAULT_F64_PRECISION 2   // Number of decimal places for floating point numbers
 
 static u32_t MAX_ROW_WIDTH = DEFAULT_MAX_ROW_WIDTH;
 static u32_t F64_PRECISION = DEFAULT_F64_PRECISION;
 
-const lit_p unicode_glyphs[] = {"│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼", "↪", "∶",
-                                "‾", "•", "╭", "╰", "╮", "╯", "┆", "…", "█"};
-const lit_p ascii_glyphs[] = {"|", "-", "+", "+", "+", "+", "+", "+", "+", "+", "+", ">", ":",
-                              "~", "*", "|", "|", "|", "|", ":", ".", "|"};
+const lit_p unicode_glyphs[] = {"│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼",
+                                "↪", "∶", "‾", "•", "╭", "╰", "╮", "╯", "┆", "…", "█"};
+const lit_p ascii_glyphs[] = {"|", "-", "+", "+", "+", "+", "+", "+", "+", "+", "+",
+                              ">", ":", "~", "*", "|", "|", "|", "|", ":", ".", "|"};
 
 static b8_t __USE_UNICODE = B8_TRUE;
 
-obj_p ray_set_fpr(obj_p x)
-{
+obj_p ray_set_fpr(obj_p x) {
     if (x->type != -TYPE_I64)
         return error(ERR_TYPE, "ray_set_fpr: expected 'i64, got %s", type_name(x->type));
 
@@ -75,8 +74,7 @@ obj_p ray_set_fpr(obj_p x)
     return NULL_OBJ;
 }
 
-obj_p ray_set_display_width(obj_p x)
-{
+obj_p ray_set_display_width(obj_p x) {
     if (x->type != -TYPE_I64)
         return error(ERR_TYPE, "ray_set_display_width: expected 'i64, got %s", type_name(x->type));
 
@@ -88,8 +86,7 @@ obj_p ray_set_display_width(obj_p x)
     return NULL_OBJ;
 }
 
-typedef enum
-{
+typedef enum {
     GLYPH_VLINE,
     GLYPH_HLINE,
     GLYPH_TL_CORNER,
@@ -120,14 +117,12 @@ typedef enum
         n = n > k ? n : k; \
     }
 
-i64_t prompt_fmt_into(obj_p *dst)
-{
+i64_t prompt_fmt_into(obj_p *dst) {
     return (__USE_UNICODE) ? str_fmt_into(dst, NO_LIMIT, "%s%s %s", GREEN, unicode_glyphs[GLYPH_R_ARROW], RESET)
                            : str_fmt_into(dst, NO_LIMIT, "%s%s %s", GREEN, ascii_glyphs[GLYPH_R_ARROW], RESET);
 }
 
-nil_t debug_str(obj_p str)
-{
+nil_t debug_str(obj_p str) {
     u64_t i, l;
     str_p s;
 
@@ -141,10 +136,7 @@ nil_t debug_str(obj_p str)
     printf("\n");
 }
 
-b8_t limit_reached(i64_t limit, i64_t n)
-{
-    return limit != NO_LIMIT && n >= limit;
-}
+b8_t limit_reached(i64_t limit, i64_t n) { return limit != NO_LIMIT && n >= limit; }
 
 /*
  * return n:
@@ -152,8 +144,7 @@ b8_t limit_reached(i64_t limit, i64_t n)
  * n < limit - fits into buffer
  * n < 0 - error
  */
-i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
-{
+i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs) {
     str_p s;
     i64_t n = 0, l, o, size;
     va_list args;
@@ -161,24 +152,20 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
     if (limit == 0)
         return 0;
 
-    size = 2; // start from 2 symbols: 1 for the string and 1 for the null terminator
+    size = 2;  // start from 2 symbols: 1 for the string and 1 for the null terminator
 
     // Allocate or expand the buffer if necessary
-    if (*dst == NULL_OBJ)
-    {
+    if (*dst == NULL_OBJ) {
         *dst = C8(size);
         if (*dst == NULL_OBJ)
             PANIC("str_vfmt_into: OOM");
 
         l = 0;
-    }
-    else
-    {
+    } else {
         l = (*dst)->len;
         if (l > 0 && AS_C8(*dst)[l - 1] == '\0')
             l--;
-        if (is_null(resize_obj(dst, l + size)))
-        {
+        if (is_null(resize_obj(dst, l + size))) {
             heap_free(*dst);
             PANIC("str_vfmt_into: OOM");
         }
@@ -186,23 +173,20 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
 
     o = l;
 
-    while (B8_TRUE)
-    {
+    while (B8_TRUE) {
         s = AS_C8(*dst) + o;
-        va_copy(args, vargs); // Make a copy of args to use with vsnprintf
+        va_copy(args, vargs);  // Make a copy of args to use with vsnprintf
         n = vsnprintf(s, size, fmt, args);
-        va_end(args); // args should be ended, not vargs
+        va_end(args);  // args should be ended, not vargs
 
-        if (n < 0)
-        {
+        if (n < 0) {
             heap_free(*dst);
             PANIC("str_vfmt_into: Error in vsnprintf");
         }
 
-        if (n < size)
-        {
-            resize_obj(dst, l + n); // resize the buffer to fit the string
-            return n;               // n fits into buffer, return n
+        if (n < size) {
+            resize_obj(dst, l + n);  // resize the buffer to fit the string
+            return n;                // n fits into buffer, return n
         }
 
         // n >= size, the buffer is too small, but we reached the limit
@@ -210,17 +194,15 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
             return limit;
 
         // Expand the buffer for the next iteration
-        size = n + 1; // +1 for the null terminator
-        if (is_null(resize_obj(dst, l + size)))
-        {
+        size = n + 1;  // +1 for the null terminator
+        if (is_null(resize_obj(dst, l + size))) {
             heap_free(*dst);
             PANIC("str_vfmt_into: OOM");
         }
     }
 }
 
-i64_t str_fmt_into(obj_p *dst, i64_t limit, lit_p fmt, ...)
-{
+i64_t str_fmt_into(obj_p *dst, i64_t limit, lit_p fmt, ...) {
     i64_t n;
     va_list args;
 
@@ -231,8 +213,7 @@ i64_t str_fmt_into(obj_p *dst, i64_t limit, lit_p fmt, ...)
     return n;
 }
 
-i64_t str_fmt_into_n(obj_p *dst, i64_t limit, i64_t repeat, lit_p fmt, ...)
-{
+i64_t str_fmt_into_n(obj_p *dst, i64_t limit, i64_t repeat, lit_p fmt, ...) {
     i64_t i, n;
 
     for (i = 0, n = 0; i < repeat; i++)
@@ -241,8 +222,7 @@ i64_t str_fmt_into_n(obj_p *dst, i64_t limit, i64_t repeat, lit_p fmt, ...)
     return n;
 }
 
-obj_p str_vfmt(i64_t limit, lit_p fmt, va_list vargs)
-{
+obj_p str_vfmt(i64_t limit, lit_p fmt, va_list vargs) {
     i64_t n = 0, size;
     obj_p res;
     str_p s;
@@ -258,27 +238,25 @@ obj_p str_vfmt(i64_t limit, lit_p fmt, va_list vargs)
     if (is_null(res))
         PANIC("str_vfmt: OOM");
 
-    while (B8_TRUE)
-    {
+    while (B8_TRUE) {
         s = AS_C8(res);
-        va_copy(args, vargs); // Make a copy of args to use with vsnprintf
+        va_copy(args, vargs);  // Make a copy of args to use with vsnprintf
         n = vsnprintf(s, size, fmt, args);
         va_end(vargs);
 
-        if (n < 0)
-        {
+        if (n < 0) {
             // Handle encoding error
             heap_free(res);
             return NULL_OBJ;
         }
 
         if (n < size)
-            break; // Buffer is large enough
+            break;  // Buffer is large enough
 
         if (limit > 0)
-            return res; // We have a limit and it's reached
+            return res;  // We have a limit and it's reached
 
-        size = n + 1; // Increase buffer size
+        size = n + 1;  // Increase buffer size
         res = resize_obj(&res, size);
 
         if (is_null(res))
@@ -288,8 +266,7 @@ obj_p str_vfmt(i64_t limit, lit_p fmt, va_list vargs)
     return res;
 }
 
-obj_p str_fmt(i64_t limit, lit_p fmt, ...)
-{
+obj_p str_fmt(i64_t limit, lit_p fmt, ...) {
     obj_p res;
     va_list args;
 
@@ -300,60 +277,50 @@ obj_p str_fmt(i64_t limit, lit_p fmt, ...)
     return res;
 }
 
-i64_t glyph_fmt_into(obj_p *dst, glyph_t glyph, b8_t unicode)
-{
+i64_t glyph_fmt_into(obj_p *dst, glyph_t glyph, b8_t unicode) {
     if (unicode)
         return str_fmt_into(dst, 4, "%s", unicode_glyphs[glyph]);
 
-    switch (glyph)
-    {
-    case GLYPH_HDOTS:
-        return str_fmt_into(dst, 4, "...");
-    default:
-        return str_fmt_into(dst, 2, "%s", ascii_glyphs[glyph]);
+    switch (glyph) {
+        case GLYPH_HDOTS:
+            return str_fmt_into(dst, 4, "...");
+        default:
+            return str_fmt_into(dst, 2, "%s", ascii_glyphs[glyph]);
     }
 }
 
-i64_t b8_fmt_into(obj_p *dst, b8_t val)
-{
+i64_t b8_fmt_into(obj_p *dst, b8_t val) {
     if (val)
         return str_fmt_into(dst, 5, "true");
 
     return str_fmt_into(dst, 6, "false");
 }
 
-i64_t byte_fmt_into(obj_p *dst, u8_t val)
-{
-    return str_fmt_into(dst, 5, "0x%02x", val);
-}
+i64_t byte_fmt_into(obj_p *dst, u8_t val) { return str_fmt_into(dst, 5, "0x%02x", val); }
 
-i64_t c8_fmt_into(obj_p *dst, b8_t full, c8_t val)
-{
-    switch (val)
-    {
-    case '\"':
-        return full ? str_fmt_into(dst, 5, "'\\\"'") : str_fmt_into(dst, 4, "\\\"");
-    case '\n':
-        return full ? str_fmt_into(dst, 5, "'\\n'") : str_fmt_into(dst, 3, "\\n");
-    case '\r':
-        return full ? str_fmt_into(dst, 5, "'\\r'") : str_fmt_into(dst, 3, "\\r");
-    case '\t':
-        return full ? str_fmt_into(dst, 5, "'\\t'") : str_fmt_into(dst, 3, "\\t");
-    default:
-        return full ? str_fmt_into(dst, 4, "'%c'", val) : str_fmt_into(dst, 2, "%c", val);
+i64_t c8_fmt_into(obj_p *dst, b8_t full, c8_t val) {
+    switch (val) {
+        case '\"':
+            return full ? str_fmt_into(dst, 5, "'\\\"'") : str_fmt_into(dst, 4, "\\\"");
+        case '\n':
+            return full ? str_fmt_into(dst, 5, "'\\n'") : str_fmt_into(dst, 3, "\\n");
+        case '\r':
+            return full ? str_fmt_into(dst, 5, "'\\r'") : str_fmt_into(dst, 3, "\\r");
+        case '\t':
+            return full ? str_fmt_into(dst, 5, "'\\t'") : str_fmt_into(dst, 3, "\\t");
+        default:
+            return full ? str_fmt_into(dst, 4, "'%c'", val) : str_fmt_into(dst, 2, "%c", val);
     }
 }
 
-i64_t i64_fmt_into(obj_p *dst, i64_t val)
-{
+i64_t i64_fmt_into(obj_p *dst, i64_t val) {
     if (val == NULL_I64)
         return str_fmt_into(dst, 3, "%s", "0i");
 
     return str_fmt_into(dst, NO_LIMIT, "%lld", val);
 }
 
-i64_t f64_fmt_into(obj_p *dst, f64_t val)
-{
+i64_t f64_fmt_into(obj_p *dst, f64_t val) {
     f64_t order;
 
     if (ops_is_nan(val))
@@ -367,8 +334,7 @@ i64_t f64_fmt_into(obj_p *dst, f64_t val)
     return str_fmt_into(dst, NO_LIMIT, "%.*f", F64_PRECISION, val);
 }
 
-i64_t ts_fmt_into(obj_p *dst, i64_t val)
-{
+i64_t ts_fmt_into(obj_p *dst, i64_t val) {
     timestamp_t ts;
     i64_t n;
 
@@ -380,30 +346,26 @@ i64_t ts_fmt_into(obj_p *dst, i64_t val)
     if (!ts.hours && !ts.mins && !ts.secs && !ts.nanos)
         n = str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2d", ts.year, ts.month, ts.day);
     else
-        n = str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d",
-                         ts.year, ts.month, ts.day, ts.hours, ts.mins, ts.secs, ts.nanos);
+        n = str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d", ts.year, ts.month, ts.day, ts.hours,
+                         ts.mins, ts.secs, ts.nanos);
 
     return n;
 }
 
-i64_t guid_fmt_into(obj_p *dst, guid_t *val)
-{
+i64_t guid_fmt_into(obj_p *dst, guid_t *val) {
     i64_t n;
 
     if (memcmp(*val, NULL_GUID, 16) == 0)
         return str_fmt_into(dst, 3, "0g");
 
-    n = str_fmt_into(dst, 37, "%02hhx%02hhx%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                     (*val)[0], (*val)[1], (*val)[2], (*val)[3],
-                     (*val)[4], (*val)[5], (*val)[6], (*val)[7],
-                     (*val)[8], (*val)[9], (*val)[10], (*val)[11],
-                     (*val)[12], (*val)[13], (*val)[14], (*val)[15]);
+    n = str_fmt_into(dst, 37, "%02hhx%02hhx%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", (*val)[0],
+                     (*val)[1], (*val)[2], (*val)[3], (*val)[4], (*val)[5], (*val)[6], (*val)[7], (*val)[8], (*val)[9],
+                     (*val)[10], (*val)[11], (*val)[12], (*val)[13], (*val)[14], (*val)[15]);
 
     return n;
 }
 
-i64_t symbol_fmt_into(obj_p *dst, i64_t limit, b8_t full, i64_t val)
-{
+i64_t symbol_fmt_into(obj_p *dst, i64_t limit, b8_t full, i64_t val) {
     if (val == NULL_I64)
         return full ? str_fmt_into(dst, 3, "0s") : str_fmt_into(dst, 1, "");
 
@@ -414,8 +376,7 @@ i64_t symbol_fmt_into(obj_p *dst, i64_t limit, b8_t full, i64_t val)
     return n;
 }
 
-i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
-{
+i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
     i64_t n;
     u64_t i, l;
     str_p s;
@@ -424,8 +385,7 @@ i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     l = obj->len;
     s = AS_C8(obj);
 
-    for (i = 0; i < l; i++)
-    {
+    for (i = 0; i < l; i++) {
         n += c8_fmt_into(dst, B8_FALSE, s[i]);
         if (limit_reached(limit, n))
             break;
@@ -439,26 +399,21 @@ i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     return n;
 }
 
-i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t msg_len)
-{
+i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t msg_len) {
     i64_t n, done = 0;
     u32_t line_len, fname_len;
     i32_t frame_len, linecode_len;
     u16_t line_number = 0, i;
-    lit_p filename, source, function, start, end,
-        lf = "", flname = "repl", fnname = "anonymous";
+    lit_p filename, source, function, start, end, lf = "", flname = "repl", fnname = "anonymous";
     obj_p *frame = AS_LIST(obj);
     span_t span = (span_t){0};
     b8_t unicode = __USE_UNICODE;
 
     span.id = frame[0]->i64;
-    if (frame[1] != NULL_OBJ)
-    {
+    if (frame[1] != NULL_OBJ) {
         filename = AS_C8(frame[1]);
         fname_len = frame[1]->len;
-    }
-    else
-    {
+    } else {
         filename = flname;
         fname_len = strlen(flname);
     }
@@ -477,18 +432,16 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t ms
     n += glyph_fmt_into(dst, GLYPH_HLINE, unicode);
     n += glyph_fmt_into(dst, GLYPH_T_TEE, unicode);
     n += str_fmt_into(dst, MAX_ERROR_LEN, "%s", RESET);
-    n += str_fmt_into(dst, MAX_ERROR_LEN, " %.*s:%d..%d in function: @%s\n", fname_len, filename,
-                      span.start_line + 1, span.end_line + 1, function);
+    n += str_fmt_into(dst, MAX_ERROR_LEN, " %.*s:%d..%d in function: @%s\n", fname_len, filename, span.start_line + 1,
+                      span.end_line + 1, function);
 
     start = source;
     end = NULL;
 
-    for (;;)
-    {
+    for (;;) {
         end = (str_p)memchr(start, '\n', line_len);
 
-        if (end == NULL)
-        {
+        if (end == NULL) {
             done = 1;
             end = source + strlen(source) - 1;
             lf = "\n";
@@ -496,8 +449,7 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t ms
 
         line_len = end - start + 1;
 
-        if (line_number >= span.start_line && line_number <= span.end_line)
-        {
+        if (line_number >= span.start_line && line_number <= span.end_line) {
             n += str_fmt_into(dst, NO_LIMIT, "%s", CYAN);
             n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
             n += str_fmt_into(dst, NO_LIMIT, "%s", RESET);
@@ -512,8 +464,7 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t ms
             n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
             n += str_fmt_into(dst, NO_LIMIT, "%s %.*s", RESET, line_len, start);
 
-            if (span.start_line == span.end_line)
-            {
+            if (span.start_line == span.end_line) {
                 n += str_fmt_into(dst, NO_LIMIT, "%s%s", lf, CYAN);
                 n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
 
@@ -525,8 +476,7 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t ms
                 for (i = 0; i < span.start_column; i++)
                     n += str_fmt_into(dst, 2, " ");
 
-                for (i = span.start_column; i < span.end_column; i++)
-                {
+                for (i = span.start_column; i < span.end_column; i++) {
                     n += str_fmt_into(dst, NO_LIMIT, "%s", TOMATO);
                     n += glyph_fmt_into(dst, GLYPH_WAVE, unicode);
                     n += str_fmt_into(dst, NO_LIMIT, "%s", RESET);
@@ -535,11 +485,8 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t ms
                 n += str_fmt_into(dst, NO_LIMIT, "%s", TOMATO);
                 n += glyph_fmt_into(dst, GLYPH_WAVE, unicode);
                 n += str_fmt_into(dst, NO_LIMIT, " %.*s%s\n", msg_len, msg, RESET);
-            }
-            else
-            {
-                if (line_number == span.start_line)
-                {
+            } else {
+                if (line_number == span.start_line) {
                     n += str_fmt_into(dst, NO_LIMIT, "      %s", CYAN);
                     n += glyph_fmt_into(dst, GLYPH_COLON, unicode);
                     n += str_fmt_into(dst, NO_LIMIT, "%s ", RESET);
@@ -549,9 +496,7 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t ms
                     n += str_fmt_into(dst, NO_LIMIT, "%s", TOMATO);
                     n += glyph_fmt_into(dst, GLYPH_WAVE, unicode);
                     n += str_fmt_into(dst, NO_LIMIT, "%s\n", RESET);
-                }
-                else if (line_number == span.end_line)
-                {
+                } else if (line_number == span.end_line) {
                     n += str_fmt_into(dst, NO_LIMIT, "%s%s      ", lf, CYAN);
                     n += glyph_fmt_into(dst, GLYPH_COLON, unicode);
                     n += str_fmt_into(dst, NO_LIMIT, "%s ", RESET);
@@ -575,8 +520,7 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t ms
     return n;
 }
 
-i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
-{
+i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
     i64_t n;
     i32_t msg_len;
     u16_t i, l, m;
@@ -584,66 +528,64 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     str_p msg;
     ray_error_p error = AS_ERROR(obj);
 
-    switch (error->code)
-    {
-    case ERR_INIT:
-        error_desc = "initialize error";
-        break;
-    case ERR_PARSE:
-        error_desc = "unable to parse input";
-        break;
-    case ERR_EVAL:
-        error_desc = "object evaluation failed";
-        break;
-    case ERR_FORMAT:
-        error_desc = "unable to format object";
-        break;
-    case ERR_TYPE:
-        error_desc = "type mismatch";
-        break;
-    case ERR_LENGTH:
-        error_desc = "length mismatch";
-        break;
-    case ERR_ARITY:
-        error_desc = "arity mismatch";
-        break;
-    case ERR_INDEX:
-        error_desc = "index out of bounds";
-        break;
-    case ERR_HEAP:
-        error_desc = "heap allocation failed";
-        break;
-    case ERR_IO:
-        error_desc = "io";
-        break;
-    case ERR_SYS:
-        error_desc = "system";
-        break;
-    case ERR_NOT_FOUND:
-        error_desc = "object not found";
-        break;
-    case ERR_NOT_EXIST:
-        error_desc = "object does not exist";
-        break;
-    case ERR_NOT_IMPLEMENTED:
-        error_desc = "not implemented";
-        break;
-    case ERR_STACK_OVERFLOW:
-        error_desc = "stack overflow";
-        break;
-    case ERR_RAISE:
-        error_desc = "raised error";
-        break;
-    default:
-        error_desc = "corrupted object/unknown error";
+    switch (error->code) {
+        case ERR_INIT:
+            error_desc = "initialize error";
+            break;
+        case ERR_PARSE:
+            error_desc = "unable to parse input";
+            break;
+        case ERR_EVAL:
+            error_desc = "object evaluation failed";
+            break;
+        case ERR_FORMAT:
+            error_desc = "unable to format object";
+            break;
+        case ERR_TYPE:
+            error_desc = "type mismatch";
+            break;
+        case ERR_LENGTH:
+            error_desc = "length mismatch";
+            break;
+        case ERR_ARITY:
+            error_desc = "arity mismatch";
+            break;
+        case ERR_INDEX:
+            error_desc = "index out of bounds";
+            break;
+        case ERR_HEAP:
+            error_desc = "heap allocation failed";
+            break;
+        case ERR_IO:
+            error_desc = "io";
+            break;
+        case ERR_SYS:
+            error_desc = "system";
+            break;
+        case ERR_NOT_FOUND:
+            error_desc = "object not found";
+            break;
+        case ERR_NOT_EXIST:
+            error_desc = "object does not exist";
+            break;
+        case ERR_NOT_IMPLEMENTED:
+            error_desc = "not implemented";
+            break;
+        case ERR_STACK_OVERFLOW:
+            error_desc = "stack overflow";
+            break;
+        case ERR_RAISE:
+            error_desc = "raised error";
+            break;
+        default:
+            error_desc = "corrupted object/unknown error";
     }
 
     msg_len = (i32_t)error->msg->len;
     msg = AS_C8(error->msg);
 
     // there is a locations
-    if (error->locs != NULL_OBJ)
-    {
+    if (error->locs != NULL_OBJ) {
         n = str_fmt_into(dst, MAX_ERROR_LEN, "%s", TOMATO);
         n += glyph_fmt_into(dst, GLYPH_ASTERISK, __USE_UNICODE);
         n += glyph_fmt_into(dst, GLYPH_ASTERISK, __USE_UNICODE);
@@ -652,14 +594,12 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
         l = error->locs->len;
         m = l > ERR_STACK_MAX_HEIGHT ? ERR_STACK_MAX_HEIGHT : l;
 
-        for (i = 0; i < m; i++)
-        {
+        for (i = 0; i < m; i++) {
             n += error_frame_fmt_into(dst, AS_LIST(error->locs)[i], l - i - 1, msg, msg_len);
             msg_len = 0;
         }
 
-        if (l > m)
-        {
+        if (l > m) {
             n += str_fmt_into(dst, limit, "  ..\n");
             n += error_frame_fmt_into(dst, AS_LIST(error->locs)[l - 1], 0, msg, msg_len);
         }
@@ -669,61 +609,58 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     n = str_fmt_into(dst, MAX_ERROR_LEN, "%s", TOMATO);
     n += glyph_fmt_into(dst, GLYPH_ASTERISK, __USE_UNICODE);
     n += glyph_fmt_into(dst, GLYPH_ASTERISK, __USE_UNICODE);
-    n += str_fmt_into(dst, MAX_ERROR_LEN, " [E%.3lld] error%s: %s %.*s\n", error->code, RESET, error_desc, msg_len, msg);
+    n +=
+        str_fmt_into(dst, MAX_ERROR_LEN, " [E%.3lld] error%s: %s %.*s\n", error->code, RESET, error_desc, msg_len, msg);
 
     return n;
 }
 
-i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i)
-{
+i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i) {
     obj_p idx, res;
     i64_t n;
 
-    switch (obj->type)
-    {
-    case TYPE_B8:
-        return b8_fmt_into(dst, AS_B8(obj)[i]);
-    case TYPE_U8:
-        return byte_fmt_into(dst, AS_U8(obj)[i]);
-    case TYPE_I64:
-        return i64_fmt_into(dst, AS_I64(obj)[i]);
-    case TYPE_F64:
-        return f64_fmt_into(dst, AS_F64(obj)[i]);
-    case TYPE_SYMBOL:
-        return symbol_fmt_into(dst, limit, B8_TRUE, AS_SYMBOL(obj)[i]);
-    case TYPE_TIMESTAMP:
-        return ts_fmt_into(dst, AS_TIMESTAMP(obj)[i]);
-    case TYPE_GUID:
-        return guid_fmt_into(dst, &AS_GUID(obj)[i]);
-    case TYPE_C8:
-        return c8_fmt_into(dst, B8_TRUE, AS_C8(obj)[i]);
-    case TYPE_LIST:
-        return obj_fmt_into(dst, indent, limit, B8_FALSE, AS_LIST(obj)[i]);
-    case TYPE_FILTERMAP:
-        res = at_idx(AS_LIST(obj)[0], AS_I64(AS_LIST(obj)[1])[i]);
-        n = obj_fmt_into(dst, indent, limit, B8_FALSE, res);
-        drop_obj(res);
-        return n;
-    case TYPE_ENUM:
-    case TYPE_ANYMAP:
-        idx = i64(i);
-        res = ray_at(obj, idx);
-        drop_obj(idx);
-        if (IS_ERROR(res))
-        {
+    switch (obj->type) {
+        case TYPE_B8:
+            return b8_fmt_into(dst, AS_B8(obj)[i]);
+        case TYPE_U8:
+            return byte_fmt_into(dst, AS_U8(obj)[i]);
+        case TYPE_I64:
+            return i64_fmt_into(dst, AS_I64(obj)[i]);
+        case TYPE_F64:
+            return f64_fmt_into(dst, AS_F64(obj)[i]);
+        case TYPE_SYMBOL:
+            return symbol_fmt_into(dst, limit, B8_TRUE, AS_SYMBOL(obj)[i]);
+        case TYPE_TIMESTAMP:
+            return ts_fmt_into(dst, AS_TIMESTAMP(obj)[i]);
+        case TYPE_GUID:
+            return guid_fmt_into(dst, &AS_GUID(obj)[i]);
+        case TYPE_C8:
+            return c8_fmt_into(dst, B8_TRUE, AS_C8(obj)[i]);
+        case TYPE_LIST:
+            return obj_fmt_into(dst, indent, limit, B8_FALSE, AS_LIST(obj)[i]);
+        case TYPE_FILTERMAP:
+            res = at_idx(AS_LIST(obj)[0], AS_I64(AS_LIST(obj)[1])[i]);
+            n = obj_fmt_into(dst, indent, limit, B8_FALSE, res);
             drop_obj(res);
-            return error_fmt_into(dst, limit, res);
-        }
-        n = obj_fmt_into(dst, indent, limit, B8_FALSE, res);
-        drop_obj(res);
-        return n;
-    default:
-        return str_fmt_into(dst, limit, "null");
+            return n;
+        case TYPE_ENUM:
+        case TYPE_ANYMAP:
+            idx = i64(i);
+            res = ray_at(obj, idx);
+            drop_obj(idx);
+            if (IS_ERROR(res)) {
+                drop_obj(res);
+                return error_fmt_into(dst, limit, res);
+            }
+            n = obj_fmt_into(dst, indent, limit, B8_FALSE, res);
+            drop_obj(res);
+            return n;
+        default:
+            return str_fmt_into(dst, limit, "null");
     }
 }
 
-i64_t vector_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
-{
+i64_t vector_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
     if (obj->len == 0)
         return str_fmt_into(dst, limit, "[]");
 
@@ -735,8 +672,7 @@ i64_t vector_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
 
     l = obj->len;
 
-    for (i = 0; i < l; i++)
-    {
+    for (i = 0; i < l; i++) {
         n += raw_fmt_into(dst, indent, limit, obj, i);
         if (limit_reached(limit, n))
             break;
@@ -756,8 +692,7 @@ i64_t vector_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     return n;
 }
 
-i64_t list_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
-{
+i64_t list_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) {
     i64_t i, n, list_height = obj->len;
 
     if (list_height == 0)
@@ -768,10 +703,8 @@ i64_t list_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
     if (list_height > LIST_MAX_HEIGHT)
         list_height = LIST_MAX_HEIGHT;
 
-    if (!full)
-    {
-        for (i = 0; i < list_height - 1; i++)
-        {
+    if (!full) {
+        for (i = 0; i < list_height - 1; i++) {
             maxn(n, obj_fmt_into(dst, indent, limit, B8_FALSE, AS_LIST(obj)[i]));
             maxn(n, str_fmt_into(dst, 2, " "));
         }
@@ -788,15 +721,13 @@ i64_t list_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
 
     indent += 2;
 
-    for (i = 0; i < list_height; i++)
-    {
+    for (i = 0; i < list_height; i++) {
         maxn(n, str_fmt_into(dst, 2, "\n"));
         maxn(n, str_fmt_into_n(dst, NO_LIMIT, indent, " "));
         maxn(n, obj_fmt_into(dst, indent, limit, B8_FALSE, AS_LIST(obj)[i]));
     }
 
-    if (list_height < (i64_t)obj->len)
-    {
+    if (list_height < (i64_t)obj->len) {
         maxn(n, str_fmt_into(dst, 2, "\n"));
         maxn(n, str_fmt_into_n(dst, NO_LIMIT, indent, " "));
         maxn(n, str_fmt_into(dst, 3, ".."));
@@ -811,21 +742,18 @@ i64_t list_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
     return n;
 }
 
-i64_t enum_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj)
-{
+i64_t enum_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj) {
     i64_t n;
     obj_p s, e, idx;
 
     s = ray_key(obj);
 
-    if (ENUM_VAL(obj)->len >= TABLE_MAX_HEIGHT)
-    {
+    if (ENUM_VAL(obj)->len >= TABLE_MAX_HEIGHT) {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
         e = ray_take(idx, obj);
         drop_obj(idx);
-    }
-    else
+    } else
         e = ray_value(obj);
 
     n = str_fmt_into(dst, 2, "'");
@@ -839,19 +767,16 @@ i64_t enum_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj)
     return n;
 }
 
-i64_t anymap_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
-{
+i64_t anymap_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) {
     i64_t n;
     obj_p a, idx;
 
-    if (ANYMAP_VAL(obj)->len >= TABLE_MAX_HEIGHT)
-    {
+    if (ANYMAP_VAL(obj)->len >= TABLE_MAX_HEIGHT) {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
         a = ray_take(idx, obj);
         drop_obj(idx);
-    }
-    else
+    } else
         a = ray_value(obj);
 
     n = obj_fmt_into(dst, indent, limit, full, a);
@@ -861,8 +786,7 @@ i64_t anymap_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p ob
     return n;
 }
 
-i64_t dict_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
-{
+i64_t dict_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) {
     obj_p keys = AS_LIST(obj)[0], vals = AS_LIST(obj)[1];
     i64_t n;
     u64_t i, dict_height = ops_count(keys);
@@ -875,10 +799,8 @@ i64_t dict_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
     if (dict_height > LIST_MAX_HEIGHT)
         dict_height = LIST_MAX_HEIGHT;
 
-    if (!full)
-    {
-        for (i = 0; i < dict_height - 1; i++)
-        {
+    if (!full) {
+        for (i = 0; i < dict_height - 1; i++) {
             maxn(n, raw_fmt_into(dst, indent, MAX_ROW_WIDTH, keys, i));
             maxn(n, str_fmt_into(dst, MAX_ROW_WIDTH, ": "));
             maxn(n, raw_fmt_into(dst, indent, MAX_ROW_WIDTH, vals, i));
@@ -899,8 +821,7 @@ i64_t dict_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
 
     indent += 2;
 
-    for (i = 0; i < dict_height; i++)
-    {
+    for (i = 0; i < dict_height; i++) {
         maxn(n, str_fmt_into(dst, 2, "\n"));
         maxn(n, str_fmt_into_n(dst, NO_LIMIT, indent, " "));
         maxn(n, raw_fmt_into(dst, indent, MAX_ROW_WIDTH, keys, i));
@@ -908,8 +829,7 @@ i64_t dict_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
         maxn(n, raw_fmt_into(dst, indent, MAX_ROW_WIDTH, vals, i));
     }
 
-    if (dict_height < ops_count(keys))
-    {
+    if (dict_height < ops_count(keys)) {
         maxn(n, str_fmt_into(dst, 2, "\n"));
         maxn(n, str_fmt_into_n(dst, NO_LIMIT, indent, " "));
         maxn(n, str_fmt_into(dst, 3, ".."));
@@ -924,19 +844,17 @@ i64_t dict_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
     return n;
 }
 
-i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
-{
+i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj) {
     i64_t *header, i, j, n, m, l, table_width, table_height, total_width, rows, cols;
-    obj_p s, column, columns = AS_LIST(obj)[1], column_widths,
-                     footer, formatted_columns[TABLE_MAX_WIDTH][TABLE_MAX_HEIGHT] = {{NULL_OBJ}};
+    obj_p s, column, columns = AS_LIST(obj)[1], column_widths, footer,
+                     formatted_columns[TABLE_MAX_WIDTH][TABLE_MAX_HEIGHT] = {{NULL_OBJ}};
     str_p p;
     b8_t unicode = __USE_UNICODE;
 
     header = AS_SYMBOL(AS_LIST(obj)[0]);
     total_width = 0;
 
-    if (!full)
-    {
+    if (!full) {
         n = str_fmt_into(dst, 8, "(table ");
         n += obj_fmt_into(dst, indent, MAX_ROW_WIDTH, B8_FALSE, AS_LIST(obj)[0]);
         n += glyph_fmt_into(dst, GLYPH_HDOTS, unicode);
@@ -961,14 +879,12 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
     column_widths = I64(table_width);
 
     // Calculate each column maximum width
-    for (i = 0; i < table_width; i++)
-    {
+    for (i = 0; i < table_width; i++) {
         // First check the column name
         l = strlen(str_from_symbol(header[i]));
 
         // Then traverse first n elements of column
-        for (j = 0; j < table_height / 2; j++)
-        {
+        for (j = 0; j < table_height / 2; j++) {
             column = AS_LIST(columns)[i];
             s = NULL_OBJ;
             m = raw_fmt_into(&s, 0, 38, column, j);
@@ -977,8 +893,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
         }
 
         // Traverse the rest of the column
-        for (; j < table_height; j++)
-        {
+        for (; j < table_height; j++) {
             column = AS_LIST(columns)[i];
             s = NULL_OBJ;
             if (table_height == rows)
@@ -989,27 +904,23 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
             maxn(l, m);
         }
 
-        AS_I64(column_widths)
-        [i] = l + 2; // Add 2 for padding
+        AS_I64(column_widths)[i] = l + 2;  // Add 2 for padding
         total_width += AS_I64(column_widths)[i];
     }
 
     total_width += table_width - 1;
 
     // calculate width of the footer
-    footer = str_fmt(NO_LIMIT, " %lld rows (%lld shown) %lld columns (%lld shown)", rows, table_height, cols, table_width);
+    footer =
+        str_fmt(NO_LIMIT, " %lld rows (%lld shown) %lld columns (%lld shown)", rows, table_height, cols, table_width);
 
-    if (total_width < (i64_t)footer->len)
-    {
-        AS_I64(column_widths)
-        [table_width - 1] += (i64_t)footer->len - total_width;
+    if (total_width < (i64_t)footer->len) {
+        AS_I64(column_widths)[table_width - 1] += (i64_t)footer->len - total_width;
         total_width = (i64_t)footer->len;
 
-        for (i = 0; i < table_width - 1; i++)
-        {
+        for (i = 0; i < table_width - 1; i++) {
             // Adjust width to '...' if it's less than 4
-            if (AS_I64(column_widths)[i] < 4)
-            {
+            if (AS_I64(column_widths)[i] < 4) {
                 total_width += 4 - AS_I64(column_widths)[i];
                 AS_I64(column_widths)
                 [i] = 4;
@@ -1019,8 +930,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
 
     // Top border of the table
     n = glyph_fmt_into(dst, GLYPH_TL_CORNER, unicode);
-    for (i = 0; i < table_width; i++)
-    {
+    for (i = 0; i < table_width; i++) {
         for (j = 0; j < AS_I64(column_widths)[i]; j++)
             n += glyph_fmt_into(dst, GLYPH_HLINE, unicode);
         if (i < table_width - 1)
@@ -1033,8 +943,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
     n += str_fmt_into(dst, 2, "\n");
     n += str_fmt_into_n(dst, NO_LIMIT, indent, " ");
     n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
-    for (i = 0; i < table_width; i++)
-    {
+    for (i = 0; i < table_width; i++) {
         p = str_from_symbol(header[i]);
         m = AS_I64(column_widths)[i] - strlen(p) - 2;
         n += str_fmt_into(dst, NO_LIMIT, " %s ", p);
@@ -1046,8 +955,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
     n += str_fmt_into(dst, 2, "\n");
     n += str_fmt_into_n(dst, NO_LIMIT, indent, " ");
     n += glyph_fmt_into(dst, GLYPH_L_TEE, unicode);
-    for (i = 0; i < table_width; i++)
-    {
+    for (i = 0; i < table_width; i++) {
         for (j = 0; j < AS_I64(column_widths)[i]; j++)
             n += glyph_fmt_into(dst, GLYPH_HLINE, unicode);
         if (i < table_width - 1)
@@ -1057,17 +965,14 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
     }
 
     // Print table content
-    for (j = 0; j < table_height; j++)
-    {
+    for (j = 0; j < table_height; j++) {
         n += str_fmt_into(dst, 2, "\n");
         n += str_fmt_into_n(dst, NO_LIMIT, indent, " ");
 
         // Indicate missing rows
-        if (j == table_height / 2 && table_height != rows)
-        {
+        if (j == table_height / 2 && table_height != rows) {
             n += glyph_fmt_into(dst, GLYPH_VDOTS, unicode);
-            for (i = 0; i < table_width; i++)
-            {
+            for (i = 0; i < table_width; i++) {
                 n += str_fmt_into(dst, 2, " ");
                 l = n;
                 n += glyph_fmt_into(dst, GLYPH_HDOTS, unicode);
@@ -1084,8 +989,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
 
         n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
 
-        for (i = 0; i < table_width; i++)
-        {
+        for (i = 0; i < table_width; i++) {
             s = formatted_columns[i][j];
             p = AS_C8(s);
             m = AS_I64(column_widths)[i] - s->len - 2;
@@ -1101,8 +1005,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
     n += str_fmt_into(dst, 2, "\n");
     n += str_fmt_into_n(dst, NO_LIMIT, indent, " ");
     n += glyph_fmt_into(dst, GLYPH_L_TEE, unicode);
-    for (i = 0; i < table_width; i++)
-    {
+    for (i = 0; i < table_width; i++) {
         for (j = 0; j < AS_I64(column_widths)[i]; j++)
             n += glyph_fmt_into(dst, GLYPH_HLINE, unicode);
         if (i < table_width - 1)
@@ -1139,19 +1042,16 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
     return n;
 }
 
-i64_t internal_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
-{
+i64_t internal_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
     return str_fmt_into(dst, limit, "%s", env_get_internal_name(obj));
 }
 
-i64_t lambda_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
-{
+i64_t lambda_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
     i64_t n;
 
     if (AS_LAMBDA(obj)->name)
         n = str_fmt_into(dst, limit, "@%s", str_from_symbol((AS_LAMBDA(obj)->name)->i64));
-    else
-    {
+    else {
         n = str_fmt_into(dst, 4, "(fn ");
         n += obj_fmt_into(dst, 0, limit, B8_FALSE, AS_LAMBDA(obj)->args);
         n += str_fmt_into(dst, 2, " ");
@@ -1162,69 +1062,66 @@ i64_t lambda_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     return n;
 }
 
-i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
-{
-    switch (obj->type)
-    {
-    case -TYPE_B8:
-        return b8_fmt_into(dst, obj->b8);
-    case -TYPE_U8:
-        return byte_fmt_into(dst, obj->u8);
-    case -TYPE_I64:
-        return i64_fmt_into(dst, obj->i64);
-    case -TYPE_F64:
-        return f64_fmt_into(dst, obj->f64);
-    case -TYPE_SYMBOL:
-        return symbol_fmt_into(dst, limit, full, obj->i64);
-    case -TYPE_TIMESTAMP:
-        return ts_fmt_into(dst, obj->i64);
-    case -TYPE_GUID:
-        return guid_fmt_into(dst, AS_GUID(obj));
-    case -TYPE_C8:
-        return c8_fmt_into(dst, full, obj->c8);
-    case TYPE_B8:
-        return vector_fmt_into(dst, limit, obj);
-    case TYPE_U8:
-        return vector_fmt_into(dst, limit, obj);
-    case TYPE_I64:
-        return vector_fmt_into(dst, limit, obj);
-    case TYPE_F64:
-        return vector_fmt_into(dst, limit, obj);
-    case TYPE_SYMBOL:
-        return vector_fmt_into(dst, limit, obj);
-    case TYPE_TIMESTAMP:
-        return vector_fmt_into(dst, limit, obj);
-    case TYPE_GUID:
-        return vector_fmt_into(dst, limit, obj);
-    case TYPE_C8:
-        return string_fmt_into(dst, limit, obj);
-    case TYPE_LIST:
-        return list_fmt_into(dst, indent, limit, full, obj);
-    case TYPE_ENUM:
-        return enum_fmt_into(dst, indent, limit, obj);
-    case TYPE_ANYMAP:
-        return anymap_fmt_into(dst, indent, limit, full, obj);
-    case TYPE_DICT:
-        return dict_fmt_into(dst, indent, limit, full, obj);
-    case TYPE_TABLE:
-        return table_fmt_into(dst, indent, full, obj);
-    case TYPE_UNARY:
-    case TYPE_BINARY:
-    case TYPE_VARY:
-        return internal_fmt_into(dst, limit, obj);
-    case TYPE_LAMBDA:
-        return lambda_fmt_into(dst, limit, obj);
-    case TYPE_NULL:
-        return str_fmt_into(dst, limit, "null");
-    case TYPE_ERROR:
-        return error_fmt_into(dst, limit, obj);
-    default:
-        return str_fmt_into(dst, limit, "@<%s>", type_name(obj->type));
+i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) {
+    switch (obj->type) {
+        case -TYPE_B8:
+            return b8_fmt_into(dst, obj->b8);
+        case -TYPE_U8:
+            return byte_fmt_into(dst, obj->u8);
+        case -TYPE_I64:
+            return i64_fmt_into(dst, obj->i64);
+        case -TYPE_F64:
+            return f64_fmt_into(dst, obj->f64);
+        case -TYPE_SYMBOL:
+            return symbol_fmt_into(dst, limit, full, obj->i64);
+        case -TYPE_TIMESTAMP:
+            return ts_fmt_into(dst, obj->i64);
+        case -TYPE_GUID:
+            return guid_fmt_into(dst, AS_GUID(obj));
+        case -TYPE_C8:
+            return c8_fmt_into(dst, full, obj->c8);
+        case TYPE_B8:
+            return vector_fmt_into(dst, limit, obj);
+        case TYPE_U8:
+            return vector_fmt_into(dst, limit, obj);
+        case TYPE_I64:
+            return vector_fmt_into(dst, limit, obj);
+        case TYPE_F64:
+            return vector_fmt_into(dst, limit, obj);
+        case TYPE_SYMBOL:
+            return vector_fmt_into(dst, limit, obj);
+        case TYPE_TIMESTAMP:
+            return vector_fmt_into(dst, limit, obj);
+        case TYPE_GUID:
+            return vector_fmt_into(dst, limit, obj);
+        case TYPE_C8:
+            return string_fmt_into(dst, limit, obj);
+        case TYPE_LIST:
+            return list_fmt_into(dst, indent, limit, full, obj);
+        case TYPE_ENUM:
+            return enum_fmt_into(dst, indent, limit, obj);
+        case TYPE_ANYMAP:
+            return anymap_fmt_into(dst, indent, limit, full, obj);
+        case TYPE_DICT:
+            return dict_fmt_into(dst, indent, limit, full, obj);
+        case TYPE_TABLE:
+            return table_fmt_into(dst, indent, full, obj);
+        case TYPE_UNARY:
+        case TYPE_BINARY:
+        case TYPE_VARY:
+            return internal_fmt_into(dst, limit, obj);
+        case TYPE_LAMBDA:
+            return lambda_fmt_into(dst, limit, obj);
+        case TYPE_NULL:
+            return str_fmt_into(dst, limit, "null");
+        case TYPE_ERROR:
+            return error_fmt_into(dst, limit, obj);
+        default:
+            return str_fmt_into(dst, limit, "@<%s>", type_name(obj->type));
     }
 }
 
-obj_p obj_fmt(obj_p obj, b8_t full)
-{
+obj_p obj_fmt(obj_p obj, b8_t full) {
     obj_p dst = NULL_OBJ;
     i64_t limit = MAX_ROW_WIDTH;
 
@@ -1238,8 +1135,7 @@ obj_p obj_fmt(obj_p obj, b8_t full)
  * using format string as a template with
  * '%' placeholders.
  */
-obj_p obj_fmt_n(obj_p *x, u64_t n)
-{
+obj_p obj_fmt_n(obj_p *x, u64_t n) {
     u64_t i;
     i64_t sz = 0;
     str_p p, start = NULL, end = NULL;
@@ -1259,13 +1155,11 @@ obj_p obj_fmt_n(obj_p *x, u64_t n)
     start = p;
     n -= 1;
 
-    for (i = 0; i < n; i++)
-    {
+    for (i = 0; i < n; i++) {
         b += 1;
         end = (str_p)memchr(start, '%', sz);
 
-        if (!end)
-        {
+        if (!end) {
             if (res)
                 heap_free(res);
 
@@ -1281,8 +1175,7 @@ obj_p obj_fmt_n(obj_p *x, u64_t n)
         obj_fmt_into(&res, 0, MAX_ROW_WIDTH, B8_FALSE, *b);
     }
 
-    if (sz > 0 && memchr(start, '%', sz))
-    {
+    if (sz > 0 && memchr(start, '%', sz)) {
         if (res)
             heap_free(res);
 
@@ -1294,8 +1187,7 @@ obj_p obj_fmt_n(obj_p *x, u64_t n)
     return res;
 }
 
-i64_t timeit_fmt_into(obj_p *dst, u64_t indent, u64_t *index, timeit_t *timeit)
-{
+i64_t timeit_fmt_into(obj_p *dst, u64_t indent, u64_t *index, timeit_t *timeit) {
     i64_t n;
     u64_t i;
     f64_t elapsed = 0.0;
@@ -1304,56 +1196,50 @@ i64_t timeit_fmt_into(obj_p *dst, u64_t indent, u64_t *index, timeit_t *timeit)
 
     n = 0;
 
-    while (*index < timeit->n)
-    {
+    while (*index < timeit->n) {
         span = timeit->spans[*index];
 
-        switch (span.type)
-        {
-        case TIMEIT_SPAN_START:
-            for (i = 0; i < indent; i++)
-            {
-                n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
-                n += str_fmt_into(dst, 2, " ");
-            }
-            n += glyph_fmt_into(dst, GLYPH_TL_CURLY, unicode);
-            n += str_fmt_into(dst, NO_LIMIT, " %s\n", span.msg);
-            (*index)++;
-            n += timeit_fmt_into(dst, indent + 1, index, timeit);
-            elapsed = ray_clock_elapsed_ms(&span.clock, &timeit->spans[*index].clock);
-            for (i = 0; i < indent; i++)
-            {
-                n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
-                n += str_fmt_into(dst, 2, " ");
-            }
-            n += glyph_fmt_into(dst, GLYPH_BL_CURLY, unicode);
-            n += glyph_fmt_into(dst, GLYPH_HLINE, unicode);
-            n += glyph_fmt_into(dst, GLYPH_R_TEE, unicode);
-            n += str_fmt_into(dst, NO_LIMIT, " %.*f ms\n", F64_PRECISION, elapsed);
-            (*index)++;
-            break;
-        case TIMEIT_SPAN_END:
-            return n;
-        case TIMEIT_SPAN_TICK:
-            if (*index > 0)
-                elapsed = ray_clock_elapsed_ms(&timeit->spans[*index - 1].clock, &span.clock);
-            for (i = 0; i < indent; i++)
-            {
-                n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
-                n += str_fmt_into(dst, 2, " ");
-            }
-            n += glyph_fmt_into(dst, GLYPH_ASTERISK, unicode);
-            n += str_fmt_into(dst, NO_LIMIT, "  %s: %.*f ms\n", span.msg, F64_PRECISION, elapsed);
-            (*index)++;
-            break;
+        switch (span.type) {
+            case TIMEIT_SPAN_START:
+                for (i = 0; i < indent; i++) {
+                    n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+                    n += str_fmt_into(dst, 2, " ");
+                }
+                n += glyph_fmt_into(dst, GLYPH_TL_CURLY, unicode);
+                n += str_fmt_into(dst, NO_LIMIT, " %s\n", span.msg);
+                (*index)++;
+                n += timeit_fmt_into(dst, indent + 1, index, timeit);
+                elapsed = ray_clock_elapsed_ms(&span.clock, &timeit->spans[*index].clock);
+                for (i = 0; i < indent; i++) {
+                    n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+                    n += str_fmt_into(dst, 2, " ");
+                }
+                n += glyph_fmt_into(dst, GLYPH_BL_CURLY, unicode);
+                n += glyph_fmt_into(dst, GLYPH_HLINE, unicode);
+                n += glyph_fmt_into(dst, GLYPH_R_TEE, unicode);
+                n += str_fmt_into(dst, NO_LIMIT, " %.*f ms\n", F64_PRECISION, elapsed);
+                (*index)++;
+                break;
+            case TIMEIT_SPAN_END:
+                return n;
+            case TIMEIT_SPAN_TICK:
+                if (*index > 0)
+                    elapsed = ray_clock_elapsed_ms(&timeit->spans[*index - 1].clock, &span.clock);
+                for (i = 0; i < indent; i++) {
+                    n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+                    n += str_fmt_into(dst, 2, " ");
+                }
+                n += glyph_fmt_into(dst, GLYPH_ASTERISK, unicode);
+                n += str_fmt_into(dst, NO_LIMIT, "  %s: %.*f ms\n", span.msg, F64_PRECISION, elapsed);
+                (*index)++;
+                break;
         }
     }
 
     return n;
 }
 
-obj_p timeit_fmt(nil_t)
-{
+obj_p timeit_fmt(nil_t) {
     timeit_t *timeit = &interpreter_current()->timeit;
     u64_t index = 0;
     obj_p dst = NULL_OBJ;
@@ -1363,7 +1249,4 @@ obj_p timeit_fmt(nil_t)
     return dst;
 }
 
-nil_t format_use_unicode(b8_t use)
-{
-    __USE_UNICODE = use;
-}
+nil_t format_use_unicode(b8_t use) { __USE_UNICODE = use; }

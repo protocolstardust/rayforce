@@ -21,12 +21,6 @@
  *   SOFTWARE.
  */
 
-test_result_t test_sort_asc()
-{
-    PASS();
-}
+test_result_t test_sort_asc() { PASS(); }
 
-test_result_t test_sort_desc()
-{
-    PASS();
-}
+test_result_t test_sort_desc() { PASS(); }

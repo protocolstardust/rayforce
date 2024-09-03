@@ -39,14 +39,9 @@
 #include "../core/cmp.h"
 #include "../core/eval.h"
 
-typedef enum test_status_t
-{
-    TEST_PASS = 0,
-    TEST_FAIL
-} test_status_t;
+typedef enum test_status_t { TEST_PASS = 0, TEST_FAIL } test_status_t;
 
-typedef struct test_result_t
-{
+typedef struct test_result_t {
     test_status_t status;
     str_p msg;
 } test_result_t;
@@ -55,15 +50,13 @@ typedef struct test_result_t
 typedef test_result_t (*test_func)();
 
 // Define a struct to hold a test function and its name
-typedef struct test_entry_t
-{
+typedef struct test_entry_t {
     str_p name;
     test_func func;
 } test_entry_t;
 
 // Setup and Teardown functions
-nil_t setup()
-{
+nil_t setup() {
 #ifdef STOP_ON_FAIL
     runtime_create(1, NULL);
 #else
@@ -72,8 +65,7 @@ nil_t setup()
     // heap_create(0);
 }
 
-nil_t teardown()
-{
+nil_t teardown() {
     runtime_destroy();
     // heap_destroy();
 }
@@ -90,13 +82,9 @@ nil_t teardown()
             FAIL(msg);         \
     }
 
-nil_t on_pass(f64_t ms)
-{
-    printf("%sPassed%s at: %.*f ms\n", GREEN, RESET, 4, ms);
-}
+nil_t on_pass(f64_t ms) { printf("%sPassed%s at: %.*f ms\n", GREEN, RESET, 4, ms); }
 
-nil_t on_fail(str_p msg)
-{
+nil_t on_fail(str_p msg) {
     printf("%sFailed.%s \n          \\ %s\n", RED, RESET, msg);
 #ifdef STOP_ON_FAIL
     runtime_run();
@@ -108,21 +96,17 @@ nil_t on_fail(str_p msg)
     test_result_t res;                                             \
     clock_t timer;                                                 \
     f64_t ms;                                                      \
-    do                                                             \
-    {                                                              \
+    do {                                                           \
         setup();                                                   \
         printf("%s  Running %s%s ... ", CYAN, RESET, name);        \
         fflush(stdout);                                            \
         timer = clock();                                           \
         res = func();                                              \
         ms = (((f64_t)(clock() - timer)) / CLOCKS_PER_SEC) * 1000; \
-        if (res.status == TEST_PASS)                               \
-        {                                                          \
+        if (res.status == TEST_PASS) {                             \
             (*pass)++;                                             \
             on_pass(ms);                                           \
-        }                                                          \
-        else                                                       \
-        {                                                          \
+        } else {                                                   \
             on_fail(res.msg);                                      \
         }                                                          \
         teardown();                                                \
@@ -165,15 +149,13 @@ test_entry_t tests[] = {
 };
 // ---
 
-i32_t main()
-{
+i32_t main() {
     i32_t i, num_tests, num_passed = 0;
 
     num_tests = sizeof(tests) / sizeof(test_entry_t);
     printf("%sTotal tests: %s%d\n", YELLOW, RESET, num_tests);
 
-    for (i = 0; i < num_tests; ++i)
-    {
+    for (i = 0; i < num_tests; ++i) {
         RUN_TEST(tests[i].name, tests[i].func, &num_passed);
     }
 

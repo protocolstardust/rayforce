@@ -42,7 +42,7 @@
 #elif defined(__linux__)
 #define OS_LINUX
 #define OS_UNIX
-#define _POSIX_C_SOURCE 200809L // Define POSIX source version for CLOCK_REALTIME
+#define _POSIX_C_SOURCE 200809L  // Define POSIX source version for CLOCK_REALTIME
 #ifndef __USE_MISC
 #define __USE_MISC
 #define _DEFAULT_SOURCE
@@ -90,4 +90,4 @@
 #error "Unsupported platform"
 #endif
 
-#endif // DEF_H
+#endif  // DEF_H

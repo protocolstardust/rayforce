@@ -29,214 +29,198 @@
 #include "sort.h"
 #include "error.h"
 
-obj_p ray_iasc(obj_p x)
-{
-    switch (x->type)
-    {
-    case TYPE_I64:
-        return ray_sort_asc(x);
+obj_p ray_iasc(obj_p x) {
+    switch (x->type) {
+        case TYPE_I64:
+            return ray_sort_asc(x);
 
-    case TYPE_F64:
-        return ray_sort_asc(x);
+        case TYPE_F64:
+            return ray_sort_asc(x);
 
-    default:
-        THROW(ERR_TYPE, "iasc: unsupported type: '%s", type_name(x->type));
+        default:
+            THROW(ERR_TYPE, "iasc: unsupported type: '%s", type_name(x->type));
     }
 }
 
-obj_p ray_idesc(obj_p x)
-{
-    switch (x->type)
-    {
-    case TYPE_I64:
-        return ray_sort_desc(x);
+obj_p ray_idesc(obj_p x) {
+    switch (x->type) {
+        case TYPE_I64:
+            return ray_sort_desc(x);
 
-    case TYPE_F64:
-        return ray_sort_desc(x);
+        case TYPE_F64:
+            return ray_sort_desc(x);
 
-    default:
-        THROW(ERR_TYPE, "idesc: unsupported type: '%s", type_name(x->type));
+        default:
+            THROW(ERR_TYPE, "idesc: unsupported type: '%s", type_name(x->type));
     }
 }
 
-obj_p ray_asc(obj_p x)
-{
+obj_p ray_asc(obj_p x) {
     obj_p idx;
     i64_t l, i;
 
-    switch (x->type)
-    {
-    case TYPE_I64:
-        idx = ray_sort_asc(x);
-        l = x->len;
-        for (i = 0; i < l; i++)
-            AS_I64(idx)
-        [i] = AS_I64(x)[AS_I64(idx)[i]];
+    switch (x->type) {
+        case TYPE_I64:
+            idx = ray_sort_asc(x);
+            l = x->len;
+            for (i = 0; i < l; i++)
+                AS_I64(idx)
+            [i] = AS_I64(x)[AS_I64(idx)[i]];
 
-        idx->attrs |= ATTR_ASC;
+            idx->attrs |= ATTR_ASC;
 
-        return idx;
+            return idx;
 
-    case TYPE_F64:
-        idx = ray_sort_asc(x);
-        l = x->len;
-        for (i = 0; i < l; i++)
-            AS_F64(idx)
-        [i] = AS_F64(x)[AS_I64(idx)[i]];
+        case TYPE_F64:
+            idx = ray_sort_asc(x);
+            l = x->len;
+            for (i = 0; i < l; i++)
+                AS_F64(idx)
+            [i] = AS_F64(x)[AS_I64(idx)[i]];
 
-        idx->attrs |= ATTR_ASC;
+            idx->attrs |= ATTR_ASC;
 
-        return idx;
+            return idx;
 
-    default:
-        THROW(ERR_TYPE, "asc: unsupported type: '%s", type_name(x->type));
+        default:
+            THROW(ERR_TYPE, "asc: unsupported type: '%s", type_name(x->type));
     }
 }
 
-obj_p ray_desc(obj_p x)
-{
+obj_p ray_desc(obj_p x) {
     obj_p idx;
     i64_t l, i;
 
-    switch (x->type)
-    {
-    case TYPE_I64:
-        idx = ray_sort_desc(x);
-        l = x->len;
-        for (i = 0; i < l; i++)
-            AS_I64(idx)
-        [i] = AS_I64(x)[AS_I64(idx)[i]];
+    switch (x->type) {
+        case TYPE_I64:
+            idx = ray_sort_desc(x);
+            l = x->len;
+            for (i = 0; i < l; i++)
+                AS_I64(idx)
+            [i] = AS_I64(x)[AS_I64(idx)[i]];
 
-        idx->attrs |= ATTR_DESC;
+            idx->attrs |= ATTR_DESC;
 
-        return idx;
-
-    case TYPE_F64:
-        idx = ray_sort_desc(x);
-        l = x->len;
-        for (i = 0; i < l; i++)
-            AS_F64(idx)
-        [i] = AS_F64(x)[AS_I64(idx)[i]];
-
-        idx->attrs |= ATTR_DESC;
-
-        return idx;
-
-    default:
-        THROW(ERR_TYPE, "desc: unsupported type: '%s", type_name(x->type));
-    }
-}
-
-obj_p ray_xasc(obj_p x, obj_p y)
-{
-    obj_p idx, col, res;
-
-    switch (mtype2(x->type, y->type))
-    {
-    case mtype2(TYPE_TABLE, -TYPE_SYMBOL):
-        col = at_obj(x, y);
-
-        if (IS_ERROR(col))
-            return col;
-
-        idx = ray_iasc(col);
-        drop_obj(col);
-
-        if (IS_ERROR(idx))
             return idx;
 
-        res = ray_take(x, idx);
+        case TYPE_F64:
+            idx = ray_sort_desc(x);
+            l = x->len;
+            for (i = 0; i < l; i++)
+                AS_F64(idx)
+            [i] = AS_F64(x)[AS_I64(idx)[i]];
 
-        drop_obj(idx);
+            idx->attrs |= ATTR_DESC;
 
-        return res;
-    default:
-        THROW(ERR_TYPE, "xasc: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
-    }
-}
-
-obj_p ray_xdesc(obj_p x, obj_p y)
-{
-    obj_p idx, col, res;
-
-    switch (mtype2(x->type, y->type))
-    {
-    case mtype2(TYPE_TABLE, -TYPE_SYMBOL):
-        col = at_obj(x, y);
-
-        if (IS_ERROR(col))
-            return col;
-
-        idx = ray_idesc(col);
-        drop_obj(col);
-
-        if (IS_ERROR(idx))
             return idx;
 
-        res = ray_take(x, idx);
-
-        drop_obj(idx);
-
-        return res;
-    default:
-        THROW(ERR_TYPE, "xdesc: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        default:
+            THROW(ERR_TYPE, "desc: unsupported type: '%s", type_name(x->type));
     }
 }
 
-obj_p ray_not(obj_p x)
-{
+obj_p ray_xasc(obj_p x, obj_p y) {
+    obj_p idx, col, res;
+
+    switch (mtype2(x->type, y->type)) {
+        case mtype2(TYPE_TABLE, -TYPE_SYMBOL):
+            col = at_obj(x, y);
+
+            if (IS_ERROR(col))
+                return col;
+
+            idx = ray_iasc(col);
+            drop_obj(col);
+
+            if (IS_ERROR(idx))
+                return idx;
+
+            res = ray_take(x, idx);
+
+            drop_obj(idx);
+
+            return res;
+        default:
+            THROW(ERR_TYPE, "xasc: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+    }
+}
+
+obj_p ray_xdesc(obj_p x, obj_p y) {
+    obj_p idx, col, res;
+
+    switch (mtype2(x->type, y->type)) {
+        case mtype2(TYPE_TABLE, -TYPE_SYMBOL):
+            col = at_obj(x, y);
+
+            if (IS_ERROR(col))
+                return col;
+
+            idx = ray_idesc(col);
+            drop_obj(col);
+
+            if (IS_ERROR(idx))
+                return idx;
+
+            res = ray_take(x, idx);
+
+            drop_obj(idx);
+
+            return res;
+        default:
+            THROW(ERR_TYPE, "xdesc: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+    }
+}
+
+obj_p ray_not(obj_p x) {
     i32_t i;
     i64_t l;
     obj_p res;
 
-    switch (x->type)
-    {
-    case -TYPE_B8:
-        return b8(!x->b8);
+    switch (x->type) {
+        case -TYPE_B8:
+            return b8(!x->b8);
 
-    case TYPE_B8:
-        l = x->len;
-        res = B8(l);
-        for (i = 0; i < l; i++)
-            AS_B8(res)
-        [i] = !AS_B8(x)[i];
+        case TYPE_B8:
+            l = x->len;
+            res = B8(l);
+            for (i = 0; i < l; i++)
+                AS_B8(res)
+            [i] = !AS_B8(x)[i];
 
-        return res;
+            return res;
 
-    default:
-        THROW(ERR_TYPE, "not: unsupported type: '%s", type_name(x->type));
+        default:
+            THROW(ERR_TYPE, "not: unsupported type: '%s", type_name(x->type));
     }
 }
 
-obj_p ray_neg(obj_p x)
-{
+obj_p ray_neg(obj_p x) {
     obj_p res;
     i64_t i, l;
 
-    switch (x->type)
-    {
-    case -TYPE_B8:
-        return i64(-x->b8);
-    case -TYPE_I64:
-        return i64(-x->i64);
-    case -TYPE_F64:
-        return f64(-x->f64);
-    case TYPE_I64:
-        l = x->len;
-        res = I64(l);
-        for (i = 0; i < l; i++)
-            AS_I64(res)
-        [i] = -AS_I64(x)[i];
-        return res;
-    case TYPE_F64:
-        l = x->len;
-        res = F64(l);
-        for (i = 0; i < l; i++)
-            AS_F64(res)
-        [i] = -AS_F64(x)[i];
-        return res;
+    switch (x->type) {
+        case -TYPE_B8:
+            return i64(-x->b8);
+        case -TYPE_I64:
+            return i64(-x->i64);
+        case -TYPE_F64:
+            return f64(-x->f64);
+        case TYPE_I64:
+            l = x->len;
+            res = I64(l);
+            for (i = 0; i < l; i++)
+                AS_I64(res)
+            [i] = -AS_I64(x)[i];
+            return res;
+        case TYPE_F64:
+            l = x->len;
+            res = F64(l);
+            for (i = 0; i < l; i++)
+                AS_F64(res)
+            [i] = -AS_F64(x)[i];
+            return res;
 
-    default:
-        THROW(ERR_TYPE, "neg: unsupported type: '%s", type_name(x->type));
+        default:
+            THROW(ERR_TYPE, "neg: unsupported type: '%s", type_name(x->type));
     }
 }

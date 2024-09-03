@@ -27,29 +27,28 @@
 #include "../core/util.h"
 #include "../core/sys.h"
 
-nil_t print_logo(sys_info_t *info)
-{
-  printf("%s"
-         "  RayforceDB: %d.%d %s\n"
-         "  %s %d(MB) %d core(s)\n"
-         "  Using %d cores(s)\n"
-         "  Started from: %s\n"
-         "  Documentation: https://rayforcedb.com/\n"
-         "  Github: https://github.com/singaraiona/rayforce\n"
-         "%s",
-         BOLD, info->major_version, info->minor_version,
-         info->build_date, info->cpu, info->mem, info->cores, info->threads, info->cwd, RESET);
+nil_t print_logo(sys_info_t *info) {
+    printf(
+        "%s"
+        "  RayforceDB: %d.%d %s\n"
+        "  %s %d(MB) %d core(s)\n"
+        "  Using %d cores(s)\n"
+        "  Started from: %s\n"
+        "  Documentation: https://rayforcedb.com/\n"
+        "  Github: https://github.com/singaraiona/rayforce\n"
+        "%s",
+        BOLD, info->major_version, info->minor_version, info->build_date, info->cpu, info->mem, info->cores,
+        info->threads, info->cwd, RESET);
 }
 
-i32_t main(i32_t argc, str_p argv[])
-{
-  i32_t code = -1;
-  sys_info_t *info;
-  runtime_create(argc, argv);
-  info = &runtime_get()->sys_info;
-  print_logo(info);
-  code = runtime_run();
-  runtime_destroy();
+i32_t main(i32_t argc, str_p argv[]) {
+    i32_t code = -1;
+    sys_info_t *info;
+    runtime_create(argc, argv);
+    info = &runtime_get()->sys_info;
+    print_logo(info);
+    code = runtime_run();
+    runtime_destroy();
 
-  return code;
+    return code;
 }

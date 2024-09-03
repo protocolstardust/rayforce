@@ -46,12 +46,11 @@ extern i64_t SYMBOL_SYM;
 /*
  *  Environment
  */
-typedef struct env_t
-{
-    obj_p keywords;  // list of reserved keywords
-    obj_p functions; // dict, containing function primitives
-    obj_p variables; // dict, containing mappings variables names to their values
-    obj_p typenames; // dict, containing mappings type ids to their names
+typedef struct env_t {
+    obj_p keywords;   // list of reserved keywords
+    obj_p functions;  // dict, containing function primitives
+    obj_p variables;  // dict, containing mappings variables names to their values
+    obj_p typenames;  // dict, containing mappings type ids to their names
 } env_t;
 
 env_t env_create(nil_t);
@@ -71,4 +70,4 @@ obj_p env_get(env_t *env, obj_p key);
 obj_p ray_env(obj_p *x, u64_t n);
 obj_p ray_memstat(obj_p *x, u64_t n);
 
-#endif // ENV_H
+#endif  // ENV_H

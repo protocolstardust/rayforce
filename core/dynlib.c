@@ -27,8 +27,7 @@
 
 #if defined(OS_WINDOWS)
 
-obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
-{
+obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs) {
     HMODULE handle;
     FARPROC dsym;
     obj_p fn;
@@ -41,17 +40,16 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
     if (!dsym)
         THROW(ERR_SYS, "Failed to load symbol from shared library: %d", GetLastError());
 
-    switch (nargs)
-    {
-    case 1:
-        fn = atom(-TYPE_UNARY);
-        break;
-    case 2:
-        fn = atom(-TYPE_BINARY);
-        break;
-    default:
-        fn = atom(-TYPE_VARY);
-        break;
+    switch (nargs) {
+        case 1:
+            fn = atom(-TYPE_UNARY);
+            break;
+        case 2:
+            fn = atom(-TYPE_BINARY);
+            break;
+        default:
+            fn = atom(-TYPE_VARY);
+            break;
     }
 
     fn->i64 = (i64_t)dsym;
@@ -62,8 +60,7 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
 
 #else
 
-obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
-{
+obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs) {
     raw_p handle, dsym;
     obj_p fn;
     str_p error;
@@ -76,17 +73,16 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
     if ((error = dlerror()) != NULL)
         THROW(ERR_SYS, "Failed to load symbol from shared library: %s", error);
 
-    switch (nargs)
-    {
-    case 1:
-        fn = atom(-TYPE_UNARY);
-        break;
-    case 2:
-        fn = atom(-TYPE_BINARY);
-        break;
-    default:
-        fn = atom(-TYPE_VARY);
-        break;
+    switch (nargs) {
+        case 1:
+            fn = atom(-TYPE_UNARY);
+            break;
+        case 2:
+            fn = atom(-TYPE_BINARY);
+            break;
+        default:
+            fn = atom(-TYPE_VARY);
+            break;
     }
 
     fn->i64 = (i64_t)dsym;
@@ -97,8 +93,7 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
 
 #endif
 
-obj_p ray_loadfn(obj_p *args, u64_t n)
-{
+obj_p ray_loadfn(obj_p *args, u64_t n) {
     if (n != 3)
         THROW(ERR_ARITY, "Expected 3 arguments, got %llu", n);
 

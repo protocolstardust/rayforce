@@ -21,8 +21,7 @@
  *   SOFTWARE.
  */
 
-test_result_t test_str_match()
-{
+test_result_t test_str_match() {
     TEST_ASSERT(str_match("brown", 5, "br?*wn", 6), "brown\", \"br?*wn");
     TEST_ASSERT(str_match("broasdfasdfwn", 13, "br?*wn", 6), "broasdfasdfwn\", \"br?*wn");
     TEST_ASSERT(str_match("browmwn", 7, "br?*wn", 6), "browmwn\", \"br?*wn");

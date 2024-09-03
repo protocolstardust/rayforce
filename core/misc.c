@@ -34,8 +34,7 @@
 #include "aggr.h"
 #include "compose.h"
 
-obj_p ray_type(obj_p x)
-{
+obj_p ray_type(obj_p x) {
     i8_t type;
     if (!x)
         type = -TYPE_ERROR;
@@ -46,35 +45,27 @@ obj_p ray_type(obj_p x)
     return symboli64(t);
 }
 
-obj_p ray_count(obj_p x)
-{
-    switch (x->type)
-    {
-    case TYPE_GROUPMAP:
-        return aggr_count(AS_LIST(x)[0], AS_LIST(x)[1]);
-    default:
-        return i64(ops_count(x));
+obj_p ray_count(obj_p x) {
+    switch (x->type) {
+        case TYPE_GROUPMAP:
+            return aggr_count(AS_LIST(x)[0], AS_LIST(x)[1]);
+        default:
+            return i64(ops_count(x));
     }
 }
 
-obj_p ray_rc(obj_p x)
-{
+obj_p ray_rc(obj_p x) {
     // substract 1 to skip the our reference
     return i64(rc_obj(x) - 1);
 }
 
-obj_p ray_quote(obj_p x)
-{
-    return clone_obj(x);
-}
+obj_p ray_quote(obj_p x) { return clone_obj(x); }
 
-obj_p ray_ids(obj_p x)
-{
-    switch (x->type)
-    {
-    case TYPE_GROUPMAP:
-        return (AS_LIST(x)[0], AS_LIST(x)[1]);
-    default:
-        return ray_til(x);
+obj_p ray_ids(obj_p x) {
+    switch (x->type) {
+        case TYPE_GROUPMAP:
+            return (AS_LIST(x)[0], AS_LIST(x)[1]);
+        default:
+            return ray_til(x);
     }
 }
