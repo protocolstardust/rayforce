@@ -45,7 +45,7 @@ nil_t error_add_loc(obj_p err, i64_t id, ctx_p ctx)
     if (ctx->lambda == NULL_OBJ)
         return;
 
-    nfo = as_lambda(ctx->lambda)->nfo;
+    nfo = AS_LAMBDA(ctx->lambda)->nfo;
 
     if (nfo == NULL_OBJ)
         return;
@@ -54,14 +54,14 @@ nil_t error_add_loc(obj_p err, i64_t id, ctx_p ctx)
     loc = vn_list(4,
                   i64(span.id),                            // span
                   clone_obj(AS_LIST(nfo)[0]),              // filename
-                  clone_obj(as_lambda(ctx->lambda)->name), // function name
+                  clone_obj(AS_LAMBDA(ctx->lambda)->name), // function name
                   clone_obj(AS_LIST(nfo)[1])               // source
     );
 
-    if (as_error(err)->locs == NULL_OBJ)
-        as_error(err)->locs = vn_list(1, loc);
+    if (AS_ERROR(err)->locs == NULL_OBJ)
+        AS_ERROR(err)->locs = vn_list(1, loc);
     else
-        push_raw(&as_error(err)->locs, &loc);
+        push_raw(&AS_ERROR(err)->locs, &loc);
 }
 
 interpreter_p interpreter_create(u64_t id)
@@ -86,10 +86,10 @@ interpreter_p interpreter_create(u64_t id)
     f->type = TYPE_LAMBDA;
     f->rc = 1;
 
-    as_lambda(f)->name = NULL_OBJ;
-    as_lambda(f)->nfo = NULL_OBJ;
-    as_lambda(f)->args = NULL_OBJ;
-    as_lambda(f)->body = NULL_OBJ;
+    AS_LAMBDA(f)->name = NULL_OBJ;
+    AS_LAMBDA(f)->nfo = NULL_OBJ;
+    AS_LAMBDA(f)->args = NULL_OBJ;
+    AS_LAMBDA(f)->body = NULL_OBJ;
 
     ctx_push(f);
 
@@ -124,7 +124,7 @@ obj_p call(obj_p obj, u64_t arity)
     // local env
     stack_push(NULL_OBJ);
 
-    lambda = as_lambda(obj);
+    lambda = AS_LAMBDA(obj);
 
     // push context
     ctx = ctx_push(obj);
@@ -312,7 +312,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
             return (car->i64 == (i64_t)ray_do) ? res : unwrap(res, (i64_t)obj);
 
         case TYPE_LAMBDA:
-            lambda = as_lambda(car);
+            lambda = AS_LAMBDA(car);
             if (len != lambda->args->len)
                 return unwrap(error_str(ERR_ARITY, "wrong number of arguments"), (i64_t)obj);
 
@@ -377,7 +377,7 @@ obj_p amend(obj_p sym, obj_p val)
     lambda = ctx->lambda;
 
     bp = ctx->sp;
-    env = &__INTERPRETER->stack[bp + as_lambda(lambda)->args->len];
+    env = &__INTERPRETER->stack[bp + AS_LAMBDA(lambda)->args->len];
 
     if (*env != NULL_OBJ)
         set_obj(env, sym, clone_obj(val));
@@ -403,7 +403,7 @@ obj_p mount_env(obj_p obj)
     lambda = ctx->lambda;
 
     bp = ctx->sp;
-    env = &__INTERPRETER->stack[bp + as_lambda(lambda)->args->len];
+    env = &__INTERPRETER->stack[bp + AS_LAMBDA(lambda)->args->len];
 
     if (*env != NULL_OBJ)
     {
@@ -454,7 +454,7 @@ obj_p unmount_env(u64_t n)
     lambda = ctx->lambda;
 
     bp = ctx->sp;
-    env = &__INTERPRETER->stack[bp + as_lambda(lambda)->args->len];
+    env = &__INTERPRETER->stack[bp + AS_LAMBDA(lambda)->args->len];
 
     if (ops_count(*env) == n)
     {
@@ -479,7 +479,7 @@ obj_p unmount_env(u64_t n)
 obj_p ray_return(obj_p *x, u64_t n)
 {
     if (__INTERPRETER->cp == 1)
-        throw(ERR_NOT_SUPPORTED, "return outside of function");
+        THROW(ERR_NOT_SUPPORTED, "return outside of function");
 
     if (n == 0)
         stack_push(NULL_OBJ);
@@ -496,7 +496,7 @@ obj_p ray_raise(obj_p obj)
     obj_p e;
 
     if (obj->type != TYPE_C8)
-        throw(ERR_TYPE, "raise: expected 'string, got '%s", type_name(obj->type));
+        THROW(ERR_TYPE, "raise: expected 'string, got '%s", type_name(obj->type));
 
     e = error_obj(ERR_RAISE, clone_obj(obj));
     unwrap(e, (i64_t)obj);
@@ -517,7 +517,7 @@ obj_p ray_parse_str(i64_t fd, obj_p str, obj_p file)
     obj_p info, res;
 
     if (str->type != TYPE_C8)
-        throw(ERR_TYPE, "parse: expected string, got %s", type_name(str->type));
+        THROW(ERR_TYPE, "parse: expected string, got %s", type_name(str->type));
 
     info = nfo(clone_obj(file), clone_obj(str));
     res = parse(AS_C8(str), info);
@@ -550,7 +550,7 @@ obj_p ray_eval_str(obj_p str, obj_p file)
     i64_t sp;
 
     if (str->type != TYPE_C8)
-        throw(ERR_TYPE, "eval: expected string, got %s", type_name(str->type));
+        THROW(ERR_TYPE, "eval: expected string, got %s", type_name(str->type));
 
     info = nfo(clone_obj(file), clone_obj(str));
 
@@ -613,7 +613,7 @@ obj_p try_obj(obj_p obj, obj_p ctch)
     sp = ctx->sp;
 
     if (__INTERPRETER->cp == 1)
-        drop_obj(as_lambda(ctx->lambda)->nfo);
+        drop_obj(AS_LAMBDA(ctx->lambda)->nfo);
 
     // cleanup stack frame
     while (__INTERPRETER->sp > sp)
@@ -625,14 +625,14 @@ obj_p try_obj(obj_p obj, obj_p ctch)
         {
             if (ctch->type == TYPE_LAMBDA)
             {
-                if (as_lambda(ctch)->args->len != 1)
+                if (AS_LAMBDA(ctch)->args->len != 1)
                 {
                     drop_obj(res);
-                    throw(ERR_LENGTH, "catch: expected 1 argument, got %llu", as_lambda(ctch)->args->len);
+                    THROW(ERR_LENGTH, "catch: expected 1 argument, got %llu", AS_LAMBDA(ctch)->args->len);
                 }
                 if (IS_ERROR(res))
                 {
-                    stack_push(clone_obj(as_error(res)->msg));
+                    stack_push(clone_obj(AS_ERROR(res)->msg));
                     drop_obj(res);
                 }
                 else
@@ -663,7 +663,7 @@ obj_p interpreter_env_get(nil_t)
     ctx = ctx_get();
     lambda = ctx->lambda;
 
-    l = as_lambda(lambda)->args->len;
+    l = AS_LAMBDA(lambda)->args->len;
     env = __INTERPRETER->stack[ctx->sp + l];
 
     return env;
@@ -692,7 +692,7 @@ obj_p *resolve(i64_t sym)
     if (sym == SYMBOL_SELF)
         return &ctx->lambda;
 
-    l = as_lambda(lambda)->args->len;
+    l = AS_LAMBDA(lambda)->args->len;
     bp = ctx->sp;
 
     // search locals
@@ -711,7 +711,7 @@ obj_p *resolve(i64_t sym)
     }
 
     // search args
-    args = AS_SYMBOL(as_lambda(lambda)->args);
+    args = AS_SYMBOL(AS_LAMBDA(lambda)->args);
     for (i = 0; i < l; i++)
     {
         if (args[i] == sym)

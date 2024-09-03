@@ -52,7 +52,7 @@ obj_p __fetch(obj_p obj, obj_p **val)
     {
         *val = resolve(obj->i64);
         if (*val == NULL)
-            throw(ERR_NOT_FOUND, "fetch: symbol not found");
+            THROW(ERR_NOT_FOUND, "fetch: symbol not found");
 
         obj = cow_obj(**val);
     }
@@ -98,7 +98,7 @@ obj_p __alter(obj_p *obj, obj_p *x, u64_t n)
     if (x[1]->i64 == (i64_t)ray_set || x[1]->i64 == (i64_t)ray_let)
     {
         if (n != 4)
-            throw(ERR_LENGTH, "alter: set expected a value");
+            THROW(ERR_LENGTH, "alter: set expected a value");
 
         return set_obj(obj, x[2], clone_obj(x[3]));
     }
@@ -142,10 +142,10 @@ obj_p ray_alter(obj_p *x, u64_t n)
     obj_p *val = NULL, obj, res;
 
     if (n < 3)
-        throw(ERR_LENGTH, "alter: expected at least 3 arguments");
+        THROW(ERR_LENGTH, "alter: expected at least 3 arguments");
 
     if (x[1]->type < TYPE_LAMBDA || x[1]->type > TYPE_VARY)
-        throw(ERR_TYPE, "alter: expected function as 2nd argument");
+        THROW(ERR_TYPE, "alter: expected function as 2nd argument");
 
     obj = __fetch(x[0], &val);
 
@@ -170,7 +170,7 @@ obj_p __modify(obj_p *obj, obj_p *x, u64_t n)
     if (x[1]->i64 == (i64_t)ray_set || x[1]->i64 == (i64_t)ray_let)
     {
         if (n != 4)
-            throw(ERR_LENGTH, "alter: set expected a value");
+            THROW(ERR_LENGTH, "alter: set expected a value");
 
         return set_obj(obj, x[2], clone_obj(x[3]));
     }
@@ -198,10 +198,10 @@ obj_p ray_modify(obj_p *x, u64_t n)
     obj_p *val = NULL, obj, res;
 
     if (n < 3)
-        throw(ERR_LENGTH, "modify: expected at least 3 arguments, got %lld", n);
+        THROW(ERR_LENGTH, "modify: expected at least 3 arguments, got %lld", n);
 
     if (x[1]->type < TYPE_LAMBDA || x[1]->type > TYPE_VARY)
-        throw(ERR_TYPE, "modify: expected function as 2nd argument, got '%s'", type_name(x[1]->type));
+        THROW(ERR_TYPE, "modify: expected function as 2nd argument, got '%s'", type_name(x[1]->type));
 
     obj = __fetch(x[0], &val);
 
@@ -225,7 +225,7 @@ obj_p ray_insert(obj_p *x, u64_t n)
     b8_t need_drop;
 
     if (n != 2)
-        throw(ERR_LENGTH, "insert: expected 2 arguments, got %lld", n);
+        THROW(ERR_LENGTH, "insert: expected 2 arguments, got %lld", n);
 
     obj = __fetch(x[0], &val);
 
@@ -364,14 +364,14 @@ obj_p ray_upsert(obj_p *x, u64_t n)
     b8_t single_rec;
 
     if (n != 3)
-        throw(ERR_LENGTH, "upsert: expected 3 arguments, got %lld", n);
+        THROW(ERR_LENGTH, "upsert: expected 3 arguments, got %lld", n);
 
     if (x[1]->type != -TYPE_I64)
-        throw(ERR_TYPE, "upsert: expected 'I64 as 2nd argument, got '%s'", type_name(x[1]->type));
+        THROW(ERR_TYPE, "upsert: expected 'I64 as 2nd argument, got '%s'", type_name(x[1]->type));
 
     keys = x[1]->i64;
     if (keys < 1)
-        throw(ERR_LENGTH, "upsert: expected positive number of keys > 0, got %lld", keys);
+        THROW(ERR_LENGTH, "upsert: expected positive number of keys > 0, got %lld", keys);
 
     obj = __fetch(x[0], &val);
     if (IS_ERROR(obj))
@@ -749,16 +749,16 @@ obj_p ray_update(obj_p obj)
                   bins = NULL_OBJ, groupby = NULL_OBJ, tab, sym, prm, val;
 
     if (obj->type != TYPE_DICT)
-        throw(ERR_LENGTH, "'update' takes dict of params");
+        THROW(ERR_LENGTH, "'update' takes dict of params");
 
     if (AS_LIST(obj)[0]->type != TYPE_SYMBOL)
-        throw(ERR_LENGTH, "'update' takes dict with symbol keys");
+        THROW(ERR_LENGTH, "'update' takes dict with symbol keys");
 
     // Retrive a table
     tabsym = at_sym(obj, "from", 4);
 
     if (is_null(tabsym))
-        throw(ERR_LENGTH, "'update' expects 'from' param");
+        THROW(ERR_LENGTH, "'update' expects 'from' param");
 
     tab = eval(tabsym);
     if (IS_ERROR(tab))
@@ -783,7 +783,7 @@ obj_p ray_update(obj_p obj)
     {
         drop_obj(tabsym);
         drop_obj(tab);
-        throw(ERR_TYPE, "'update' from: expects table");
+        THROW(ERR_TYPE, "'update' from: expects table");
     }
 
     keys = ray_except(AS_LIST(obj)[0], runtime_get()->env.keywords);
@@ -794,7 +794,7 @@ obj_p ray_update(obj_p obj)
         drop_obj(tabsym);
         drop_obj(keys);
         drop_obj(tab);
-        throw(ERR_LENGTH, "'update' expects at least one field to update");
+        THROW(ERR_LENGTH, "'update' expects at least one field to update");
     }
 
     // Mount table columns to a local env

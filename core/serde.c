@@ -55,7 +55,7 @@ u64_t size_of_type(i8_t type)
     case TYPE_NULL:
         return sizeof(obj_p);
     default:
-        panic("sizeof: unknown type: %d", type);
+        PANIC("sizeof: unknown type: %d", type);
     }
 }
 
@@ -83,7 +83,7 @@ u64_t size_of(obj_p obj)
     case TYPE_NULL:
         return 0;
     default:
-        panic("sizeof: unknown type: %d", obj->type);
+        PANIC("sizeof: unknown type: %d", obj->type);
     }
 }
 
@@ -140,7 +140,7 @@ u64_t size_obj(obj_p obj)
     case TYPE_DICT:
         return sizeof(i8_t) + size_obj(AS_LIST(obj)[0]) + size_obj(AS_LIST(obj)[1]);
     case TYPE_LAMBDA:
-        return sizeof(i8_t) + size_obj(as_lambda(obj)->args) + size_obj(as_lambda(obj)->body);
+        return sizeof(i8_t) + size_obj(AS_LAMBDA(obj)->args) + size_obj(AS_LAMBDA(obj)->body);
     case TYPE_UNARY:
     case TYPE_BINARY:
     case TYPE_VARY:
@@ -148,7 +148,7 @@ u64_t size_obj(obj_p obj)
     case TYPE_NULL:
         return sizeof(i8_t);
     case TYPE_ERROR:
-        return sizeof(i8_t) + sizeof(i8_t) + size_obj(as_error(obj)->msg);
+        return sizeof(i8_t) + sizeof(i8_t) + size_obj(AS_ERROR(obj)->msg);
     default:
         return 0;
     }
@@ -276,8 +276,8 @@ u64_t save_obj(u8_t *buf, u64_t len, obj_p obj)
         return sizeof(i8_t) + c;
 
     case TYPE_LAMBDA:
-        c = save_obj(buf, len, as_lambda(obj)->args);
-        c += save_obj(buf + c, len, as_lambda(obj)->body);
+        c = save_obj(buf, len, AS_LAMBDA(obj)->args);
+        c += save_obj(buf + c, len, AS_LAMBDA(obj)->body);
         return sizeof(i8_t) + c;
 
     case TYPE_UNARY:
@@ -287,9 +287,9 @@ u64_t save_obj(u8_t *buf, u64_t len, obj_p obj)
         return sizeof(i8_t) + c + 1;
 
     case TYPE_ERROR:
-        buf[0] = (i8_t)as_error(obj)->code;
+        buf[0] = (i8_t)AS_ERROR(obj)->code;
         c = sizeof(i8_t);
-        c += save_obj(buf + c, len, as_error(obj)->msg);
+        c += save_obj(buf + c, len, AS_ERROR(obj)->msg);
         return sizeof(i8_t) + c;
 
     default:
@@ -332,7 +332,7 @@ obj_p ser_obj(obj_p obj)
     header_t *header;
 
     if (size == 0)
-        throw(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
+        THROW(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
 
     buf = vector(TYPE_U8, sizeof(struct header_t) + size);
     header = (header_t *)AS_U8(buf);
@@ -347,7 +347,7 @@ obj_p ser_obj(obj_p obj)
     if (save_obj(AS_U8(buf) + sizeof(struct header_t), size, obj) == 0)
     {
         drop_obj(buf);
-        throw(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
+        THROW(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
     }
 
     return buf;
@@ -541,7 +541,7 @@ obj_p load_obj(u8_t **buf, u64_t len)
         return obj;
 
     default:
-        throw(ERR_NOT_SUPPORTED, "load_obj: unsupported type: %d", type);
+        THROW(ERR_NOT_SUPPORTED, "load_obj: unsupported type: %d", type);
     }
 }
 
@@ -550,7 +550,7 @@ obj_p de_raw(u8_t *buf, u64_t len)
     header_t *header = (header_t *)buf;
 
     if (header->version > RAYFORCE_VERSION)
-        throw(ERR_NOT_SUPPORTED, "de: version '%d' is higher than supported", header->version);
+        THROW(ERR_NOT_SUPPORTED, "de: version '%d' is higher than supported", header->version);
 
     if (header->size + sizeof(struct header_t) != len)
         return error_str(ERR_IO, "de: corrupted data in a buffer");

@@ -191,7 +191,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y)
     i8_t xt, yt;
 
     if (!x || !y)
-        throw(ERR_TYPE, "binary: null argument");
+        THROW(ERR_TYPE, "binary: null argument");
 
     xt = x->type;
     yt = y->type;
@@ -396,8 +396,8 @@ obj_p __ray_set(obj_p x, obj_p y)
 
         if (y && y->type == TYPE_LAMBDA)
         {
-            if (is_null(as_lambda(y)->name))
-                as_lambda(y)->name = clone_obj(x);
+            if (is_null(AS_LAMBDA(y)->name))
+                AS_LAMBDA(y)->name = clone_obj(x);
         }
 
         if (IS_ERROR(res))
@@ -444,7 +444,7 @@ obj_p __ray_set(obj_p x, obj_p y)
             return clone_obj(x);
         case TYPE_TABLE:
             if (x->len < 2 || AS_C8(x)[x->len - 1] != '/')
-                throw(ERR_TYPE, "set: table path must be a directory");
+                THROW(ERR_TYPE, "set: table path must be a directory");
 
             // save columns schema
             s = cstring_from_str(".d", 2);
@@ -632,7 +632,7 @@ obj_p __ray_set(obj_p x, obj_p y)
                     drop_obj(buf);
                     drop_obj(k);
 
-                    throw(ERR_NOT_SUPPORTED, "set: unsupported type: %s", type_name(y->type));
+                    THROW(ERR_NOT_SUPPORTED, "set: unsupported type: %s", type_name(y->type));
                 }
 
                 AS_I64(k)
@@ -749,11 +749,11 @@ obj_p __ray_set(obj_p x, obj_p y)
                 return clone_obj(x);
             }
 
-            throw(ERR_TYPE, "set: unsupported types: %s %s", type_name(x->type), type_name(y->type));
+            THROW(ERR_TYPE, "set: unsupported types: %s %s", type_name(x->type), type_name(y->type));
         }
 
     default:
-        throw(ERR_TYPE, "set: unsupported types: %s %s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "set: unsupported types: %s %s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -786,6 +786,6 @@ obj_p ray_let(obj_p x, obj_p y)
         return amend(x, e);
 
     default:
-        throw(ERR_TYPE, "let: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "let: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
     }
 }

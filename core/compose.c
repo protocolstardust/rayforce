@@ -44,7 +44,7 @@ obj_p ray_cast_obj(obj_p x, obj_p y)
     obj_p fmt, msg;
 
     if (x->type != -TYPE_SYMBOL)
-        throw(ERR_TYPE, "as: first argument must be a symbol");
+        THROW(ERR_TYPE, "as: first argument must be a symbol");
 
     type = env_get_type_by_type_name(&runtime_get()->env, x->i64);
 
@@ -134,7 +134,7 @@ obj_p ray_reverse(obj_p x)
         return res;
 
     default:
-        throw(ERR_TYPE, "reverse: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "reverse: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -286,7 +286,7 @@ obj_p ray_guid(obj_p x)
         return vec;
 
     default:
-        throw(ERR_TYPE, "guid: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "guid: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -333,7 +333,7 @@ obj_p ray_enum(obj_p x, obj_p y)
         if (!s || s->type != TYPE_SYMBOL)
         {
             drop_obj(s);
-            throw(ERR_TYPE, "enum: expected vector symbol");
+            THROW(ERR_TYPE, "enum: expected vector symbol");
         }
 
         v = index_find_i64(AS_I64(s), s->len, AS_I64(y), y->len);
@@ -342,12 +342,12 @@ obj_p ray_enum(obj_p x, obj_p y)
         if (IS_ERROR(v))
         {
             drop_obj(v);
-            throw(ERR_TYPE, "enum: can not be fully indexed");
+            THROW(ERR_TYPE, "enum: can not be fully indexed");
         }
 
         return enumerate(clone_obj(x), v);
     default:
-        throw(ERR_TYPE, "enum: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "enum: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -369,7 +369,7 @@ obj_p ray_rand(obj_p x, obj_p y)
         return vec;
 
     default:
-        throw(ERR_TYPE, "rand: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "rand: unsupported types: '%s '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -587,7 +587,7 @@ obj_p ray_concat(obj_p x, obj_p y)
             return vec;
         }
 
-        throw(ERR_TYPE, "concat: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "concat: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -626,7 +626,7 @@ obj_p ray_distinct(obj_p x)
         res = index_distinct_guid(AS_GUID(x), l);
         return res;
     default:
-        throw(ERR_TYPE, "distinct: invalid type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "distinct: invalid type: '%s", type_name(x->type));
     }
 }
 

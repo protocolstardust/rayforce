@@ -68,7 +68,7 @@ obj_p parse_error(parser_t *parser, i64_t id, obj_p msg)
     if (parser->nfo != NULL_OBJ)
     {
         span = nfo_get(parser->nfo, id);
-        as_error(err)->locs = vn_list(1,
+        AS_ERROR(err)->locs = vn_list(1,
                                       vn_list(4,
                                               i64(span.id),                       // span
                                               clone_obj(AS_LIST(parser->nfo)[0]), // file
@@ -845,7 +845,7 @@ obj_p parse_LIST(parser_t *parser)
         lst = lambda(args, body, clone_obj(parser->nfo));
         nfo_insert(parser->nfo, (i64_t)lst, span);
         // insert self into nfo
-        nfo_insert(as_lambda(lst)->nfo, (i64_t)lst, span);
+        nfo_insert(AS_LAMBDA(lst)->nfo, (i64_t)lst, span);
         drop_obj(tok);
 
         return lst;

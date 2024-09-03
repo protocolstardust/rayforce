@@ -46,7 +46,7 @@ obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
     type = is_null(left_col) ? right_col->type : left_col->type;
 
     if (right_col->type != type)
-        throw(ERR_TYPE, "select_column: incompatible types");
+        THROW(ERR_TYPE, "select_column: incompatible types");
 
     res = vector(type, len);
 
@@ -75,7 +75,7 @@ obj_p get_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len)
     type = is_null(left_col) ? right_col->type : left_col->type;
 
     if (right_col->type != type)
-        throw(ERR_TYPE, "get_column: incompatible types");
+        THROW(ERR_TYPE, "get_column: incompatible types");
 
     return at_ids(right_col, ids, len);
 }
@@ -87,16 +87,16 @@ obj_p ray_lj(obj_p *x, u64_t n)
     obj_p k1, k2, c1, c2, un, col, cols, vals, idx, rescols, resvals;
 
     if (n != 3)
-        throw(ERR_LENGTH, "lj");
+        THROW(ERR_LENGTH, "lj");
 
     if (x[0]->type != TYPE_SYMBOL)
-        throw(ERR_TYPE, "lj: first argument must be a symbol vector");
+        THROW(ERR_TYPE, "lj: first argument must be a symbol vector");
 
     if (x[1]->type != TYPE_TABLE)
-        throw(ERR_TYPE, "lj: second argument must be a table");
+        THROW(ERR_TYPE, "lj: second argument must be a table");
 
     if (x[2]->type != TYPE_TABLE)
-        throw(ERR_TYPE, "lj: third argument must be a table");
+        THROW(ERR_TYPE, "lj: third argument must be a table");
 
     if (ops_count(x[1]) == 0 || ops_count(x[2]) == 0)
         return clone_obj(x[1]);
@@ -148,7 +148,7 @@ obj_p ray_lj(obj_p *x, u64_t n)
         drop_obj(k1);
         drop_obj(idx);
         drop_obj(cols);
-        throw(ERR_LENGTH, "lj: no columns to join on");
+        THROW(ERR_LENGTH, "lj: no columns to join on");
     }
 
     // resulting columns
@@ -226,16 +226,16 @@ obj_p ray_ij(obj_p *x, u64_t n)
     obj_p k1, k2, c1, c2, un, col, cols, vals, idx;
 
     if (n != 3)
-        throw(ERR_LENGTH, "ij");
+        THROW(ERR_LENGTH, "ij");
 
     if (x[0]->type != TYPE_SYMBOL)
-        throw(ERR_TYPE, "ij: first argument must be a symbol vector");
+        THROW(ERR_TYPE, "ij: first argument must be a symbol vector");
 
     if (x[1]->type != TYPE_TABLE)
-        throw(ERR_TYPE, "ij: second argument must be a table");
+        THROW(ERR_TYPE, "ij: second argument must be a table");
 
     if (x[2]->type != TYPE_TABLE)
-        throw(ERR_TYPE, "ij: third argument must be a table");
+        THROW(ERR_TYPE, "ij: third argument must be a table");
 
     if (ops_count(x[1]) == 0 || ops_count(x[2]) == 0)
         return clone_obj(x[1]);
@@ -283,7 +283,7 @@ obj_p ray_ij(obj_p *x, u64_t n)
     {
         drop_obj(idx);
         drop_obj(cols);
-        throw(ERR_LENGTH, "ij: no columns to join on");
+        THROW(ERR_LENGTH, "ij: no columns to join on");
     }
 
     col = ray_concat(x[0], cols);

@@ -172,7 +172,7 @@ b8_t ops_eq_idx(obj_p a, i64_t ai, obj_p b, i64_t bi)
         drop_obj(rv);
         return eq;
     default:
-        panic("hash: unsupported type: %d", a->type);
+        PANIC("hash: unsupported type: %d", a->type);
     }
 }
 

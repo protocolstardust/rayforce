@@ -50,24 +50,24 @@ obj_p ray_apply(obj_p *x, u64_t n)
     {
     case TYPE_UNARY:
         if (n != 1)
-            throw(ERR_LENGTH, "'apply': unary call with wrong arguments count");
+            THROW(ERR_LENGTH, "'apply': unary call with wrong arguments count");
         return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
     case TYPE_BINARY:
         if (n != 2)
-            throw(ERR_LENGTH, "'apply': binary call with wrong arguments count");
+            THROW(ERR_LENGTH, "'apply': binary call with wrong arguments count");
         return binary_call(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
     case TYPE_VARY:
         return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
     case TYPE_LAMBDA:
-        if (n != as_lambda(f)->args->len)
-            throw(ERR_LENGTH, "'apply': lambda call with wrong arguments count");
+        if (n != AS_LAMBDA(f)->args->len)
+            THROW(ERR_LENGTH, "'apply': lambda call with wrong arguments count");
 
         for (i = 0; i < n; i++)
             stack_push(clone_obj(x[i]));
 
         return call(f, n);
     default:
-        throw(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
+        THROW(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
     }
 }
 
@@ -87,21 +87,21 @@ obj_p ray_map(obj_p *x, u64_t n)
     {
     case TYPE_UNARY:
         if (n != 1)
-            throw(ERR_LENGTH, "'map': unary call with wrong arguments count");
+            THROW(ERR_LENGTH, "'map': unary call with wrong arguments count");
         return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
     case TYPE_BINARY:
         if (n != 2)
-            throw(ERR_LENGTH, "'map': binary call with wrong arguments count");
+            THROW(ERR_LENGTH, "'map': binary call with wrong arguments count");
         return binary_call(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
     case TYPE_VARY:
         return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
     case TYPE_LAMBDA:
-        if (n != as_lambda(f)->args->len)
-            throw(ERR_LENGTH, "'map': lambda call with wrong arguments count");
+        if (n != AS_LAMBDA(f)->args->len)
+            THROW(ERR_LENGTH, "'map': lambda call with wrong arguments count");
 
         l = ops_rank(x, n);
         if (l == 0xfffffffffffffffful)
-            throw(ERR_LENGTH, "'map': arguments have different lengths");
+            THROW(ERR_LENGTH, "'map': arguments have different lengths");
 
         // first item to get type of res
         for (j = 0; j < n; j++)
@@ -141,7 +141,7 @@ obj_p ray_map(obj_p *x, u64_t n)
 
         return res;
     default:
-        throw(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
+        THROW(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
     }
 }
 
@@ -161,12 +161,12 @@ obj_p ray_fold(obj_p *x, u64_t n)
     {
     case TYPE_UNARY:
         if (n != 1)
-            throw(ERR_LENGTH, "'fold': unary call with wrong arguments count");
+            THROW(ERR_LENGTH, "'fold': unary call with wrong arguments count");
         return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
     case TYPE_BINARY:
         l = ops_rank(x, n);
         if (l == 0xfffffffffffffffful)
-            throw(ERR_LENGTH, "'map': arguments have different lengths");
+            THROW(ERR_LENGTH, "'map': arguments have different lengths");
 
         if (n == 1)
         {
@@ -181,7 +181,7 @@ obj_p ray_fold(obj_p *x, u64_t n)
             v = clone_obj(x[0]);
         }
         else
-            throw(ERR_LENGTH, "'fold': binary call with wrong arguments count");
+            THROW(ERR_LENGTH, "'fold': binary call with wrong arguments count");
 
         for (i = o; i < l; i++)
         {
@@ -199,12 +199,12 @@ obj_p ray_fold(obj_p *x, u64_t n)
     case TYPE_VARY:
         return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
     case TYPE_LAMBDA:
-        if (n != as_lambda(f)->args->len)
-            throw(ERR_LENGTH, "'fold': lambda call with wrong arguments count");
+        if (n != AS_LAMBDA(f)->args->len)
+            THROW(ERR_LENGTH, "'fold': lambda call with wrong arguments count");
 
         l = ops_rank(x, n);
         if (l == 0xfffffffffffffffful)
-            throw(ERR_LENGTH, "'fold': arguments have different lengths");
+            THROW(ERR_LENGTH, "'fold': arguments have different lengths");
 
         // interpret first arg as an initial value
         if (n > 1)
@@ -237,6 +237,6 @@ obj_p ray_fold(obj_p *x, u64_t n)
 
         return v;
     default:
-        throw(ERR_TYPE, "'fold': unsupported function type: '%s", type_name(f->type));
+        THROW(ERR_TYPE, "'fold': unsupported function type: '%s", type_name(f->type));
     }
 }

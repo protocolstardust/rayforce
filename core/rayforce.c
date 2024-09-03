@@ -75,7 +75,7 @@ obj_p atom(i8_t type)
     obj_p a = (obj_p)heap_alloc(sizeof(struct obj_t));
 
     if (!a)
-        panic("oom");
+        PANIC("oom");
 
     a->mmod = MMOD_INTERNAL;
     a->type = -type;
@@ -248,7 +248,7 @@ obj_p vector(i8_t type, u64_t len)
     vec = (obj_p)heap_alloc(sizeof(struct obj_t) + len * size_of_type(t));
 
     if (!vec)
-        panic("oom");
+        PANIC("oom");
 
     vec->mmod = MMOD_INTERNAL;
     vec->type = t;
@@ -459,7 +459,7 @@ obj_p push_obj(obj_p *obj, obj_p val)
             return res;
         }
 
-        throw(ERR_TYPE, "push_obj: invalid types: '%s, '%s", type_name((*obj)->type), type_name(val->type));
+        THROW(ERR_TYPE, "push_obj: invalid types: '%s, '%s", type_name((*obj)->type), type_name(val->type));
     }
 }
 
@@ -509,7 +509,7 @@ obj_p append_list(obj_p *obj, obj_p vals)
             return res;
         }
 
-        throw(ERR_TYPE, "push_obj: invalid types: '%s, '%s", type_name((*obj)->type), type_name(vals->type));
+        THROW(ERR_TYPE, "push_obj: invalid types: '%s, '%s", type_name((*obj)->type), type_name(vals->type));
     }
 }
 
@@ -586,7 +586,7 @@ obj_p ins_obj(obj_p *obj, i64_t idx, obj_p val)
         ret = ins_raw(obj, idx, &val);
         break;
     default:
-        throw(ERR_TYPE, "write_obj: invalid type: '%s", type_name((*obj)->type));
+        THROW(ERR_TYPE, "write_obj: invalid type: '%s", type_name((*obj)->type));
     }
 
     return ret;
@@ -843,7 +843,7 @@ obj_p at_obj(obj_p obj, obj_p idx)
         l = ops_count(obj);
         for (i = 0; i < n; i++)
             if (ids[i] < 0 || ids[i] >= (i64_t)l)
-                throw(ERR_TYPE, "at_obj: '%lld' is out of range '0..%lld'", ids[i], l - 1);
+                THROW(ERR_TYPE, "at_obj: '%lld' is out of range '0..%lld'", ids[i], l - 1);
         return at_ids(obj, AS_I64(idx), idx->len);
     case mtype2(TYPE_TABLE, TYPE_SYMBOL):
         l = ops_count(idx);
@@ -869,7 +869,7 @@ obj_p at_obj(obj_p obj, obj_p idx)
             return at_idx(AS_LIST(obj)[1], i);
         }
 
-        throw(ERR_TYPE, "at_obj: unable to index: '%s by '%s", type_name(obj->type), type_name(idx->type));
+        THROW(ERR_TYPE, "at_obj: unable to index: '%s by '%s", type_name(obj->type), type_name(idx->type));
     }
 }
 
@@ -918,7 +918,7 @@ obj_p set_idx(obj_p *obj, i64_t idx, obj_p val)
             return *obj;
         }
 
-        throw(ERR_TYPE, "set_idx: invalid types: '%s, '%s", type_name((*obj)->type), type_name(val->type));
+        THROW(ERR_TYPE, "set_idx: invalid types: '%s, '%s", type_name((*obj)->type), type_name(val->type));
     }
 }
 
@@ -1014,7 +1014,7 @@ obj_p set_ids(obj_p *obj, i64_t ids[], u64_t len, obj_p vals)
             return *obj;
         }
 
-        throw(ERR_TYPE, "set_ids: types mismatch/unsupported: '%s, '%s", type_name((*obj)->type), type_name(vals->type));
+        THROW(ERR_TYPE, "set_ids: types mismatch/unsupported: '%s, '%s", type_name((*obj)->type), type_name(vals->type));
     }
 }
 
@@ -1068,7 +1068,7 @@ obj_p __expand(obj_p obj, u64_t len)
         if (ops_count(obj) != len)
         {
             drop_obj(obj);
-            throw(ERR_LENGTH, "set: invalid length: '%lld' != '%lld'", ops_count(obj), len);
+            THROW(ERR_LENGTH, "set: invalid length: '%lld' != '%lld'", ops_count(obj), len);
         }
 
         return obj;
@@ -1094,7 +1094,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val)
         if (idx->i64 < 0 || idx->i64 >= (i64_t)(*obj)->len)
         {
             drop_obj(val);
-            throw(ERR_TYPE, "set_obj: '%lld' is out of range '0..%lld'", idx->i64, (*obj)->len - 1);
+            THROW(ERR_TYPE, "set_obj: '%lld' is out of range '0..%lld'", idx->i64, (*obj)->len - 1);
         }
         return set_idx(obj, idx->i64, val);
     case mtype2(TYPE_I64, TYPE_I64):
@@ -1107,7 +1107,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val)
         if (IS_VECTOR(val) && idx->len != val->len)
         {
             drop_obj(val);
-            throw(ERR_LENGTH, "set_obj: idx and vals length mismatch: '%lld' != '%lld'", idx->len, val->len);
+            THROW(ERR_LENGTH, "set_obj: idx and vals length mismatch: '%lld' != '%lld'", idx->len, val->len);
         }
         ids = AS_I64(idx);
         n = idx->len;
@@ -1117,7 +1117,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val)
             if (ids[i] < 0 || ids[i] >= (i64_t)l)
             {
                 drop_obj(val);
-                throw(ERR_TYPE, "set_obj: '%lld' is out of range '0..%lld'", ids[i], l - 1);
+                THROW(ERR_TYPE, "set_obj: '%lld' is out of range '0..%lld'", ids[i], l - 1);
             }
         }
         return set_ids(obj, ids, n, val);
@@ -1134,7 +1134,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val)
 
             res = push_obj(&AS_LIST(*obj)[1], val);
             if (IS_ERROR(res))
-                panic("set_obj: inconsistent update");
+                PANIC("set_obj: inconsistent update");
 
             return *obj;
         }
@@ -1146,14 +1146,14 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val)
         if (val->type != TYPE_LIST)
         {
             drop_obj(val);
-            throw(ERR_TYPE, "set_obj: 'Table indexed via vector expects 'List in a values, found: '%s", type_name(val->type));
+            THROW(ERR_TYPE, "set_obj: 'Table indexed via vector expects 'List in a values, found: '%s", type_name(val->type));
         }
 
         l = ops_count(idx);
         if (l != ops_count(val))
         {
             drop_obj(val);
-            throw(ERR_LENGTH, "set_obj: idx and vals length mismatch: '%lld' != '%lld'", ops_count(*obj), ops_count(val));
+            THROW(ERR_LENGTH, "set_obj: idx and vals length mismatch: '%lld' != '%lld'", ops_count(*obj), ops_count(val));
         }
 
         n = ops_count(*obj);
@@ -1207,7 +1207,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val)
                 res = push_obj(&AS_LIST(*obj)[1], val);
 
                 if (res->type == TYPE_ERROR)
-                    panic("set_obj: inconsistent update");
+                    PANIC("set_obj: inconsistent update");
 
                 return *obj;
             }
@@ -1217,7 +1217,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val)
             return *obj;
         }
 
-        throw(ERR_TYPE, "set_obj: invalid types: '%s, '%s", type_name((*obj)->type), type_name(val->type));
+        THROW(ERR_TYPE, "set_obj: invalid types: '%s, '%s", type_name((*obj)->type), type_name(val->type));
     }
 }
 
@@ -1242,7 +1242,7 @@ obj_p pop_obj(obj_p *obj)
         return AS_LIST(*obj)[--(*obj)->len];
 
     default:
-        panic("pop_obj: invalid type: %d", (*obj)->type);
+        PANIC("pop_obj: invalid type: %d", (*obj)->type);
     }
 }
 
@@ -1393,7 +1393,7 @@ i64_t find_raw(obj_p obj, raw_p val)
                 return i;
         return l;
     default:
-        panic("find: invalid type: %d", obj->type);
+        PANIC("find: invalid type: %d", obj->type);
     }
 }
 
@@ -1415,7 +1415,7 @@ i64_t find_obj(obj_p obj, obj_p val)
     case TYPE_LIST:
         return find_raw(obj, &val);
     default:
-        panic("find: invalid type: %d", obj->type);
+        PANIC("find: invalid type: %d", obj->type);
     }
 }
 
@@ -1625,17 +1625,17 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
         heap_free(obj);
         return;
     case TYPE_LAMBDA:
-        drop_obj(as_lambda(obj)->name);
-        drop_obj(as_lambda(obj)->args);
-        drop_obj(as_lambda(obj)->body);
-        drop_obj(as_lambda(obj)->nfo);
+        drop_obj(AS_LAMBDA(obj)->name);
+        drop_obj(AS_LAMBDA(obj)->args);
+        drop_obj(AS_LAMBDA(obj)->body);
+        drop_obj(AS_LAMBDA(obj)->nfo);
         heap_free(obj);
         return;
     case TYPE_NULL:
         return;
     case TYPE_ERROR:
-        drop_obj(as_error(obj)->msg);
-        drop_obj(as_error(obj)->locs);
+        drop_obj(AS_ERROR(obj)->msg);
+        drop_obj(AS_ERROR(obj)->locs);
         heap_free(obj);
         return;
     default:
@@ -1692,7 +1692,7 @@ obj_p copy_obj(obj_p obj)
     case TYPE_DICT:
         return dict(copy_obj(AS_LIST(obj)[0]), copy_obj(AS_LIST(obj)[1]));
     default:
-        throw(ERR_NOT_IMPLEMENTED, "cow: not implemented for type: '%s", type_name(obj->type));
+        THROW(ERR_NOT_IMPLEMENTED, "cow: not implemented for type: '%s", type_name(obj->type));
     }
 }
 

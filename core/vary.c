@@ -45,7 +45,7 @@ obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n)
 
     l = ops_rank(x, n);
     if (l == 0xfffffffffffffffful)
-        throw(ERR_LENGTH, "vary: arguments have different lengths");
+        THROW(ERR_LENGTH, "vary: arguments have different lengths");
 
     for (j = 0; j < n; j++)
         stack_push(at_idx(x[j], 0));

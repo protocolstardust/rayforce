@@ -659,7 +659,7 @@ obj_p aggr_collect(obj_p val, obj_p index)
         return res;
     default:
         drop_obj(cnt);
-        throw(ERR_TYPE, "collect: unsupported type: '%s", type_name(val->type));
+        THROW(ERR_TYPE, "collect: unsupported type: '%s", type_name(val->type));
     }
 }
 
@@ -714,6 +714,6 @@ obj_p aggr_ids(obj_p val, obj_p index)
         return res;
     default:
         drop_obj(cnt);
-        throw(ERR_TYPE, "indices: unsupported type: '%s", type_name(val->type));
+        THROW(ERR_TYPE, "indices: unsupported type: '%s", type_name(val->type));
     }
 }

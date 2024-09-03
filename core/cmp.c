@@ -96,7 +96,7 @@ obj_p ray_eq_partial(u64_t len, u64_t offset, obj_p lhs, obj_p rhs, obj_p res)
         if (is_null(sym) || sym->type != TYPE_SYMBOL)
         {
             drop_obj(sym);
-            throw(ERR_TYPE, "eq: invalid enum");
+            THROW(ERR_TYPE, "eq: invalid enum");
         }
 
         xi = AS_I64(sym) + offset;
@@ -109,7 +109,7 @@ obj_p ray_eq_partial(u64_t len, u64_t offset, obj_p lhs, obj_p rhs, obj_p res)
         break;
 
     default:
-        throw(ERR_TYPE, "eq: unsupported types: '%s, '%s", type_name(lhs->type), type_name(rhs->type));
+        THROW(ERR_TYPE, "eq: unsupported types: '%s, '%s", type_name(lhs->type), type_name(rhs->type));
     }
 
     return NULL_OBJ;
@@ -246,7 +246,7 @@ obj_p ray_eq(obj_p x, obj_p y)
         return vec;
 
     default:
-        throw(ERR_TYPE, "eq: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "eq: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -331,7 +331,7 @@ obj_p ray_ne(obj_p x, obj_p y)
         return vec;
 
     default:
-        throw(ERR_TYPE, "ne: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "ne: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -409,7 +409,7 @@ obj_p ray_lt(obj_p x, obj_p y)
         return vec;
 
     default:
-        throw(ERR_TYPE, "lt: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "lt: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -487,7 +487,7 @@ obj_p ray_le(obj_p x, obj_p y)
         return vec;
 
     default:
-        throw(ERR_TYPE, "le: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "le: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -566,7 +566,7 @@ obj_p ray_gt(obj_p x, obj_p y)
         return vec;
 
     default:
-        throw(ERR_TYPE, "gt: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "gt: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -645,6 +645,6 @@ obj_p ray_ge(obj_p x, obj_p y)
         return vec;
 
     default:
-        throw(ERR_TYPE, "ge: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "ge: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }

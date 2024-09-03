@@ -695,7 +695,7 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg)
     idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
     if (idx == NULL_I64)
-        throw(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
+        THROW(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
 
     selector = (selector_p)idx;
 
@@ -714,16 +714,16 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg)
         dwResult = WaitForSingleObject(selector->tx.overlapped.hEvent, INFINITE);
 
         if (dwResult == WAIT_FAILED)
-            throw(ERR_IO, "ipc_send_sync: error waiting for event");
+            THROW(ERR_IO, "ipc_send_sync: error waiting for event");
 
         if (!GetOverlappedResult((HANDLE)selector->fd, &selector->tx.overlapped, &selector->tx.bytes_transfered, B8_FALSE))
-            throw(ERR_IO, "ipc_send_sync: error getting result");
+            THROW(ERR_IO, "ipc_send_sync: error getting result");
     }
 
     if (poll_result == POLL_ERROR)
     {
         poll_deregister(poll, selector->id);
-        throw(ERR_IO, "ipc_send_sync: error sending message");
+        THROW(ERR_IO, "ipc_send_sync: error sending message");
     }
 
     poll_result = POLL_PENDING;
@@ -746,10 +746,10 @@ recv:
         dwResult = WaitForSingleObject(selector->rx.overlapped.hEvent, INFINITE);
 
         if (dwResult == WAIT_FAILED)
-            throw(ERR_IO, "ipc_send_sync: error waiting for event");
+            THROW(ERR_IO, "ipc_send_sync: error waiting for event");
 
         if (!GetOverlappedResult((HANDLE)selector->fd, &selector->rx.overlapped, &selector->rx.bytes_transfered, B8_FALSE))
-            throw(ERR_IO, "ipc_send_sync: error getting result");
+            THROW(ERR_IO, "ipc_send_sync: error getting result");
 
         poll_result = _recv(poll, selector);
     }
@@ -757,7 +757,7 @@ recv:
     if (poll_result == POLL_ERROR)
     {
         poll_deregister(poll, selector->id);
-        throw(ERR_IO, "ipc_send_sync: error receiving message");
+        THROW(ERR_IO, "ipc_send_sync: error receiving message");
     }
 
     // recv until we get response
@@ -783,16 +783,16 @@ obj_p ipc_send_async(poll_p poll, i64_t id, obj_p msg)
     idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
     if (idx == NULL_I64)
-        throw(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
+        THROW(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
 
     selector = (selector_p)idx;
     if (selector == NULL)
-        throw(ERR_IO, "ipc_send_async: invalid socket fd: %lld", id);
+        THROW(ERR_IO, "ipc_send_async: invalid socket fd: %lld", id);
 
     queue_push(selector->tx.queue, (nil_t *)msg);
 
     if (_send(poll, selector) == POLL_ERROR)
-        throw(ERR_IO, "ipc_send_async: error sending message");
+        THROW(ERR_IO, "ipc_send_async: error sending message");
 
     return NULL_OBJ;
 }

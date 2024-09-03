@@ -211,7 +211,7 @@ obj_p index_hash_obj_partial(obj_p obj, u64_t out[], i64_t filter[], u64_t len, 
             }
         break;
     default:
-        panic("hash list: unsupported type: %d", obj->type);
+        PANIC("hash list: unsupported type: %d", obj->type);
     }
 
     return NULL_OBJ;
@@ -1138,7 +1138,7 @@ obj_p index_group(obj_p val, obj_p filter)
         drop_obj(v);
         return bins;
     default:
-        throw(ERR_TYPE, "'index group' unable to group by: %s", type_name(val->type));
+        THROW(ERR_TYPE, "'index group' unable to group by: %s", type_name(val->type));
     }
 }
 

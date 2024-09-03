@@ -297,7 +297,7 @@ u64_t hash_index_obj(obj_p obj)
             hash = hash_index_u64((u64_t)AS_I64(obj)[i], hash);
         return hash;
     default:
-        panic("hash: unsupported type: %d", obj->type);
+        PANIC("hash: unsupported type: %d", obj->type);
     }
 }
 
@@ -345,7 +345,7 @@ nil_t ht_bk_rehash(ht_bk_p *ht, u64_t new_size)
     ht_bk_p new_ht = ht_bk_create(new_size);
 
     if (new_ht == NULL)
-        panic("Memory allocation failed during rehash.");
+        PANIC("Memory allocation failed during rehash.");
 
     // Rehash all elements from the old table to the new table
     for (i = 0; i < (*ht)->size; ++i)

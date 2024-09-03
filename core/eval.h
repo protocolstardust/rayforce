@@ -119,7 +119,7 @@ inline __attribute__((always_inline)) ctx_p ctx_top(obj_p info)
     sp = __INTERPRETER->sp;
     stack_push(NULL_OBJ);
     ctx = ctx_get();
-    as_lambda(ctx->lambda)->nfo = info;
+    AS_LAMBDA(ctx->lambda)->nfo = info;
     ctx->sp = sp;
 
     return ctx;

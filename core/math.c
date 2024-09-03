@@ -109,7 +109,7 @@ obj_p ray_add(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "add: vectors must be of the same length");
+            THROW(ERR_LENGTH, "add: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -122,7 +122,7 @@ obj_p ray_add(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "add: vectors must be of the same length");
+            THROW(ERR_LENGTH, "add: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yfvals = AS_F64(y);
@@ -153,7 +153,7 @@ obj_p ray_add(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "add: vectors must be of the same length");
+            THROW(ERR_LENGTH, "add: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yfvals = AS_F64(y);
@@ -166,7 +166,7 @@ obj_p ray_add(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "add: vectors must be of the same length");
+            THROW(ERR_LENGTH, "add: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yivals = AS_I64(y);
@@ -177,7 +177,7 @@ obj_p ray_add(obj_p x, obj_p y)
 
         return vec;
     default:
-        throw(ERR_TYPE, "add: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "add: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -257,7 +257,7 @@ obj_p ray_sub(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "sub: vectors must be of the same length");
+            THROW(ERR_LENGTH, "sub: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -270,7 +270,7 @@ obj_p ray_sub(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "sub: vectors must be of the same length");
+            THROW(ERR_LENGTH, "sub: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -301,7 +301,7 @@ obj_p ray_sub(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "sub: vectors must be of the same length");
+            THROW(ERR_LENGTH, "sub: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yfvals = AS_F64(y);
@@ -314,7 +314,7 @@ obj_p ray_sub(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "sub: vectors must be of the same length");
+            THROW(ERR_LENGTH, "sub: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yivals = AS_I64(y);
@@ -325,7 +325,7 @@ obj_p ray_sub(obj_p x, obj_p y)
 
         return vec;
     default:
-        throw(ERR_TYPE, "sub: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "sub: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -403,7 +403,7 @@ obj_p ray_mul(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "mul: vectors must be of the same length");
+            THROW(ERR_LENGTH, "mul: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -416,7 +416,7 @@ obj_p ray_mul(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "mul: vectors must be of the same length");
+            THROW(ERR_LENGTH, "mul: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -447,7 +447,7 @@ obj_p ray_mul(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "mul: vectors must be of the same length");
+            THROW(ERR_LENGTH, "mul: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yfvals = AS_F64(y);
@@ -460,7 +460,7 @@ obj_p ray_mul(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "mul: vectors must be of the same length");
+            THROW(ERR_LENGTH, "mul: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yivals = AS_I64(y);
@@ -471,7 +471,7 @@ obj_p ray_mul(obj_p x, obj_p y)
 
         return vec;
     default:
-        throw(ERR_TYPE, "mul: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "mul: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -549,7 +549,7 @@ obj_p ray_div(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "div: vectors must be of the same length");
+            THROW(ERR_LENGTH, "div: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -562,7 +562,7 @@ obj_p ray_div(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "div: vectors must be of the same length");
+            THROW(ERR_LENGTH, "div: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -593,7 +593,7 @@ obj_p ray_div(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "div: vectors must be of the same length");
+            THROW(ERR_LENGTH, "div: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yfvals = AS_F64(y);
@@ -606,7 +606,7 @@ obj_p ray_div(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "div: vectors must be of the same length");
+            THROW(ERR_LENGTH, "div: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yivals = AS_I64(y);
@@ -617,7 +617,7 @@ obj_p ray_div(obj_p x, obj_p y)
 
         return vec;
     default:
-        throw(ERR_TYPE, "div: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "div: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -695,7 +695,7 @@ obj_p ray_fdiv(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
+            THROW(ERR_LENGTH, "fdiv: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -708,7 +708,7 @@ obj_p ray_fdiv(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
+            THROW(ERR_LENGTH, "fdiv: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -739,7 +739,7 @@ obj_p ray_fdiv(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
+            THROW(ERR_LENGTH, "fdiv: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yfvals = AS_F64(y);
@@ -752,7 +752,7 @@ obj_p ray_fdiv(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "fdiv: vectors must be of the same length");
+            THROW(ERR_LENGTH, "fdiv: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yivals = AS_I64(y);
@@ -763,7 +763,7 @@ obj_p ray_fdiv(obj_p x, obj_p y)
 
         return vec;
     default:
-        throw(ERR_TYPE, "add: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "add: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -841,7 +841,7 @@ obj_p ray_mod(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "mod: vectors must be of the same length");
+            THROW(ERR_LENGTH, "mod: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -854,7 +854,7 @@ obj_p ray_mod(obj_p x, obj_p y)
     case mtype2(TYPE_I64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "mod: vectors must be of the same length");
+            THROW(ERR_LENGTH, "mod: vectors must be of the same length");
 
         xivals = AS_I64(x);
         yivals = AS_I64(y);
@@ -885,7 +885,7 @@ obj_p ray_mod(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_F64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "mod: vectors must be of the same length");
+            THROW(ERR_LENGTH, "mod: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yfvals = AS_F64(y);
@@ -898,7 +898,7 @@ obj_p ray_mod(obj_p x, obj_p y)
     case mtype2(TYPE_F64, TYPE_I64):
         l = x->len;
         if (l != y->len)
-            throw(ERR_LENGTH, "mod: vectors must be of the same length");
+            THROW(ERR_LENGTH, "mod: vectors must be of the same length");
 
         xfvals = AS_F64(x);
         yivals = AS_I64(y);
@@ -909,7 +909,7 @@ obj_p ray_mod(obj_p x, obj_p y)
 
         return vec;
     default:
-        throw(ERR_TYPE, "add: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "add: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -981,7 +981,7 @@ obj_p ray_sum(obj_p x)
         return aggr_sum(AS_LIST(x)[0], AS_LIST(x)[1]);
 
     default:
-        throw(ERR_TYPE, "sum: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "sum: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1023,7 +1023,7 @@ obj_p ray_avg(obj_p x)
         return aggr_avg(AS_LIST(x)[0], AS_LIST(x)[1]);
 
     default:
-        throw(ERR_TYPE, "avg: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "avg: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1078,7 +1078,7 @@ obj_p ray_min(obj_p x)
         return aggr_min(AS_LIST(x)[0], AS_LIST(x)[1]);
 
     default:
-        throw(ERR_TYPE, "min: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "min: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1127,7 +1127,7 @@ obj_p ray_max(obj_p x)
         return aggr_max(AS_LIST(x)[0], AS_LIST(x)[1]);
 
     default:
-        throw(ERR_TYPE, "max: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "max: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1188,7 +1188,7 @@ obj_p ray_dev(obj_p x)
         return aggr_dev(AS_LIST(x)[0], AS_LIST(x)[1]);
 
     default:
-        throw(ERR_TYPE, "dev: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "dev: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1231,7 +1231,7 @@ obj_p ray_med(obj_p x)
         return aggr_med(AS_LIST(x)[0], AS_LIST(x)[1]);
 
     default:
-        throw(ERR_TYPE, "med: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "med: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1258,7 +1258,7 @@ obj_p ray_round(obj_p x)
 
         return res;
     default:
-        throw(ERR_TYPE, "round: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "round: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1285,7 +1285,7 @@ obj_p ray_floor(obj_p x)
 
         return res;
     default:
-        throw(ERR_TYPE, "floor: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "floor: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1312,7 +1312,7 @@ obj_p ray_ceil(obj_p x)
 
         return res;
     default:
-        throw(ERR_TYPE, "ceil: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "ceil: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -1352,6 +1352,6 @@ obj_p ray_xbar(obj_p x, obj_p y)
         return res;
 
     default:
-        throw(ERR_TYPE, "xbar: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "xbar: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }

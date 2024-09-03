@@ -49,7 +49,7 @@ obj_p ray_and(obj_p x, obj_p y)
         return res;
 
     default:
-        throw(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -74,7 +74,7 @@ obj_p ray_or(obj_p x, obj_p y)
         return res;
 
     default:
-        throw(ERR_TYPE, "or: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "or: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }
 
@@ -97,7 +97,7 @@ obj_p ray_like(obj_p x, obj_p y)
             {
                 res->len = i;
                 drop_obj(res);
-                throw(ERR_TYPE, "like: unsupported types: '%s, %s", type_name(e->type), type_name(y->type));
+                THROW(ERR_TYPE, "like: unsupported types: '%s, %s", type_name(e->type), type_name(y->type));
             }
 
             AS_B8(res)
@@ -117,7 +117,7 @@ obj_p ray_like(obj_p x, obj_p y)
                 res->len = i;
                 drop_obj(res);
                 drop_obj(e);
-                throw(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(e->type), type_name(y->type));
+                THROW(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(e->type), type_name(y->type));
             }
 
             AS_B8(res)
@@ -128,6 +128,6 @@ obj_p ray_like(obj_p x, obj_p y)
         return res;
 
     default:
-        throw(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+        THROW(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }

@@ -35,11 +35,11 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
 
     handle = LoadLibrary(path);
     if (!handle)
-        throw(ERR_SYS, "Failed to load shared library: %d", GetLastError());
+        THROW(ERR_SYS, "Failed to load shared library: %d", GetLastError());
 
     dsym = GetProcAddress(handle, func);
     if (!dsym)
-        throw(ERR_SYS, "Failed to load symbol from shared library: %d", GetLastError());
+        THROW(ERR_SYS, "Failed to load symbol from shared library: %d", GetLastError());
 
     switch (nargs)
     {
@@ -70,11 +70,11 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
 
     handle = dlopen(path, RTLD_NOW);
     if (!handle)
-        throw(ERR_SYS, "Failed to load shared library: %s", dlerror());
+        THROW(ERR_SYS, "Failed to load shared library: %s", dlerror());
 
     dsym = dlsym(handle, func);
     if ((error = dlerror()) != NULL)
-        throw(ERR_SYS, "Failed to load symbol from shared library: %s", error);
+        THROW(ERR_SYS, "Failed to load symbol from shared library: %s", error);
 
     switch (nargs)
     {
@@ -100,19 +100,19 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs)
 obj_p ray_loadfn(obj_p *args, u64_t n)
 {
     if (n != 3)
-        throw(ERR_ARITY, "Expected 3 arguments, got %llu", n);
+        THROW(ERR_ARITY, "Expected 3 arguments, got %llu", n);
 
     if (!args[0] || !args[1] || !args[2])
-        throw(ERR_TYPE, "Null is not a valid argument");
+        THROW(ERR_TYPE, "Null is not a valid argument");
 
     if (args[0]->type != TYPE_C8)
-        throw(ERR_TYPE, "Expected 'string path, got %s", type_name(args[0]->type));
+        THROW(ERR_TYPE, "Expected 'string path, got %s", type_name(args[0]->type));
 
     if (args[1]->type != TYPE_C8)
-        throw(ERR_TYPE, "Expected 'string fname, got %s", type_name(args[1]->type));
+        THROW(ERR_TYPE, "Expected 'string fname, got %s", type_name(args[1]->type));
 
     if (args[2]->type != -TYPE_I64)
-        throw(ERR_TYPE, "Expected 'i64 arguments, got %s", type_name(args[2]->type));
+        THROW(ERR_TYPE, "Expected 'i64 arguments, got %s", type_name(args[2]->type));
 
     return dynlib_loadfn(AS_C8(args[0]), AS_C8(args[1]), args[2]->i64);
 }

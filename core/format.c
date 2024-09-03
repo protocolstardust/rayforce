@@ -168,7 +168,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
     {
         *dst = C8(size);
         if (*dst == NULL_OBJ)
-            panic("str_vfmt_into: OOM");
+            PANIC("str_vfmt_into: OOM");
 
         l = 0;
     }
@@ -180,7 +180,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
         if (is_null(resize_obj(dst, l + size)))
         {
             heap_free(*dst);
-            panic("str_vfmt_into: OOM");
+            PANIC("str_vfmt_into: OOM");
         }
     }
 
@@ -196,7 +196,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
         if (n < 0)
         {
             heap_free(*dst);
-            panic("str_vfmt_into: Error in vsnprintf");
+            PANIC("str_vfmt_into: Error in vsnprintf");
         }
 
         if (n < size)
@@ -214,7 +214,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
         if (is_null(resize_obj(dst, l + size)))
         {
             heap_free(*dst);
-            panic("str_vfmt_into: OOM");
+            PANIC("str_vfmt_into: OOM");
         }
     }
 }
@@ -256,7 +256,7 @@ obj_p str_vfmt(i64_t limit, lit_p fmt, va_list vargs)
     res = C8(size);
 
     if (is_null(res))
-        panic("str_vfmt: OOM");
+        PANIC("str_vfmt: OOM");
 
     while (B8_TRUE)
     {
@@ -282,7 +282,7 @@ obj_p str_vfmt(i64_t limit, lit_p fmt, va_list vargs)
         res = resize_obj(&res, size);
 
         if (is_null(res))
-            panic("str_vfmt: OOM");
+            PANIC("str_vfmt: OOM");
     }
 
     return res;
@@ -582,7 +582,7 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     u16_t i, l, m;
     lit_p error_desc;
     str_p msg;
-    ray_error_p error = as_error(obj);
+    ray_error_p error = AS_ERROR(obj);
 
     switch (error->code)
     {
@@ -1148,14 +1148,14 @@ i64_t lambda_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
 {
     i64_t n;
 
-    if (as_lambda(obj)->name)
-        n = str_fmt_into(dst, limit, "@%s", str_from_symbol((as_lambda(obj)->name)->i64));
+    if (AS_LAMBDA(obj)->name)
+        n = str_fmt_into(dst, limit, "@%s", str_from_symbol((AS_LAMBDA(obj)->name)->i64));
     else
     {
         n = str_fmt_into(dst, 4, "(fn ");
-        n += obj_fmt_into(dst, 0, limit, B8_FALSE, as_lambda(obj)->args);
+        n += obj_fmt_into(dst, 0, limit, B8_FALSE, AS_LAMBDA(obj)->args);
         n += str_fmt_into(dst, 2, " ");
-        n += obj_fmt_into(dst, 0, limit, B8_FALSE, as_lambda(obj)->body);
+        n += obj_fmt_into(dst, 0, limit, B8_FALSE, AS_LAMBDA(obj)->body);
         n += str_fmt_into(dst, 2, ")");
     }
 

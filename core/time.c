@@ -366,14 +366,14 @@ obj_p ray_timer(obj_p *x, u64_t n)
     timers_p timers;
 
     if (n == 0)
-        throw(ERR_IO, "timer: no arguments provided");
+        THROW(ERR_IO, "timer: no arguments provided");
 
     timers = runtime_get()->poll->timers;
 
     if (n == 1)
     {
         if (x[0]->type != -TYPE_I64)
-            throw(ERR_TYPE, "timer del: expected 'i64");
+            THROW(ERR_TYPE, "timer del: expected 'i64");
 
         timer_del(timers, x[0]->i64);
 
@@ -381,19 +381,19 @@ obj_p ray_timer(obj_p *x, u64_t n)
     }
 
     if (n != 3)
-        throw(ERR_IO, "timer add: expected 3 arguments");
+        THROW(ERR_IO, "timer add: expected 3 arguments");
 
     if (x[0]->type != -TYPE_I64)
-        throw(ERR_TYPE, "timer add: expected timeout as 'i64");
+        THROW(ERR_TYPE, "timer add: expected timeout as 'i64");
 
     if (x[1]->type != -TYPE_I64)
-        throw(ERR_TYPE, "timer add: expected number of times as 'i64");
+        THROW(ERR_TYPE, "timer add: expected number of times as 'i64");
 
     if (x[2]->type != TYPE_LAMBDA)
-        throw(ERR_TYPE, "timer add: expected callback as 'Lambda");
+        THROW(ERR_TYPE, "timer add: expected callback as 'Lambda");
 
-    if (as_lambda(x[2])->args->len != 1)
-        throw(ERR_IO, "timer add: callback should take 1 argument");
+    if (AS_LAMBDA(x[2])->args->len != 1)
+        THROW(ERR_IO, "timer add: callback should take 1 argument");
 
     timers = runtime_get()->poll->timers;
 

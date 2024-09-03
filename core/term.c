@@ -367,7 +367,7 @@ term_p term_create()
 
     hist = hist_create();
     if (hist == NULL)
-        panic("can't create history");
+        PANIC("can't create history");
 
     term = (term_p)heap_mmap(sizeof(struct term_t));
 
@@ -448,7 +448,7 @@ term_p term_create()
 
     hist = hist_create();
     if (hist == NULL)
-        panic("can't create history");
+        PANIC("can't create history");
 
     term = (term_p)heap_mmap(sizeof(struct term_t));
 

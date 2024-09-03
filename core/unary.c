@@ -168,7 +168,7 @@ obj_p ray_get(obj_p x)
         return clone_obj(*sym);
     case TYPE_C8:
         if (x->len == 0)
-            throw(ERR_LENGTH, "get: empty string path");
+            THROW(ERR_LENGTH, "get: empty string path");
 
         // get splayed table
         if (x->len > 1 && AS_C8(x)[x->len - 1] == '/')
@@ -186,7 +186,7 @@ obj_p ray_get(obj_p x)
             if (keys->type != TYPE_SYMBOL)
             {
                 drop_obj(keys);
-                throw(ERR_TYPE, "get: expected table schema as a symbol vector, got: '%s", type_name(keys->type));
+                THROW(ERR_TYPE, "get: expected table schema as a symbol vector, got: '%s", type_name(keys->type));
             }
 
             l = keys->len;
@@ -296,7 +296,7 @@ obj_p ray_get(obj_p x)
                 {
                     drop_obj(keys);
                     mmap_free(res, size);
-                    throw(ERR_TYPE, "get: expected anymap schema as a byte vector, got: '%s", type_name(keys->type));
+                    THROW(ERR_TYPE, "get: expected anymap schema as a byte vector, got: '%s", type_name(keys->type));
                 }
 
                 ((obj_p)((str_p)res - RAY_PAGE_SIZE))->obj = keys;
@@ -308,7 +308,7 @@ obj_p ray_get(obj_p x)
         }
 
     default:
-        throw(ERR_TYPE, "get: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "get: unsupported type: '%s", type_name(x->type));
     }
 }
 
@@ -348,7 +348,7 @@ obj_p ray_bins(obj_p x)
     //     bins = index_group_guid(AS_GUID(x), NULL, x->len);
     //     break;
     default:
-        throw(ERR_TYPE, "bins: unsupported type: '%s", type_name(x->type));
+        THROW(ERR_TYPE, "bins: unsupported type: '%s", type_name(x->type));
     }
 
     res = clone_obj(AS_LIST(bins)[1]);

@@ -29,19 +29,19 @@
 #include "heap.h"
 #include "format.h"
 
-#define as_error(obj) ((ray_error_p)(AS_C8(obj)))
+#define AS_ERROR(obj) ((ray_error_p)(AS_C8(obj)))
 
 /*
  * Create a new error object and return it
  */
-#define throw(t, ...)                        \
+#define THROW(t, ...)                        \
     {                                        \
         obj_p _m = str_fmt(-1, __VA_ARGS__); \
         obj_p _e = error_obj(t, _m);         \
         return _e;                           \
     }
 
-#define panic(...)                                              \
+#define PANIC(...)                                              \
     do                                                          \
     {                                                           \
         fprintf(stderr, "process panicked at: %s:%d in %s(): ", \

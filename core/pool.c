@@ -302,7 +302,7 @@ nil_t pool_prepare(pool_p pool)
     obj_p env;
 
     if (pool == NULL)
-        panic("Pool prepare: pool is NULL");
+        PANIC("Pool prepare: pool is NULL");
 
     env = interpreter_env_get();
 
@@ -329,7 +329,7 @@ nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
     mpmc_p queue;
 
     if (pool == NULL)
-        panic("Pool add task: pool is NULL");
+        PANIC("Pool add task: pool is NULL");
 
     mutex_lock(&pool->mutex);
 
@@ -359,7 +359,7 @@ nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
         }
 
         if (mpmc_push(queue, data) == -1)
-            panic("Pool add task: oom");
+            PANIC("Pool add task: oom");
 
         mpmc_destroy(pool->task_queue);
         pool->task_queue = queue;
@@ -378,7 +378,7 @@ obj_p pool_run(pool_p pool)
     task_data_t data;
 
     if (pool == NULL)
-        panic("Pool run: pool is NULL");
+        PANIC("Pool run: pool is NULL");
 
     mutex_lock(&pool->mutex);
 
@@ -428,7 +428,7 @@ obj_p pool_run(pool_p pool)
     {
         data = mpmc_pop(pool->result_queue);
         if (data.id < 0 || data.id >= (i64_t)tasks_count)
-            panic("Pool run: corrupted data: %lld\n", data.id);
+            PANIC("Pool run: corrupted data: %lld\n", data.id);
 
         ins_obj(&res, data.id, data.result);
     }
