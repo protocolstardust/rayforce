@@ -240,8 +240,7 @@ obj_p ray_at(obj_p x, obj_p y) {
                     THROW(ERR_INDEX, "at: enum can not be resolved: index out of range");
                 }
 
-                AS_SYMBOL(res)
-                [i] = AS_SYMBOL(s)[AS_I64(v)[AS_I64(y)[i]]];
+                AS_SYMBOL(res)[i] = AS_SYMBOL(s)[AS_I64(v)[AS_I64(y)[i]]];
             }
 
             drop_obj(s);
@@ -279,8 +278,7 @@ obj_p ray_at(obj_p x, obj_p y) {
                 }
 
                 buf = AS_U8(k) + AS_I64(v)[AS_I64(y)[i]];
-                AS_LIST(res)
-                [i] = load_obj(&buf, k->len);
+                AS_LIST(res)[i] = load_obj(&buf, k->len);
             }
 
             return res;

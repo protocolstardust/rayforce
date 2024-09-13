@@ -126,13 +126,12 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     n = pool_split_by(pool, group_len, group_count);
 
     if (n == 1) {
-        res = vector(outype, group_count);
         argv[0] = (raw_p)group_len;
         argv[1] = (raw_p)0;
         argv[2] = val;
         argv[3] = index;
-        argv[4] = res;
-        pool_call_task_fn(aggr, 5, argv);
+        argv[4] = vector(outype, group_count);
+        res = pool_call_task_fn(aggr, 5, argv);
 
         return vn_list(1, res);
     }
@@ -175,6 +174,8 @@ obj_p aggr_first_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
                       if ($out[$y] == NULL_OBJ) $out[$y] = clone_obj($in[$x]));
             return res;
         default:
+            res->len = 0;
+            drop_obj(res);
             return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
     }
 }
@@ -195,6 +196,7 @@ obj_p aggr_first(obj_p val, obj_p index) {
             res = AGGR_COLLECT(parts, n, i64, i64, if ($out[$y] == NULL_I64) $out[$y] = $in[$x]);
             res->type = val->type;
             drop_obj(parts);
+
             if (val->type == TYPE_ENUM) {
                 ek = ray_key(val);
                 sym = ray_get(ek);
@@ -212,11 +214,12 @@ obj_p aggr_first(obj_p val, obj_p index) {
                 }
 
                 xe = AS_SYMBOL(sym);
-                xo = AS_I64(res);
+                xo = AS_SYMBOL(res);
                 for (i = 0; i < n; i++)
                     xo[i] = xe[xo[i]];
 
                 drop_obj(sym);
+                res->type = TYPE_SYMBOL;
             }
 
             return res;
@@ -234,6 +237,11 @@ obj_p aggr_first(obj_p val, obj_p index) {
             res = AGGR_COLLECT(parts, n, list, list, if ($out[$y] == NULL_OBJ) $out[$y] = clone_obj($in[$x]));
             drop_obj(parts);
             return res;
+        // TODO: implement anymap
+        // case TYPE_ANYMAP:
+        //     res = AGGR_COLLECT(parts, n, list, list, if ($out[$y] == NULL_OBJ) $out[$y] = clone_obj($in[$x]));
+        //     drop_obj(parts);
+        //     return res;
         default:
             drop_obj(parts);
             return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
@@ -268,6 +276,8 @@ obj_p aggr_last_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p ar
                 });
             return res;
         default:
+            res->len = 0;
+            drop_obj(res);
             return error(ERR_TYPE, "last: unsupported type: '%s'", type_name(val->type));
     }
 }
@@ -345,6 +355,7 @@ obj_p aggr_sum_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg
             AGGR_ITER(index, len, offset, val, res, f64, f64, $out[$y] = 0.0, $out[$y] = ADDF64($out[$y], $in[$x]));
             return res;
         default:
+            res->len = 0;
             drop_obj(res);
             return error(ERR_TYPE, "sum: unsupported type: '%s'", type_name(val->type));
     }
@@ -386,6 +397,8 @@ obj_p aggr_max_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg
             AGGR_ITER(index, len, offset, val, res, f64, f64, $out[$y] = 0.0, $out[$y] = MAXF64($out[$y], $in[$x]));
             return res;
         default:
+            res->len = 0;
+            drop_obj(res);
             return error(ERR_TYPE, "max: unsupported type: '%s'", type_name(val->type));
     }
 }
@@ -426,6 +439,8 @@ obj_p aggr_min_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg
             AGGR_ITER(index, len, offset, val, res, f64, f64, $out[$y] = 0.0, $out[$y] = MINF64($out[$y], $in[$x]));
             return res;
         default:
+            res->len = 0;
+            drop_obj(res);
             return error(ERR_TYPE, "min: unsupported type: '%s'", type_name(val->type));
     }
 }
@@ -484,6 +499,8 @@ obj_p aggr_count_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
             });
             return res;
         default:
+            res->len = 0;
+            drop_obj(res);
             return error(ERR_TYPE, "count: unsupported type: '%s'", type_name(val->type));
     }
 

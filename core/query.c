@@ -370,8 +370,14 @@ obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx) {
                 val = prm;
             }
 
-            AS_LIST(res)
-            [i] = val;
+            if (IS_ERROR(val)) {
+                res->len = i;
+                drop_obj(res);
+                drop_obj(keys);
+                return val;
+            }
+
+            AS_LIST(res)[i] = val;
         }
 
         ctx->query_fields = keys;
@@ -416,8 +422,14 @@ obj_p select_collect_fields(query_ctx_p ctx) {
             val = aggr_first(AS_LIST(prm)[0], AS_LIST(prm)[1]);
             drop_obj(prm);
 
-            AS_LIST(res)
-            [i] = val;
+            if (IS_ERROR(val)) {
+                res->len = i;
+                drop_obj(res);
+                drop_obj(keys);
+                return val;
+            }
+
+            AS_LIST(res)[i] = val;
         }
 
         ctx->query_fields = keys;
@@ -453,8 +465,7 @@ obj_p select_collect_fields(query_ctx_p ctx) {
             return val;
         }
 
-        AS_LIST(res)
-        [i] = val;
+        AS_LIST(res)[i] = val;
     }
 
     ctx->query_fields = keys;
