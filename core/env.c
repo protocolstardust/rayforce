@@ -231,6 +231,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "loadfn",              TYPE_VARY,     FN_NONE,                   ray_loadfn);
     REGISTER_FN(functions,  "timer",               TYPE_VARY,     FN_NONE,                   ray_timer);
     REGISTER_FN(functions,  "set-splayed",         TYPE_VARY,     FN_NONE,                   ray_set_splayed);
+    REGISTER_FN(functions,  "get-splayed",         TYPE_VARY,     FN_NONE,                   ray_get_splayed);
     REGISTER_FN(functions,  "set-parted",          TYPE_VARY,     FN_NONE,                   ray_set_parted);
 }    
     

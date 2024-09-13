@@ -46,6 +46,7 @@
 #include "group.h"
 #include "string.h"
 #include "pool.h"
+#include "io.h"
 
 // Atomic unary functions (iterates through list of argument items down to atoms)
 obj_p unary_call_atomic(unary_f f, obj_p x) {
@@ -162,65 +163,7 @@ obj_p ray_get(obj_p x) {
 
             // get splayed table
             if (x->len > 1 && AS_C8(x)[x->len - 1] == '/') {
-                // first try to read columns schema
-                s = cstring_from_str(".d", 2);
-                col = ray_concat(x, s);
-                keys = ray_get(col);
-                drop_obj(s);
-                drop_obj(col);
-
-                if (IS_ERROR(keys))
-                    return keys;
-
-                if (keys->type != TYPE_SYMBOL) {
-                    drop_obj(keys);
-                    THROW(ERR_TYPE, "get: expected table schema as a symbol vector, got: '%s", type_name(keys->type));
-                }
-
-                l = keys->len;
-                vals = LIST(l);
-
-                for (i = 0; i < l; i++) {
-                    v = at_idx(keys, i);
-                    s = cast_obj(TYPE_C8, v);
-                    col = ray_concat(x, s);
-                    val = ray_get(col);
-
-                    drop_obj(v);
-                    drop_obj(s);
-                    drop_obj(col);
-
-                    if (IS_ERROR(val)) {
-                        vals->len = i;
-                        drop_obj(vals);
-                        drop_obj(keys);
-
-                        return val;
-                    }
-
-                    AS_LIST(vals)
-                    [i] = val;
-                }
-
-                // read symbol data (if any) if sym is not present in current env
-                if (resolve(SYMBOL_SYM) == NULL) {
-                    s = cstring_from_str("sym", 3);
-                    col = ray_concat(x, s);
-                    v = ray_get(col);
-
-                    drop_obj(s);
-                    drop_obj(col);
-
-                    if (!IS_ERROR(v)) {
-                        s = symbol("sym", 3);
-                        drop_obj(ray_set(s, v));
-                        drop_obj(s);
-                    }
-
-                    drop_obj(v);
-                }
-
-                return table(keys, vals);
+                return io_get_table_splayed(x, NULL_OBJ);
             }
             // get other obj
             else {

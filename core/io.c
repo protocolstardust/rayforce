@@ -736,3 +736,82 @@ obj_p io_set_table_splayed(obj_p path, obj_p table, obj_p symfile) {
 
     return clone_obj(path);
 }
+
+obj_p io_get_table_splayed(obj_p path, obj_p symfile) {
+    obj_p col, keys, vals, val, s, v;
+    u64_t i, l;
+
+    // first try to read columns schema
+    s = cstring_from_str(".d", 2);
+    col = ray_concat(path, s);
+    keys = ray_get(col);
+    drop_obj(s);
+    drop_obj(col);
+
+    if (IS_ERROR(keys))
+        return keys;
+
+    if (keys->type != TYPE_SYMBOL) {
+        drop_obj(keys);
+        THROW(ERR_TYPE, "get: expected table schema as a symbol vector, got: '%s", type_name(keys->type));
+    }
+
+    l = keys->len;
+    vals = LIST(l);
+
+    for (i = 0; i < l; i++) {
+        v = at_idx(keys, i);
+        s = cast_obj(TYPE_C8, v);
+        col = ray_concat(path, s);
+        val = ray_get(col);
+
+        drop_obj(v);
+        drop_obj(s);
+        drop_obj(col);
+
+        if (IS_ERROR(val)) {
+            vals->len = i;
+            drop_obj(vals);
+            drop_obj(keys);
+
+            return val;
+        }
+
+        AS_LIST(vals)
+        [i] = val;
+    }
+
+    // read symbol data (if any) if sym is not present in current env
+    if (resolve(SYMBOL_SYM) == NULL) {
+        switch (symfile->type) {
+            case TYPE_NULL:
+                s = cstring_from_str("sym", 3);
+                col = ray_concat(path, s);
+                v = ray_get(col);
+                drop_obj(s);
+                drop_obj(col);
+                break;
+            case TYPE_C8:
+                v = ray_get(symfile);
+                break;
+            default:
+                drop_obj(keys);
+                drop_obj(vals);
+                THROW(ERR_TYPE, "get: symfile must be a string");
+        }
+
+        if (IS_ERROR(v)) {
+            drop_obj(keys);
+            drop_obj(vals);
+            return v;
+        }
+
+        s = symbol("sym", 3);
+        drop_obj(ray_set(s, v));
+        drop_obj(s);
+
+        drop_obj(v);
+    }
+
+    return table(keys, vals);
+}

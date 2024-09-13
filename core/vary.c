@@ -161,7 +161,18 @@ obj_p ray_set_splayed(obj_p *x, u64_t n) {
         case 3:
             return io_set_table_splayed(x[0], x[1], x[2]);
         default:
-            THROW(ERR_LENGTH, "set splayed: expected 2, 3 arguments, got %d", n);
+            THROW(ERR_LENGTH, "set splayed: expected 2, 3 arguments, got %lld", n);
+    }
+}
+
+obj_p ray_get_splayed(obj_p *x, u64_t n) {
+    switch (n) {
+        case 1:
+            return ray_get(x[0]);
+        case 2:
+            return io_get_table_splayed(x[0], x[1]);
+        default:
+            THROW(ERR_LENGTH, "get splayed: expected 1 argument, got %lld", n);
     }
 }
 
@@ -170,6 +181,6 @@ obj_p ray_set_parted(obj_p *x, u64_t n) {
         case 2:
             return ray_set(x[0], x[1]);
         default:
-            THROW(ERR_LENGTH, "set parted: expected 2, 3 arguments, got %d", n);
+            THROW(ERR_LENGTH, "set parted: expected 2, 3 arguments, got %lld", n);
     }
 }
