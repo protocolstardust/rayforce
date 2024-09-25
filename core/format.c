@@ -1147,50 +1147,44 @@ obj_p obj_fmt_n(obj_p *x, u64_t n) {
     u64_t i;
     i64_t sz = 0;
     str_p p, start = NULL, end = NULL;
-    obj_p res = NULL_OBJ, *b = x;
+    obj_p res = NULL_OBJ;
 
     if (n == 0)
         return NULL_OBJ;
 
     if (n == 1)
-        return obj_fmt(*b, B8_TRUE);
+        return obj_fmt(x[0], B8_TRUE);
 
-    if ((*b)->type != TYPE_C8)
+    if (x[0]->type != TYPE_C8)
         return NULL_OBJ;
 
-    p = AS_C8(*b);
-    sz = (*b)->len;
+    p = AS_C8(x[0]);
+    sz = x[0]->len;
     start = p;
-    n -= 1;
 
-    for (i = 0; i < n; i++) {
-        b += 1;
+    for (i = 1; i < n; i++) {
         end = (str_p)memchr(start, '%', sz);
 
         if (!end) {
-            if (res)
-                heap_free(res);
-
+            heap_free(res);
             return NULL_OBJ;
         }
 
         if (end > start)
-            str_fmt_into(&res, (end - start) + 1, "%s", start);
+            str_fmt_into(&res, NO_LIMIT, "%.*s", (end - start) + 1, start);
 
         sz -= (end + 1 - start);
         start = end + 1;
 
-        obj_fmt_into(&res, 0, MAX_ROW_WIDTH, B8_FALSE, *b);
+        obj_fmt_into(&res, 0, MAX_ROW_WIDTH, B8_FALSE, x[i]);
     }
 
     if (sz > 0 && memchr(start, '%', sz)) {
-        if (res)
-            heap_free(res);
-
+        heap_free(res);
         return NULL_OBJ;
     }
 
-    str_fmt_into(&res, end - start, "%s", start);
+    str_fmt_into(&res, NO_LIMIT, "%.*s", sz, start);
 
     return res;
 }

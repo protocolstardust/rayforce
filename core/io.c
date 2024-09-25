@@ -176,48 +176,39 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
     switch (type) {
         case TYPE_U8:
             if (start == NULL || end == NULL) {
-                AS_U8(out)
-                [row] = 0;
+                AS_U8(out)[row] = 0;
                 break;
             }
-            AS_U8(out)
-            [row] = (u8_t)i64_from_str(start, end - start);
+            AS_U8(out)[row] = (u8_t)i64_from_str(start, end - start);
             break;
         case TYPE_I64:
-            AS_I64(out)
-            [row] = i64_from_str(start, end - start);
+            AS_I64(out)[row] = i64_from_str(start, end - start);
             break;
         case TYPE_TIMESTAMP:
             if (start == NULL || end == NULL) {
-                AS_TIMESTAMP(out)
-                [row] = NULL_I64;
+                AS_TIMESTAMP(out)[row] = NULL_I64;
                 break;
             }
-            AS_TIMESTAMP(out)
-            [row] = timestamp_into_i64(timestamp_from_str(start));
+            AS_TIMESTAMP(out)[row] = timestamp_into_i64(timestamp_from_str(start));
             break;
         case TYPE_F64:
-            AS_F64(out)
-            [row] = f64_from_str(start, end - start);
+            AS_F64(out)[row] = f64_from_str(start, end - start);
             break;
         case TYPE_SYMBOL:
             if (start == NULL || end == NULL) {
-                AS_SYMBOL(out)
-                [row] = 0;
+                AS_SYMBOL(out)[row] = 0;
                 break;
             }
             n = end - start;
             if ((n > 0) && (*(end - 1) == '\r'))
                 n--;
-            AS_SYMBOL(out)
-            [row] = symbols_intern(start, n);
+            AS_SYMBOL(out)[row] = symbols_intern(start, n);
             break;
         case TYPE_C8:
             n = end - start;
             if ((n > 0) && (*(end - 1) == '\r'))
                 n--;
-            AS_LIST(out)
-            [row] = string_from_str(start, n);
+            AS_LIST(out)[row] = string_from_str(start, n);
             break;
         default:
             THROW(ERR_TYPE, "csv: unsupported type: '%s", type_name(type));
@@ -603,8 +594,7 @@ obj_p distinct_syms(obj_p *x, u64_t n) {
         for (j = 0; j < l; j++) {
             p = ht_oa_tab_next(&set, AS_SYMBOL(a)[j]);
             if (AS_SYMBOL(AS_LIST(set)[0])[p] == NULL_I64) {
-                AS_SYMBOL(AS_LIST(set)[0])
-                [p] = AS_SYMBOL(a)[j];
+                AS_SYMBOL(AS_LIST(set)[0])[p] = AS_SYMBOL(a)[j];
                 h++;
             }
         }
