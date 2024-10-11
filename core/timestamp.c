@@ -246,13 +246,14 @@ timestamp_t timestamp_from_str(str_p src, u64_t len) {
         }
 
         cnt++;
+        len -= end - cur;
         cur = end;
 
         // skip non-digits
-        while (*cur && (*cur < '0' || *cur > '9'))
+        while (*cur != '\0' && cnt < 7 && len > 0 && (*cur < '0' || *cur > '9')) {
             cur++;
-
-        len -= end - cur;
+            len--;
+        }
     }
 
     if (cnt < 3) {
