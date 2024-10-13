@@ -31,8 +31,9 @@
 // Internal types (78..97)
 #define TYPE_FILTERMAP 78
 #define TYPE_GROUPMAP 79
-#define TYPE_FILEMAP 80
-#define TYPE_FDMAP 81
+#define TYPE_VIRTMAP 80
+#define TYPE_FILEMAP 81
+#define TYPE_FDMAP 82
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #define OS_WINDOWS

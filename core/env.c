@@ -254,6 +254,11 @@ nil_t init_typenames(obj_p typenames)
     REGISTER_TYPE(typenames,    TYPE_C8,        "String");
     REGISTER_TYPE(typenames,    TYPE_ENUM,      "Enum");
     REGISTER_TYPE(typenames,    TYPE_ANYMAP,    "Anymap");
+    REGISTER_TYPE(typenames,    TYPE_FILTERMAP, "Filtermap");
+    REGISTER_TYPE(typenames,    TYPE_GROUPMAP,  "Groupmap");
+    REGISTER_TYPE(typenames,    TYPE_FILEMAP,   "Filemap");
+    REGISTER_TYPE(typenames,    TYPE_FDMAP,     "Fdmap");
+    REGISTER_TYPE(typenames,    TYPE_VIRTMAP,   "Virtmap");
     REGISTER_TYPE(typenames,    TYPE_SYMBOL,    "Symbol");
     REGISTER_TYPE(typenames,    TYPE_TIMESTAMP, "Timestamp");
     REGISTER_TYPE(typenames,    TYPE_GUID,      "Guid");
@@ -264,9 +269,6 @@ nil_t init_typenames(obj_p typenames)
     REGISTER_TYPE(typenames,    TYPE_BINARY,    "Binary");
     REGISTER_TYPE(typenames,    TYPE_VARY,      "Vary");
     REGISTER_TYPE(typenames,    TYPE_LAMBDA,    "Lambda");
-    REGISTER_TYPE(typenames,    TYPE_FILTERMAP, "Filtermap");
-    REGISTER_TYPE(typenames,    TYPE_GROUPMAP,  "Groupmap");
-    REGISTER_TYPE(typenames,    TYPE_FDMAP,     "Fdmap");
     REGISTER_TYPE(typenames,    TYPE_NULL,      "Null");
     REGISTER_TYPE(typenames,    TYPE_ERROR,     "Error");
 }
