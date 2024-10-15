@@ -742,13 +742,6 @@ obj_p at_ids(obj_p obj, i64_t ids[], u64_t len) {
                 oout[i] = clone_obj(oinp[ids[i]]);
 
             return res;
-        case TYPE_VIRTMAP:
-            l = AS_I64(AS_LIST(obj)[1])[0];
-            res = vector(AS_LIST(obj)[0]->type, l);
-            for (i = 0; i < l; i++)
-                AS_I64(res)[i] = AS_I64(AS_LIST(obj)[0])[0];
-
-            return res;
         default:
             res = vector(TYPE_LIST, len);
             for (i = 0; i < len; i++)
@@ -1508,7 +1501,6 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
         case TYPE_MAPTIMESTAMP:
         case TYPE_FILTERMAP:
         case TYPE_GROUPMAP:
-        case TYPE_VIRTMAP:
             l = obj->len;
             for (i = 0; i < l; i++)
                 drop_obj(AS_LIST(obj)[i]);

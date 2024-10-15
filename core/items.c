@@ -1021,23 +1021,6 @@ obj_p ray_value(obj_p x) {
         case TYPE_DICT:
             return clone_obj(AS_LIST(x)[1]);
 
-        case TYPE_VIRTMAP:
-            l = AS_LIST(x)[0]->len;
-
-            // Calculate the total number of elements
-            n = ops_count(x);
-            res = vector(AS_LIST(x)[0]->type, n);
-            i64ptr = AS_I64(res);
-
-            for (i = 0; i < l; i++) {
-                n = AS_I64(AS_LIST(x)[1])[i];
-                for (j = 0; j < n; j++)
-                    i64ptr[j] = AS_I64(AS_LIST(x)[0])[i];
-
-                i64ptr += n;
-            }
-
-            return res;
         case TYPE_MAPB8:
         case TYPE_MAPU8:
             l = x->len;

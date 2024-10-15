@@ -192,7 +192,8 @@ obj_p ray_set_parted(obj_p *x, u64_t n) {
 
 obj_p ray_get_parted(obj_p *x, u64_t n) {
     u64_t i, j, l, wide;
-    obj_p path, colpath, dir, sym, dirs, gcol, ord, t1, t2, eq, fmaps, fdmap, virtmap, keys, vals, res;
+    i64_t *ptr;
+    obj_p path, dir, sym, dirs, gcol, ord, t1, t2, eq, fmaps, virtcol, keys, vals, res;
 
     switch (n) {
         case 2:
@@ -264,14 +265,6 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
                 drop_obj(path);
                 return t1;
             }
-
-            // Create virtmap for virtual column
-            virtmap = LIST(2);
-            virtmap->type = TYPE_VIRTMAP;
-            AS_LIST(virtmap)[0] = clone_obj(gcol);
-            AS_LIST(virtmap)[1] = I64(gcol->len);
-
-            AS_I64(AS_LIST(virtmap)[1])[0] = (i64_t)ops_count(t1);
 
             wide = AS_LIST(t1)[1]->len;
 
@@ -345,11 +338,9 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
                     }
                 }
 
-                // Create filemaps over columns of the partition
+                // Append maps over columns of the partition
                 for (j = 0; j < wide; j++)
                     push_obj(AS_LIST(fmaps) + j, clone_obj(AS_LIST(AS_LIST(t2)[1])[j]));
-
-                AS_I64(AS_LIST(virtmap)[1])[i] = (i64_t)ops_count(t2);
 
                 drop_obj(t2);
                 drop_obj(path);
@@ -361,7 +352,21 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
             l = wide + 1;
             vals = LIST(l);
 
-            AS_LIST(vals)[0] = virtmap;
+            // Count the total number of rows of all partitions
+            for (i = 0, n = 0; i < gcol->len; i++)
+                n += ops_count(AS_LIST(AS_LIST(fmaps)[0])[i]);
+
+            virtcol = vector(gcol->type, n);
+            ptr = AS_I64(virtcol);
+            for (i = 0; i < gcol->len; i++) {
+                n = ops_count(AS_LIST(AS_LIST(fmaps)[0])[i]);
+                for (j = 0; j < n; j++)
+                    ptr[j] = AS_I64(gcol)[i];
+
+                ptr += n;
+            }
+
+            AS_LIST(vals)[0] = virtcol;
             for (i = 0; i < wide; i++) {
                 AS_LIST(vals)[i + 1] = clone_obj(AS_LIST(fmaps)[i]);
                 AS_LIST(vals)[i + 1]->type = TYPE_ANYMAP + AS_LIST(AS_LIST(t1)[1])[i]->type;
