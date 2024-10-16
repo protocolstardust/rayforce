@@ -933,7 +933,7 @@ obj_p ray_key(obj_p x) {
 obj_p ray_value(obj_p x) {
     obj_p sym, k, v, res, e;
     u8_t *u8ptr, *buf;
-    i64_t i, j, l, n, sl, xl, *i64ptr;
+    i64_t i, l, n, sl, xl, *i64ptr;
     f64_t *f64ptr;
     guid_t *guidptr;
 
