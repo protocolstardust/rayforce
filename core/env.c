@@ -98,14 +98,10 @@ obj_p ray_memstat(obj_p *x, u64_t n) {
     ins_sym(&keys, 3, "syms");
 
     vals = LIST(4);
-    AS_LIST(vals)
-    [0] = i64(stat.system);
-    AS_LIST(vals)
-    [1] = i64(stat.heap);
-    AS_LIST(vals)
-    [2] = i64(stat.free);
-    AS_LIST(vals)
-    [3] = i64(symbols_count(symbols));
+    AS_LIST(vals)[0] = i64(stat.system);
+    AS_LIST(vals)[1] = i64(stat.heap);
+    AS_LIST(vals)[2] = i64(stat.free);
+    AS_LIST(vals)[3] = i64(symbols_count(symbols));
 
     return dict(keys, vals);
 }
