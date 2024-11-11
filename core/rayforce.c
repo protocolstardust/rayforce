@@ -542,7 +542,7 @@ obj_p ins_sym(obj_p *obj, i64_t idx, lit_p str) {
 }
 
 obj_p at_idx(obj_p obj, i64_t idx) {
-    u64_t i, n, l;
+    i64_t i, m, n, l;
     obj_p k, v, res;
     u8_t *buf;
 
@@ -648,26 +648,72 @@ obj_p at_idx(obj_p obj, i64_t idx) {
 
         case TYPE_MAPB8:
         case TYPE_MAPU8:
-            if (idx < 0)
-                idx = obj->len + idx;
-            if (idx >= 0 && idx < (i64_t)obj->len)
-                return b8(AS_U8(obj)[idx]);
+            l = obj->len;
+            for (i = 0, n = 0; i < l; i++) {
+                m = AS_LIST(obj)[i]->len;
+                n += m;
+                if (idx < n)
+                    return b8(AS_U8(AS_LIST(obj)[i])[m - (n - idx)]);
+            }
+
             return b8(B8_FALSE);
 
         case TYPE_MAPI64:
         case TYPE_MAPTIMESTAMP:
-            if (idx < 0)
-                idx = obj->len + idx;
-            if (idx >= 0 && idx < (i64_t)obj->len)
-                return i64(AS_I64(obj)[idx]);
+            l = obj->len;
+            for (i = 0, n = 0; i < l; i++) {
+                m = AS_LIST(obj)[i]->len;
+                n += m;
+                if (idx < n)
+                    return i64(AS_I64(AS_LIST(obj)[i])[m - (n - idx)]);
+            }
+
             return i64(NULL_I64);
 
+        case TYPE_MAPENUM:
+
+            l = obj->len;
+            for (i = 0, n = 0; i < l; i++) {
+                m = AS_LIST(obj)[i]->len;
+                n += m;
+                if (idx < n) {
+                    k = ray_key(AS_LIST(obj)[i]);
+                    if (IS_ERROR(k))
+                        return k;
+                    v = ray_get(k);
+                    drop_obj(k);
+                    if (IS_ERROR(v))
+                        return v;
+                    idx = AS_I64(ENUM_VAL(AS_LIST(obj)[i]))[m - (n - idx)];
+                    res = at_idx(v, idx);
+                    drop_obj(v);
+                    return res;
+                }
+            }
+
+            return symboli64(NULL_I64);
+
         case TYPE_MAPF64:
-            if (idx < 0)
-                idx = obj->len + idx;
-            if (idx >= 0 && idx < (i64_t)obj->len)
-                return f64(AS_F64(obj)[idx]);
+            l = obj->len;
+            for (i = 0, n = 0; i < l; i++) {
+                m = AS_LIST(obj)[i]->len;
+                n += m;
+                if (idx < n)
+                    return f64(AS_F64(AS_LIST(obj)[i])[m - (n - idx)]);
+            }
+
             return f64(NULL_F64);
+
+        case TYPE_MAPGUID:
+            l = obj->len;
+            for (i = 0, n = 0; i < l; i++) {
+                m = AS_LIST(obj)[i]->len;
+                n += m;
+                if (idx < n)
+                    return guid(AS_GUID(AS_LIST(obj)[i])[m - (n - idx)]);
+            }
+
+            return guid(NULL);
 
         default:
             return clone_obj(obj);
