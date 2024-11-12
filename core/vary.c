@@ -192,7 +192,6 @@ obj_p ray_set_parted(obj_p *x, u64_t n) {
 
 obj_p ray_get_parted(obj_p *x, u64_t n) {
     u64_t i, j, l, wide;
-    i64_t *ptr;
     obj_p path, dir, sym, dirs, gcol, ord, t1, t2, eq, fmaps, virtcol, keys, vals, res;
 
     switch (n) {
@@ -352,19 +351,14 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
             l = wide + 1;
             vals = LIST(l);
 
-            // Count the total number of rows of all partitions
-            for (i = 0, n = 0; i < gcol->len; i++)
-                n += ops_count(AS_LIST(AS_LIST(fmaps)[0])[i]);
-
             // Create a virtual column for the grouping column
-            virtcol = vector(gcol->type, n);
-            ptr = AS_I64(virtcol);
-            for (i = 0; i < gcol->len; i++) {
+            l = gcol->len;
+            virtcol = vn_list(2, vector(gcol->type, l), I64(l));
+            virtcol->type = TYPE_MAPGENERATOR;
+            for (i = 0; i < l; i++) {
                 n = ops_count(AS_LIST(AS_LIST(fmaps)[0])[i]);
-                for (j = 0; j < n; j++)
-                    ptr[j] = AS_I64(gcol)[i];
-
-                ptr += n;
+                AS_I64(AS_LIST(virtcol)[0])[i] = AS_I64(gcol)[i];
+                AS_I64(AS_LIST(virtcol)[1])[i] = n;
             }
 
             AS_LIST(vals)[0] = virtcol;

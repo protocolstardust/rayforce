@@ -207,6 +207,12 @@ u64_t ops_count(obj_p x) {
             return AS_LIST(x)[1]->len;
         case TYPE_MAPGROUP:
             return AS_LIST(AS_LIST(x)[1])[0]->i64;
+        case TYPE_MAPGENERATOR:
+            l = AS_LIST(x)[0]->len;
+            for (i = 0, c = 0; i < l; i++)
+                c += AS_I64(AS_LIST(x)[1])[i];
+
+            return c;
         default:
             return 1;
     }

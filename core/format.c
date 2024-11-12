@@ -662,6 +662,7 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i) {
         case TYPE_MAPF64:
         case TYPE_MAPGUID:
         case TYPE_MAPENUM:
+        case TYPE_MAPGENERATOR:
             res = at_idx(obj, i);
             n = obj_fmt_into(dst, indent, limit, B8_FALSE, res);
             drop_obj(res);

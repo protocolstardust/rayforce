@@ -671,7 +671,6 @@ obj_p at_idx(obj_p obj, i64_t idx) {
             return i64(NULL_I64);
 
         case TYPE_MAPENUM:
-
             l = obj->len;
             for (i = 0, n = 0; i < l; i++) {
                 m = AS_LIST(obj)[i]->len;
@@ -714,6 +713,17 @@ obj_p at_idx(obj_p obj, i64_t idx) {
             }
 
             return guid(NULL);
+
+        case TYPE_MAPGENERATOR:
+            l = AS_LIST(obj)[0]->len;
+            for (i = 0, n = 0; i < l; i++) {
+                m = AS_I64(AS_LIST(obj)[1])[i];
+                n += m;
+                if (idx < n)
+                    return at_idx(AS_LIST(obj)[0], i);
+            }
+
+            return null(AS_LIST(obj)[0]->type);
 
         default:
             return clone_obj(obj);
