@@ -413,10 +413,10 @@ u64_t pool_split_by(pool_p pool, u64_t input_len, u64_t groups_len) {
         return 1;
     else if (interpreter_current()->id != 0)
         return 1;
-    else if (input_len <= pool->executors_count + 1)
-        return 1;
-    else if (groups_len >= 100000)
-        return 1;
+    // else if (input_len <= pool->executors_count + 1)
+    //     return 1;
+    // else if (groups_len >= 100000)
+    //     return 1;
     else
         return pool->executors_count + 1;
 }

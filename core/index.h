@@ -29,7 +29,7 @@
 #define INDEX_SCOPE_LIMIT 8192
 
 typedef enum index_type_t {
-    INDEX_TYPE_IDS,
+    INDEX_TYPE_IDS = 0,
     INDEX_TYPE_SHIFT,
     INDEX_TYPE_GENERATOR,
 } index_type_t;

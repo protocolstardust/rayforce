@@ -95,6 +95,11 @@
                 }                                                               \
                 break;                                                          \
             case INDEX_TYPE_GENERATOR:                                          \
+                for ($i = 0; $i < len; $i++) {                                  \
+                    $x = $i;                                                    \
+                    $y = offset;                                                \
+                    aggr;                                                       \
+                }                                                               \
                 break;                                                          \
         }                                                                       \
     })
@@ -124,7 +129,12 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     u64_t i, l, n, group_count, group_len, chunk;
     obj_p res;
     raw_p argv[6];
+    index_type_t idx_type;
 
+    if (outype > TYPE_ANYMAP && outype < TYPE_TABLE)
+        outype = AS_LIST(val)[0]->type;
+
+    idx_type = index_group_type(index);
     group_count = index_group_count(index);
     group_len = index_group_len(index);
     n = pool_split_by(pool, group_len, group_count);
@@ -142,13 +152,22 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
 
     pool_prepare(pool);
 
-    l = group_len;
-    chunk = l / n;
+    switch (idx_type) {
+        case INDEX_TYPE_GENERATOR:
+            for (i = 0; i < group_count; i++)
+                pool_add_task(pool, aggr, 5, AS_LIST(val)[i]->len, i, AS_LIST(val)[i], index,
+                              vector(outype, group_count));
 
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, aggr, 5, chunk, i * chunk, val, index, vector(outype, group_count));
+            break;
+        default:
+            l = group_len;
+            chunk = l / n;
 
-    pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, index, vector(outype, group_count));
+            for (i = 0; i < n - 1; i++)
+                pool_add_task(pool, aggr, 5, chunk, i * chunk, val, index, vector(outype, group_count));
+
+            pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, index, vector(outype, group_count));
+    }
 
     return pool_run(pool);
 }
@@ -278,6 +297,8 @@ obj_p aggr_first(obj_p val, obj_p index) {
             for (i = 0; i < n; i++)
                 memcpy(AS_GUID(res) + i, AS_GUID(AS_LIST(val)[i])[0], sizeof(guid_t));
             return res;
+        case TYPE_MAPGENERATOR:
+            return clone_obj(AS_LIST(val)[0]);
         default:
             return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
     }
@@ -390,7 +411,7 @@ obj_p aggr_sum_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg
             return res;
         default:
             destroy_partial_result(res);
-            return error(ERR_TYPE, "sum: unsupported type: '%s'", type_name(val->type));
+            return error(ERR_TYPE, "sum partial: unsupported type: '%s'", type_name(val->type));
     }
 }
 
@@ -409,6 +430,10 @@ obj_p aggr_sum(obj_p val, obj_p index) {
             return res;
         case TYPE_F64:
             res = AGGR_COLLECT(parts, n, f64, f64, $out[$y] = ADDF64($out[$y], $in[$x]));
+            drop_obj(parts);
+            return res;
+        case TYPE_MAPI64:
+            res = AGGR_COLLECT(parts, n, i64, i64, $out[$y] = ADDI64($out[$y], $in[$x]));
             drop_obj(parts);
             return res;
         default:
