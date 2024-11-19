@@ -664,11 +664,14 @@ obj_p at_idx(obj_p obj, i64_t idx) {
             for (i = 0, n = 0; i < l; i++) {
                 m = AS_LIST(obj)[i]->len;
                 n += m;
-                if (idx < n)
-                    return i64(AS_I64(AS_LIST(obj)[i])[m - (n - idx)]);
+                if (idx < n) {
+                    res = atom(obj->type - TYPE_ANYMAP);
+                    res->i64 = AS_I64(AS_LIST(obj)[i])[m - (n - idx)];
+                    return res;
+                }
             }
 
-            return i64(NULL_I64);
+            return null(obj->type - TYPE_ANYMAP);
 
         case TYPE_MAPENUM:
             l = obj->len;
