@@ -6,11 +6,12 @@
     (fn [x]
         (let p (format "%/%/%/" dbpath (+ 2021.01.01 (* 24 (* 3600 (* x 1000000000)))) tabname))
         (println "Creating table: %" p)
-        (let t (table [OrderId Symbol Price Size Timestamp] 
+        (let t (table [OrderId Symbol Price Size Tape Timestamp] 
             (list (take n (guid 1000000))
                   (take n [AAPL GOOG MSFT IBM AMZN FB BABA]) 
                   (as 'F64 (+ x (til n))) 
                   (take n (+ x (til 3)))
+                  (map (fn [x] (as 'String x)) (take n (+ x (til 3))))
                   (as 'Timestamp (til n)) 
             )
         ))

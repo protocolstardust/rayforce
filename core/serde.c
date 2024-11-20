@@ -72,7 +72,7 @@ u64_t size_of(obj_p obj) {
         case TYPE_ENUM:
             size += obj->len * sizeof(i64_t);
             return size;
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             size += obj->len * sizeof(i64_t);
             return size;
         case TYPE_NULL:

@@ -364,7 +364,7 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
             AS_LIST(vals)[0] = virtcol;
             for (i = 0; i < wide; i++) {
                 AS_LIST(vals)[i + 1] = clone_obj(AS_LIST(fmaps)[i]);
-                AS_LIST(vals)[i + 1]->type = TYPE_ANYMAP + AS_LIST(AS_LIST(t1)[1])[i]->type;
+                AS_LIST(vals)[i + 1]->type = TYPE_MAPLIST + AS_LIST(AS_LIST(t1)[1])[i]->type;
             }
 
             drop_obj(sym);

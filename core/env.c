@@ -249,7 +249,7 @@ nil_t init_typenames(obj_p typenames)
     REGISTER_TYPE(typenames,    TYPE_F64,          "F64");
     REGISTER_TYPE(typenames,    TYPE_C8,           "String");
     REGISTER_TYPE(typenames,    TYPE_ENUM,         "Enum");
-    REGISTER_TYPE(typenames,    TYPE_ANYMAP,       "Anymap");
+    REGISTER_TYPE(typenames,    TYPE_MAPLIST,      "Maplist");
     REGISTER_TYPE(typenames,    TYPE_MAPB8,        "Mapb8");
     REGISTER_TYPE(typenames,    TYPE_MAPU8,        "Mapu8");
     REGISTER_TYPE(typenames,    TYPE_MAPI64,       "Mapi64");

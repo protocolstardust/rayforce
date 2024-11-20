@@ -308,7 +308,7 @@ obj_p anymap(obj_p sym, obj_p vec) {
     obj_p e;
 
     e = vn_list(2, sym, vec);
-    e->type = TYPE_ANYMAP;
+    e->type = TYPE_MAPLIST;
 
     return e;
 }
@@ -608,7 +608,7 @@ obj_p at_idx(obj_p obj, i64_t idx) {
             }
             return symboli64(NULL_I64);
 
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             k = ANYMAP_KEY(obj);
             v = ANYMAP_VAL(obj);
             if (idx < 0)
@@ -665,13 +665,13 @@ obj_p at_idx(obj_p obj, i64_t idx) {
                 m = AS_LIST(obj)[i]->len;
                 n += m;
                 if (idx < n) {
-                    res = atom(obj->type - TYPE_ANYMAP);
+                    res = atom(obj->type - TYPE_MAPLIST);
                     res->i64 = AS_I64(AS_LIST(obj)[i])[m - (n - idx)];
                     return res;
                 }
             }
 
-            return null(obj->type - TYPE_ANYMAP);
+            return null(obj->type - TYPE_MAPLIST);
 
         case TYPE_MAPENUM:
             l = obj->len;
@@ -811,7 +811,7 @@ obj_p at_ids(obj_p obj, i64_t ids[], u64_t len) {
             return table(clone_obj(AS_LIST(obj)[0]), cols);
         case TYPE_MAPB8:
         case TYPE_MAPU8:
-            res = vector(obj->type - TYPE_ANYMAP, len);
+            res = vector(obj->type - TYPE_MAPLIST, len);
             n = AS_LIST(obj)[0]->len;
             for (i = 0, mapid = 0, m = 0; i < len; i++) {
                 while (ids[i] >= n) {
@@ -824,7 +824,7 @@ obj_p at_ids(obj_p obj, i64_t ids[], u64_t len) {
             return res;
         case TYPE_MAPI64:
         case TYPE_MAPTIMESTAMP:
-            res = vector(obj->type - TYPE_ANYMAP, len);
+            res = vector(obj->type - TYPE_MAPLIST, len);
             n = AS_LIST(obj)[0]->len;
             for (i = 0, mapid = 0, m = 0; i < len; i++) {
                 while (ids[i] >= n) {
@@ -908,7 +908,7 @@ obj_p at_obj(obj_p obj, obj_p idx) {
         case MTYPE2(TYPE_C8, -TYPE_I64):
         case MTYPE2(TYPE_LIST, -TYPE_I64):
         case MTYPE2(TYPE_ENUM, -TYPE_I64):
-        case MTYPE2(TYPE_ANYMAP, -TYPE_I64):
+        case MTYPE2(TYPE_MAPLIST, -TYPE_I64):
         case MTYPE2(TYPE_TABLE, -TYPE_I64):
             return at_idx(obj, idx->i64);
         case MTYPE2(TYPE_TABLE, -TYPE_SYMBOL):
@@ -1674,7 +1674,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
                 heap_free(obj);
             }
             return;
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             fdmap = runtime_fdmap_pop(runtime_get(), ANYMAP_KEY(obj));
             drop_obj(fdmap);
             fdmap = runtime_fdmap_pop(runtime_get(), obj);
@@ -1735,7 +1735,7 @@ obj_p copy_obj(obj_p obj) {
                 AS_LIST(res)[i] = clone_obj(AS_LIST(obj)[i]);
             return res;
         case TYPE_ENUM:
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             return ray_value(obj);
         case TYPE_TABLE:
             return table(copy_obj(AS_LIST(obj)[0]), copy_obj(AS_LIST(obj)[1]));
@@ -1750,7 +1750,7 @@ obj_p cow_obj(obj_p obj) {
     u32_t rc;
 
     // Complex types like enumerations or anymap may not be modified inplace
-    if (obj->type == TYPE_ENUM || obj->type == TYPE_ANYMAP)
+    if (obj->type == TYPE_ENUM || obj->type == TYPE_MAPLIST)
         return copy_obj(obj);
 
     /*

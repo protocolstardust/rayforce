@@ -67,7 +67,7 @@ b8_t __suitable_types(obj_p x, obj_p y) {
     else
         yt = y->type;
 
-    if ((x->type != TYPE_LIST) && (x->type != TYPE_ANYMAP) && (x->type != yt) &&
+    if ((x->type != TYPE_LIST) && (x->type != TYPE_MAPLIST) && (x->type != yt) &&
         (x->type != TYPE_ENUM && yt != TYPE_SYMBOL)) {
         return B8_FALSE;
     }

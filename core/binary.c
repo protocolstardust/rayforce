@@ -72,7 +72,7 @@ obj_p binary_call_left_atomic(binary_f f, obj_p x, obj_p y) {
 
             return res;
 
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             l = ops_count(x);
             a = at_idx(x, 0);
             item = binary_call_left_atomic(f, a, y);
@@ -138,7 +138,7 @@ obj_p binary_call_right_atomic(binary_f f, obj_p x, obj_p y) {
 
             return res;
 
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             l = ops_count(y);
             b = at_idx(y, 0);
             item = binary_call_right_atomic(f, x, b);
@@ -183,8 +183,8 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y) {
 
     xt = x->type;
     yt = y->type;
-    if (((xt == TYPE_LIST || xt == TYPE_ANYMAP) && IS_VECTOR(y)) ||
-        ((yt == TYPE_LIST || yt == TYPE_ANYMAP) && IS_VECTOR(x))) {
+    if (((xt == TYPE_LIST || xt == TYPE_MAPLIST) && IS_VECTOR(y)) ||
+        ((yt == TYPE_LIST || yt == TYPE_MAPLIST) && IS_VECTOR(x))) {
         l = ops_count(x);
 
         if (l != ops_count(y))
@@ -229,7 +229,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y) {
         }
 
         return res;
-    } else if (xt == TYPE_LIST || xt == TYPE_ANYMAP) {
+    } else if (xt == TYPE_LIST || xt == TYPE_MAPLIST) {
         l = ops_count(x);
         if (l == 0)
             return NULL_OBJ;
@@ -261,7 +261,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y) {
         }
 
         return res;
-    } else if (yt == TYPE_LIST || yt == TYPE_ANYMAP) {
+    } else if (yt == TYPE_LIST || yt == TYPE_MAPLIST) {
         l = ops_count(y);
         if (l == 0)
             return NULL_OBJ;
@@ -497,7 +497,7 @@ obj_p binary_set(obj_p x, obj_p y) {
                         return res;
                     }
 
-                    p->type = TYPE_ANYMAP;
+                    p->type = TYPE_MAPLIST;
                     p->len = y->len;
 
                     c = fs_fwrite(fd, objbuf, sizeof(struct obj_t));

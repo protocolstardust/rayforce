@@ -248,7 +248,7 @@ obj_p ray_at(obj_p x, obj_p y) {
 
             return res;
 
-        case MTYPE2(TYPE_ANYMAP, -TYPE_I64):
+        case MTYPE2(TYPE_MAPLIST, -TYPE_I64):
             k = ANYMAP_KEY(x);
             v = ANYMAP_VAL(x);
 
@@ -262,7 +262,7 @@ obj_p ray_at(obj_p x, obj_p y) {
 
             return load_obj(&buf, xl);
 
-        case MTYPE2(TYPE_ANYMAP, TYPE_I64):
+        case MTYPE2(TYPE_MAPLIST, TYPE_I64):
             k = ANYMAP_KEY(x);
             v = ANYMAP_VAL(x);
 
@@ -610,7 +610,7 @@ obj_p ray_take(obj_p x, obj_p y) {
 
             return res;
 
-        case MTYPE2(-TYPE_I64, TYPE_ANYMAP):
+        case MTYPE2(-TYPE_I64, TYPE_MAPLIST):
             l = ABSI64(x->i64);
             res = vector(TYPE_LIST, l);
 
@@ -930,7 +930,7 @@ obj_p ray_key(obj_p x) {
             k = ENUM_KEY(x);
             l = strlen(k);
             return symbol(k, l);
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             return clone_obj(ANYMAP_KEY(x));
         default:
             return clone_obj(x);
@@ -980,7 +980,7 @@ obj_p ray_value(obj_p x) {
 
             return res;
 
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             k = ANYMAP_KEY(x);
             e = ANYMAP_VAL(x);
 

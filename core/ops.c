@@ -154,7 +154,7 @@ b8_t ops_eq_idx(obj_p a, i64_t ai, obj_p b, i64_t bi) {
             drop_obj(lv);
             drop_obj(rv);
             return eq;
-        case MTYPE2(TYPE_ANYMAP, TYPE_ANYMAP):
+        case MTYPE2(TYPE_MAPLIST, TYPE_MAPLIST):
             lv = at_idx(a, ai);
             rv = at_idx(b, bi);
             eq = cmp_obj(lv, rv) == 0;
@@ -189,7 +189,7 @@ u64_t ops_count(obj_p x) {
             return AS_LIST(x)[0]->len;
         case TYPE_ENUM:
             return ENUM_VAL(x)->len;
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             return ANYMAP_VAL(x)->len;
         case TYPE_MAPB8:
         case TYPE_MAPU8:

@@ -102,7 +102,7 @@ obj_p unary_call_atomic(unary_f f, obj_p x) {
 
             return res;
 
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             l = ops_count(x);
             if (l == 0)
                 return NULL_OBJ;
@@ -207,7 +207,7 @@ obj_p ray_get(obj_p x) {
                 }
 
                 // anymap needs additional nested mapping of dependencies
-                if (res->type == TYPE_ANYMAP) {
+                if (res->type == TYPE_MAPLIST) {
                     s = cstring_from_str("#", 1);
                     col = ray_concat(x, s);
                     keys = ray_get(col);

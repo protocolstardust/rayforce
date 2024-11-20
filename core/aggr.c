@@ -131,14 +131,14 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     raw_p argv[6];
     index_type_t idx_type;
 
-    if (outype > TYPE_ANYMAP && outype < TYPE_TABLE)
+    if (outype > TYPE_MAPLIST && outype < TYPE_TABLE)
         outype = AS_LIST(val)[0]->type;
 
     idx_type = index_group_type(index);
     group_count = index_group_count(index);
     group_len = index_group_len(index);
+    printf("GROUP LEN: %lld\n", group_len);
     n = pool_split_by(pool, group_len, group_count, idx_type == INDEX_TYPE_GENERATOR);
-
     if (n == 1) {
         argv[0] = (raw_p)group_len;
         argv[1] = (raw_p)0;
@@ -271,7 +271,7 @@ obj_p aggr_first(obj_p val, obj_p index) {
             drop_obj(parts);
             return res;
         // TODO: implement anymap
-        // case TYPE_ANYMAP:
+        // case TYPE_MAPLIST:
         //     res = AGGR_COLLECT(parts, n, list, list, if ($out[$y] == NULL_OBJ) $out[$y] = clone_obj($in[$x]));
         //     drop_obj(parts);
         //     return res;

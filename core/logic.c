@@ -95,7 +95,7 @@ obj_p ray_like(obj_p x, obj_p y) {
 
             return res;
 
-        case MTYPE2(TYPE_ANYMAP, TYPE_C8):
+        case MTYPE2(TYPE_MAPLIST, TYPE_C8):
             l = x->len;
             res = B8(l);
             for (i = 0; i < l; i++) {

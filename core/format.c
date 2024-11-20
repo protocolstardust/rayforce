@@ -648,7 +648,7 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i) {
             drop_obj(res);
             return n;
         case TYPE_ENUM:
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             idx = i64(i);
             res = ray_at(obj, idx);
             drop_obj(idx);
@@ -1124,7 +1124,7 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) 
             return list_fmt_into(dst, indent, limit, full, obj);
         case TYPE_ENUM:
             return enum_fmt_into(dst, indent, limit, obj);
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             return anymap_fmt_into(dst, indent, limit, full, obj);
         case TYPE_DICT:
             return dict_fmt_into(dst, indent, limit, full, obj);

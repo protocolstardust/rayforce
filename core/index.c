@@ -178,7 +178,7 @@ obj_p index_hash_obj_partial(obj_p obj, u64_t out[], i64_t filter[], u64_t len, 
                         out[i] = hash_index_u64(u64v[i], out[i]);
             }
             break;
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             if (filter)
                 for (i = offset; i < len + offset; i++) {
                     v = at_idx(obj, filter[i]);
@@ -632,7 +632,7 @@ u64_t index_group_len(obj_p index) {
     if (AS_LIST(index)[4] != NULL_OBJ)  // source
         return AS_LIST(index)[4]->len;
 
-    return AS_LIST(index)[2]->len;  // group_ids
+    return ops_count(AS_LIST(index)[2]);
 }
 
 index_type_t index_group_type(obj_p index) { return (index_type_t)AS_LIST(index)[0]->i64; }
@@ -1025,7 +1025,7 @@ obj_p index_group(obj_p val, obj_p filter) {
             return index_group_i64(ENUM_VAL(val), filter);
         case TYPE_LIST:
             return index_group_obj(val, filter);
-        case TYPE_ANYMAP:
+        case TYPE_MAPLIST:
             v = ray_value(val);
             bins = index_group_obj(v, filter);
             drop_obj(v);
