@@ -94,8 +94,7 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
                     return v;
                 }
 
-                AS_LIST(lst)
-                [i] = v;
+                AS_LIST(lst)[i] = v;
             }
 
             *gvals = lst;

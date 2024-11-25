@@ -371,7 +371,7 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
                     type += TYPE_PARTEDLIST;
                 else
                     type = TYPE_PARTEDLIST;
-                printf("TYPE: %d\n", type);
+
                 AS_LIST(vals)[i + 1]->type = type;
             }
 
