@@ -82,7 +82,7 @@
             ini;                                                                     \
         }                                                                            \
         filter = index_group_filter_ids(index);                                      \
-        switch (index_group_type(index)) {                                           \
+        switch (index_type) {                                                        \
             case INDEX_TYPE_SHIFT:                                                   \
                 source = index_group_source(index);                                  \
                 shift = index_group_shift(index);                                    \
@@ -192,7 +192,6 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     }
 
     pool_prepare(pool);
-
     l = group_len;
     chunk = l / n;
 

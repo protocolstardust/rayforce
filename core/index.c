@@ -619,8 +619,8 @@ obj_p index_find_obj(obj_p x[], u64_t xl, obj_p y[], u64_t yl) {
 u64_t index_group_count(obj_p index) { return (u64_t)AS_LIST(index)[1]->i64; }
 
 i64_t *index_group_ids(obj_p index) {
-    if (AS_LIST(index)[1] != NULL_OBJ)
-        return AS_I64(AS_LIST(index)[1]);
+    if (AS_LIST(index)[2] != NULL_OBJ)
+        return AS_I64(AS_LIST(index)[2]);
 
     return NULL;
 }
