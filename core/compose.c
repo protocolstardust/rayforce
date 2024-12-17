@@ -81,6 +81,8 @@ obj_p ray_til(obj_p x) {
     if (IS_ERROR(vec))
         return vec;
 
+    vec->attrs = ATTR_ASC | ATTR_DISTINCT;
+
     pool = pool_get();
     n = pool_split_by(pool, l, 0);
 
@@ -99,8 +101,6 @@ obj_p ray_til(obj_p x) {
 
     v = pool_run(pool);
     drop_obj(v);
-
-    vec->attrs = ATTR_ASC | ATTR_DISTINCT;
 
     return vec;
 }
