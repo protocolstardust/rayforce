@@ -743,7 +743,7 @@ obj_p ray_ceil(obj_p x) {
     }
 }
 
-obj_p op_map(raw_p op, obj_p x, obj_p y) {
+obj_p binop_map(raw_p op, obj_p x, obj_p y) {
     pool_p pool = runtime_get()->pool;
     u64_t i, l, n, chunk;
     obj_p v, res;
@@ -794,10 +794,10 @@ obj_p op_map(raw_p op, obj_p x, obj_p y) {
     return res;
 }
 
-obj_p ray_add(obj_p x, obj_p y) { return op_map(ray_add_partial, x, y); }
-obj_p ray_sub(obj_p x, obj_p y) { return op_map(ray_sub_partial, x, y); }
-obj_p ray_mul(obj_p x, obj_p y) { return op_map(ray_mul_partial, x, y); }
-obj_p ray_div(obj_p x, obj_p y) { return op_map(ray_div_partial, x, y); }
-obj_p ray_fdiv(obj_p x, obj_p y) { return op_map(ray_fdiv_partial, x, y); }
-obj_p ray_mod(obj_p x, obj_p y) { return op_map(ray_mod_partial, x, y); }
-obj_p ray_xbar(obj_p x, obj_p y) { return op_map(ray_xbar_partial, x, y); }
+obj_p ray_add(obj_p x, obj_p y) { return binop_map(ray_add_partial, x, y); }
+obj_p ray_sub(obj_p x, obj_p y) { return binop_map(ray_sub_partial, x, y); }
+obj_p ray_mul(obj_p x, obj_p y) { return binop_map(ray_mul_partial, x, y); }
+obj_p ray_div(obj_p x, obj_p y) { return binop_map(ray_div_partial, x, y); }
+obj_p ray_fdiv(obj_p x, obj_p y) { return binop_map(ray_fdiv_partial, x, y); }
+obj_p ray_mod(obj_p x, obj_p y) { return binop_map(ray_mod_partial, x, y); }
+obj_p ray_xbar(obj_p x, obj_p y) { return binop_map(ray_xbar_partial, x, y); }
