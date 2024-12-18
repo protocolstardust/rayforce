@@ -21,22 +21,23 @@
  *   SOFTWARE.
  */
 
-#ifndef DATE_H
-#define DATE_H
+#include "temporal.h"
 
-#include "rayforce.h"
+const uint32_t MONTHDAYS_FWD[2][13] = {
+    {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
+    {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366},
+};
 
-typedef struct datestruct_t {
-    b8_t null;
-    u16_t year;
-    u8_t month;
-    u8_t day;
-    u64_t pad;
-} datestruct_t;
+const uint32_t MONTHDAYS_ABS[2][12] = {
+    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+};
 
-datestruct_t date_from_i32(i32_t offset);
-datestruct_t date_from_str(str_p src, u64_t len);
-i32_t date_into_i32(datestruct_t dt);
-obj_p ray_date(obj_p arg);
+u8_t leap_year(u16_t year) { return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0; }
 
-#endif  // DATE_H
+i32_t years_by_days(u16_t yy) { return (yy * 365 + yy / 4 - yy / 100 + yy / 400); }
+
+u8_t days_in_month(u16_t year, u8_t month) {
+    u8_t leap = leap_year(year);
+    return (MONTHDAYS_ABS[leap][month > 0 ? month - 1 : 0]);
+}

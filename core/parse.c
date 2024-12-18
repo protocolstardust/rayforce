@@ -187,9 +187,14 @@ obj_p parse_0x(parser_t *parser) {
     return NULL_OBJ;
 }
 
+obj_p parse_time(parser_t *parser) {
+    timestruct_t tm = {.null = B8_FALSE, .hours = 0, .mins = 0, .secs = 0, .msecs = 0};
+}
+
 obj_p parse_timestamp(parser_t *parser) {
     str_p end, current = parser->current;
     u32_t nanos;
+    datestruct_t dt = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0};
     timestamp_t ts = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0, .hours = 0, .mins = 0, .secs = 0, .nanos = 0};
     obj_p res;
     span_t span = span_start(parser);
@@ -247,8 +252,10 @@ obj_p parse_timestamp(parser_t *parser) {
     // just date passed
     if (*current != 'D') {
         shift(parser, current - parser->current);
-        res = adate(123);
-
+        dt.year = ts.year;
+        dt.month = ts.month;
+        dt.day = ts.day;
+        res = adate(date_into_i32(dt));
         span_extend(parser, &span);
         nfo_insert(parser->nfo, (i64_t)res, span);
 

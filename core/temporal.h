@@ -34,13 +34,11 @@
 #define MSECS_IN_DAY (SECS_IN_DAY * 1000)
 #define NSECS_IN_DAY (SECS_IN_DAY * 1000000000)
 
-const u32_t MONTHDAYS_FWD[2][13] = {
-    {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
-    {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366},
-};
-const u32_t MONTHDAYS_ABS[2][12] = {
-    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-};
+extern const u32_t MONTHDAYS_FWD[2][13];
+extern const u32_t MONTHDAYS_ABS[2][12];
+
+u8_t leap_year(u16_t year);
+i32_t years_by_days(u16_t yy);
+u8_t days_in_month(u16_t year, u8_t month);
 
 #endif  // TEMPORAL_H

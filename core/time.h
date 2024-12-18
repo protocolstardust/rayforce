@@ -28,7 +28,7 @@
 
 typedef struct timestruct_t {
     b8_t null;
-    u8_t sign;
+    i8_t sign;
     u8_t hours;
     u8_t mins;
     u8_t secs;
@@ -38,7 +38,7 @@ typedef struct timestruct_t {
 
 timestruct_t time_from_i32(i32_t offset);
 timestruct_t time_from_str(str_p src, u64_t len);
-i64_t time_into_i32(timestruct_t dt);
+i32_t time_into_i32(timestruct_t dt);
 obj_p ray_time(obj_p arg);
 
 #endif  // TIME_H

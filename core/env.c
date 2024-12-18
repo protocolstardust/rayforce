@@ -44,6 +44,8 @@
 #include "serde.h"
 #include "string.h"
 #include "chrono.h"
+#include "date.h"
+#include "time.h"
 #include "timestamp.h"
 #include "unary.h"
 #include "update.h"
@@ -153,6 +155,8 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "select",              TYPE_UNARY,    FN_NONE,                   ray_select);
     REGISTER_FN(functions,  "timeit",              TYPE_UNARY,    FN_NONE | FN_SPECIAL_FORM, ray_timeit);
     REGISTER_FN(functions,  "update",              TYPE_UNARY,    FN_NONE,                   ray_update);
+    REGISTER_FN(functions,  "date",                TYPE_UNARY,    FN_NONE,                   ray_date);
+    REGISTER_FN(functions,  "time",                TYPE_UNARY,    FN_NONE,                   ray_time);
     REGISTER_FN(functions,  "timestamp",           TYPE_UNARY,    FN_NONE,                   ray_timestamp);
     REGISTER_FN(functions,  "use-unicode-format",  TYPE_UNARY,    FN_NONE,                   ray_unicode_format);
     REGISTER_FN(functions,  "set-fpr",             TYPE_UNARY,    FN_NONE,                   ray_set_fpr);

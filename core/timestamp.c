@@ -34,51 +34,6 @@
 
 RAYASSERT(sizeof(struct timestamp_t) == 16, timestamp_h)
 
-typedef struct timespan_t {
-    u8_t hours;
-    u8_t mins;
-    u8_t secs;
-    u32_t nanos;
-} timespan_t;
-
-u8_t leap_year(u16_t year) { return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0; }
-
-i64_t years_by_days(u16_t yy) { return (yy * 365 + yy / 4 - yy / 100 + yy / 400); }
-
-u8_t days_in_month(u16_t year, u8_t month) {
-    u8_t leap = leap_year(year);
-    return (MONTHDAYS_ABS[leap][month > 0 ? month - 1 : 0]);
-}
-
-datestruct_t date_from_days(i64_t v) {
-    v += years_by_days(EPOCH - 1);
-    i64_t years = ROUNDF64(((f64_t)v / 365.2425));
-
-    if (years_by_days(years) > v)
-        years -= 1;
-
-    i64_t days = v - years_by_days(years);
-    i64_t yy = years + 1;
-    u8_t leap = leap_year(yy);
-    i32_t mid = 0;
-
-    for (mid = 12; mid > 0; mid--)
-        if (MONTHDAYS_FWD[leap][mid] != 0 && days / MONTHDAYS_FWD[leap][mid] != 0)
-            break;
-
-    if (mid == 12 || mid < 0)
-        mid = 0;
-
-    i64_t mm = (1 + mid % 12);
-    i64_t dd = (1 + days - MONTHDAYS_FWD[leap][mid]);
-
-    return (datestruct_t){
-        .year = (u16_t)yy,
-        .month = (u8_t)mm,
-        .day = (u8_t)dd,
-    };
-}
-
 timespan_t timespan_from_nanos(i64_t nanos) {
     i64_t secs = nanos / 1000000000;
     i64_t ns = nanos % 1000000000;
@@ -118,7 +73,7 @@ timestamp_t timestamp_from_i64(i64_t offset) {
         span += NSECS_IN_DAY;
     }
 
-    datestruct_t dt = date_from_days(days);
+    datestruct_t dt = date_from_i32((i32_t)days);
     timespan_t sp = timespan_from_nanos(span);
 
     timestamp_t ts = {

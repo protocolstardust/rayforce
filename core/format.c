@@ -343,6 +343,7 @@ i64_t date_fmt_into(obj_p *dst, i32_t val) {
         return str_fmt_into(dst, 3, "0d");
 
     dt = date_from_i32(val);
+
     return str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2d", dt.year, dt.month, dt.day);
 }
 
@@ -354,28 +355,19 @@ i64_t time_fmt_into(obj_p *dst, i32_t val) {
 
     tm = time_from_i32(val);
 
-    // if (!ts.hours && !ts.mins && !ts.secs && !ts.nanos)
-    //     n = str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2d", ts.year, ts.month, ts.day);
-    // else
-    //     n = str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d", ts.year, ts.month, ts.day, ts.hours,
-    //                      ts.mins, ts.secs, ts.nanos);
-
-    // return n;
+    return str_fmt_into(dst, NO_LIMIT, "%.2d:%.2d:%.2d.%.3d", tm.hours, tm.mins, tm.secs, tm.msecs);
 }
 
 i64_t timestamp_fmt_into(obj_p *dst, i64_t val) {
     timestamp_t ts;
-    i64_t n;
 
     if (val == NULL_I64)
         return str_fmt_into(dst, 3, "0p");
 
     ts = timestamp_from_i64(val);
 
-    n = str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d", ts.year, ts.month, ts.day, ts.hours, ts.mins,
-                     ts.secs, ts.nanos);
-
-    return n;
+    return str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d", ts.year, ts.month, ts.day, ts.hours,
+                        ts.mins, ts.secs, ts.nanos);
 }
 
 i64_t guid_fmt_into(obj_p *dst, guid_t *val) {

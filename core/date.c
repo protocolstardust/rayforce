@@ -22,24 +22,131 @@
  */
 
 #include "date.h"
+#include "temporal.h"
 #include "util.h"
+#include "ops.h"
+#include "error.h"
+#include "timestamp.h"
+#include "parse.h"
 
 RAYASSERT(sizeof(struct datestruct_t) == 16, date_h)
 
 datestruct_t date_from_i32(i32_t offset) {
+    u8_t leap;
+    i32_t years, days, yy, mm, dd, mid;
+
     if (offset == NULL_I32)
         return (datestruct_t){.null = 1};
 
+    offset += years_by_days(EPOCH - 1);
+    years = (i32_t)ROUNDF64(((f64_t)offset / 365.2425));
+
+    if (years_by_days(years) > offset)
+        years -= 1;
+
+    days = offset - years_by_days(years);
+    yy = years + 1;
+    leap = leap_year(yy);
+    mid = 0;
+
+    for (mid = 12; mid > 0; mid--)
+        if (MONTHDAYS_FWD[leap][mid] != 0 && days / MONTHDAYS_FWD[leap][mid] != 0)
+            break;
+
+    if (mid == 12 || mid < 0)
+        mid = 0;
+
+    mm = (1 + mid % 12);
+    dd = (1 + days - MONTHDAYS_FWD[leap][mid]);
+
     return (datestruct_t){
-        .null = 0,
-        .year = (u16_t)(offset / 10000),
-        .month = (u8_t)((offset % 10000) / 100),
-        .day = (u8_t)(offset % 100),
+        .year = (u16_t)yy,
+        .month = (u8_t)mm,
+        .day = (u8_t)dd,
     };
 }
 
-datestruct_t date_from_str(str_p src, u64_t len) {}
+datestruct_t date_from_str(str_p src, u64_t len) {
+    i64_t cnt = 0, val = 0, digit_count, digit;
+    datestruct_t dt = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0};
+    lit_p cur = src;
 
-i64_t date_into_i32(datestruct_t dt) {}
+    if (!src || len == 0) {
+        dt.null = B8_TRUE;
+        return dt;
+    }
 
-obj_p ray_date(obj_p arg) {}
+    while (len > 0 && cnt < 3) {
+        val = 0;
+        digit_count = 0;
+
+        while (len > 0 && is_digit(*cur)) {
+            digit = *cur - '0';
+            val = val * 10 + digit;
+            cur++;
+            len--;
+            digit_count++;
+        }
+
+        if (digit_count == 0) {
+            dt.null = B8_TRUE;
+            return dt;
+        }
+
+        switch (cnt) {
+            case 0:
+                dt.year = (val >= 0) ? (u16_t)val : (dt.null = B8_TRUE, 0);
+                break;
+            case 1:
+                dt.month = (val >= 1 && val <= 12) ? (u8_t)val : (dt.null = B8_TRUE, 0);
+                break;
+            case 2:
+                dt.day = (val >= 1 && val <= 31) ? (u8_t)val : (dt.null = B8_TRUE, 0);
+                break;
+        }
+
+        if (dt.null)
+            return dt;
+
+        cnt++;
+
+        while (len > 0 && !is_digit(*cur)) {
+            cur++;
+            len--;
+        }
+    }
+
+    if (cnt < 3)
+        dt.null = B8_TRUE;
+
+    return dt;
+}
+
+i32_t date_into_i32(datestruct_t dt) {
+    u8_t leap;
+    u32_t mdays;
+    i64_t yy, mm, ydays;
+
+    yy = (dt.year > 0) ? dt.year - 1 : 0;
+    ydays = years_by_days(yy);
+    leap = leap_year(yy);
+    mm = (dt.month > 0) ? dt.month - 1 : 0;
+    mdays = MONTHDAYS_FWD[leap][(i32_t)mm];
+    return ydays - years_by_days(EPOCH - 1) + mdays + dt.day - 1;
+}
+
+obj_p ray_date(obj_p arg) {
+    timestamp_t ts;
+    datestruct_t dt;
+
+    if (arg->type != -TYPE_SYMBOL)
+        THROW(ERR_TYPE, "date: expected 'Symbol, got '%s'", type_name(arg->type));
+
+    ts = timestamp_current(str_from_symbol(arg->i64));
+    dt.null = 0;
+    dt.year = ts.year;
+    dt.month = ts.month;
+    dt.day = ts.day;
+
+    return adate(date_into_i32(dt));
+}
