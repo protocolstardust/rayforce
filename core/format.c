@@ -315,16 +315,23 @@ i64_t c8_fmt_into(obj_p *dst, b8_t full, c8_t val) {
     }
 }
 
+i64_t i16_fmt_into(obj_p *dst, i16_t val) {
+    if (val == NULL_I16)
+        return str_fmt_into(dst, 4, "%s", LIT_NULL_I16);
+
+    return str_fmt_into(dst, NO_LIMIT, "%d", val);
+}
+
 i64_t i32_fmt_into(obj_p *dst, i32_t val) {
     if (val == NULL_I32)
-        return str_fmt_into(dst, 3, "%s", "0i");
+        return str_fmt_into(dst, 4, "%s", LIT_NULL_I32);
 
     return str_fmt_into(dst, NO_LIMIT, "%d", val);
 }
 
 i64_t i64_fmt_into(obj_p *dst, i64_t val) {
     if (val == NULL_I64)
-        return str_fmt_into(dst, 3, "%s", "0l");
+        return str_fmt_into(dst, 4, "%s", LIT_NULL_I64);
 
     return str_fmt_into(dst, NO_LIMIT, "%lld", val);
 }
@@ -333,7 +340,7 @@ i64_t f64_fmt_into(obj_p *dst, f64_t val) {
     f64_t order;
 
     if (ops_is_nan(val))
-        return str_fmt_into(dst, 3, "0f");
+        return str_fmt_into(dst, 4, LIT_NULL_F64);
 
     // Find the order of magnitude of the number to select the appropriate format
     order = log10(val);
@@ -347,7 +354,7 @@ i64_t date_fmt_into(obj_p *dst, i32_t val) {
     datestruct_t dt;
 
     if (val == NULL_I32)
-        return str_fmt_into(dst, 3, "0d");
+        return str_fmt_into(dst, 4, LIT_NULL_DATE);
 
     dt = date_from_i32(val);
 
@@ -358,7 +365,7 @@ i64_t time_fmt_into(obj_p *dst, i32_t val) {
     timestruct_t tm;
 
     if (val == NULL_I32)
-        return str_fmt_into(dst, 3, "0t");
+        return str_fmt_into(dst, 4, LIT_NULL_TIME);
 
     tm = time_from_i32(val);
 
@@ -369,7 +376,7 @@ i64_t timestamp_fmt_into(obj_p *dst, i64_t val) {
     timestamp_t ts;
 
     if (val == NULL_I64)
-        return str_fmt_into(dst, 3, "0p");
+        return str_fmt_into(dst, 4, LIT_NULL_TIMESTAMP);
 
     ts = timestamp_from_i64(val);
 
@@ -381,7 +388,7 @@ i64_t guid_fmt_into(obj_p *dst, guid_t *val) {
     i64_t n;
 
     if (memcmp(*val, NULL_GUID, 16) == 0)
-        return str_fmt_into(dst, 3, "0g");
+        return str_fmt_into(dst, 4, LIT_NULL_GUID);
 
     n = str_fmt_into(dst, 37, "%02hhx%02hhx%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", (*val)[0],
                      (*val)[1], (*val)[2], (*val)[3], (*val)[4], (*val)[5], (*val)[6], (*val)[7], (*val)[8], (*val)[9],
@@ -392,7 +399,7 @@ i64_t guid_fmt_into(obj_p *dst, guid_t *val) {
 
 i64_t symbol_fmt_into(obj_p *dst, i64_t limit, b8_t full, i64_t val) {
     if (val == NULL_I64)
-        return full ? str_fmt_into(dst, 3, "0s") : str_fmt_into(dst, 1, "");
+        return full ? str_fmt_into(dst, 4, LIT_NULL_SYMBOL) : str_fmt_into(dst, 1, "");
 
     i64_t n = str_fmt_into(dst, limit, "%s", str_from_symbol(val));
     if (limit_reached(limit, n))

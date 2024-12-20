@@ -34,6 +34,56 @@
 #include "order.h"
 #include "runtime.h"
 
+#define __DISPATCH_BINOP(x, y, op, ot, ov)                       \
+    _Generic((x),                                                \
+        i32_t: _Generic((y),                                     \
+            i32_t: ov = op(x, y),                                \
+            i64_t: ov = i64_to_##ot(__BINOP_I32_I64(x, y, op)),  \
+            f64_t: ov = f64_to_##ot(__BINOP_I32_F64(x, y, op))), \
+        i64_t: _Generic((y),                                     \
+            i32_t: ov = i64_to_##ot(__BINOP_I64_I32(x, y, op)),  \
+            i64_t: ov = op(x, y),                                \
+            f64_t: ov = f64_to_##ot(__BINOP_I64_F64(x, y, op))), \
+        f64_t: _Generic((y),                                     \
+            i32_t: ov = f64_to_##ot(__BINOP_F64_I32(x, y, op)),  \
+            i64_t: ov = f64_to_##ot(__BINOP_F64_I64(x, y, op)),  \
+            f64_t: ov = op(x, y)))
+
+#define __BINOP_A_V(x, y, lt, rt, ot, op, ln, of, ov)            \
+    ({                                                           \
+        rt##_t *$rhs;                                            \
+        __INNER_##ot *$out;                                      \
+        $rhs = __AS_##rt(y);                                     \
+        $out = __AS_##ot(ov) + of;                               \
+        for (u64_t $i = 0; $i < ln; $i++)                        \
+            __DISPATCH_BINOP(x->lt, $rhs[$i], op, ot, $out[$i]); \
+        NULL_OBJ;                                                \
+    })
+
+#define __BINOP_V_A(x, y, lt, rt, ot, op, ln, of, ov)            \
+    ({                                                           \
+        lt##_t *$lhs;                                            \
+        __INNER_##ot *$out;                                      \
+        $lhs = __AS_##lt(x);                                     \
+        $out = __AS_##ot(ov) + of;                               \
+        for (u64_t $i = 0; $i < ln; $i++)                        \
+            __DISPATCH_BINOP($lhs[$i], y->rt, op, ot, $out[$i]); \
+        NULL_OBJ;                                                \
+    })
+
+#define __BINOP_V_V(x, y, lt, rt, ot, op, ln, of, ov)               \
+    ({                                                              \
+        lt##_t *$lhs;                                               \
+        rt##_t *$rhs;                                               \
+        __INNER_##ot *$out;                                         \
+        $lhs = __AS_##lt(x);                                        \
+        $rhs = __AS_##rt(y);                                        \
+        $out = __AS_##ot(ov) + of;                                  \
+        for (u64_t $i = 0; $i < ln; $i++)                           \
+            __DISPATCH_BINOP($lhs[$i], $rhs[$i], op, ot, $out[$i]); \
+        NULL_OBJ;                                                   \
+    })
+
 i8_t infer_math_type(obj_p x, obj_p y) {
     switch (MTYPE2(ABSI8(x->type), ABSI8(y->type))) {
         case MTYPE2(TYPE_I32, TYPE_I32):

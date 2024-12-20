@@ -54,6 +54,18 @@
 #define BACK_WHITE "\033[47m"
 #define RESET "\033[0m"
 
+#define LIT_NULL_C8 ""
+#define LIT_NULL_I16 "0Nh"
+#define LIT_NULL_I32 "0Ni"
+#define LIT_NULL_I64 "0Nl"
+#define LIT_NULL_F64 "0Nf"
+#define LIT_NULL_DATE "0Nd"
+#define LIT_NULL_TIME "0Nt"
+#define LIT_NULL_TIMESTAMP "0Np"
+#define LIT_NULL_GUID "0Ng"
+#define LIT_NULL_SYMBOL "0Ns"
+#define LIT_NULL "0N0"
+
 i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs);
 i64_t str_fmt_into(obj_p *dst, i64_t limit, lit_p fmt, ...);
 obj_p str_fmt(i64_t limit, lit_p fmt, ...);

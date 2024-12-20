@@ -33,39 +33,54 @@
 
 typedef obj_p (*ray_cmp_f)(obj_p, obj_p, u64_t, u64_t, obj_p);
 
-#define __CMP_A_V(x, y, lt, rt, op, ln, of, ov) \
-    ({                                          \
-        rt##_t *$rhs;                           \
-        b8_t *$out;                             \
-        $rhs = __AS_##rt(y);                    \
-        $out = AS_B8(ov) + of;                  \
-        for (u64_t $i = 0; $i < ln; $i++)       \
-            $out[$i] = op(x->lt, $rhs[$i]);     \
-        NULL_OBJ;                               \
+#define __DISPATCH_CMP(x, y, op, ov)                \
+    _Generic((x),                                   \
+        i32_t: _Generic((y),                        \
+            i32_t: ov = op(x, y),                   \
+            i64_t: ov = __BINOP_I32_I64(x, y, op),  \
+            f64_t: ov = __BINOP_I32_F64(x, y, op)), \
+        i64_t: _Generic((y),                        \
+            i32_t: ov = __BINOP_I64_I32(x, y, op),  \
+            i64_t: ov = op(x, y),                   \
+            f64_t: ov = __BINOP_I64_F64(x, y, op)), \
+        f64_t: _Generic((y),                        \
+            i32_t: ov = __BINOP_F64_I32(x, y, op),  \
+            i64_t: ov = __BINOP_F64_I64(x, y, op),  \
+            f64_t: ov = op(x, y)))
+
+#define __CMP_A_V(x, y, lt, rt, op, ln, of, ov)            \
+    ({                                                     \
+        rt##_t *$rhs;                                      \
+        b8_t *$out;                                        \
+        $rhs = __AS_##rt(y);                               \
+        $out = AS_B8(ov) + of;                             \
+        for (u64_t $i = 0; $i < ln; $i++)                  \
+            __DISPATCH_CMP(x->lt, $rhs[$i], op, $out[$i]); \
+        NULL_OBJ;                                          \
     })
 
-#define __CMP_V_A(x, y, lt, rt, op, ln, of, ov) \
-    ({                                          \
-        lt##_t *$lhs;                           \
-        b8_t *$out;                             \
-        $lhs = __AS_##lt(x);                    \
-        $out = AS_B8(ov) + of;                  \
-        for (u64_t $i = 0; $i < ln; $i++)       \
-            $out[$i] = op($lhs[$i], y->rt);     \
-        NULL_OBJ;                               \
+#define __CMP_V_A(x, y, lt, rt, op, ln, of, ov)            \
+    ({                                                     \
+        lt##_t *$lhs;                                      \
+        b8_t *$out;                                        \
+        $lhs = __AS_##lt(x);                               \
+        $out = AS_B8(ov) + of;                             \
+        for (u64_t $i = 0; $i < ln; $i++)                  \
+            __DISPATCH_CMP($lhs[$i], y->rt, op, $out[$i]); \
+        NULL_OBJ;                                          \
     })
 
-#define __CMP_V_V(x, y, lt, rt, op, ln, of, ov) \
-    ({                                          \
-        lt##_t *$lhs;                           \
-        rt##_t *$rhs;                           \
-        b8_t *$out;                             \
-        $lhs = __AS_##lt(x);                    \
-        $rhs = __AS_##rt(y);                    \
-        $out = AS_B8(ov) + of;                  \
-        for (u64_t $i = 0; $i < ln; $i++)       \
-            $out[$i] = op($lhs[$i], $rhs[$i]);  \
-        NULL_OBJ;                               \
+#define __CMP_V_V(x, y, lt, rt, op, ln, of, ov)               \
+    ({                                                        \
+        lt##_t *$lhs;                                         \
+        rt##_t *$rhs;                                         \
+        b8_t *$out;                                           \
+        $lhs = __AS_##lt(x);                                  \
+        $rhs = __AS_##rt(y);                                  \
+        $out = AS_B8(ov) + of;                                \
+        for (u64_t $i = 0; $i < ln; $i++)                     \
+            __DISPATCH_CMP($lhs[$i], $rhs[$i], op, $out[$i]); \
+        NULL_OBJ;                                             \
     })
 
 obj_p ray_eq_partial(obj_p x, obj_p y, u64_t len, u64_t offset, obj_p res) {
@@ -74,14 +89,13 @@ obj_p ray_eq_partial(obj_p x, obj_p y, u64_t len, u64_t offset, obj_p res) {
     b8_t *out;
     obj_p k, sym, e;
 
-    out = AS_B8(res) + offset;
-
     switch (MTYPE2(x->type, y->type)) {
         case MTYPE2(-TYPE_B8, -TYPE_B8):
             return b8(EQB8(x->b8, y->b8));
         case MTYPE2(-TYPE_I64, -TYPE_I64):
         case MTYPE2(-TYPE_SYMBOL, -TYPE_SYMBOL):
         case MTYPE2(-TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
+            return b8(EQI64(x->i64, y->i64));
             return b8(EQI64(x->i64, y->i64));
         case MTYPE2(-TYPE_F64, -TYPE_F64):
             return b8(x->f64 == y->f64);
@@ -104,12 +118,16 @@ obj_p ray_eq_partial(obj_p x, obj_p y, u64_t len, u64_t offset, obj_p res) {
             xi = AS_I64(sym);
             ei = AS_I64(e) + offset;
             si = y->i64;
+            out = AS_B8(res) + offset;
 
             for (i = 0; i < len; i++)
                 out[i] = xi[ei[i]] == si;
 
             drop_obj(sym);
             return res;
+
+        case MTYPE2(-TYPE_SYMBOL, TYPE_ENUM):
+            return ray_eq_partial(y, x, len, offset, res);
 
         default:
             // if (x->type == TYPE_MAPCOMMON) {

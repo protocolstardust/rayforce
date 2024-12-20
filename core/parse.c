@@ -40,6 +40,10 @@
 #include "timestamp.h"
 #include "error.h"
 
+struct obj_t __PARSE_ADVANCE_OBJECT = {.type = TYPE_NULL};
+
+#define PARSE_ADVANCE (&__PARSE_ADVANCE_OBJECT)
+
 span_t span_start(parser_t *parser) {
     span_t s = {
         .start_line = (u16_t)parser->line,
@@ -116,75 +120,65 @@ obj_p to_token(parser_t *parser) {
     return tok;
 }
 
-obj_p parse_0x(parser_t *parser) {
-    str_p end, current = parser->current;
+obj_p parse_0Nx(parser_t *parser) {
+    str_p current = parser->current;
     span_t span;
-    u64_t num_u64;
-    u8_t num_u8;
     obj_p res;
 
-    if (*current == '0') {
+    if (*current == '0' && *(current + 1) == 'N') {
         span = span_start(parser);
 
-        if (*(current + 1) == 'p') {
-            res = timestamp(NULL_I64);
-            shift(parser, 2);
-            nfo_insert(parser->nfo, (i64_t)res, span);
-
-            return res;
-        }
-
-        if (*(parser->current + 1) == 'l') {
-            res = i64(NULL_I64);
-            shift(parser, 2);
-            nfo_insert(parser->nfo, (i64_t)res, span);
-
-            return res;
-        }
-
-        if (*(parser->current + 1) == 'f') {
-            res = f64(NULL_F64);
-            shift(parser, 2);
-            nfo_insert(parser->nfo, (i64_t)res, span);
-
-            return res;
-        }
-
-        if (*(parser->current + 1) == 'g') {
-            res = guid(NULL_GUID);
-            shift(parser, 2);
-            nfo_insert(parser->nfo, (i64_t)res, span);
-
-            return res;
-        }
-
-        if (*(parser->current + 1) == 's') {
-            shift(parser, 2);
-            res = null(TYPE_SYMBOL);
-            res->attrs = ATTR_QUOTED;
-            nfo_insert(parser->nfo, (i64_t)res, span);
-
-            return res;
-        }
-
-        if (*(parser->current + 1) == 'x') {
-            num_u64 = strtoul(parser->current, &end, 16);
-            if (num_u64 > 255) {
-                span.end_column += (end - parser->current);
-                nfo_insert(parser->nfo, parser->count, span);
-                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
-            }
-            num_u8 = (u8_t)num_u64;
-            shift(parser, end - parser->current);
-            span_extend(parser, &span);
-            res = u8(num_u8);
-            nfo_insert(parser->nfo, (i64_t)res, span);
-
-            return res;
+        switch (*(current + 2)) {
+            case '0':
+                res = NULL_OBJ;
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
+            case 'i':
+                res = i32(NULL_I32);
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
+            case 'd':
+                res = adate(NULL_I32);
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
+            case 't':
+                res = atime(NULL_I32);
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
+            case 'p':
+                res = timestamp(NULL_I64);
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
+            case 'l':
+                res = i64(NULL_I64);
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
+            case 'f':
+                res = f64(NULL_F64);
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
+            case 'g':
+                res = guid(NULL_GUID);
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
+            case 's':
+                shift(parser, 3);
+                res = null(TYPE_SYMBOL);
+                res->attrs = ATTR_QUOTED;
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
         }
     }
 
-    return NULL_OBJ;
+    return PARSE_ADVANCE;
 }
 
 obj_p parse_time(parser_t *parser) {
@@ -196,10 +190,10 @@ obj_p parse_time(parser_t *parser) {
         tm.hours = (*current - '0') * 10 + (*(current + 1) - '0');
         current += 2;
     } else
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     if (*current != ':')
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     current++;
 
@@ -207,10 +201,10 @@ obj_p parse_time(parser_t *parser) {
         tm.mins = (*current - '0') * 10 + (*(current + 1) - '0');
         current += 2;
     } else
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     if (*current != ':')
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     current++;
 
@@ -218,7 +212,7 @@ obj_p parse_time(parser_t *parser) {
         tm.secs = (*current - '0') * 10 + (*(current + 1) - '0');
         current += 2;
     } else
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     if (*current == '.') {
         current++;
@@ -227,7 +221,7 @@ obj_p parse_time(parser_t *parser) {
             tm.msecs = (*current - '0') * 100 + (*(current + 1) - '0') * 10 + (*(current + 2) - '0');
             current += 3;
         } else
-            return NULL_OBJ;
+            return PARSE_ADVANCE;
     }
 
     shift(parser, current - parser->current);
@@ -250,11 +244,11 @@ obj_p parse_timestamp(parser_t *parser) {
                   (*(current + 3) - '0');
         current += 4;
     } else
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     // skip dot
     if (*current != '.')
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     current++;
 
@@ -271,11 +265,11 @@ obj_p parse_timestamp(parser_t *parser) {
             return parse_error(parser, parser->count++, str_fmt(-1, "Month is out of range"));
         }
     } else
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     // skip dot
     if (*current != '.')
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     current++;
 
@@ -323,11 +317,11 @@ obj_p parse_timestamp(parser_t *parser) {
             return parse_error(parser, parser->count++, str_fmt(-1, "Hour is out of range"));
         }
     } else
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     // skip colon
     if (*current != ':')
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     current++;
 
@@ -344,11 +338,11 @@ obj_p parse_timestamp(parser_t *parser) {
             return parse_error(parser, parser->count++, str_fmt(-1, "Minute is out of range"));
         }
     } else
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     // skip colon
     if (*current != ':')
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     current++;
 
@@ -365,11 +359,11 @@ obj_p parse_timestamp(parser_t *parser) {
             return parse_error(parser, parser->count++, str_fmt(-1, "Second is out of range"));
         }
     } else
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     // skip dot
     if (*current != '.')
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     current++;
 
@@ -377,7 +371,7 @@ obj_p parse_timestamp(parser_t *parser) {
     nanos = strtoul(current, &end, 10);
 
     if (end == current)
-        return NULL_OBJ;
+        return PARSE_ADVANCE;
 
     ts.nanos = nanos;
     shift(parser, end - parser->current);
@@ -387,6 +381,38 @@ obj_p parse_timestamp(parser_t *parser) {
     nfo_insert(parser->nfo, (i64_t)res, span);
 
     return res;
+}
+
+obj_p specify_number(parser_t *parser, str_p current, span_t span, obj_p num) {
+    switch (*current) {
+        case 'i':
+            current++;
+            if (num->type == -TYPE_F64) {
+                drop_obj(num);
+                span.end_column += (current - parser->current);
+                nfo_insert(parser->nfo, parser->count, span);
+                return parse_error(parser, parser->count++,
+                                   str_fmt(-1, "Invalid literal: integer can not be imaginary"));
+            }
+            num->type = -TYPE_I32;
+            break;
+        case 'f':
+            current++;
+            num->type = -TYPE_F64;
+            break;
+        case 'l':
+            current++;
+            num->type = -TYPE_I64;
+            break;
+        default:
+            break;
+    }
+
+    shift(parser, current - parser->current);
+    span_extend(parser, &span);
+    nfo_insert(parser->nfo, (i64_t)num, span);
+
+    return num;
 }
 
 obj_p parse_number(parser_t *parser) {
@@ -423,11 +449,23 @@ obj_p parse_number(parser_t *parser) {
     } else
         num = i64(num_i64);
 
-    shift(parser, end - parser->current);
-    span_extend(parser, &span);
-    nfo_insert(parser->nfo, (i64_t)num, span);
+    // if (*(parser->current + 2) == 'x') {
+    //             num_u64 = strtoul(parser->current, &end, 16);
+    //             if (num_u64 > 255) {
+    //                 span.end_column += (end - parser->current);
+    //                 nfo_insert(parser->nfo, parser->count, span);
+    //                 return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+    //             }
+    //             num_u8 = (u8_t)num_u64;
+    //             shift(parser, end - parser->current);
+    //             span_extend(parser, &span);
+    //             res = u8(num_u8);
+    //             nfo_insert(parser->nfo, (i64_t)res, span);
 
-    return num;
+    //             return res;
+    //         }
+
+    return specify_number(parser, end, span, num);
 }
 
 obj_p parse_char(parser_t *parser) {
@@ -554,7 +592,6 @@ obj_p parse_symbol(parser_t *parser) {
         span_extend(parser, &span);
         res = b8(B8_TRUE);
         nfo_insert(parser->nfo, (i64_t)res, span);
-
         return res;
     }
 
@@ -563,7 +600,6 @@ obj_p parse_symbol(parser_t *parser) {
         span_extend(parser, &span);
         res = b8(B8_FALSE);
         nfo_insert(parser->nfo, (i64_t)res, span);
-
         return res;
     }
 
@@ -572,7 +608,6 @@ obj_p parse_symbol(parser_t *parser) {
         span_extend(parser, &span);
         res = NULL_OBJ;
         nfo_insert(parser->nfo, (i64_t)res, span);
-
         return res;
     }
 
@@ -617,7 +652,6 @@ obj_p parse_vector(parser_t *parser) {
             err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Expected ']'"));
             drop_obj(vec);
             drop_obj(tok);
-
             return err;
         }
 
@@ -626,7 +660,6 @@ obj_p parse_vector(parser_t *parser) {
                 err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
-
                 return err;
             }
 
@@ -637,7 +670,6 @@ obj_p parse_vector(parser_t *parser) {
                 err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
-
                 return err;
             }
 
@@ -653,7 +685,6 @@ obj_p parse_vector(parser_t *parser) {
                 err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
-
                 return err;
             }
         } else if (tok->type == -TYPE_F64) {
@@ -669,7 +700,6 @@ obj_p parse_vector(parser_t *parser) {
                 err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
-
                 return err;
             }
         } else if (tok->type == -TYPE_SYMBOL) {
@@ -680,7 +710,16 @@ obj_p parse_vector(parser_t *parser) {
                 err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
-
+                return err;
+            }
+        } else if (tok->type == -TYPE_I32) {
+            if (vec->type == TYPE_I32 || (vec->len == 0)) {
+                push_raw(&vec, &tok->i32);
+                vec->type = TYPE_I32;
+            } else {
+                err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
+                drop_obj(vec);
+                drop_obj(tok);
                 return err;
             }
         } else if (tok->type == -TYPE_DATE) {
@@ -691,7 +730,6 @@ obj_p parse_vector(parser_t *parser) {
                 err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
-
                 return err;
             }
         } else if (tok->type == -TYPE_TIME) {
@@ -702,7 +740,6 @@ obj_p parse_vector(parser_t *parser) {
                 err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
-
                 return err;
             }
         } else if (tok->type == -TYPE_TIMESTAMP) {
@@ -713,14 +750,12 @@ obj_p parse_vector(parser_t *parser) {
                 err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
                 drop_obj(vec);
                 drop_obj(tok);
-
                 return err;
             }
         } else {
             err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Invalid token in vector"));
             drop_obj(vec);
             drop_obj(tok);
-
             return err;
         }
 
@@ -959,7 +994,7 @@ nil_t skip_whitespaces(parser_t *parser) {
 }
 
 obj_p parser_advance(parser_t *parser) {
-    obj_p tok = NULL_OBJ, err = NULL_OBJ;
+    obj_p tok, err;
 
     skip_whitespaces(parser);
 
@@ -976,16 +1011,16 @@ obj_p parser_advance(parser_t *parser) {
         return parse_dict(parser);
 
     if (is_digit(*parser->current)) {
-        tok = parse_0x(parser);
-        if (tok != NULL_OBJ)
+        tok = parse_0Nx(parser);
+        if (tok != PARSE_ADVANCE)
             return tok;
 
         tok = parse_time(parser);
-        if (tok != NULL_OBJ)
+        if (tok != PARSE_ADVANCE)
             return tok;
 
         tok = parse_timestamp(parser);
-        if (tok != NULL_OBJ)
+        if (tok != PARSE_ADVANCE)
             return tok;
 
         drop_obj(tok);

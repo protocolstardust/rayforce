@@ -112,6 +112,7 @@ typedef double f64_t;
 typedef void nil_t;
 typedef u8_t guid_t[16];
 
+#define NULL_I16  ((i16_t)0x8000)
 #define NULL_I32  ((i32_t)0x80000000)
 #define NULL_I64  ((i64_t)0x8000000000000000LL)
 #define NULL_F64  ((f64_t)(0 / 0.0))
