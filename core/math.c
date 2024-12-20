@@ -839,6 +839,8 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
         return v;
     }
 
+    drop_obj(v);
+
     return res;
 }
 

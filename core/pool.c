@@ -418,15 +418,13 @@ obj_p pool_run(pool_p pool) {
         }
     }
 
-    drop_obj(res);
-
-    return NULL_OBJ;
+    return res;
 }
 
 u64_t pool_split_by(pool_p pool, u64_t input_len, u64_t groups_len) {
     if (pool == NULL)
         return 1;
-    else if (!rc_sync_get())
+    else if (rc_sync_get())
         return 1;
     else if (input_len <= pool->executors_count + 1)
         return 1;
