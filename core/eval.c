@@ -231,7 +231,7 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                         }
 
                         if (!(car->attrs & FN_AGGR) && y->type == TYPE_MAPGROUP) {
-                            z = aggr_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
+                            z = aggr_collect(AS_LIST(y)[0], AS_LIST(y)[1]);
                             drop_obj(y);
                             y = z;
                         } else if (y->type == TYPE_MAPFILTER) {
