@@ -121,7 +121,7 @@ block_p heap_add_pool(u64_t size) {
     u64_t id;
     i64_t fd;
     block_p block;
-    c8_t filename[64];
+    c8_t filename[128];
 
     block = (block_p)mmap_alloc(size);
 
