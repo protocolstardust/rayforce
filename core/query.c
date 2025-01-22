@@ -38,7 +38,7 @@
 #include "group.h"
 #include "filter.h"
 #include "update.h"
-#include "term.h"
+#include "progress.h"
 #include "pool.h"
 #include "chrono.h"
 #include "runtime.h"
@@ -527,6 +527,7 @@ obj_p select_build_table(query_ctx_p ctx) {
 obj_p ray_select(obj_p obj) {
     obj_p res;
     struct query_ctx_t ctx;
+    struct progress_t progress, *prog = NULL;
 
     query_ctx_init(&ctx);
 
@@ -543,36 +544,50 @@ obj_p ray_select(obj_p obj) {
     if (IS_ERROR(res))
         goto cleanup;
 
+    if (ops_count(ctx.table) > 1000000)
+        prog = &progress;
+
+    progress_init(prog, 7);
+
     // Mount table columns to a local env
+    progress_tick(prog, 1, "Mount table");
     mount_env(ctx.table);
 
     // Apply filters
+    progress_tick(prog, 1, "Apply filters");
     res = select_apply_filters(obj, &ctx);
     if (IS_ERROR(res))
         goto cleanup;
 
     // Apply groupping
+    progress_tick(prog, 1, "Apply groupings");
     res = select_apply_groupings(obj, &ctx);
     if (IS_ERROR(res))
         goto cleanup;
 
     // Apply mappings
+    progress_tick(prog, 1, "Apply mappings");
     res = select_apply_mappings(obj, &ctx);
     if (IS_ERROR(res))
         goto cleanup;
 
     // Collect fields
+    progress_tick(prog, 1, "Collect fields");
     res = select_collect_fields(&ctx);
     if (IS_ERROR(res))
         goto cleanup;
 
     // Build result table
+    progress_tick(prog, 1, "Build result table");
     res = select_build_table(&ctx);
 
 cleanup:
+    progress_tick(prog, 1, "Cleanup");
     unmount_env(ctx.tablen);
     query_ctx_destroy(&ctx);
     timeit_span_end("select");
+
+    progress_finalize(prog);
 
     return res;
 }

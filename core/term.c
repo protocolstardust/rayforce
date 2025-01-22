@@ -299,7 +299,7 @@ term_p term_create() {
 
     // Set the console output code page to UTF-8
     if (!SetConsoleOutputCP(CP_UTF8))
-        format_use_unicode(B8_FALSE);  // Disable unicode support
+        format_set_use_unicode(B8_FALSE);  // Disable unicode support
 
     // Save the current input mode
     GetConsoleMode(h_stdin, &term->old_stdin_mode);
@@ -835,7 +835,7 @@ obj_p term_handle_return(term_p term) {
 
     if (IS_CMD(term, ":u")) {
         onoff = (term->buf_len > 2 && term->buf[3] == '1') ? B8_TRUE : B8_FALSE;
-        format_use_unicode(onoff);
+        format_set_use_unicode(onoff);
         printf("\n%s. Format use unicode: %s.%s", YELLOW, onoff ? "on" : "off", RESET);
         hist_add(term->hist, term->buf, term->buf_len);
         return NULL_OBJ;
@@ -1016,46 +1016,4 @@ obj_p term_read(term_p term) {
 #endif
 
     return res;
-}
-
-nil_t term_init_progress_bar(term_p term, u64_t parts) {
-    term->pb.parts = parts;
-    term->pb.completed = 0;
-}
-
-nil_t term_update_progress_bar(term_p term, u64_t parts) {
-    i32_t i;
-
-    term->pb.completed += parts;
-    if (term->pb.completed > term->pb.parts)
-        term->pb.completed = term->pb.parts;
-
-    int percentage = (term->pb.completed * 100) / term->pb.parts;
-    int filled_width = (PROGRESS_BAR_WIDTH * term->pb.completed) / term->pb.parts;
-
-    printf("\r│");
-    for (i = 0; i < PROGRESS_BAR_WIDTH; i++) {
-        if (i < filled_width)
-            printf("█");
-        else
-            printf("░");
-    }
-    printf("│ %d/%d (%d%%)", term->pb.completed, term->pb.parts, percentage);
-    fflush(stdout);
-}
-
-nil_t term_finalize_progress_bar(term_p term) {
-    UNUSED(term);
-    i32_t i;
-
-    // Move cursor to the beginning of the line
-    printf("\r");
-
-    // Overwrite the progress bar with spaces
-    for (i = 0; i < PROGRESS_BAR_WIDTH + 20; i++)
-        printf(" ");
-
-    // Move cursor to the beginning of the line again
-    printf("\r");
-    fflush(stdout);
 }

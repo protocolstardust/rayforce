@@ -140,6 +140,16 @@ obj_p ray_like(obj_p x, obj_p y) {
 
             return res;
 
+        case MTYPE2(TYPE_PARTEDLIST, TYPE_C8):
+            l = x->len;
+            res = LIST(l);
+            for (i = 0; i < l; i++) {
+                e = AS_LIST(x)[i];
+                AS_LIST(res)[i] = ray_like(e, y);
+            }
+
+            return res;
+
         default:
             THROW(ERR_TYPE, "like: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }

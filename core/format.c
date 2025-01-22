@@ -1319,4 +1319,6 @@ obj_p timeit_fmt(nil_t) {
     return dst;
 }
 
-nil_t format_use_unicode(b8_t use) { __USE_UNICODE = use; }
+nil_t format_set_use_unicode(b8_t use) { __USE_UNICODE = use; }
+
+b8_t format_get_use_unicode() { return __USE_UNICODE; }

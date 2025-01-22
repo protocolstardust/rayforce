@@ -77,7 +77,8 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj);
 obj_p obj_fmt_n(obj_p *obj, u64_t n);
 obj_p ray_show(obj_p obj);
 obj_p timeit_fmt(nil_t);
-nil_t format_use_unicode(b8_t use);
+nil_t format_set_use_unicode(b8_t use);
+b8_t format_get_use_unicode();
 obj_p ray_set_fpr(obj_p x);            // set float precision
 obj_p ray_set_display_width(obj_p x);  // set display width
 i64_t guid_fmt_into(obj_p *dst, guid_t *val);
