@@ -33,7 +33,7 @@ typedef struct ray_timer_t {
     i64_t id;   // Timer ID
     i64_t tic;  // Interval between timer calls
     i64_t exp;  // Expiration time of the timer
-    i64_t num;  // Number of times the timer has to be called
+    u64_t num;  // Number of times the timer has to be called
     obj_p clb;  // Callback function to be called when timer expires
 } *ray_timer_p;
 

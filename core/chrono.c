@@ -289,7 +289,7 @@ i64_t timer_next_timeout(timers_p timers) {
         drop_obj(res);
 
         // Check if the timer should be repeated
-        if (timer->num > 0 || timer->num == NULL_I64) {
+        if (timer->num > 0) {
             if (timer->num > 1) {
                 timer->num--;  // Decrement repeat count if not infinite
 
@@ -318,6 +318,7 @@ i64_t timer_next_timeout(timers_p timers) {
 
 obj_p ray_timer(obj_p *x, u64_t n) {
     i64_t id;
+    u64_t num;
     timers_p timers;
 
     if (n == 0)
@@ -351,7 +352,9 @@ obj_p ray_timer(obj_p *x, u64_t n) {
 
     timers = runtime_get()->poll->timers;
 
-    id = timer_add(timers, x[0]->i64, x[0]->i64 + get_time_millis(), x[1]->i64, clone_obj(x[2]));
+    num = (u64_t)((x[1]->i64 == 0) ? NULL_I64 : x[1]->i64);
+
+    id = timer_add(timers, x[0]->i64, x[0]->i64 + get_time_millis(), num, clone_obj(x[2]));
 
     return i64(id);
 }
