@@ -342,7 +342,7 @@ obj_p anymap(obj_p sym, obj_p vec) {
 }
 
 obj_p resize_obj(obj_p *obj, u64_t len) {
-    i64_t size, new_size;
+    i64_t elem_size, obj_size;
     obj_p new_obj;
 
     DEBUG_ASSERT(IS_VECTOR(*obj), "resize: invalid type: %d", (*obj)->type);
@@ -350,17 +350,20 @@ obj_p resize_obj(obj_p *obj, u64_t len) {
     if ((*obj)->len == len)
         return *obj;
 
-    size = size_of_type((*obj)->type);
+    elem_size = size_of_type((*obj)->type);
 
     // calculate size of vector with new length
-    new_size = sizeof(struct obj_t) + len * size;
+    obj_size = sizeof(struct obj_t) + len * elem_size;
+
+    // printf("LEN: %lld ELEM SIZE: %lld OBJ SIZE: %lld NEW OBJ SIZE: %lld\n", len, elem_size,
+    //        sizeof(struct obj_t) + (*obj)->len * elem_size, obj_size);
 
     if (IS_INTERNAL(*obj))
-        *obj = (obj_p)heap_realloc(*obj, new_size);
+        *obj = (obj_p)heap_realloc(*obj, obj_size);
     else {
-        new_obj = (obj_p)heap_alloc(new_size);
-        memcpy(new_obj, *obj, sizeof(struct obj_t) + (*obj)->len * size);
-        drop_obj(*obj);
+        new_obj = (obj_p)heap_alloc(obj_size);
+        memcpy(new_obj, *obj, sizeof(struct obj_t) + len * elem_size);
+        heap_free(*obj);
         *obj = new_obj;
     }
 
@@ -1280,8 +1283,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
                     return k;
                 }
 
-                AS_LIST(v)
-                [i] = k;
+                AS_LIST(v)[i] = k;
             }
 
             drop_obj(val);
@@ -1348,32 +1350,110 @@ obj_p pop_obj(obj_p *obj) {
 }
 
 obj_p remove_idx(obj_p *obj, i64_t idx) {
-    obj_p res;
+    if (idx < 0 || idx >= (i64_t)(*obj)->len)
+        return *obj;
 
     switch ((*obj)->type) {
+        case TYPE_U8:
+        case TYPE_B8:
+        case TYPE_C8:
+            memmove(AS_U8(*obj) + idx, AS_U8(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(u8_t));
+            return resize_obj(obj, (*obj)->len - 1);
+        case TYPE_I16:
+            memmove(AS_I16(*obj) + idx, AS_I16(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(i16_t));
+            return resize_obj(obj, (*obj)->len - 1);
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            memmove(AS_I32(*obj) + idx, AS_I32(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(i32_t));
+            return resize_obj(obj, (*obj)->len - 1);
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
-            if (idx < 0 || idx >= (i64_t)(*obj)->len)
-                return NULL_OBJ;
-
-            res = i64(AS_I64(*obj)[idx]);
-            res->type = -(*obj)->type;
+        case TYPE_F64:
             memmove(AS_I64(*obj) + idx, AS_I64(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(i64_t));
-            resize_obj(obj, (*obj)->len - 1);
-
-            return res;
+            return resize_obj(obj, (*obj)->len - 1);
+        case TYPE_GUID:
+            memmove(AS_GUID(*obj) + idx, AS_GUID(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(guid_t));
+            return resize_obj(obj, (*obj)->len - 1);
         case TYPE_LIST:
-            if (idx < 0 || idx >= (i64_t)(*obj)->len)
-                return NULL_OBJ;
-
-            res = AS_LIST(*obj)[idx];
+            drop_obj(AS_LIST(*obj)[idx]);
             memmove(AS_LIST(*obj) + idx, AS_LIST(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(obj_p));
-            resize_obj(obj, (*obj)->len - 1);
-
-            return res;
+            return resize_obj(obj, (*obj)->len - 1);
         default:
             PANIC("remove_idx: invalid type: %d", (*obj)->type);
+    }
+}
+
+obj_p remove_ids(obj_p *obj, i64_t ids[], u64_t len) {
+    u64_t i, j;
+
+    if (len == 0 || (*obj)->len == 0 || len > (*obj)->len)
+        return *obj;
+
+    // Check ids are in range
+    for (i = 0; i < len; i++)
+        if (ids[i] < 0 || ids[i] >= (i64_t)(*obj)->len)
+            return *obj;
+
+    switch ((*obj)->type) {
+        case TYPE_U8:
+        case TYPE_B8:
+        case TYPE_C8:
+            for (i = 0; i < len; i++) {
+                j = ids[i] - i;
+                memmove(AS_U8(*obj) + j, AS_U8(*obj) + j + 1, ((*obj)->len - j - 1) * sizeof(u8_t));
+            }
+
+            return resize_obj(obj, (*obj)->len - len);
+        case TYPE_I16:
+            for (i = 0; i < len; i++) {
+                j = ids[i] - i;
+                memmove(AS_I16(*obj) + j, AS_I16(*obj) + j + 1, ((*obj)->len - j - 1) * sizeof(i16_t));
+            }
+
+            return resize_obj(obj, (*obj)->len - len);
+
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            for (i = 0; i < len; i++) {
+                j = ids[i] - i;
+                memmove(AS_I32(*obj) + j, AS_I32(*obj) + j + 1, ((*obj)->len - j - 1) * sizeof(i32_t));
+            }
+
+            return resize_obj(obj, (*obj)->len - len);
+
+        case TYPE_I64:
+        case TYPE_SYMBOL:
+        case TYPE_TIMESTAMP:
+        case TYPE_F64:
+            for (i = 0; i < len; i++) {
+                j = ids[i] - i;
+                memmove(AS_I64(*obj) + j, AS_I64(*obj) + j + 1, ((*obj)->len - j - 1) * sizeof(i64_t));
+            }
+
+            return resize_obj(obj, (*obj)->len - len);
+
+        case TYPE_GUID:
+            for (i = 0; i < len; i++) {
+                j = ids[i] - i;
+                memmove(AS_GUID(*obj) + j, AS_GUID(*obj) + j + 1, ((*obj)->len - j - 1) * sizeof(guid_t));
+            }
+
+            return resize_obj(obj, (*obj)->len - len);
+
+        case TYPE_LIST:
+            for (i = 0; i < len; i++) {
+                j = ids[i] - i;
+                drop_obj(AS_LIST(*obj)[j]);
+                memmove(AS_I64(*obj) + j, AS_I64(*obj) + j + 1, ((*obj)->len - j - 1) * sizeof(i64_t));
+            }
+
+            return resize_obj(obj, (*obj)->len - len);
+
+        default:
+            PANIC("remove_ids: invalid type: %d", (*obj)->type);
     }
 }
 
@@ -1381,7 +1461,33 @@ obj_p remove_obj(obj_p *obj, obj_p idx) {
     u64_t i;
     obj_p v;
 
-    switch ((*obj)->type) {
+    switch (MTYPE2((*obj)->type, idx->type)) {
+        case MTYPE2(TYPE_U8, -TYPE_I64):
+        case MTYPE2(TYPE_B8, -TYPE_I64):
+        case MTYPE2(TYPE_C8, -TYPE_I64):
+        case MTYPE2(TYPE_I16, -TYPE_I64):
+        case MTYPE2(TYPE_I32, -TYPE_I64):
+        case MTYPE2(TYPE_DATE, -TYPE_I64):
+        case MTYPE2(TYPE_TIME, -TYPE_I64):
+        case MTYPE2(TYPE_I64, -TYPE_I64):
+        case MTYPE2(TYPE_SYMBOL, -TYPE_I64):
+        case MTYPE2(TYPE_TIMESTAMP, -TYPE_I64):
+        case MTYPE2(TYPE_F64, -TYPE_I64):
+        case MTYPE2(TYPE_LIST, -TYPE_I64):
+            return remove_idx(obj, idx->i64);
+        case MTYPE2(TYPE_U8, TYPE_I64):
+        case MTYPE2(TYPE_B8, TYPE_I64):
+        case MTYPE2(TYPE_C8, TYPE_I64):
+        case MTYPE2(TYPE_I16, TYPE_I64):
+        case MTYPE2(TYPE_I32, TYPE_I64):
+        case MTYPE2(TYPE_DATE, TYPE_I64):
+        case MTYPE2(TYPE_TIME, TYPE_I64):
+        case MTYPE2(TYPE_I64, TYPE_I64):
+        case MTYPE2(TYPE_SYMBOL, TYPE_I64):
+        case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
+        case MTYPE2(TYPE_F64, TYPE_I64):
+        case MTYPE2(TYPE_LIST, TYPE_I64):
+            return remove_ids(obj, AS_I64(idx), idx->len);
         case TYPE_DICT:
             i = find_obj(AS_LIST(*obj)[0], idx);
 

@@ -102,6 +102,14 @@ obj_p __alter(obj_p *obj, obj_p *x, u64_t n) {
         return push_obj(obj, clone_obj(x[2]));
     }
 
+    // special case for remove
+    if (x[1]->i64 == (i64_t)ray_remove) {
+        if (n != 3)
+            THROW(ERR_LENGTH, "alter: remove use expected 3 args");
+
+        return remove_obj(obj, x[2]);
+    }
+
     // retrieve the object via indices
     v = at_obj(*obj, x[2]);
 
@@ -121,6 +129,8 @@ obj_p __alter(obj_p *obj, obj_p *x, u64_t n) {
 }
 
 obj_p __commit(obj_p src, obj_p obj, obj_p *val) {
+    // TODO: comparison val and *obj in case of shrink is only guaranteed
+    // to be correct with own allocator
     if (src->type == -TYPE_SYMBOL) {
         if ((val != NULL) && (*val != obj)) {
             drop_obj(*val);

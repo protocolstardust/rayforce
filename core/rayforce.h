@@ -237,9 +237,10 @@ extern obj_p push_sym(obj_p *obj, lit_p str); // push interned string to a symbo
 extern obj_p append_list(obj_p *obj, obj_p vals);  
 
 // Pop a value from the end of a list
-extern obj_p pop_obj(obj_p *obj);               // pop object from a list
-extern obj_p remove_idx(obj_p *obj, i64_t idx); // remove value from a obj by index
-extern obj_p remove_obj(obj_p *obj, obj_p idx); // remove value from a obj by obj
+extern obj_p pop_obj(obj_p *obj);                            // pop object from a list
+extern obj_p remove_idx(obj_p *obj, i64_t idx);              // remove value from a obj by index
+extern obj_p remove_ids(obj_p *obj, i64_t ids[], u64_t len); // remove value from a obj by indices
+extern obj_p remove_obj(obj_p *obj, obj_p idx);              // remove value from a obj by obj
 
 // Insert a value into a list by an index (doesn't call a drop)
 extern obj_p ins_raw(obj_p *obj, i64_t idx, raw_p val); // write raw value into a list

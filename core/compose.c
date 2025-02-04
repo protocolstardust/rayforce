@@ -575,6 +575,12 @@ obj_p ray_concat(obj_p x, obj_p y) {
     }
 }
 
+obj_p ray_remove(obj_p x, obj_p y) {
+    // TODO: implement
+    UNUSED(y);
+    return clone_obj(x);
+}
+
 obj_p ray_distinct(obj_p x) {
     obj_p res = NULL;
     u64_t l;

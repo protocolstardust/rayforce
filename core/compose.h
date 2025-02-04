@@ -32,6 +32,7 @@ obj_p ray_rand(obj_p x, obj_p y);
 obj_p ray_cast_obj(obj_p x, obj_p y);
 obj_p ray_enum(obj_p x, obj_p y);
 obj_p ray_concat(obj_p x, obj_p y);
+obj_p ray_remove(obj_p x, obj_p y);
 obj_p ray_distinct(obj_p x);
 obj_p ray_til(obj_p x);
 obj_p ray_reverse(obj_p x);
