@@ -150,7 +150,6 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "parse",               TYPE_UNARY,    FN_NONE,                   ray_parse);
     REGISTER_FN(functions,  "ser",                 TYPE_UNARY,    FN_NONE,                   ser_obj);
     REGISTER_FN(functions,  "de",                  TYPE_UNARY,    FN_NONE,                   de_obj);
-    REGISTER_FN(functions,  "hopen",               TYPE_UNARY,    FN_NONE,                   ray_hopen);
     REGISTER_FN(functions,  "hclose",              TYPE_UNARY,    FN_NONE,                   ray_hclose);
     REGISTER_FN(functions,  "rc",                  TYPE_UNARY,    FN_NONE,                   ray_rc);
     REGISTER_FN(functions,  "select",              TYPE_UNARY,    FN_NONE,                   ray_select);
@@ -230,6 +229,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "inner-join",          TYPE_VARY,     FN_NONE,                   ray_inner_join);
     REGISTER_FN(functions,  "if",                  TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_cond);
     REGISTER_FN(functions,  "return",              TYPE_VARY,     FN_NONE,                   ray_return);
+    REGISTER_FN(functions,  "hopen",               TYPE_VARY,     FN_NONE,                   ray_hopen);
     REGISTER_FN(functions,  "exit",                TYPE_VARY,     FN_NONE,                   ray_exit);
     REGISTER_FN(functions,  "loadfn",              TYPE_VARY,     FN_NONE,                   ray_loadfn);
     REGISTER_FN(functions,  "timer",               TYPE_VARY,     FN_NONE,                   ray_timer);

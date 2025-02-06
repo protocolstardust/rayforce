@@ -28,31 +28,28 @@
 #include "string.h"
 #include "util.h"
 
-i64_t sock_addr_from_str(str_p addr_str, sock_addr_t *addr) {
-    c8_t temp_str[256];  // Temporary string for tokenization
-    str_p token;
+i64_t sock_addr_from_str(str_p str, u64_t len, sock_addr_t *addr) {
+    str_p tok;
 
     // Check for NULL pointers
-    if (addr_str == NULL || addr == NULL)
+    if (str == NULL || addr == NULL)
         return -1;
-
-    strncpy(temp_str, addr_str, sizeof(temp_str) - 1);
-    temp_str[sizeof(temp_str) - 1] = '\0';  // Ensure null termination
 
     // Get IP part
-    token = strtok(temp_str, ":");
-    if (token == NULL)
+    tok = memchr(str, ':', len);
+    if (tok == NULL)
         return -1;
 
-    strncpy(addr->ip, token, sizeof(addr->ip) - 1);
-    addr->ip[sizeof(addr->ip) - 1] = '\0';  // Ensure null termination
+    if ((tok - str) > 15)
+        return -1;
+
+    memcpy(addr->ip, str, tok - str);
+    addr->ip[tok - str] = '\0';
+    tok++;
 
     // Get port part
-    token = strtok(NULL, ":");
-    if (token == NULL)
-        return -1;
-
-    addr->port = atoi(token);
+    len -= tok - str;
+    addr->port = i64_from_str(tok, len);
 
     return 0;
 }
@@ -200,10 +197,11 @@ i64_t sock_set_nonblocking(i64_t fd, b8_t flag) {
     return 0;
 }
 
-i64_t sock_open(sock_addr_t *addr) {
+i64_t sock_open(sock_addr_t *addr, i64_t timeout) {
     i64_t fd;
     struct sockaddr_in addrin;
     struct linger linger_opt;
+    struct timeval tm;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -215,14 +213,27 @@ i64_t sock_open(sock_addr_t *addr) {
     addrin.sin_port = htons(addr->port);
     inet_pton(AF_INET, addr->ip, &addrin.sin_addr);
 
-    if (connect(fd, (struct sockaddr *)&addrin, sizeof(addrin)) == -1)
+    // Set timeout
+    tm.tv_sec = timeout;  // Timeout in seconds
+    tm.tv_usec = 0;       // Timeout in microseconds
+    if (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tm, sizeof(tm)) < 0) {
+        close(fd);
         return -1;
+    }
 
+    // Set the behavior of a socket when it is closed using close()
     linger_opt.l_onoff = 1;   // Enable SO_LINGER
     linger_opt.l_linger = 0;  // Timeout in seconds (0 means terminate immediately)
+    if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt))) {
+        close(fd);
+        return -1;
+    }
 
-    // Apply the linger option to the socket
-    setsockopt(fd, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt));
+    // Connect to the server
+    if (connect(fd, (struct sockaddr *)&addrin, sizeof(addrin)) == -1) {
+        close(fd);
+        return -1;
+    }
 
     return fd;
 }

@@ -104,7 +104,7 @@ i64_t i64_from_str(lit_p str, u64_t len) {
     }
 
     // Parse the digits
-    while (is_digit(*str)) {
+    while (len-- > 0 && is_digit(*str)) {
         result = result * 10 + (*str - '0');
         str++;
     }

@@ -43,21 +43,34 @@
 #include "compose.h"
 #include "items.h"
 
-obj_p ray_hopen(obj_p x) {
-    i64_t fd;
+obj_p ray_hopen(obj_p *x, u64_t n) {
+    i64_t fd, timeout = 0;
     sock_addr_t addr;
     u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
     obj_p path, err;
 
-    if (x->type != TYPE_C8)
-        THROW(ERR_TYPE, "hopen: expected char");
+    if (n == 0)
+        THROW(ERR_LENGTH, "hopen: expected at least 1 argument, got 0");
+
+    if (n > 2)
+        THROW(ERR_LENGTH, "hopen: expected at most 2 arguments, got %lld", n);
+
+    if (x[0]->type != TYPE_C8)
+        THROW(ERR_TYPE, "hopen: expected string address");
+
+    if (n == 2) {
+        if (x[1]->type != -TYPE_I64)
+            THROW(ERR_TYPE, "hopen: expected i64 timeout");
+
+        timeout = x[1]->i64;
+    }
 
     // Open socket
-    if (sock_addr_from_str(AS_C8(x), &addr) != -1) {
-        fd = sock_open(&addr);
+    if (sock_addr_from_str(AS_C8(x[0]), x[0]->len, &addr) != -1) {
+        fd = sock_open(&addr, timeout);
 
         if (fd == -1)
-            return sys_error(ERROR_TYPE_SOCK, "hopen");
+            THROW(ERR_IO, "hopen: failed to connect to %s:%d", addr.ip, addr.port);
 
         if (sock_send(fd, handshake, 2) == -1) {
             err = sys_error(ERROR_TYPE_SOCK, "hopen: send handshake");
@@ -77,7 +90,7 @@ obj_p ray_hopen(obj_p x) {
     }
 
     // Otherwise, open file
-    path = cstring_from_obj(x);
+    path = cstring_from_obj(x[0]);
     fd = fs_fopen(AS_C8(path), ATTR_RDWR | ATTR_CREAT | ATTR_APPEND);
     drop_obj(path);
 
