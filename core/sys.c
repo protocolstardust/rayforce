@@ -75,7 +75,7 @@ sys_info_t sys_info(i32_t threads) {
     info.mem = (i32_t)(memInfo.ullTotalPhys / (1024 * 1024));
 
 #elif defined(OS_LINUX)
-    FILE *cpuFile = fopen("/proc/cpuinfo", "r");
+    FILE* cpuFile = fopen("/proc/cpuinfo", "r");
     c8_t line[256];
 
     while (fgets(line, sizeof(line), cpuFile)) {
@@ -88,7 +88,7 @@ sys_info_t sys_info(i32_t threads) {
 
     fclose(cpuFile);
 
-    FILE *memFile = fopen("/proc/meminfo", "r");
+    FILE* memFile = fopen("/proc/meminfo", "r");
     while (fgets(line, sizeof(line), memFile)) {
         if (strncmp(line, "MemTotal:", 9) == 0) {
             i32_t totalKB;
@@ -123,15 +123,16 @@ sys_info_t sys_info(i32_t threads) {
 
 obj_p ray_system(obj_p cmd) {
     c8_t buf[4096];
-    FILE *fp;
-    i64_t l;
+    FILE* fp;
+    i64_t l, status;
     obj_p c, res;
 
     if (cmd->type != TYPE_C8) {
         THROW(ERR_TYPE, "system: expected a string");
     }
 
-    c = cstring_from_str((lit_p)AS_U8(cmd), cmd->len);
+    // Append " 2>&1" to capture stderr as well
+    c = str_fmt(-1, "%.*s 2>&1", (i32_t)cmd->len, (lit_p)AS_U8(cmd));
 
     fp = popen(AS_C8(c), "r");
     if (fp == NULL)
@@ -149,7 +150,18 @@ obj_p ray_system(obj_p cmd) {
     }
 
     drop_obj(c);
-    pclose(fp);
+    status = pclose(fp);
+
+    // Trim res list if it contains only one element
+    if (res->len == 1) {
+        c = clone_obj(AS_LIST(res)[0]);
+        drop_obj(res);
+        res = c;
+    }
+
+    // Check command execution status
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+        return error_obj(ERR_SYS, res);
 
     return res;
 }
