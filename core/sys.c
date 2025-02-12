@@ -153,6 +153,10 @@ obj_p ray_system(obj_p cmd) {
     status = pclose(fp);
 
     // Trim res list if it contains only one element
+    if (res->len == 0) {
+        drop_obj(res);
+        res = C8(0);
+    }
     if (res->len == 1) {
         c = clone_obj(AS_LIST(res)[0]);
         drop_obj(res);
@@ -160,8 +164,14 @@ obj_p ray_system(obj_p cmd) {
     }
 
     // Check command execution status
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        if (res->type == TYPE_LIST) {
+            c = clone_obj(AS_LIST(res)[0]);
+            drop_obj(res);
+            res = c;
+        }
         return error_obj(ERR_SYS, res);
+    }
 
     return res;
 }
