@@ -143,6 +143,7 @@ ray_thread_t ray_thread_create(raw_p (*fn)(raw_p), raw_p arg) {
 }
 
 i32_t thread_destroy(ray_thread_t *thread) { return pthread_cancel(thread->handle); }
+
 i32_t thread_join(ray_thread_t thread) { return pthread_join(thread.handle, NULL); }
 
 i32_t thread_detach(ray_thread_t thread) { return pthread_detach(thread.handle); }
