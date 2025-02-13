@@ -289,7 +289,7 @@ obj_p ray_map_right(obj_p *x, u64_t n) {
 }
 
 obj_p ray_fold(obj_p *x, u64_t n) {
-    u64_t o, i, j, l;
+    u64_t a, o, i, j, l;
     obj_p f, v, *b, x1, x2;
 
     if (n < 2)
@@ -307,7 +307,7 @@ obj_p ray_fold(obj_p *x, u64_t n) {
         case TYPE_BINARY:
             l = ops_rank(x, n);
             if (l == 0xfffffffffffffffful)
-                THROW(ERR_LENGTH, "'map': arguments have different lengths");
+                THROW(ERR_LENGTH, "'fold': arguments have different lengths");
 
             if (n == 1) {
                 o = 1;
@@ -335,32 +335,39 @@ obj_p ray_fold(obj_p *x, u64_t n) {
         case TYPE_VARY:
             return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
         case TYPE_LAMBDA:
-            if (n != AS_LAMBDA(f)->args->len)
-                THROW(ERR_LENGTH, "'fold': lambda call with wrong arguments count");
-
             l = ops_rank(x, n);
             if (l == 0xfffffffffffffffful)
                 THROW(ERR_LENGTH, "'fold': arguments have different lengths");
 
+            if (n != 1 && n != AS_LAMBDA(f)->args->len)
+                THROW(ERR_LENGTH, "'fold': lambda call with wrong arguments count");
+
             // interpret first arg as an initial value
-            if (n > 1) {
+            if (n == 1) {
+                a = 2;
                 o = 1;
-                v = clone_obj(x[0]);
-            } else {
+                b = x;
+                v = at_idx(x[0], 0);
+            } else if (n == 2) {
+                a = 2;
                 o = 0;
-                v = null(x[0]->type);
-            }
+                b = x + 1;
+                v = clone_obj(x[0]);
+            } else
+                THROW(ERR_LENGTH, "'fold': binary call with wrong arguments count");
 
-            for (i = 0; i < l; i++) {
+            for (i = o; i < l; i++) {
                 stack_push(v);
+                x2 = at_idx(*b, i);
+                stack_push(x2);
 
-                for (j = o; j < n; j++) {
-                    b = x + j;
-                    v = at_idx(*b, i);
-                    stack_push(v);
-                }
+                // for (j = o; j < n; j++) {
+                //     b = x + j;
+                //     v = at_idx(*b, i);
+                //     stack_push(v);
+                // }
 
-                v = call(f, n);
+                v = call(f, a);
 
                 if (IS_ERROR(v))
                     return v;
