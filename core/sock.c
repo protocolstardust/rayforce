@@ -36,7 +36,7 @@ i64_t sock_addr_from_str(str_p str, u64_t len, sock_addr_t *addr) {
         return -1;
 
     // Get IP part
-    tok = memchr(str, ':', len);
+    tok = (str_p)memchr(str, ':', len);
     if (tok == NULL)
         return -1;
 
