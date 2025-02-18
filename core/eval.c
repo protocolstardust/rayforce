@@ -594,10 +594,14 @@ obj_p try_obj(obj_p obj, obj_p ctch) {
                 return call(fn, 1);
             case -TYPE_SYMBOL:
                 pfn = resolve(fn->i64);
-                if (pfn != NULL && (*pfn)->type == TYPE_LAMBDA) {
-                    fn = *pfn;
-                    goto call;
+                if (pfn == NULL) {
+                    drop_obj(res);
+                    return clone_obj(fn);
                 }
+                fn = *pfn;
+                if (fn->type == TYPE_LAMBDA)
+                    goto call;
+
                 drop_obj(res);
                 return eval(*pfn);
             default:
