@@ -311,8 +311,11 @@ obj_p cmp_map(raw_p op, obj_p x, obj_p y) {
         return cmp_fn(x, y, 1, 0, NULL_OBJ);
     }
 
-    n = pool_split_by(pool, l, 0);
     res = B8(l);
+    if (l == 0)
+        return res;
+
+    n = pool_split_by(pool, l, 0);
 
     if (n == 1) {
         v = cmp_fn(x, y, l, 0, res);

@@ -191,7 +191,7 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y) {
             return error_str(ERR_LENGTH, "binary: vectors must be of the same length");
 
         if (l == 0)
-            return NULL_OBJ;
+            return f(x, y);
 
         a = xt == TYPE_LIST ? AS_LIST(x)[0] : at_idx(x, 0);
         b = yt == TYPE_LIST ? AS_LIST(y)[0] : at_idx(y, 0);
@@ -232,7 +232,8 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y) {
     } else if (xt == TYPE_LIST || xt == TYPE_MAPLIST) {
         l = ops_count(x);
         if (l == 0)
-            return NULL_OBJ;
+            return f(x, y);
+
         a = xt == TYPE_LIST ? AS_LIST(x)[0] : at_idx(x, 0);
         item = binary_call_atomic(f, a, y);
         if (xt != TYPE_LIST)
@@ -264,7 +265,8 @@ obj_p binary_call_atomic(binary_f f, obj_p x, obj_p y) {
     } else if (yt == TYPE_LIST || yt == TYPE_MAPLIST) {
         l = ops_count(y);
         if (l == 0)
-            return NULL_OBJ;
+            return f(x, y);
+
         b = yt == TYPE_LIST ? AS_LIST(y)[0] : at_idx(y, 0);
         item = binary_call_atomic(f, x, b);
         if (yt != TYPE_LIST)
