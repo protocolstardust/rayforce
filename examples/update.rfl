@@ -34,3 +34,5 @@
 ;; (load "examples/update.rfl") (update {price: 0 from: tab where: (== volume 78)})
 ;; (load "examples/update.rfl") (update {price: 0 from: 'tab where: (== volume 78)})
 ;; (load "examples/update.rfl") (update {price: 0 from: tab by: sym where: (> volume 400)})
+
+(set d (dict [a b c] (list 'a 'b (dict [d e] [1 2]))))

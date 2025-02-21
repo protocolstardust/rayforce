@@ -784,7 +784,7 @@ obj_p io_get_symfile(obj_p path) {
     if (path->len < 2 || AS_C8(path)[path->len - 1] != '/') {
         v = ray_get(path);
     } else {
-        s = cstring_from_str("sym", 3);
+        s = string_from_str("sym", 3);
         col = ray_concat(path, s);
         v = ray_get(col);
         drop_obj(s);
@@ -930,6 +930,7 @@ obj_p io_set_table_splayed(obj_p path, obj_p table, obj_p symfile) {
 obj_p io_get_table_splayed(obj_p path, obj_p symfile) {
     obj_p col, keys, vals, val, s, v;
     u64_t i, l;
+    b8_t syms_present = B8_FALSE;
 
     // first try to read columns schema
     s = cstring_from_str(".d", 2);
@@ -968,10 +969,13 @@ obj_p io_get_table_splayed(obj_p path, obj_p symfile) {
         }
 
         AS_LIST(vals)[i] = val;
+
+        if (val->type == TYPE_SYMBOL)
+            syms_present = B8_TRUE;
     }
 
     // read symbol data (if any) if sym is not present in current env
-    if (resolve(SYMBOL_SYM) == NULL) {
+    if (syms_present && resolve(SYMBOL_SYM) == NULL) {
         v = (symfile->type != TYPE_NULL) ? io_get_symfile(symfile) : io_get_symfile(path);
 
         if (IS_ERROR(v)) {

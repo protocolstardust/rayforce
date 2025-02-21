@@ -320,7 +320,7 @@ obj_p ray_find(obj_p x, obj_p y) {
         case MTYPE2(TYPE_GUID, -TYPE_GUID):
         case MTYPE2(TYPE_C8, -TYPE_C8):
             l = x->len;
-            i = find_obj(x, y);
+            i = find_obj_idx(x, y);
 
             if (i == l)
                 return i64(NULL_I64);

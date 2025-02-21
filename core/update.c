@@ -167,32 +167,69 @@ obj_p ray_alter(obj_p *x, u64_t n) {
 }
 
 obj_p __modify(obj_p *obj, obj_p *x, u64_t n) {
-    obj_p v, idx, res;
+    i64_t i, l;
+    obj_p v, idx, args[n], cur, res;
 
-    // special case for set
-    if (x[1]->i64 == (i64_t)ray_set || x[1]->i64 == (i64_t)ray_let) {
-        if (n != 4)
-            THROW(ERR_LENGTH, "alter: set expected a value");
+    // this is the same as __alter
+    if (!IS_VECTOR(x[2]))
+        return __alter(obj, x, n);
 
-        return set_obj(obj, x[2], clone_obj(x[3]));
+    if (n != 4)
+        THROW(ERR_LENGTH, "modify: set expected a value");
+
+    // Drill down to the value
+    l = x[2]->len - 1;
+    v = NULL_OBJ;
+    idx = NULL_OBJ;
+    cur = *obj;
+
+    for (i = 0; i < l; i++) {
+        drop_obj(v);
+        drop_obj(idx);
+
+        idx = at_idx(x[2], i);
+
+        if (IS_ERROR(idx))
+            return idx;
+
+        if (is_null(idx)) {
+            drop_obj(idx);
+            THROW(ERR_TYPE, "modify: expected index, got NULL");
+        }
+
+        v = at_obj(cur, idx);
+
+        if (IS_ERROR(v)) {
+            drop_obj(idx);
+            return v;
+        }
+
+        cur = v;
     }
 
-    // retrieve the object via indices
-    v = at_obj(*obj, x[2]);
+    idx = at_idx(x[2], l);
 
-    if (IS_ERROR(v))
-        return v;
+    if (IS_ERROR(idx)) {
+        drop_obj(v);
+        return idx;
+    }
 
-    idx = x[2];
-    x[2] = v;
-    res = ray_apply(x + 1, n - 1);
-    x[2] = idx;
-    drop_obj(v);
+    if (is_null(idx)) {
+        drop_obj(v);
+        drop_obj(idx);
+        THROW(ERR_TYPE, "modify: expected index, got NULL");
+    }
 
-    if (IS_ERROR(res))
-        return res;
+    args[0] = v;
+    args[1] = x[1];
+    args[2] = idx;
+    args[3] = x[3];
 
-    return set_obj(obj, idx, res);
+    res = ray_alter(args, n);
+    // drop_obj(v);
+    // drop_obj(idx);
+
+    return res;
 }
 
 obj_p ray_modify(obj_p *x, u64_t n) {
@@ -209,11 +246,11 @@ obj_p ray_modify(obj_p *x, u64_t n) {
     if (IS_ERROR(obj))
         return obj;
 
-    res = __alter(&obj, x, n);
+    res = __modify(&obj, x, n);
     if (IS_ERROR(res))
         UNCOW_OBJ(obj, val, res);
 
-    return obj;
+    return __commit(x[0], obj, val);
 }
 
 /*

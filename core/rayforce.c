@@ -1051,7 +1051,7 @@ obj_p at_obj(obj_p obj, obj_p idx) {
             return v;
         default:
             if (obj->type == TYPE_DICT) {
-                i = find_obj(AS_LIST(obj)[0], idx);
+                i = find_obj_idx(AS_LIST(obj)[0], idx);
                 if (i == AS_LIST(obj)[0]->len)
                     return null(AS_LIST(obj)[1]->type);
 
@@ -1235,6 +1235,101 @@ obj_p __expand(obj_p obj, u64_t len) {
     }
 }
 
+i64_t find_sym(obj_p obj, lit_p str) {
+    i64_t n = symbols_intern(str, strlen(str));
+    return find_raw(obj, &n);
+}
+
+i64_t find_obj_idx(obj_p obj, obj_p val) {
+    if (!IS_VECTOR(obj))
+        return NULL_I64;
+
+    switch (obj->type) {
+        case TYPE_I64:
+        case TYPE_SYMBOL:
+        case TYPE_TIMESTAMP:
+            return find_raw(obj, &val->i64);
+        case TYPE_F64:
+            return find_raw(obj, &val->f64);
+        case TYPE_C8:
+            return find_raw(obj, &val->c8);
+        case TYPE_LIST:
+            return find_raw(obj, &val);
+        default:
+            PANIC("find: invalid type: %d", obj->type);
+    }
+}
+
+obj_p find_obj_ids(obj_p obj, obj_p val) {
+    i64_t i, j, l, m;
+    obj_p ids;
+
+    switch (MTYPE2(obj->type, val->type)) {
+        case MTYPE2(TYPE_I64, TYPE_I64):
+        case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
+        case MTYPE2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
+            l = val->len;
+            m = obj->len;
+            ids = I64(l);
+
+            for (i = 0; i < l; i++) {
+                j = find_raw(obj, &AS_I64(val)[i]);
+                if (j == m) {
+                    drop_obj(ids);
+                    return NULL_OBJ;
+                }
+
+                AS_I64(ids)[i] = j;
+            }
+
+            return ids;
+        default:
+            THROW(ERR_TYPE, "find_obj_ids: invalid types: '%s, '%s'", type_name(obj->type), type_name(val->type));
+    }
+}
+
+obj_p set_dict_obj(obj_p *obj, obj_p idx, obj_p val) {
+    u64_t i;
+    obj_p ids, res;
+
+    switch (idx->type) {
+        case -TYPE_I64:
+        case -TYPE_SYMBOL:
+        case -TYPE_TIMESTAMP:
+            i = find_obj_idx(AS_LIST(*obj)[0], idx);
+            if (i == AS_LIST(*obj)[0]->len) {
+                res = push_obj(&AS_LIST(*obj)[0], clone_obj(idx));
+                if (res->type == TYPE_ERROR)
+                    return res;
+
+                res = push_obj(&AS_LIST(*obj)[1], clone_obj(val));
+            }
+
+            res = set_idx(&AS_LIST(*obj)[1], i, val);
+
+            if (IS_ERROR(res))
+                return res;
+
+            return *obj;
+        case TYPE_I64:
+        case TYPE_SYMBOL:
+        case TYPE_TIMESTAMP:
+            ids = find_obj_ids(AS_LIST(*obj)[0], idx);
+            if (IS_ERROR(ids))
+                return ids;
+
+            res = set_ids(&AS_LIST(*obj)[1], AS_I64(ids), ids->len, val);
+            drop_obj(ids);
+
+            return res;
+        default:
+            THROW(ERR_TYPE, "set_dict_obj: invalid types: 'keys: %s, 'idx: %s, 'val: %s",
+                  type_name(AS_LIST(*obj)[0]->type), type_name(idx->type), type_name(val->type));
+    }
+
+    return *obj;
+}
+
 obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
     obj_p k, v, res;
     u64_t i, n, l;
@@ -1279,7 +1374,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
             val = __expand(val, ops_count(*obj));
             if (IS_ERROR(val))
                 return val;
-            i = find_obj(AS_LIST(*obj)[0], idx);
+            i = find_obj_idx(AS_LIST(*obj)[0], idx);
             if (i == AS_LIST(*obj)[0]->len) {
                 res = push_obj(&AS_LIST(*obj)[0], clone_obj(idx));
                 if (IS_ERROR(res))
@@ -1344,26 +1439,13 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
             return *obj;
         default:
             if ((*obj)->type == TYPE_DICT) {
-                i = find_obj(AS_LIST(*obj)[0], idx);
-                if (i == AS_LIST(*obj)[0]->len) {
-                    res = push_obj(&AS_LIST(*obj)[0], clone_obj(idx));
-                    if (res->type == TYPE_ERROR)
-                        return res;
-
-                    res = push_obj(&AS_LIST(*obj)[1], val);
-
-                    if (res->type == TYPE_ERROR)
-                        PANIC("set_obj: inconsistent update");
-
-                    return *obj;
+                res = set_dict_obj(obj, idx, val);
+                if (IS_ERROR(res)) {
+                    drop_obj(val);
+                    return res;
                 }
 
-                res = set_idx(&AS_LIST(*obj)[1], i, val);
-
-                if (IS_ERROR(res))
-                    return res;
-
-                return *obj;
+                return res;
             }
 
             THROW(ERR_TYPE, "set_obj: invalid types: '%s, '%s", type_name((*obj)->type), type_name(val->type));
@@ -1424,7 +1506,7 @@ obj_p remove_idx(obj_p *obj, i64_t idx) {
             memmove(AS_LIST(*obj) + idx, AS_LIST(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(obj_p));
             return resize_obj(obj, (*obj)->len - 1);
         default:
-            PANIC("remove_idx: invalid type: %d", (*obj)->type);
+            THROW(ERR_TYPE, "remove_idx: invalid type: %d", (*obj)->type);
     }
 }
 
@@ -1531,17 +1613,23 @@ obj_p remove_obj(obj_p *obj, obj_p idx) {
         case MTYPE2(TYPE_F64, TYPE_I64):
         case MTYPE2(TYPE_LIST, TYPE_I64):
             return remove_ids(obj, AS_I64(idx), idx->len);
-        case TYPE_DICT:
-            i = find_obj(AS_LIST(*obj)[0], idx);
+        case MTYPE2(TYPE_DICT, -TYPE_I64):
+            i = find_obj_idx(AS_LIST(*obj)[0], idx);
 
-            // not found?
+            // not found ?
             if (i == AS_LIST(*obj)[0]->len)
                 return *obj;
 
             v = remove_idx(&AS_LIST(*obj)[0], i);
-            drop_obj(v);
 
-            return remove_idx(&AS_LIST(*obj)[1], i);
+            if (IS_ERROR(v))
+                return v;
+
+            v = remove_idx(&AS_LIST(*obj)[1], i);
+            if (IS_ERROR(v))
+                return v;
+
+            return *obj;
         default:
             PANIC("remove_obj: invalid type: %d", (*obj)->type);
     }
@@ -1669,31 +1757,6 @@ i64_t find_raw(obj_p obj, raw_p val) {
         default:
             PANIC("find: invalid type: %d", obj->type);
     }
-}
-
-i64_t find_obj(obj_p obj, obj_p val) {
-    if (!IS_VECTOR(obj))
-        return NULL_I64;
-
-    switch (obj->type) {
-        case TYPE_I64:
-        case TYPE_SYMBOL:
-        case TYPE_TIMESTAMP:
-            return find_raw(obj, &val->i64);
-        case TYPE_F64:
-            return find_raw(obj, &val->f64);
-        case TYPE_C8:
-            return find_raw(obj, &val->c8);
-        case TYPE_LIST:
-            return find_raw(obj, &val);
-        default:
-            PANIC("find: invalid type: %d", obj->type);
-    }
-}
-
-i64_t find_sym(obj_p obj, lit_p str) {
-    i64_t n = symbols_intern(str, strlen(str));
-    return find_raw(obj, &n);
 }
 
 obj_p cast_obj(i8_t type, obj_p obj) {
@@ -2146,15 +2209,15 @@ obj_p copy_obj(obj_p obj) {
             res = LIST(l);
             res->rc = 1;
             for (i = 0; i < l; i++)
-                AS_LIST(res)[i] = copy_obj(AS_LIST(obj)[i]);
+                AS_LIST(res)[i] = clone_obj(AS_LIST(obj)[i]);
             return res;
         case TYPE_ENUM:
         case TYPE_MAPLIST:
             return ray_value(obj);
         case TYPE_TABLE:
-            return table(copy_obj(AS_LIST(obj)[0]), copy_obj(AS_LIST(obj)[1]));
+            return table(clone_obj(AS_LIST(obj)[0]), clone_obj(AS_LIST(obj)[1]));
         case TYPE_DICT:
-            return dict(copy_obj(AS_LIST(obj)[0]), copy_obj(AS_LIST(obj)[1]));
+            return dict(clone_obj(AS_LIST(obj)[0]), clone_obj(AS_LIST(obj)[1]));
         default:
             THROW(ERR_NOT_IMPLEMENTED, "cow: not implemented for type: '%s", type_name(obj->type));
     }

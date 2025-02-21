@@ -278,7 +278,8 @@ extern obj_p resize_obj(obj_p *obj, u64_t len);
 
 // Search
 extern i64_t find_raw(obj_p obj, raw_p val); // find raw value in a list, return index (obj->len if not found)
-extern i64_t find_obj(obj_p obj, obj_p val); // find object in a list, return index (obj->len if not found)
+extern i64_t find_obj_idx(obj_p obj, obj_p val); // find object in a list, return index (obj->len if not found)
+extern obj_p find_obj_ids(obj_p obj, obj_p val); // find object in a list, return indexes (NULL_OBJ if not found)
 extern i64_t find_sym(obj_p obj, lit_p str); // find interned string in a symbol vector, return index (obj->len if not found)
 
 // Cast
