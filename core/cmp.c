@@ -53,7 +53,7 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, u64_t, u64_t, obj_p);
     ({                                                     \
         rt##_t *$rhs;                                      \
         b8_t *$out;                                        \
-        $rhs = __AS_##rt(y);                               \
+        $rhs = __AS_##rt(y) + of;                          \
         $out = AS_B8(ov) + of;                             \
         for (u64_t $i = 0; $i < ln; $i++)                  \
             __DISPATCH_CMP(x->lt, $rhs[$i], op, $out[$i]); \
@@ -64,7 +64,7 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, u64_t, u64_t, obj_p);
     ({                                                     \
         lt##_t *$lhs;                                      \
         b8_t *$out;                                        \
-        $lhs = __AS_##lt(x);                               \
+        $lhs = __AS_##lt(x) + of;                          \
         $out = AS_B8(ov) + of;                             \
         for (u64_t $i = 0; $i < ln; $i++)                  \
             __DISPATCH_CMP($lhs[$i], y->rt, op, $out[$i]); \
@@ -76,8 +76,8 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, u64_t, u64_t, obj_p);
         lt##_t *$lhs;                                         \
         rt##_t *$rhs;                                         \
         b8_t *$out;                                           \
-        $lhs = __AS_##lt(x);                                  \
-        $rhs = __AS_##rt(y);                                  \
+        $lhs = __AS_##lt(x) + of;                             \
+        $rhs = __AS_##rt(y) + of;                             \
         $out = AS_B8(ov) + of;                                \
         for (u64_t $i = 0; $i < ln; $i++)                     \
             __DISPATCH_CMP($lhs[$i], $rhs[$i], op, $out[$i]); \
