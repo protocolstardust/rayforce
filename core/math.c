@@ -114,17 +114,8 @@ i8_t infer_math_type(obj_p x, obj_p y) {
         case MTYPE2(TYPE_TIME, TYPE_I64):
         case MTYPE2(TYPE_TIME, TYPE_TIME):
             return TYPE_TIME;
-        case MTYPE2(TYPE_I32, TYPE_TIMESTAMP):
-        case MTYPE2(TYPE_I64, TYPE_TIMESTAMP):
-        case MTYPE2(TYPE_DATE, TYPE_TIME):
-        case MTYPE2(TYPE_TIME, TYPE_DATE):
-        case MTYPE2(TYPE_TIME, TYPE_TIMESTAMP):
-        case MTYPE2(TYPE_TIMESTAMP, TYPE_I32):
-        case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
-        case MTYPE2(TYPE_TIMESTAMP, TYPE_TIME):
-            return TYPE_TIMESTAMP;
         default:
-            return TYPE_I64;
+            return TYPE_TIMESTAMP;
     }
 }
 

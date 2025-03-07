@@ -43,6 +43,31 @@
         }                                                                                                              \
     }
 
+#define TEST_ASSERT_ER(lhs, rhs)                                                                       \
+    {                                                                                                  \
+        obj_p le = eval_str(lhs);                                                                      \
+        obj_p lns = obj_fmt(le, B8_TRUE);                                                              \
+        char* file = __FILE__;                                                                         \
+        int line = __LINE__;                                                                           \
+        if (!IS_ERROR(le)) {                                                                            \
+            obj_p fmt = str_fmt(-1, "Expected error: %s\n -- at: %s:%d", AS_C8(lns), file, line);         \
+            TEST_ASSERT(0, AS_C8(lns));                                                                \
+            drop_obj(lns);                                                                             \
+            drop_obj(fmt);                                                                             \
+            drop_obj(le);                                                                              \
+        } else {                                                                                       \
+            lit_p err_text = AS_C8(lns);                                                               \
+            lit_p last_part = strrchr(err_text, '‾');                                                  \
+            if (last_part == NULL || strstr(last_part, rhs) == NULL) {                                 \
+                obj_p fmt = str_fmt(-1, "Expect %s, in: %s -- at: %s:%d", rhs, err_text, file, line); \
+                TEST_ASSERT(0, AS_C8(fmt));                                                            \
+                drop_obj(fmt);                                                                         \
+            }                                                                                          \
+            drop_obj(le);                                                                              \
+            drop_obj(lns);                                                                             \
+        }                                                                                              \
+    }
+
 test_result_t test_lang_basic() {
     TEST_ASSERT_EQ("null", "null");
     TEST_ASSERT_EQ("0x1a", "0x1a");
@@ -188,6 +213,8 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(+ [2025.03.04D15:41:47.087221025] 01:01:00.000)", "[2025.03.04D16:42:47.087221025]");
     TEST_ASSERT_EQ("(+ [2025.03.04D15:41:47.087221025] [1000000000i])", "[2025.03.04D15:41:48.087221025]");
     TEST_ASSERT_EQ("(+ [2025.03.04D15:41:47.087221025] [3000000000])", "[2025.03.04D15:41:50.087221025]");
+    TEST_ASSERT_EQ("(+ [2025.03.04D15:41:47.087221025] [01:01:00.000])", "[2025.03.04D16:42:47.087221025]");
+    TEST_ASSERT_ER("(+ 2025.03.04D15:41:47.087221025 2025.12.13)", "add: unsupported types: 'timestamp, 'date");
 
     TEST_ASSERT_EQ("(- 3i 5i)", "-2i");
     TEST_ASSERT_EQ("(- 3i 5)", "-2");
@@ -284,10 +311,12 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] 1000000000i)", "[2025.03.04D15:41:46.087221025]");
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] 3000000000)", "[2025.03.04D15:41:44.087221025]");
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] 01:01:00.000)", "[2025.03.04D14:40:47.087221025]");
-    TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [2025.03.04D15:41:47.087221025])", "[0]");
+    TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] 2025.03.04D15:41:47.087221025)", "[0]");
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [1000000000i])", "[2025.03.04D15:41:46.087221025]");
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [3000000000])", "[2025.03.04D15:41:44.087221025]");
+    TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [01:01:00.000])", "[2025.03.04D14:40:47.087221025]");
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [2025.03.04D15:41:47.087221025])", "[0]");
+    TEST_ASSERT_ER("(- 2025.03.04D15:41:47.087221025 2025.12.13)", "sub: unsupported types: 'timestamp, 'date");
 
     TEST_ASSERT_EQ("(* 3i 5i)", "15i");
     TEST_ASSERT_EQ("(* 3i 5)", "15");
@@ -349,6 +378,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(* [02:15:07.000 05:41:47.087] 5)", "[11:15:35.000 28:28:55.435]");
     TEST_ASSERT_EQ("(* [02:15:07.000] [5i])", "[11:15:35.000]");
     TEST_ASSERT_EQ("(* [02:15:07.000] [5])", "[11:15:35.000]");
+    TEST_ASSERT_ER("(* 02:15:07.000 02:15:07.000)", "mul: unsupported types: 'time, 'time");
 
     TEST_ASSERT_EQ("(/ -10i 5i)", "-2i");
     TEST_ASSERT_EQ("(/ -9i 5i)", "-1i");
@@ -504,6 +534,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(/ 3 -5.0)", "0");
     TEST_ASSERT_EQ("(/ 9 -5.0)", "-1");
     TEST_ASSERT_EQ("(/ 10 -5.0)", "-2");
+    TEST_ASSERT_EQ("(/ -10 [5i])", "[-2]");
     TEST_ASSERT_EQ("(/ -10 [5])", "[-2]");
     TEST_ASSERT_EQ("(/ -9 [5])", "[-1]");
     TEST_ASSERT_EQ("(/ -3 [5])", "[0]");
@@ -606,6 +637,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(/ 3.0 -5.0)", "0.0");
     TEST_ASSERT_EQ("(/ 9.0 -5.0)", "-1.0");
     TEST_ASSERT_EQ("(/ 10.0 -5.0)", "-2.0");
+    TEST_ASSERT_EQ("(/ -10.0 [5i])", "[-2.0]");
     TEST_ASSERT_EQ("(/ -10.0 [5])", "[-2.0]");
     TEST_ASSERT_EQ("(/ -9.0 [5])", "[-1.0]");
     TEST_ASSERT_EQ("(/ -3.0 [5])", "[0.0]");
@@ -818,6 +850,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(/ [3] -5.0)", "[0]");
     TEST_ASSERT_EQ("(/ [9] -5.0)", "[-1]");
     TEST_ASSERT_EQ("(/ [10] -5.0)", "[-2]");
+    TEST_ASSERT_EQ("(/ [-10] [5i])", "[-2]");
     TEST_ASSERT_EQ("(/ [-10] [5])", "[-2]");
     TEST_ASSERT_EQ("(/ [-9] [5])", "[-1]");
     TEST_ASSERT_EQ("(/ [-3] [5])", "[0]");
@@ -918,6 +951,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(/ [3.0] -5.0)", "[0.0]");
     TEST_ASSERT_EQ("(/ [9.0] -5.0)", "[-1.0]");
     TEST_ASSERT_EQ("(/ [10.0] -5.0)", "[-2.0]");
+    TEST_ASSERT_EQ("(/ [-10.0] [5i])", "[-2.0]");
     TEST_ASSERT_EQ("(/ [-10.0] [5])", "[-2.0]");
     TEST_ASSERT_EQ("(/ [-9.0] [5])", "[-1.0]");
     TEST_ASSERT_EQ("(/ [-3.0] [5])", "[0.0]");
@@ -977,6 +1011,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(/ [10:20:15.000] [3])", "[03:26:45.000]");
     TEST_ASSERT_EQ("(/ [10:20:15.000] [3i])", "[03:26:45.000]");
     TEST_ASSERT_EQ("(/ [10:20:15.000] [3.0])", "[03:26:45.000]");
+    TEST_ASSERT_ER("(/ 02:15:07.000 02:15:07.000)", "div: unsupported types: 'time, 'time");
 
     TEST_ASSERT_EQ("(% 10i 0i)", "0Ni");
     TEST_ASSERT_EQ("(% 10i 0)", "0Nl");
@@ -1281,6 +1316,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(% [100000000001.0] 5i)", "[1.0]");
     TEST_ASSERT_EQ("(% [100000000001.0] [5i])", "[1.0]");
     TEST_ASSERT_EQ("(% [18.4] 5.1)", "[3.1]");
+    TEST_ASSERT_ER("(% 02:15:07.000 02:15:07.000)", "mod: unsupported types: 'time, 'time");
 
     TEST_ASSERT_EQ("(div -10i 5i)", "-2.0");
     TEST_ASSERT_EQ("(div -9i 5i)", "-1.8");
@@ -1436,6 +1472,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div 3 -5.0)", "-0.6");
     TEST_ASSERT_EQ("(div 9 -5.0)", "-1.8");
     TEST_ASSERT_EQ("(div 10 -5.0)", "-2.0");
+    TEST_ASSERT_EQ("(div -10 [5i])", "[-2.0]");
     TEST_ASSERT_EQ("(div -10 [5])", "[-2.0]");
     TEST_ASSERT_EQ("(div -9 [5])", "[-1.8]");
     TEST_ASSERT_EQ("(div -3 [5])", "[-0.6]");
@@ -1538,6 +1575,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div 3.0 -5.0)", "-0.6");
     TEST_ASSERT_EQ("(div 9.0 -5.0)", "-1.8");
     TEST_ASSERT_EQ("(div 10.0 -5.0)", "-2.0");
+    TEST_ASSERT_EQ("(div -10.0 [5i])", "[-2.0]");
     TEST_ASSERT_EQ("(div -10.0 [5])", "[-2.0]");
     TEST_ASSERT_EQ("(div -9.0 [5])", "[-1.8]");
     TEST_ASSERT_EQ("(div -3.0 [5])", "[-0.6]");
@@ -1743,6 +1781,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div [3] -5.0)", "[-0.6]");
     TEST_ASSERT_EQ("(div [9] -5.0)", "[-1.8]");
     TEST_ASSERT_EQ("(div [10] -5.0)", "[-2.0]");
+    TEST_ASSERT_EQ("(div [-10] [5i])", "[-2.0]");
     TEST_ASSERT_EQ("(div [-10] [5])", "[-2.0]");
     TEST_ASSERT_EQ("(div [-9] [5])", "[-1.8]");
     TEST_ASSERT_EQ("(div [-3] [5])", "[-0.6]");
@@ -1843,6 +1882,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div [3.0] -5.0)", "[-0.6]");
     TEST_ASSERT_EQ("(div [9.0] -5.0)", "[-1.8]");
     TEST_ASSERT_EQ("(div [10.0] -5.0)", "[-2.0]");
+    TEST_ASSERT_EQ("(div [-10.0] [5i])", "[-2.0]");
     TEST_ASSERT_EQ("(div [-10.0] [5])", "[-2.0]");
     TEST_ASSERT_EQ("(div [-9.0] [5])", "[-1.8]");
     TEST_ASSERT_EQ("(div [-3.0] [5])", "[-0.6]");
@@ -1895,6 +1935,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div [10.0] [-5.0])", "[-2.0]");
     TEST_ASSERT_EQ("(div [11.5] [1.0])", "[11.5]");
     TEST_ASSERT_EQ("(div 11.5 1.0)", "11.5");
+    TEST_ASSERT_ER("(div 02:15:07.000 02:15:07.000)", "fdiv: unsupported types: 'time, 'time");
 
     PASS();
 }
