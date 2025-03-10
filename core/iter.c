@@ -558,9 +558,9 @@ obj_p ray_map(obj_p *x, u64_t n) {
         case TYPE_BINARY:
             if (n != 2)
                 THROW(ERR_LENGTH, "'map': binary call with wrong arguments count");
-            return binary_call(FN_ATOMIC, (binary_f)f->i64, x[0], x[1]);
+            return map_binary(f->attrs, (binary_f)f->i64, x[0], x[1]);
         case TYPE_VARY:
-            return vary_call(FN_ATOMIC, (vary_f)f->i64, x, n);
+            return map_vary(f->attrs, (vary_f)f->i64, x, n);
         case TYPE_LAMBDA:
             if (n != AS_LAMBDA(f)->args->len)
                 THROW(ERR_LENGTH, "'map': lambda call with wrong arguments count");
