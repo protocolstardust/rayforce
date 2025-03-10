@@ -242,6 +242,8 @@ obj_p ray_alter(obj_p *x, u64_t n) {
 obj_p ray_modify(obj_p *x, u64_t n) {
     obj_p obj, res, *cur, idx;
 
+    cur = NULL;
+
     if (n < 3)
         THROW(ERR_LENGTH, "modify: expected at least 3 arguments, got %lld", n);
 
@@ -274,7 +276,7 @@ obj_p ray_modify(obj_p *x, u64_t n) {
     if (x[0]->type != -TYPE_SYMBOL)
         return obj;
 
-    if ((*cur) != obj) {
+    if (cur != NULL && (*cur) != obj) {
         drop_obj(*cur);
         *cur = obj;
     }

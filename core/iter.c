@@ -23,7 +23,6 @@
 
 #include "heap.h"
 #include "iter.h"
-#include "ops.h"
 #include "util.h"
 #include "lambda.h"
 #include "unary.h"
@@ -33,6 +32,404 @@
 #include "error.h"
 #include "runtime.h"
 #include "pool.h"
+
+obj_p map_unary(i64_t attrs, unary_f f, obj_p x) {
+    u64_t i, l, n;
+    obj_p res, item, a, *v, parts;
+    pool_p pool;
+
+    pool = pool_get();
+
+    switch (x->type) {
+        case TYPE_LIST:
+            l = ops_count(x);
+
+            if (l == 0)
+                return NULL_OBJ;
+
+            v = AS_LIST(x);
+            n = pool_split_by(pool, l, 0);
+
+            if (n > 1) {
+                pool_prepare(pool);
+
+                if (attrs & FN_ATOMIC) {
+                    for (i = 0; i < l; i++)
+                        pool_add_task(pool, (raw_p)map_unary, 3, attrs, f, v[i]);
+                } else {
+                    for (i = 0; i < l; i++)
+                        pool_add_task(pool, (raw_p)f, 1, v[i]);
+                }
+
+                parts = pool_run(pool);
+
+                return parts;
+            }
+
+            item = (attrs & FN_ATOMIC) ? map_unary(attrs, f, v[0]) : f(v[0]);
+
+            if (IS_ERROR(item))
+                return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                item = (attrs & FN_ATOMIC) ? map_unary(attrs, f, v[i]) : f(v[i]);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
+            }
+
+            return res;
+
+        case TYPE_MAPLIST:
+            l = ops_count(x);
+            if (l == 0)
+                return NULL_OBJ;
+
+            a = at_idx(x, 0);
+            item = (attrs & FN_ATOMIC) ? map_unary(attrs, f, a) : f(a);
+            drop_obj(a);
+
+            if (IS_ERROR(item))
+                return item;
+
+            res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                a = at_idx(x, i);
+                item = (attrs & FN_ATOMIC) ? map_unary(attrs, f, a) : f(a);
+                drop_obj(a);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
+            }
+
+            return res;
+
+        default:
+            return f(x);
+    }
+}
+
+obj_p map_binary_left(i64_t attrs, binary_f f, obj_p x, obj_p y) {
+    u64_t i, l;
+    obj_p res, item, a;
+
+    switch (x->type) {
+        case TYPE_LIST:
+            l = ops_count(x);
+            a = AS_LIST(x)[0];
+            item = map_binary_left(attrs, f, a, y);
+
+            if (IS_ERROR(item))
+                return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                a = AS_LIST(x)[i];
+                item = map_binary_left(attrs, f, a, y);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
+            }
+
+            return res;
+
+        case TYPE_MAPLIST:
+            l = ops_count(x);
+            a = at_idx(x, 0);
+            item = map_binary_left(attrs, f, a, y);
+            drop_obj(a);
+
+            if (item->type == TYPE_ERROR)
+                return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                a = at_idx(x, i);
+                item = map_binary_left(attrs, f, a, y);
+                drop_obj(a);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
+            }
+
+            return res;
+
+        default:
+            return f(x, y);
+    }
+}
+
+obj_p map_binary_right(i64_t attrs, binary_f f, obj_p x, obj_p y) {
+    u64_t i, l;
+    obj_p res, item, b;
+
+    switch (y->type) {
+        case TYPE_LIST:
+            l = ops_count(y);
+            b = AS_LIST(y)[0];
+            item = map_binary_right(attrs, f, x, b);
+
+            if (IS_ERROR(item))
+                return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                b = AS_LIST(y)[i];
+                item = map_binary_right(attrs, f, x, b);
+
+                if (IS_ERROR(item)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
+            }
+
+            return res;
+
+        case TYPE_MAPLIST:
+            l = ops_count(y);
+            b = at_idx(y, 0);
+            item = map_binary_right(attrs, f, x, b);
+            drop_obj(b);
+
+            if (IS_ERROR(item))
+                return item;
+
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+            ins_obj(&res, 0, item);
+
+            for (i = 1; i < l; i++) {
+                b = at_idx(y, i);
+                item = map_binary_right(attrs, f, x, b);
+                drop_obj(b);
+
+                if (item->type == TYPE_ERROR) {
+                    res->len = i;
+                    drop_obj(res);
+                    return item;
+                }
+
+                ins_obj(&res, i, item);
+            }
+
+            return res;
+
+        default:
+            return f(x, y);
+    }
+}
+
+obj_p map_binary(i64_t attrs, binary_f f, obj_p x, obj_p y) {
+    u64_t i, l;
+    obj_p res, item, a, b;
+    i8_t xt, yt;
+
+    if (!x || !y)
+        THROW(ERR_TYPE, "binary: null argument");
+
+    xt = x->type;
+    yt = y->type;
+    if (((xt == TYPE_LIST || xt == TYPE_MAPLIST) && IS_VECTOR(y)) ||
+        ((yt == TYPE_LIST || yt == TYPE_MAPLIST) && IS_VECTOR(x))) {
+        l = ops_count(x);
+
+        if (l != ops_count(y))
+            return error_str(ERR_LENGTH, "binary: vectors must be of the same length");
+
+        if (l == 0)
+            return f(x, y);
+
+        a = xt == TYPE_LIST ? AS_LIST(x)[0] : at_idx(x, 0);
+        b = yt == TYPE_LIST ? AS_LIST(y)[0] : at_idx(y, 0);
+        item = map_binary(attrs, f, a, b);
+
+        if (xt != TYPE_LIST)
+            drop_obj(a);
+        if (yt != TYPE_LIST)
+            drop_obj(b);
+
+        if (IS_ERROR(item))
+            return item;
+
+        res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+        ins_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++) {
+            a = xt == TYPE_LIST ? AS_LIST(x)[i] : at_idx(x, i);
+            b = yt == TYPE_LIST ? AS_LIST(y)[i] : at_idx(y, i);
+            item = map_binary(attrs, f, a, b);
+
+            if (xt != TYPE_LIST)
+                drop_obj(a);
+            if (yt != TYPE_LIST)
+                drop_obj(b);
+
+            if (IS_ERROR(item)) {
+                res->len = i;
+                drop_obj(res);
+                return item;
+            }
+
+            ins_obj(&res, i, item);
+        }
+
+        return res;
+    } else if (xt == TYPE_LIST || xt == TYPE_MAPLIST) {
+        l = ops_count(x);
+        if (l == 0)
+            return f(x, y);
+
+        a = xt == TYPE_LIST ? AS_LIST(x)[0] : at_idx(x, 0);
+        item = map_binary(attrs, f, a, y);
+        if (xt != TYPE_LIST)
+            drop_obj(a);
+
+        if (IS_ERROR(item))
+            return item;
+
+        res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+        ins_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++) {
+            a = xt == TYPE_LIST ? AS_LIST(x)[i] : at_idx(x, i);
+            item = map_binary(attrs, f, a, y);
+            if (xt != TYPE_LIST)
+                drop_obj(a);
+
+            if (IS_ERROR(item)) {
+                res->len = i;
+                drop_obj(res);
+                return item;
+            }
+
+            ins_obj(&res, i, item);
+        }
+
+        return res;
+    } else if (yt == TYPE_LIST || yt == TYPE_MAPLIST) {
+        l = ops_count(y);
+        if (l == 0)
+            return f(x, y);
+
+        b = yt == TYPE_LIST ? AS_LIST(y)[0] : at_idx(y, 0);
+        item = map_binary(attrs, f, x, b);
+        if (yt != TYPE_LIST)
+            drop_obj(b);
+
+        if (IS_ERROR(item))
+            return item;
+
+        res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
+        ins_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++) {
+            b = yt == TYPE_LIST ? AS_LIST(y)[i] : at_idx(y, i);
+            item = map_binary(attrs, f, x, b);
+            if (yt != TYPE_LIST)
+                drop_obj(b);
+
+            if (IS_ERROR(item)) {
+                res->len = i;
+                drop_obj(res);
+                return item;
+            }
+
+            ins_obj(&res, i, item);
+        }
+
+        return res;
+    }
+
+    return f(x, y);
+}
+
+obj_p map_vary(i64_t attrs, vary_f f, obj_p *x, u64_t n) {
+    u64_t i, j, l;
+    obj_p v, res;
+
+    if (n == 0)
+        return NULL_OBJ;
+
+    l = ops_rank(x, n);
+    if (l == 0xfffffffffffffffful)
+        THROW(ERR_LENGTH, "vary: arguments have different lengths");
+
+    for (j = 0; j < n; j++)
+        stack_push(at_idx(x[j], 0));
+
+    v = f(x + n, n);
+
+    if (IS_ERROR(v)) {
+        res = v;
+    }
+
+    res = v->type < 0 ? vector(v->type, l) : LIST(l);
+
+    ins_obj(&res, 0, v);
+
+    for (i = 1; i < l; i++) {
+        for (j = 0; j < n; j++)
+            stack_push(at_idx(x[j], i));
+
+        v = (attrs & FN_ATOMIC) ? map_vary(attrs, f, x + n, n) : f(x + n, n);
+
+        // cleanup stack
+        for (j = 0; j < n; j++)
+            drop_obj(stack_pop());
+
+        if (IS_ERROR(v)) {
+            res->len = i;
+            drop_obj(res);
+            return v;
+        }
+
+        ins_obj(&res, i, v);
+    }
+
+    return res;
+}
 
 obj_p ray_apply(obj_p *x, u64_t n) {
     u64_t i;
@@ -49,7 +446,7 @@ obj_p ray_apply(obj_p *x, u64_t n) {
         case TYPE_UNARY:
             if (n != 1)
                 THROW(ERR_LENGTH, "'apply': unary call with wrong arguments count");
-            return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
+            return map_unary(f->attrs, (unary_f)f->i64, x[0]);
         case TYPE_BINARY:
             if (n != 2)
                 THROW(ERR_LENGTH, "'apply': binary call with wrong arguments count");
@@ -84,7 +481,7 @@ obj_p ray_map(obj_p *x, u64_t n) {
         case TYPE_UNARY:
             if (n != 1)
                 THROW(ERR_LENGTH, "'map': unary call with wrong arguments count");
-            return unary_call(FN_ATOMIC, (unary_f)f->i64, x[0]);
+            return map_unary(f->attrs, (unary_f)f->i64, x[0]);
         case TYPE_BINARY:
             if (n != 2)
                 THROW(ERR_LENGTH, "'map': binary call with wrong arguments count");

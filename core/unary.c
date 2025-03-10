@@ -48,6 +48,7 @@
 #include "pool.h"
 #include "io.h"
 #include "fdmap.h"
+#include "iter.h"
 
 // Atomic unary functions (iterates through list of argument items down to atoms)
 obj_p unary_call_atomic(unary_f f, obj_p x) {
@@ -140,7 +141,7 @@ obj_p unary_call_atomic(unary_f f, obj_p x) {
 
 obj_p unary_call(u8_t attrs, unary_f f, obj_p x) {
     if (attrs & FN_ATOMIC)
-        return unary_call_atomic(f, x);
+        return map_unary(attrs, f, x);
 
     return f(x);
 }

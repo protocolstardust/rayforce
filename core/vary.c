@@ -40,56 +40,11 @@
 #include "items.h"
 #include "order.h"
 #include "cmp.h"
-
-obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n) {
-    u64_t i, j, l;
-    obj_p v, res;
-
-    if (n == 0)
-        return NULL_OBJ;
-
-    l = ops_rank(x, n);
-    if (l == 0xfffffffffffffffful)
-        THROW(ERR_LENGTH, "vary: arguments have different lengths");
-
-    for (j = 0; j < n; j++)
-        stack_push(at_idx(x[j], 0));
-
-    v = f(x + n, n);
-
-    if (IS_ERROR(v)) {
-        res = v;
-    }
-
-    res = v->type < 0 ? vector(v->type, l) : LIST(l);
-
-    ins_obj(&res, 0, v);
-
-    for (i = 1; i < l; i++) {
-        for (j = 0; j < n; j++)
-            stack_push(at_idx(x[j], i));
-
-        v = f(x + n, n);
-
-        // cleanup stack
-        for (j = 0; j < n; j++)
-            drop_obj(stack_pop());
-
-        if (IS_ERROR(v)) {
-            res->len = i;
-            drop_obj(res);
-            return v;
-        }
-
-        ins_obj(&res, i, v);
-    }
-
-    return res;
-}
+#include "iter.h"
 
 obj_p vary_call(u8_t attrs, vary_f f, obj_p *x, u64_t n) {
     if ((attrs & FN_ATOMIC) || (attrs & FN_GROUP_MAP))
-        return vary_call_atomic(f, x, n);
+        return map_vary(attrs, f, x, n);
     else
         return f(x, n);
 }
