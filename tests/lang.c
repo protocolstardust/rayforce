@@ -211,5 +211,70 @@ test_result_t test_lang_literals() {
     // Test mixed escape sequences
     TEST_ASSERT_EQ("\"Mixed\\001\\n\\t\\015Escapes\"", "\"Mixed\\001\\n\\t\\015Escapes\"");
 
+    // Test character-to-string comparisons
+    TEST_ASSERT_EQ("(== 'a' \"a\")", "true");
+    TEST_ASSERT_EQ("(== 'a' \"b\")", "false");
+    TEST_ASSERT_EQ("(== 'a' \"ab\")", "false");
+    TEST_ASSERT_EQ("(== \"a\" 'a')", "true");
+    TEST_ASSERT_EQ("(== \"ab\" 'a')", "false");
+    TEST_ASSERT_EQ("(!= 'a' \"b\")", "true");
+    TEST_ASSERT_EQ("(!= 'a' \"a\")", "false");
+    TEST_ASSERT_EQ("(!= \"a\" 'b')", "true");
+    TEST_ASSERT_EQ("(!= \"a\" 'a')", "false");
+    TEST_ASSERT_EQ("(< 'a' \"b\")", "true");
+    TEST_ASSERT_EQ("(< 'b' \"a\")", "false");
+    TEST_ASSERT_EQ("(< \"a\" 'b')", "true");
+    TEST_ASSERT_EQ("(< \"b\" 'a')", "false");
+    TEST_ASSERT_EQ("(> 'b' \"a\")", "true");
+    TEST_ASSERT_EQ("(> 'a' \"b\")", "false");
+    TEST_ASSERT_EQ("(> \"b\" 'a')", "true");
+    TEST_ASSERT_EQ("(> \"a\" 'b')", "false");
+    TEST_ASSERT_EQ("(<= 'a' \"a\")", "true");
+    TEST_ASSERT_EQ("(<= 'a' \"b\")", "true");
+    TEST_ASSERT_EQ("(<= 'b' \"a\")", "false");
+    TEST_ASSERT_EQ("(<= \"a\" 'a')", "true");
+    TEST_ASSERT_EQ("(<= \"a\" 'b')", "true");
+    TEST_ASSERT_EQ("(<= \"b\" 'a')", "false");
+    TEST_ASSERT_EQ("(>= 'a' \"a\")", "true");
+    TEST_ASSERT_EQ("(>= 'b' \"a\")", "true");
+    TEST_ASSERT_EQ("(>= 'a' \"b\")", "false");
+    TEST_ASSERT_EQ("(>= \"a\" 'a')", "true");
+    TEST_ASSERT_EQ("(>= \"b\" 'a')", "true");
+    TEST_ASSERT_EQ("(>= \"a\" 'b')", "false");
+
+    // Test character-to-character comparisons
+    TEST_ASSERT_EQ("(== 'a' 'a')", "true");
+    TEST_ASSERT_EQ("(== 'a' 'b')", "false");
+    TEST_ASSERT_EQ("(!= 'a' 'b')", "true");
+    TEST_ASSERT_EQ("(!= 'a' 'a')", "false");
+    TEST_ASSERT_EQ("(< 'a' 'b')", "true");
+    TEST_ASSERT_EQ("(< 'b' 'a')", "false");
+    TEST_ASSERT_EQ("(> 'b' 'a')", "true");
+    TEST_ASSERT_EQ("(> 'a' 'b')", "false");
+    TEST_ASSERT_EQ("(<= 'a' 'a')", "true");
+    TEST_ASSERT_EQ("(<= 'a' 'b')", "true");
+    TEST_ASSERT_EQ("(<= 'b' 'a')", "false");
+    TEST_ASSERT_EQ("(>= 'a' 'a')", "true");
+    TEST_ASSERT_EQ("(>= 'b' 'a')", "true");
+    TEST_ASSERT_EQ("(>= 'a' 'b')", "false");
+
+    // Test string-to-string comparisons
+    TEST_ASSERT_EQ("(== \"a\" \"a\")", "true");
+    TEST_ASSERT_EQ("(== \"a\" \"b\")", "false");
+    TEST_ASSERT_EQ("(== \"ab\" \"ab\")", "true");
+    TEST_ASSERT_EQ("(== \"ab\" \"ac\")", "false");
+    TEST_ASSERT_EQ("(!= \"a\" \"b\")", "true");
+    TEST_ASSERT_EQ("(!= \"a\" \"a\")", "false");
+    TEST_ASSERT_EQ("(< \"a\" \"b\")", "true");
+    TEST_ASSERT_EQ("(< \"b\" \"a\")", "false");
+    TEST_ASSERT_EQ("(> \"b\" \"a\")", "true");
+    TEST_ASSERT_EQ("(> \"a\" \"b\")", "false");
+    TEST_ASSERT_EQ("(<= \"a\" \"a\")", "true");
+    TEST_ASSERT_EQ("(<= \"a\" \"b\")", "true");
+    TEST_ASSERT_EQ("(<= \"b\" \"a\")", "false");
+    TEST_ASSERT_EQ("(>= \"a\" \"a\")", "true");
+    TEST_ASSERT_EQ("(>= \"b\" \"a\")", "true");
+    TEST_ASSERT_EQ("(>= \"a\" \"b\")", "false");
+
     PASS();
 }
