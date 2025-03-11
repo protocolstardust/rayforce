@@ -42,11 +42,50 @@
 #include "cmp.h"
 #include "iter.h"
 
-obj_p vary_call(u8_t attrs, vary_f f, obj_p *x, u64_t n) {
-    if ((attrs & FN_ATOMIC) || (attrs & FN_GROUP_MAP))
-        return map_vary(attrs, f, x, n);
-    else
-        return f(x, n);
+obj_p vary_call(obj_p f, obj_p *x, u64_t n) {
+    vary_f fn;
+
+    if ((f->attrs & FN_ATOMIC) || (n && x[0]->type == TYPE_MAPGROUP))
+        return map_vary(f, x, n);
+    else {
+        fn = (vary_f)f->i64;
+        return fn(x, n);
+    }
+}
+
+obj_p ray_apply(obj_p *x, u64_t n) {
+    u64_t i;
+    obj_p f;
+
+    if (n < 2)
+        return null(0);
+
+    f = x[0];
+    x++;
+    n--;
+
+    switch (f->type) {
+        case TYPE_UNARY:
+            if (n != 1)
+                THROW(ERR_LENGTH, "'apply': unary call with wrong arguments count");
+            return unary_call(f, x[0]);
+        case TYPE_BINARY:
+            if (n != 2)
+                THROW(ERR_LENGTH, "'apply': binary call with wrong arguments count");
+            return binary_call(f, x[0], x[1]);
+        case TYPE_VARY:
+            return vary_call(f, x, n);
+        case TYPE_LAMBDA:
+            if (n != AS_LAMBDA(f)->args->len)
+                THROW(ERR_LENGTH, "'apply': lambda call with wrong arguments count");
+
+            for (i = 0; i < n; i++)
+                stack_push(clone_obj(x[i]));
+
+            return call(f, n);
+        default:
+            THROW(ERR_TYPE, "'map': unsupported function type: '%s", type_name(f->type));
+    }
 }
 
 obj_p ray_do(obj_p *x, u64_t n) {

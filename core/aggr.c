@@ -690,7 +690,7 @@ obj_p aggr_med(obj_p val, obj_p index) {
 
     // TODO: implement incremental median
     val = aggr_collect(val, index);
-    res = unary_call(FN_ATOMIC, ray_med, val);
+    res = ray_med(val);
     drop_obj(val);
 
     return res;
@@ -701,7 +701,7 @@ obj_p aggr_dev(obj_p val, obj_p index) {
 
     // TODO: implement incremental stddev
     val = aggr_collect(val, index);
-    res = unary_call(FN_ATOMIC, ray_dev, val);
+    res = ray_dev(val);
     drop_obj(val);
 
     return res;

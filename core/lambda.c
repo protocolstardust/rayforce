@@ -34,7 +34,7 @@ obj_p lambda(obj_p args, obj_p body, obj_p nfo) {
     obj_p obj;
     lambda_p f;
 
-    obj = (obj_p)heap_alloc(sizeof(struct obj_t) + sizeof(struct lambda_t));
+    obj = (obj_p)heap_alloc(sizeof(struct obj_t) + sizeof(struct lambda_f));
     obj->mmod = MMOD_INTERNAL;
     obj->type = TYPE_LAMBDA;
     obj->rc = 1;
@@ -48,6 +48,17 @@ obj_p lambda(obj_p args, obj_p body, obj_p nfo) {
     return obj;
 }
 
-obj_p lambda_call(u8_t attrs, obj_p f, obj_p *x, u64_t n) {
-    return (attrs & FN_ATOMIC) ? map_lambda(attrs, f, x, n) : call(f, n);
+obj_p lambda_call(obj_p f, obj_p *x, u64_t n) {
+    u64_t i;
+    obj_p res;
+
+    if (f->attrs & FN_ATOMIC) {
+        return map_lambda(f, x, n);
+    } else {
+        res = call(f, n);
+        for (i = 0; i < n; i++)
+            drop_obj(stack_pop());
+
+        return res;
+    }
 }

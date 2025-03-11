@@ -42,16 +42,19 @@
 #include "io.h"
 #include "iter.h"
 
-obj_p binary_call(u8_t attrs, binary_f f, obj_p x, obj_p y) {
-    switch (attrs & FN_ATOMIC_MASK) {
+obj_p binary_call(obj_p f, obj_p x, obj_p y) {
+    binary_f fn;
+
+    switch (f->attrs & FN_ATOMIC_MASK) {
         case FN_ATOMIC:
-            return map_binary(attrs, f, x, y);
+            return map_binary(f, x, y);
         case FN_LEFT_ATOMIC:
-            return map_binary_left(attrs, f, x, y);
+            return map_binary_left(f, x, y);
         case FN_RIGHT_ATOMIC:
-            return map_binary_right(attrs, f, x, y);
+            return map_binary_right(f, x, y);
         default:
-            return f(x, y);
+            fn = (binary_f)f->i64;
+            return fn(x, y);
     }
 }
 

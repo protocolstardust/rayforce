@@ -79,7 +79,7 @@ interpreter_p interpreter_create(u64_t id) {
     __INTERPRETER = interpreter;
 
     // Directly allocate lambda to avoid using heap_alloc here
-    f = (obj_p)heap_mmap(sizeof(struct obj_t) + sizeof(struct lambda_t));
+    f = (obj_p)heap_mmap(sizeof(struct obj_t) + sizeof(struct lambda_f));
     f->mmod = MMOD_INTERNAL;
     f->type = TYPE_LAMBDA;
     f->rc = 1;
@@ -99,7 +99,7 @@ nil_t interpreter_destroy(nil_t) {
     DEBUG_ASSERT(__INTERPRETER->sp == 0, "stack is not empty");
 
     heap_unmap(__INTERPRETER->stack, EVAL_STACK_SIZE);
-    heap_unmap(__INTERPRETER->ctxstack[0].lambda, sizeof(struct obj_t) + sizeof(struct lambda_t));
+    heap_unmap(__INTERPRETER->ctxstack[0].lambda, sizeof(struct obj_t) + sizeof(struct lambda_f));
     heap_unmap(__INTERPRETER->ctxstack, sizeof(struct ctx_t) * EVAL_STACK_SIZE);
     heap_unmap(__INTERPRETER, sizeof(struct interpreter_t));
 }
@@ -110,7 +110,7 @@ obj_p call(obj_p obj, u64_t arity) {
     lambda_p lambda;
     ctx_p ctx;
     obj_p res;
-    i64_t sp;
+    volatile i64_t sp;
 
     sp = __INTERPRETER->sp - arity;
 
@@ -123,47 +123,24 @@ obj_p call(obj_p obj, u64_t arity) {
     ctx = ctx_push(obj);
     ctx->sp = sp;
 
-    switch (setjmp(ctx->jmp)) {
-        // normal return
-        case 0:
-            res = eval(lambda->body);
-            ctx_pop();
+    // jump to eval
+    setjmp(ctx->jmp);
 
-            // cleanup stack frame
-            while (__INTERPRETER->sp > sp)
-                drop_obj(stack_pop());
+    res = eval(lambda->body);
 
-            return res;
+    // pop context
+    ctx_pop();
 
-        // return from function via 'return' call
-        case 1:
-            res = stack_pop();
-            ctx_pop();
+    // cleanup local env
+    drop_obj(stack_pop());
 
-            // cleanup stack frame
-            while (__INTERPRETER->sp > sp)
-                drop_obj(stack_pop());
-
-            return res;
-
-        // error
-        default:
-            res = stack_pop();
-            ctx_pop();
-
-            // cleanup stack frame
-            while (__INTERPRETER->sp > sp)
-                drop_obj(stack_pop());
-
-            return res;
-    }
+    return res;
 }
 
 __attribute__((hot)) obj_p eval(obj_p obj) {
     u64_t len, i;
     obj_p car, *val, *args, x, y, z, res;
     lambda_p lambda;
-    u8_t attrs = 0;
 
     switch (obj->type) {
         case TYPE_LIST:
@@ -198,7 +175,7 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                             x = y;
                         }
 
-                        res = unary_call(car->attrs, (unary_f)car->i64, x);
+                        res = unary_call(car, x);
                         drop_obj(x);
                     }
 
@@ -240,7 +217,7 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                             y = z;
                         }
 
-                        res = binary_call(car->attrs, (binary_f)car->i64, x, y);
+                        res = binary_call(car, x, y);
                         drop_obj(x);
                         drop_obj(y);
                     }
@@ -260,7 +237,6 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                                 return x;
 
                             if (!(car->attrs & FN_AGGR) && x->type == TYPE_MAPGROUP) {
-                                attrs = FN_GROUP_MAP;
                                 y = aggr_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
                                 drop_obj(x);
                                 x = y;
@@ -273,7 +249,7 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                             stack_push(x);
                         }
 
-                        res = vary_call(car->attrs | attrs, (vary_f)car->i64, stack_peek(len - 1), len);
+                        res = vary_call(car, stack_peek(len - 1), len);
 
                         for (i = 0; i < len; i++)
                             drop_obj(stack_pop());
@@ -313,7 +289,7 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                         stack_push(x);
                     }
 
-                    return unwrap(lambda_call(attrs, car, stack_peek(len - 1), len), (i64_t)obj);
+                    return unwrap(lambda_call(car, stack_peek(len - 1), len), (i64_t)obj);
 
                 case -TYPE_SYMBOL:
                     val = resolve(car->i64);
