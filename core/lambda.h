@@ -24,7 +24,6 @@
 #ifndef LAMBDA_H
 #define LAMBDA_H
 
-#include "nfo.h"
 #include "rayforce.h"
 
 typedef struct lambda_f {
