@@ -45,5 +45,6 @@ i64_t str_cmp(lit_p lhs, u64_t m, lit_p rhs, u64_t n);
 str_p str_rchr(lit_p s, i32_t c, u64_t n);
 u64_t str_hash(lit_p str, u64_t len);
 obj_p vn_vc8(lit_p fmt, va_list args);
+obj_p str_split(lit_p str, u64_t str_len, lit_p delim, u64_t delim_len);
 
 #endif  // STRING_H

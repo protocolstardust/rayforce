@@ -686,3 +686,14 @@ obj_p ray_row_index(obj_p *x, u64_t n) {
 
     return res;
 }
+
+obj_p ray_split(obj_p x, obj_p y) {
+    switch (MTYPE2(x->type, y->type)) {
+        case MTYPE2(TYPE_C8, -TYPE_C8):
+            return str_split(AS_C8(x), x->len, &y->c8, 1);
+        case MTYPE2(TYPE_C8, TYPE_C8):
+            return str_split(AS_C8(x), x->len, AS_C8(y), y->len);
+        default:
+            THROW(ERR_TYPE, "split: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+    }
+}

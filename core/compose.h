@@ -43,5 +43,6 @@ obj_p ray_enlist(obj_p *x, u64_t n);
 obj_p ray_row_index(obj_p *x, u64_t n);
 obj_p ray_diverse(obj_p x);
 obj_p ray_unify(obj_p x);
+obj_p ray_split(obj_p x, obj_p y);
 
 #endif  // COMPOSE_H

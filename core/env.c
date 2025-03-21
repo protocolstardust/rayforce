@@ -216,7 +216,8 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "enum",                TYPE_BINARY,   FN_NONE,                   ray_enum);
     REGISTER_FN(functions,  "xbar",                TYPE_BINARY,   FN_ATOMIC,                 ray_xbar);
     REGISTER_FN(functions,  "os-set-var",          TYPE_BINARY,   FN_ATOMIC,                 ray_os_set_var);
-        
+    REGISTER_FN(functions,  "split",               TYPE_BINARY,   FN_NONE,                   ray_split);
+
     // Vary               
     REGISTER_FN(functions,  "do",                  TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_do);
     REGISTER_FN(functions,  "env",                 TYPE_VARY,     FN_NONE,                   ray_env);

@@ -26,6 +26,7 @@
 #include "heap.h"
 #include "util.h"
 #include "ops.h"
+#include "error.h"
 
 #define is_digit(c) ((c) >= '0' && (c) <= '9')
 #define IS_SPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\r')
@@ -529,4 +530,90 @@ u64_t str_hash(lit_p str, u64_t len) {
     hash ^= (hash >> 33);
 
     return hash;
+}
+
+obj_p str_split(lit_p str, u64_t str_len, lit_p delim, u64_t delim_len) {
+    obj_p result = NULL_OBJ;
+    lit_p start, end;
+    u64_t i, j, count = 0;
+
+    // Input validation
+    if (str == NULL || delim == NULL)
+        THROW(ERR_TYPE, "str_split: null pointer");
+
+    if (delim_len == 0)
+        THROW(ERR_LENGTH, "str_split: empty delimiter");
+
+    // Special case for single character delimiter
+    if (delim_len == 1) {
+        // Count number of splits using memchr
+        start = str;
+        while ((end = (str_p)memchr(start, delim[0], str + str_len - start)) != NULL) {
+            count++;
+            start = end + 1;
+        }
+        count++;  // Add 1 for the last part
+
+        // Create result list
+        result = LIST(count);
+        if (IS_ERROR(result))
+            return result;
+
+        // Split the string
+        start = str;
+        for (i = 0; i < count - 1; i++) {
+            end = (str_p)memchr(start, delim[0], str + str_len - start);
+            AS_LIST(result)[i] = string_from_str(start, end - start);
+            if (IS_ERROR(AS_LIST(result)[i])) {
+                drop_obj(result);
+                return AS_LIST(result)[i];
+            }
+            start = end + 1;
+        }
+
+        // Add the last part
+        AS_LIST(result)[count - 1] = string_from_str(start, str + str_len - start);
+        if (IS_ERROR(AS_LIST(result)[count - 1])) {
+            drop_obj(result);
+            return AS_LIST(result)[count - 1];
+        }
+
+        return result;
+    }
+
+    // For multi-character delimiters
+    for (i = 0; i <= str_len - delim_len; i++) {
+        if (memcmp(str + i, delim, delim_len) == 0)
+            count++;
+    }
+    count++;  // Add 1 for the last part
+
+    // Create result list
+    result = LIST(count);
+    if (IS_ERROR(result))
+        return result;
+
+    // Split the string
+    start = str;
+    for (i = 0, j = 0; i <= str_len - delim_len; i++) {
+        if (memcmp(str + i, delim, delim_len) == 0) {
+            end = str + i;
+            AS_LIST(result)[j] = string_from_str(start, end - start);
+            if (IS_ERROR(AS_LIST(result)[j])) {
+                drop_obj(result);
+                return AS_LIST(result)[j];
+            }
+            start = end + delim_len;
+            j++;
+        }
+    }
+
+    // Add the last part
+    AS_LIST(result)[count - 1] = string_from_str(start, str + str_len - start);
+    if (IS_ERROR(AS_LIST(result)[count - 1])) {
+        drop_obj(result);
+        return AS_LIST(result)[count - 1];
+    }
+
+    return result;
 }

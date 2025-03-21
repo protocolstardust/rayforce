@@ -948,71 +948,47 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(/ [-10.0] 5.0)", "[-2.0]");
     TEST_ASSERT_EQ("(/ [-9.0] 5.0)", "[-1.0]");
     TEST_ASSERT_EQ("(/ [-3.0] 5.0)", "[0.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] 0.6)", "[-5.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] 0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] 0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] 5.0)", "[0.0]");
-    TEST_ASSERT_EQ("(/ [9.0] 5.0)", "[1.0]");
-    TEST_ASSERT_EQ("(/ [10.0] 5.0)", "[2.0]");
-    TEST_ASSERT_EQ("(/ [-10.0] -5.0)", "[2.0]");
-    TEST_ASSERT_EQ("(/ [-9.0] -5.0)", "[1.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] -5.0)", "[0.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] -0.6)", "[5.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] -0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] -0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] -5.0)", "[0.0]");
-    TEST_ASSERT_EQ("(/ [9.0] -5.0)", "[-1.0]");
-    TEST_ASSERT_EQ("(/ [10.0] -5.0)", "[-2.0]");
+    TEST_ASSERT_EQ("(/ [-3.0] 0.6)", "-5.0");
+    TEST_ASSERT_EQ("(/ [-3.0] 0.0)", "0Nf");
+    TEST_ASSERT_EQ("(/ [3.0] 0.0)", "0Nf");
+    TEST_ASSERT_EQ("(/ [3.0] 5.0)", "0.0");
+    TEST_ASSERT_EQ("(/ [9.0] 5.0)", "1.0");
+    TEST_ASSERT_EQ("(/ [10.0] 5.0)", "2.0");
+    TEST_ASSERT_EQ("(/ [-10.0] -5.0)", "2.0");
+    TEST_ASSERT_EQ("(/ [-9.0] -5.0)", "1.0");
+    TEST_ASSERT_EQ("(/ [-3.0] -5.0)", "0.0");
+    TEST_ASSERT_EQ("(/ [-3.0] -0.6)", "5.0");
+    TEST_ASSERT_EQ("(/ [-3.0] -0.0)", "0Nf");
+    TEST_ASSERT_EQ("(/ [3.0] -0.0)", "0Nf");
+    TEST_ASSERT_EQ("(/ [3.0] -5.0)", "0.0");
+    TEST_ASSERT_EQ("(/ [9.0] -5.0)", "-1.0");
+    TEST_ASSERT_EQ("(/ [10.0] -5.0)", "-2.0");
     TEST_ASSERT_EQ("(/ [-10.0] [5i])", "[-2.0]");
     TEST_ASSERT_EQ("(/ [-10.0] [5])", "[-2.0]");
-    TEST_ASSERT_EQ("(/ [-9.0] [5])", "[-1.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [5])", "[0.0]");
+    TEST_ASSERT_EQ("(/ [-9.0] [5])", "[-1.8]");
+    TEST_ASSERT_EQ("(/ [-3.0] [5])", "[-0.6]");
     TEST_ASSERT_EQ("(/ [-3.0] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [5])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [9.0] [5])", "[1.0]");
-    TEST_ASSERT_EQ("(/ [10.0] [5])", "[2.0]");
-    TEST_ASSERT_EQ("(/ [-10.0] [-5])", "[2.0]");
-    TEST_ASSERT_EQ("(/ [-9.0] [-5])", "[1.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [-5])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [-5])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [9.0] [-5])", "[-1.0]");
-    TEST_ASSERT_EQ("(/ [10.0] [-5])", "[-2.0]");
-    TEST_ASSERT_EQ("(/ [-10.0] [5])", "[-2.0]");
-    TEST_ASSERT_EQ("(/ [-9.0] [5])", "[-1.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [5])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [5])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [9.0] [5])", "[1.0]");
-    TEST_ASSERT_EQ("(/ [10.0] [5])", "[2.0]");
-    TEST_ASSERT_EQ("(/ [-10.0] [-5])", "[2.0]");
-    TEST_ASSERT_EQ("(/ [-9.0] [-5])", "[1.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [-5])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [-5])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [9.0] [-5])", "[-1.0]");
-    TEST_ASSERT_EQ("(/ [10.0] [-5])", "[-2.0]");
-    TEST_ASSERT_EQ("(/ [-10.0] [5.0])", "[-2.0]");
-    TEST_ASSERT_EQ("(/ [-9.0] [5.0])", "[-1.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [5.0])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [0.6])", "[-5.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [5.0])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [9.0] [5.0])", "[1.0]");
-    TEST_ASSERT_EQ("(/ [10.0] [5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(/ [-10.0] [-5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(/ [-9.0] [-5.0])", "[1.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [-5.0])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [-0.6])", "[5.0]");
-    TEST_ASSERT_EQ("(/ [-3.0] [-0.0])", "[0Nf]");
+    TEST_ASSERT_EQ("(/ 3.0 [0])", "[0Nf]");
+    TEST_ASSERT_EQ("(/ 3.0 [5])", "[0.6]");
+    TEST_ASSERT_EQ("(/ 9.0 [5])", "[1.8]");
+    TEST_ASSERT_EQ("(/ 10.0 [5])", "[2.0]");
+    TEST_ASSERT_EQ("(/ -10.0 [-5])", "[2.0]");
+    TEST_ASSERT_EQ("(/ -9.0 [-5])", "[1.8]");
+    TEST_ASSERT_EQ("(/ -3.0 [-5])", "[0.6]");
+    TEST_ASSERT_EQ("(/ -3.0 [-0.6])", "[5.0]");
+    TEST_ASSERT_EQ("(/ -3.0 [-0.0])", "[0Nf]");
+    TEST_ASSERT_EQ("(/ 3.0 [-0.0])", "[0Nf]");
+    TEST_ASSERT_EQ("(/ 3.0 [-5.0])", "[-0.6]");
+    TEST_ASSERT_EQ("(/ 9.0 [-5.0])", "[-1.8]");
+    TEST_ASSERT_EQ("(/ 10.0 [-5.0])", "[-2.0]");
+    TEST_ASSERT_EQ("(/ [-10.0] -5.0)", "[2.0]");
+    TEST_ASSERT_EQ("(/ [-9.0] -5.0)", "[1.8]");
+    TEST_ASSERT_EQ("(/ [-3.0] -5.0)", "[0.6]");
+    TEST_ASSERT_EQ("(/ [-3.0] -0.6)", "[5.0]");
+    TEST_ASSERT_EQ("(/ [-3.0] -0.0)", "[0Nf]");
     TEST_ASSERT_EQ("(/ [3.0] [-0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(/ [3.0] [-5.0])", "[0.0]");
-    TEST_ASSERT_EQ("(/ [9.0] [-5.0])", "[-1.0]");
+    TEST_ASSERT_EQ("(/ [3.0] [-5.0])", "[-0.6]");
+    TEST_ASSERT_EQ("(/ [9.0] [-5.0])", "[-1.8]");
     TEST_ASSERT_EQ("(/ [10.0] [-5.0])", "[-2.0]");
     TEST_ASSERT_EQ("(/ [11.5] [1.0])", "[11.0]");
     TEST_ASSERT_EQ("(/ 11.5 1.0)", "11.0");
@@ -1823,6 +1799,26 @@ test_result_t test_lang_math() {
 
     TEST_ASSERT_EQ("((fn [x y] (+ x y)) 1 [2.3 4])", "[3.3 5.0]");
     TEST_ASSERT_EQ("(map count (list (list \"aaa\" \"bbb\")))", "[2]");
+
+    // Test mixed escape sequences
+    TEST_ASSERT_EQ("\"Mixed\\001\\n\\t\\015Escapes\"", "\"Mixed\\001\\n\\t\\015Escapes\"");
+
+    // Test string split operations
+    TEST_ASSERT_EQ("split(\"hello,world\", \",\")", "[\"hello\", \"world\"]");
+    TEST_ASSERT_EQ("split(\"a,b,c\", \",\")", "[\"a\", \"b\", \"c\"]");
+    TEST_ASSERT_EQ("split(\"hello\", \",\")", "[\"hello\"]");
+    TEST_ASSERT_EQ("split(\"\", \",\")", "[]");
+    TEST_ASSERT_EQ("split(\",\", \",\")", "[\"\", \"\"]");
+    TEST_ASSERT_EQ("split(\",a,\", \",\")", "[\"\", \"a\", \"\"]");
+
+    // Test multi-character delimiters
+    TEST_ASSERT_EQ("split(\"hello--world\", \"--\")", "[\"hello\", \"world\"]");
+    TEST_ASSERT_EQ("split(\"a--b--c\", \"--\")", "[\"a\", \"b\", \"c\"]");
+    TEST_ASSERT_EQ("split(\"hello\", \"--\")", "[\"hello\"]");
+    TEST_ASSERT_EQ("split(\"\", \"--\")", "[]");
+    TEST_ASSERT_EQ("split(\"--\", \"--\")", "[\"\", \"\"]");
+    TEST_ASSERT_EQ("split(\"--a--\", \"--\")", "[\"\", \"a\", \"\"]");
+
     PASS();
 }
 
@@ -1930,6 +1926,25 @@ test_result_t test_lang_literals() {
 
     // Test mixed escape sequences
     TEST_ASSERT_EQ("\"Mixed\\001\\n\\t\\015Escapes\"", "\"Mixed\\001\\n\\t\\015Escapes\"");
+
+    // Test mixed escape sequences
+    TEST_ASSERT_EQ("\"Mixed\\001\\n\\t\\015Escapes\"", "\"Mixed\\001\\n\\t\\015Escapes\"");
+
+    // Test string split operations
+    TEST_ASSERT_EQ("split(\"hello,world\", \",\")", "[\"hello\", \"world\"]");
+    TEST_ASSERT_EQ("split(\"a,b,c\", \",\")", "[\"a\", \"b\", \"c\"]");
+    TEST_ASSERT_EQ("split(\"hello\", \",\")", "[\"hello\"]");
+    TEST_ASSERT_EQ("split(\"\", \",\")", "[]");
+    TEST_ASSERT_EQ("split(\",\", \",\")", "[\"\", \"\"]");
+    TEST_ASSERT_EQ("split(\",a,\", \",\")", "[\"\", \"a\", \"\"]");
+
+    // Test multi-character delimiters
+    TEST_ASSERT_EQ("split(\"hello--world\", \"--\")", "[\"hello\", \"world\"]");
+    TEST_ASSERT_EQ("split(\"a--b--c\", \"--\")", "[\"a\", \"b\", \"c\"]");
+    TEST_ASSERT_EQ("split(\"hello\", \"--\")", "[\"hello\"]");
+    TEST_ASSERT_EQ("split(\"\", \"--\")", "[]");
+    TEST_ASSERT_EQ("split(\"--\", \"--\")", "[\"\", \"\"]");
+    TEST_ASSERT_EQ("split(\"--a--\", \"--\")", "[\"\", \"a\", \"\"]");
 
     PASS();
 }
@@ -2117,6 +2132,63 @@ test_result_t test_lang_cmp() {
     TEST_ASSERT_EQ(
         "(set l (list -2i 0i 0Ni 1i 2i -2 0 0Nl 1 2 -2.0 -0.0 0Nf 0.0 1.0  2.0)) (set f (fn [x y] (sum (as 'I32 (!= x "
         "(enlist y)))))) (map (fn[x] (map f x l)) l)",
+        "(list [0 1 1 1 1 0 1 1 1 1 0 1 1 1 1 1]"
+        "[1 0 1 1 1 1 0 1 1 1 1 0 1 0 1 1]"
+        "[1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1]"
+        "[1 1 1 0 1 1 1 1 0 1 1 1 1 1 0 1]"
+        "[1 1 1 1 0 1 1 1 1 0 1 1 1 1 1 0]"
+        "[0 1 1 1 1 0 1 1 1 1 0 1 1 1 1 1]"
+        "[1 0 1 1 1 1 0 1 1 1 1 0 1 0 1 1]"
+        "[1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1]"
+        "[1 1 1 0 1 1 1 1 0 1 1 1 1 1 0 1]"
+        "[1 1 1 1 0 1 1 1 1 0 1 1 1 1 1 0]"
+        "[0 1 1 1 1 0 1 1 1 1 0 1 1 1 1 1]"
+        "[1 0 1 1 1 1 0 1 1 1 1 0 1 0 1 1]"
+        "[1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1]"
+        "[1 0 1 1 1 1 0 1 1 1 1 0 1 0 1 1]"
+        "[1 1 1 0 1 1 1 1 0 1 1 1 1 1 0 1]"
+        "[1 1 1 1 0 1 1 1 1 0 1 1 1 1 1 0])")
+    TEST_ASSERT_EQ(
+        "(set l (list -2i 0i 0Ni 1i 2i -2 0 0Nl 1 2 -2.0 -0.0 0Nf 0.0 1.0  2.0)) (set f (fn [x y] (sum (as 'I32 (<= x "
+        "(enlist y)))))) (map (fn[x] (map f x l)) l)",
+        "(list [1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1]"
+        "[0 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1]"
+        "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]"
+        "[0 0 0 1 1 0 0 0 1 1 0 0 0 0 1 1]"
+        "[0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 1]"
+        "[1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1]"
+        "[0 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1]"
+        "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]"
+        "[0 0 0 1 1 0 0 0 1 1 0 0 0 0 1 1]"
+        "[0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 1]"
+        "[1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1]"
+        "[0 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1]"
+        "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]"
+        "[0 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1]"
+        "[0 0 0 1 1 0 0 0 1 1 0 0 0 0 1 1]"
+        "[0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 1])")
+    TEST_ASSERT_EQ(
+        "(set l (list -2i 0i 0Ni 1i 2i -2 0 0Nl 1 2 -2.0 -0.0 0Nf 0.0 1.0  2.0)) (set f (fn [x y] (sum (as 'I32 (>= x "
+        "(enlist y)))))) (map (fn[x] (map f x l)) l)",
+        "(list [1 0 1 0 0 1 0 1 0 0 1 0 1 0 0 0]"
+        "[1 1 1 0 0 1 1 1 0 0 1 1 1 1 0 0]"
+        "[0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0]"
+        "[1 1 1 1 0 1 1 1 1 0 1 1 1 1 1 0]"
+        "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]"
+        "[1 0 1 0 0 1 0 1 0 0 1 0 1 0 0 0]"
+        "[1 1 1 0 0 1 1 1 0 0 1 1 1 1 0 0]"
+        "[0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0]"
+        "[1 1 1 1 0 1 1 1 1 0 1 1 1 1 1 0]"
+        "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]"
+        "[1 0 1 0 0 1 0 1 0 0 1 0 1 0 0 0]"
+        "[1 1 1 0 0 1 1 1 0 0 1 1 1 1 0 0]"
+        "[0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0]"
+        "[1 1 1 0 0 1 1 1 0 0 1 1 1 1 0 0]"
+        "[1 1 1 1 0 1 1 1 1 0 1 1 1 1 1 0]"
+        "[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1])")
+    TEST_ASSERT_EQ(
+        "(set l (list -2i 0i 0Ni 1i 2i -2 0 0Nl 1 2 -2.0 -0.0 0Nf 0.0 1.0  2.0)) (set f (fn [x y] (sum (as 'I32 (!= "
+        "(enlist x)(enlist y)))))) (map (fn[x] (map f x l)) l)",
         "(list [0 1 1 1 1 0 1 1 1 1 0 1 1 1 1 1]"
         "[1 0 1 1 1 1 0 1 1 1 1 0 1 0 1 1]"
         "[1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1]"
