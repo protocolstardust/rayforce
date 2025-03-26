@@ -663,6 +663,8 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i) {
             return b8_fmt_into(dst, AS_B8(obj)[i]);
         case TYPE_U8:
             return byte_fmt_into(dst, AS_U8(obj)[i]);
+        case TYPE_I16:
+            return i16_fmt_into(dst, AS_I16(obj)[i]);
         case TYPE_I32:
             return i32_fmt_into(dst, AS_I32(obj)[i]);
         case TYPE_DATE:
