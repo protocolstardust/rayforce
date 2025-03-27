@@ -3,13 +3,45 @@
     {
       "script": "basic_ops",
       "min_time": 0.000,
-      "max_time": 0.048,
+      "max_time": 0.008,
       "avg_time": 0.001,
       "expected_time": 0.015,
-      "timestamp": "2025-03-27 14:42:31",
+      "timestamp": "2025-03-27 15:13:02",
       "os_info": "Rayforce 0.1 (Mar 27 2025)",
       "cpu_info": "Intel(R) Core(TM) i7-14700",
-      "git_commit": "58bfcf81545101a35106e6a70d2dcec04db57d3b"
+      "git_commit": "a277aa25371d3653bba7e2dd981f200594ae5c59"
+    },
+    {
+      "script": "system",
+      "min_time": 0.000,
+      "max_time": 0.004,
+      "avg_time": 0.001,
+      "timestamp": "2025-03-27 15:13:02",
+      "os_info": "Rayforce 0.1 (Mar 27 2025)",
+      "cpu_info": "Intel(R) Core(TM) i7-14700",
+      "git_commit": "a277aa25371d3653bba7e2dd981f200594ae5c59"
+    },
+    {
+      "script": "string_ops",
+      "min_time": 0.001,
+      "max_time": 0.041,
+      "avg_time": 0.002,
+      "expected_time": 10.000,
+      "timestamp": "2025-03-27 15:13:02",
+      "os_info": "Rayforce 0.1 (Mar 27 2025)",
+      "cpu_info": "Intel(R) Core(TM) i7-14700",
+      "git_commit": "a277aa25371d3653bba7e2dd981f200594ae5c59"
+    },
+    {
+      "script": "example_bench",
+      "min_time": 0.047,
+      "max_time": 0.094,
+      "avg_time": 0.051,
+      "expected_time": 100.000,
+      "timestamp": "2025-03-27 15:13:02",
+      "os_info": "Rayforce 0.1 (Mar 27 2025)",
+      "cpu_info": "Intel(R) Core(TM) i7-14700",
+      "git_commit": "a277aa25371d3653bba7e2dd981f200594ae5c59"
     }
   ]
 }

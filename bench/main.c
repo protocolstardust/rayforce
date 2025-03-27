@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <dirent.h>
 #include <math.h>
+#include <stdbool.h>
 #include "../core/rayforce.h"
 #include "../core/format.h"
 #include "../core/unary.h"
@@ -343,6 +344,28 @@ void load_previous_results(bench_results_t* results) {
 
 // Save benchmark results
 void save_results(bench_results_t* results) {
+    // First load existing results
+    bench_results_t existing_results = {0};
+    load_previous_results(&existing_results);
+
+    // Update only the results that were run
+    for (int i = 0; i < results->result_count; i++) {
+        bool found = false;
+        for (int j = 0; j < existing_results.result_count; j++) {
+            if (strcmp(results->results[i].script_name, existing_results.results[j].script_name) == 0) {
+                // Update existing result
+                existing_results.results[j] = results->results[i];
+                found = true;
+                break;
+            }
+        }
+        if (!found && existing_results.result_count < MAX_RESULTS) {
+            // Add new result if there's space
+            existing_results.results[existing_results.result_count++] = results->results[i];
+        }
+    }
+
+    // Save the combined results
     FILE* file = fopen(BENCH_RESULTS_FILE, "w");
     if (!file) {
         printf("Error: Could not open results file for writing\n");
@@ -351,20 +374,20 @@ void save_results(bench_results_t* results) {
 
     fprintf(file, "{\n");
     fprintf(file, "  \"results\": [\n");
-    for (int i = 0; i < results->result_count; i++) {
+    for (int i = 0; i < existing_results.result_count; i++) {
         fprintf(file, "    {\n");
-        fprintf(file, "      \"script\": \"%s\",\n", results->results[i].script_name);
-        fprintf(file, "      \"min_time\": %.3f,\n", results->results[i].min_time);
-        fprintf(file, "      \"max_time\": %.3f,\n", results->results[i].max_time);
-        fprintf(file, "      \"avg_time\": %.3f,\n", results->results[i].avg_time);
-        if (results->results[i].expected_time > 0) {
-            fprintf(file, "      \"expected_time\": %.3f,\n", results->results[i].expected_time);
+        fprintf(file, "      \"script\": \"%s\",\n", existing_results.results[i].script_name);
+        fprintf(file, "      \"min_time\": %.3f,\n", existing_results.results[i].min_time);
+        fprintf(file, "      \"max_time\": %.3f,\n", existing_results.results[i].max_time);
+        fprintf(file, "      \"avg_time\": %.3f,\n", existing_results.results[i].avg_time);
+        if (existing_results.results[i].expected_time > 0) {
+            fprintf(file, "      \"expected_time\": %.3f,\n", existing_results.results[i].expected_time);
         }
-        fprintf(file, "      \"timestamp\": \"%s\",\n", results->results[i].timestamp);
-        fprintf(file, "      \"os_info\": \"%s\",\n", results->results[i].os_info);
-        fprintf(file, "      \"cpu_info\": \"%s\",\n", results->results[i].cpu_info);
-        fprintf(file, "      \"git_commit\": \"%s\"\n", results->results[i].git_commit);
-        fprintf(file, "    }%s\n", i < results->result_count - 1 ? "," : "");
+        fprintf(file, "      \"timestamp\": \"%s\",\n", existing_results.results[i].timestamp);
+        fprintf(file, "      \"os_info\": \"%s\",\n", existing_results.results[i].os_info);
+        fprintf(file, "      \"cpu_info\": \"%s\",\n", existing_results.results[i].cpu_info);
+        fprintf(file, "      \"git_commit\": \"%s\"\n", existing_results.results[i].git_commit);
+        fprintf(file, "    }%s\n", i < existing_results.result_count - 1 ? "," : "");
     }
     fprintf(file, "  ]\n");
     fprintf(file, "}\n");
@@ -579,53 +602,96 @@ void scan_benchmark_scripts(bench_results_t* results) {
 
 int main(int argc, char* argv[]) {
     bench_results_t results = {0};  // Initialize entire struct to zero
-    bench_results_t previous_results;
+    bench_results_t previous_results = {0};
+    bool specific_tests = false;
+    bool has_errors = false;
+
+    // Load previous results first
     load_previous_results(&previous_results);
 
-    // Parse command line arguments for specific tests
-    char* test_names[MAX_RESULTS];
-    int num_tests = 0;
-    for (int i = 1; i < argc; i++) {
-        if (num_tests < MAX_RESULTS) {
-            test_names[num_tests++] = argv[i];
+    // Get system info first
+    get_system_info(results.results[0].os_info, sizeof(results.results[0].os_info), results.results[0].cpu_info,
+                    sizeof(results.results[0].cpu_info));
+    results.result_count = 1;  // Initialize result count after system info
+
+    // Check if specific tests were requested via command line or BENCH env var
+    if (argc > 1) {
+        specific_tests = true;
+        // Process each test name provided
+        for (int i = 1; i < argc; i++) {
+            const char* test_name = argv[i];
+            char script_path[MAX_PATH_LEN];
+
+            // Check if .rf extension is already present
+            const char* ext = strstr(test_name, ".rf");
+            if (ext) {
+                snprintf(script_path, sizeof(script_path), "%s/%s", BENCH_SCRIPTS_DIR, test_name);
+            } else {
+                snprintf(script_path, sizeof(script_path), "%s/%s.rf", BENCH_SCRIPTS_DIR, test_name);
+            }
+
+            process_script_file(script_path, &results);
+        }
+    } else {
+        // Check BENCH environment variable
+        const char* bench_var = getenv("BENCH");
+        if (bench_var && *bench_var) {
+            specific_tests = true;
+            char script_path[MAX_PATH_LEN];
+            snprintf(script_path, sizeof(script_path), "%s/%s.rf", BENCH_SCRIPTS_DIR, bench_var);
+            process_script_file(script_path, &results);
+        } else {
+            // If no BENCH variable, scan all benchmark scripts
+            scan_benchmark_scripts(&results);
         }
     }
 
-    // Scan and process benchmark scripts
-    if (num_tests > 0) {
-        // If specific tests were requested, only process those
-        for (int i = 0; i < num_tests; i++) {
-            char script_path[MAX_PATH_LEN];
-            // Check if .rf extension is already present
-            if (strstr(test_names[i], ".rf") == NULL) {
-                snprintf(script_path, sizeof(script_path), "%s/%s.rf", BENCH_SCRIPTS_DIR, test_names[i]);
-            } else {
-                snprintf(script_path, sizeof(script_path), "%s/%s", BENCH_SCRIPTS_DIR, test_names[i]);
+    // Update only the results that were run
+    if (specific_tests) {
+        // For each result we just ran
+        for (int i = 1; i < results.result_count; i++) {
+            // Find matching previous result
+            bench_result_t* previous = NULL;
+            for (int j = 0; j < previous_results.result_count; j++) {
+                if (strcmp(results.results[i].script_name, previous_results.results[j].script_name) == 0) {
+                    previous = &previous_results.results[j];
+                    break;
+                }
             }
-            process_script_file(script_path, &results);
+            // Compare and print results for this test
+            compare_and_print_results(&results.results[i], previous);
+        }
+    } else {
+        // Compare and print results for each test
+        for (int i = 0; i < results.result_count; i++) {
+            bench_result_t* previous = NULL;
+            for (int j = 0; j < previous_results.result_count; j++) {
+                if (strcmp(results.results[i].script_name, previous_results.results[j].script_name) == 0) {
+                    previous = &previous_results.results[j];
+                    break;
+                }
+            }
+            compare_and_print_results(&results.results[i], previous);
+        }
+    }
 
-            // Find and print previous results if available
-            if (results.result_count > 0) {
-                bench_result_t* current = &results.results[results.result_count - 1];
-                bench_result_t* previous = NULL;
+    // Save results if we have any
+    if (results.result_count > 0) {
+        // If running specific tests, only update those tests in the previous results
+        if (specific_tests) {
+            for (int i = 1; i < results.result_count; i++) {
                 for (int j = 0; j < previous_results.result_count; j++) {
-                    if (strcmp(previous_results.results[j].script_name, current->script_name) == 0) {
-                        previous = &previous_results.results[j];
+                    if (strcmp(results.results[i].script_name, previous_results.results[j].script_name) == 0) {
+                        previous_results.results[j] = results.results[i];
                         break;
                     }
                 }
-                compare_and_print_results(current, previous);
             }
+            save_results(&previous_results);
+        } else {
+            save_results(&results);
         }
-    } else {
-        // Otherwise process all scripts
-        scan_benchmark_scripts(&results);
     }
 
-    // Save updated results if we have any
-    if (results.result_count > 0) {
-        save_results(&results);
-    }
-
-    return 0;
+    return has_errors ? 1 : 0;
 }
