@@ -651,7 +651,7 @@ obj_p ray_concat(obj_p x, obj_p y) {
             vec = GUID(yl);
             memcpy(&AS_GUID(vec)[0], AS_GUID(x), sizeof(guid_t));
             for (i = 1; i < yl; i++)
-                memcpy(AS_GUID(vec)[i], AS_GUID(y)[i], sizeof(guid_t));
+                memcpy(AS_GUID(vec)[i], AS_GUID(y)[i - 1], sizeof(guid_t));
             return vec;
         case MTYPE2(TYPE_GUID, TYPE_GUID):
             xl = x->len;
@@ -744,7 +744,6 @@ obj_p ray_concat(obj_p x, obj_p y) {
                     AS_LIST(vec)[i] = clone_obj(AS_LIST(x)[i]);
 
                 AS_LIST(vec)[xl] = clone_obj(y);
-
                 return vec;
             }
             if (y->type == TYPE_LIST) {
@@ -753,11 +752,12 @@ obj_p ray_concat(obj_p x, obj_p y) {
                 AS_LIST(vec)[0] = clone_obj(x);
                 for (i = 0; i < yl; i++)
                     AS_LIST(vec)[i + 1] = clone_obj(AS_LIST(y)[i]);
-
                 return vec;
             }
-
-            THROW(ERR_TYPE, "concat: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
+            vec = LIST(2);
+            AS_LIST(vec)[0] = clone_obj(x);
+            AS_LIST(vec)[1] = clone_obj(y);
+            return vec;
     }
 }
 

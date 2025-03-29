@@ -3119,6 +3119,9 @@ test_result_t test_lang_concat() {
     TEST_ASSERT_EQ("(concat 't' \"est\")", "\"test\"");
     TEST_ASSERT_EQ("(concat \"tes\" 't')", "\"test\"");
     TEST_ASSERT_EQ("(concat \"te\" \"st\")", "\"test\"");
+    TEST_ASSERT_EQ("(concat 't' \"est\\000\")", "\"test\"");
+    TEST_ASSERT_EQ("(concat \"tes\\000\" 't')", "\"test\"");
+    TEST_ASSERT_EQ("(concat \"te\\000\" \"st\\000\")", "\"test\"");
     TEST_ASSERT_EQ("(concat 1h 2h)", "[1h 2h]");
     TEST_ASSERT_EQ("(concat [1h] 2h)", "[1h 2h]");
     TEST_ASSERT_EQ("(concat 1h [2h])", "[1h 2h]");
@@ -3173,5 +3176,21 @@ test_result_t test_lang_concat() {
         "(list (list \"A\" \"B\" \"C\" \"D\" \"E\") [100 200 300 400 500] (til 5))))",
         "concat: values a not compatible");
 
+    TEST_ASSERT_EQ(
+        "(concat (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\") "
+        "(as 'guid \"a49f18a4-1969-49e8-9b8a-6bb9a4832eea\"))",
+        "[d49f18a4-1969-49e8-9b8a-6bb9a4832eea a49f18a4-1969-49e8-9b8a-6bb9a4832eea]");
+    TEST_ASSERT_EQ(
+        "(concat (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\") "
+        "(enlist (as 'guid \"a49f18a4-1969-49e8-9b8a-6bb9a4832eea\")))",
+        "[d49f18a4-1969-49e8-9b8a-6bb9a4832eea a49f18a4-1969-49e8-9b8a-6bb9a4832eea]");
+    TEST_ASSERT_EQ(
+        "(concat (enlist (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\")) "
+        "(as 'guid \"a49f18a4-1969-49e8-9b8a-6bb9a4832eea\"))",
+        "[d49f18a4-1969-49e8-9b8a-6bb9a4832eea a49f18a4-1969-49e8-9b8a-6bb9a4832eea]");
+
+    TEST_ASSERT_EQ("(concat (list 'a') 5)", "(list 'a' 5)");
+    TEST_ASSERT_EQ("(concat 5 (list 'a'))", "(list 5 'a')");
+    TEST_ASSERT_EQ("(concat 'a' 5)", "(list 'a' 5)");
     PASS();
 }
