@@ -1348,6 +1348,9 @@ i64_t find_obj_idx(obj_p obj, obj_p val) {
         case MTYPE2(TYPE_F64, -TYPE_F64):
             return find_raw(obj, &val->f64);
         default:
+            if (!IS_VECTOR(obj) && !IS_VECTOR(val))
+                return (cmp_obj(obj, val) == 0) ? 0 : NULL_I64;
+
             if (obj->type == TYPE_LIST) {
                 for (i = 0; i < obj->len; i++) {
                     eq = ray_eq(AS_LIST(obj)[i], val);
@@ -1358,6 +1361,7 @@ i64_t find_obj_idx(obj_p obj, obj_p val) {
                     drop_obj(eq);
                 }
             }
+
             return NULL_I64;
     }
 }
