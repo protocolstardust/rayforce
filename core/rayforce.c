@@ -1299,19 +1299,32 @@ i64_t find_sym(obj_p obj, lit_p str) {
 }
 
 i64_t find_obj_idx(obj_p obj, obj_p val) {
-    if (!IS_VECTOR(obj))
-        return NULL_I64;
+    if (!IS_VECTOR(obj) && obj->type != TYPE_LIST)
+        return (cmp_obj(obj, val) == 0) ? 0 : NULL_I64;
 
     switch (MTYPE2(obj->type, val->type)) {
+        case MTYPE2(TYPE_B8, -TYPE_B8):
+        case MTYPE2(TYPE_U8, -TYPE_U8):
+        case MTYPE2(TYPE_C8, -TYPE_C8):
+            return find_raw(obj, &val->u8);
+        case MTYPE2(TYPE_I16, -TYPE_I16):
+            return find_raw(obj, &val->i16);
+        case MTYPE2(TYPE_I32, -TYPE_I32):
+        case MTYPE2(TYPE_DATE, -TYPE_DATE):
+        case MTYPE2(TYPE_TIME, -TYPE_TIME):
+            return find_raw(obj, &val->i32);
         case MTYPE2(TYPE_I64, -TYPE_I64):
         case MTYPE2(TYPE_SYMBOL, -TYPE_SYMBOL):
         case MTYPE2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
             return find_raw(obj, &val->i64);
         case MTYPE2(TYPE_F64, -TYPE_F64):
             return find_raw(obj, &val->f64);
-        case MTYPE2(TYPE_C8, -TYPE_C8):
-            return find_raw(obj, &val->c8);
         default:
+            if (obj->type == TYPE_LIST) {
+                for (u64_t i = 0; i < obj->len; i++)
+                    if (cmp_obj(AS_LIST(obj)[i], val) == 0)
+                        return i;
+            }
             return NULL_I64;
     }
 }
@@ -1830,6 +1843,13 @@ i64_t cmp_obj(obj_p a, obj_p b) {
     }
 }
 
+#define __FIND_RAW(t, tv)                     \
+    l = obj->len;                             \
+    for (i = 0; i < l; i++)                   \
+        if (AS_##tv(obj)[i] == *(t##_t *)val) \
+            return i;                         \
+    return NULL_I64;
+
 i64_t find_raw(obj_p obj, raw_p val) {
     i64_t i, l;
 
@@ -1837,26 +1857,22 @@ i64_t find_raw(obj_p obj, raw_p val) {
         return NULL_I64;
 
     switch (obj->type) {
+        case TYPE_U8:
+        case TYPE_B8:
+        case TYPE_C8:
+            __FIND_RAW(u8, U8)
+        case TYPE_I16:
+            __FIND_RAW(i16, I16)
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            __FIND_RAW(i32, I32)
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
-            l = obj->len;
-            for (i = 0; i < l; i++)
-                if (AS_I64(obj)[i] == *(i64_t *)val)
-                    return i;
-            return NULL_I64;
+            __FIND_RAW(i64, I64)
         case TYPE_F64:
-            l = obj->len;
-            for (i = 0; i < l; i++)
-                if (AS_F64(obj)[i] == *(f64_t *)val)
-                    return i;
-            return NULL_I64;
-        case TYPE_C8:
-            l = obj->len;
-            for (i = 0; i < l; i++)
-                if (AS_C8(obj)[i] == *(c8_t *)val)
-                    return i;
-            return NULL_I64;
+            __FIND_RAW(f64, F64)
         case TYPE_LIST:
             l = obj->len;
             for (i = 0; i < l; i++)

@@ -660,36 +660,89 @@ obj_p ray_take(obj_p x, obj_p y) {
 }
 
 obj_p ray_in(obj_p x, obj_p y) {
-    i64_t i, xl, yl, p;
+    i64_t i, xl, yl, p, k;
     obj_p vec, set;
+    i16_t min16;
+    u64_t range;
+
+    if ((IS_VECTOR(y) || y->type == TYPE_LIST) && y->len == 0) {
+        if (IS_VECTOR(x) || x->type == TYPE_LIST) {
+            vec = B8(x->len);
+            memset(AS_B8(vec), 0, x->len);
+            return vec;
+        } else
+            return b8(0);
+    }
 
     if (!IS_VECTOR(x))
         return b8(find_obj_idx(y, x) != NULL_I64);
 
     switch (MTYPE2(x->type, y->type)) {
-        case MTYPE2(TYPE_I64, TYPE_I64):
-        case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
+        case MTYPE2(TYPE_U8, TYPE_U8):
+        case MTYPE2(TYPE_B8, TYPE_B8):
+        case MTYPE2(TYPE_C8, TYPE_C8):
+            range = 256;
+            set = B8(range);
+            memset(AS_U8(set), 0, range);
+            for (i = 0; i < (i64_t)y->len; i++)
+                AS_B8(set)[AS_U8(y)[i]] = 1;
+            vec = B8(x->len);
+            for (i = 0; i < (i64_t)x->len; i++)
+                AS_B8(vec)[i] = AS_B8(set)[AS_U8(x)[i]];
+            drop_obj(set);
+            return vec;
+
+        case MTYPE2(TYPE_I16, TYPE_I16):
+            min16 = -32768;
+            range = 65536;
+            set = B8(range);
+            memset(AS_B8(set), 0, range);
+            for (i = 0; i < (i64_t)y->len; i++)
+                AS_B8(set)[AS_I16(y)[i] - min16] = 1;
+            vec = B8(x->len);
+            for (i = 0; i < (i64_t)x->len; i++)
+                AS_B8(vec)[i] = AS_B8(set)[AS_I16(x)[i] - min16];
+            drop_obj(set);
+            return vec;
+
+        case MTYPE2(TYPE_I32, TYPE_I32):
+        case MTYPE2(TYPE_DATE, TYPE_DATE):
+        case MTYPE2(TYPE_TIME, TYPE_TIME):
             xl = x->len;
             yl = y->len;
             set = ht_oa_create(yl, -1);
-
             for (i = 0; i < yl; i++) {
-                // p = ht_oa_tab_next_with(&set, AS_I64(y)[i], &hash_i64, &cmp_i64);
+                k = i32_to_i64(AS_I32(y)[i]);
+                p = ht_oa_tab_next(&set, k);
+                if (AS_I64(AS_LIST(set)[0])[p] == NULL_I64)
+                    AS_I64(AS_LIST(set)[0])[p] = k;
+            }
+            vec = B8(xl);
+            for (i = 0; i < xl; i++) {
+                k = i32_to_i64(AS_I32(x)[i]);
+                p = ht_oa_tab_get(set, k);
+                AS_B8(vec)[i] = (p != NULL_I64);
+            }
+            drop_obj(set);
+            return vec;
+
+        case MTYPE2(TYPE_I64, TYPE_I64):
+        case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
+        case MTYPE2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
+            xl = x->len;
+            yl = y->len;
+            set = ht_oa_create(yl, -1);
+            for (i = 0; i < yl; i++) {
                 p = ht_oa_tab_next(&set, AS_I64(y)[i]);
                 if (AS_I64(AS_LIST(set)[0])[p] == NULL_I64)
                     AS_I64(AS_LIST(set)[0])[p] = AS_I64(y)[i];
             }
-
             vec = B8(xl);
-
             for (i = 0; i < xl; i++) {
-                // p = ht_oa_tab_next_with(&set, AS_I64(x)[i], &hash_i64, &cmp_i64);
                 p = ht_oa_tab_get(set, AS_I64(x)[i]);
                 AS_B8(vec)[i] = (p != NULL_I64);
             }
-
             drop_obj(set);
-
             return vec;
 
         default:

@@ -3194,6 +3194,7 @@ test_result_t test_lang_concat() {
     TEST_ASSERT_EQ("(concat 'a' 5)", "(list 'a' 5)");
     PASS();
 }
+
 test_result_t test_lang_filter() {
     TEST_ASSERT_EQ("(filter [true false true false] [true true false false])", "[true false]");
     TEST_ASSERT_EQ("(filter [0x12 0x11 0x10] [true false true])", "[0x12 0x10]");
@@ -3214,6 +3215,34 @@ test_result_t test_lang_filter() {
 
     TEST_ASSERT_ER("(filter [1i 0Ni 2i] [true true])", "filter: arguments must be the same length");
     TEST_ASSERT_ER("(filter [true false] [1 2])", "filter: unsupported types: 'B8, 'I64");
+
+    PASS();
+}
+
+test_result_t test_lang_in() {
+    TEST_ASSERT_EQ("(in 2 2)", "true");
+    TEST_ASSERT_EQ("(in false [true false])", "true");
+    TEST_ASSERT_EQ("(in 0x12 [0x12 0x11 0x10])", "true");
+    TEST_ASSERT_EQ("(in 'e' \"test\")", "true");
+    TEST_ASSERT_EQ("(in 1h [2h 3h])", "false");
+    TEST_ASSERT_EQ("(in 1i [1i 0Ni 2i])", "true");
+    TEST_ASSERT_EQ("(in 2012.12.12 [2012.12.12 2012.12.13])", "true");
+    TEST_ASSERT_EQ("(in 10:00:00.000 [10:00:00.000 20:10:10.500])", "true");
+    TEST_ASSERT_EQ("(in 1 [0Nl])", "false");
+    TEST_ASSERT_EQ("(in 'a ['a 'b 'c 'dd])", "true");
+    TEST_ASSERT_EQ("(in 2024.01.01D10:00:00.000000000 [])", "false");
+    TEST_ASSERT_EQ("(in 1.0 [1.0 2.0 3.0])", "true");
+    TEST_ASSERT_EQ("(in (guid 2) [])", "[false false]");
+    TEST_ASSERT_EQ("(in 2 (list '3' 2))", "true");
+    TEST_ASSERT_EQ("(in 3 [1i 0Ni 2i])", "false");
+    TEST_ASSERT_EQ("(in [true false] [false])", "[false true]");
+    TEST_ASSERT_EQ("(in [0x00 0x01] [0x02 0x00])", "[true false]");
+    TEST_ASSERT_EQ("(in \"test\" \"post\")", "[true false true true]");
+    TEST_ASSERT_EQ("(in [3h 2h 5h] [1h 0Nh 2h 3h])", "[true true false]");
+    TEST_ASSERT_EQ("(in [3i 2i 5i] [1i 0Ni 2i 3i])", "[true true false]");
+    TEST_ASSERT_EQ("(in [3 2 5] [1 0Nl 2 3])", "[true true false]");
+
+    TEST_ASSERT_ER("(in [1i 0Ni 2i] [true true])", "in: unsupported types: 'I32, 'B8");
 
     PASS();
 }
