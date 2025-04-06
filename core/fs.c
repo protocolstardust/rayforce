@@ -380,6 +380,24 @@ obj_p fs_read_dir(lit_p path) {
     return lst;
 }
 
+i64_t fs_get_fname_by_fd(i64_t fd, c8_t buf[], u64_t len) {
+    i64_t l;
+    c8_t path[PATH_MAX];
+
+    snprintf(path, sizeof(path), "/proc/self/fd/%lld", fd);
+
+    // Read symbolic link
+    l = readlink(path, buf, len - 1);
+    if (l == -1) {
+        perror("readlink");
+        return -1;
+    }
+
+    buf[l] = '\0';  // Null-terminate the string
+
+    return 0;
+}
+
 #endif
 
 u64_t fs_filename(lit_p path, lit_p *name) {
@@ -410,22 +428,4 @@ u64_t fs_filename(lit_p path, lit_p *name) {
     *name = p ? p + 1 : path;
 
     return len - (*name - path);
-}
-
-i64_t fs_get_fname_by_fd(i64_t fd, c8_t buf[], u64_t len) {
-    i64_t l;
-    c8_t path[PATH_MAX];
-
-    snprintf(path, sizeof(path), "/proc/self/fd/%lld", fd);
-
-    // Read symbolic link
-    l = readlink(path, buf, len - 1);
-    if (l == -1) {
-        perror("readlink");
-        return -1;
-    }
-
-    buf[len] = '\0';  // Null-terminate the string
-
-    return 0;
 }
