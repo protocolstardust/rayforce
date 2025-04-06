@@ -25,42 +25,26 @@
 #include "error.h"
 #include "string.h"
 #include <stdio.h>
+#include "core/def.h"
 
-i64_t os_get_var(lit_p name, c8_t buf[], u64_t len) {
-    str_p value;
-
-    if (!name || !buf || len == 0) {
-        fprintf(stderr, "Invalid arguments.\n");
-        return -1;
-    }
-
-#if defined(OS_WINDOWS)
-    // Windows implementation using GetEnvironmentVariable
-    DWORD result = GetEnvironmentVariableA(var_name, buffer, (DWORD)length);
-    if (result == 0)
-        return -1;
-
-    if (result >= length) {
-        fprintf(stderr, "Buffer too small for environment variable '%s'.\n", var_name);
-        return -1;
-    }
+#ifdef _WIN32
+#include <windows.h>
 #else
-    // UNIX implementation using getenv
-    value = getenv(name);
-    if (!value)
-        return -1;
-
-    if (strlen(value) >= len) {
-        fprintf(stderr, "Buffer too small for environment variable '%s'.\n", name);
-        return -1;
-    }
-
-    strncpy(buf, value, len - 1);
-    buf[len - 1] = '\0';  // Ensure null termination
-
+#include <unistd.h>
 #endif
 
-    return 0;
+char* os_get_var(const char* var_name, char* buffer, size_t length) {
+#ifdef _WIN32
+    DWORD result = GetEnvironmentVariableA(var_name, buffer, (DWORD)length);
+    return result > 0 ? buffer : NULL;
+#else
+    const char* value = getenv(var_name);
+    if (!value)
+        return NULL;
+    strncpy(buffer, value, length - 1);
+    buffer[length - 1] = '\0';
+    return buffer;
+#endif
 }
 
 i64_t os_set_var(lit_p name, lit_p value) {
