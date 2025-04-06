@@ -30,21 +30,28 @@
 // Type definition for signal handler function pointer
 typedef void (*signal_handler_fn)(int);
 
+// Platform-specific type for process ID
+#if defined(OS_WINDOWS)
+typedef DWORD pid_t;
+#else
+#include <sys/types.h>  // for pid_t
+#endif
+
 /**
  * Registers a signal handler for SIGINT, SIGTERM, and SIGQUIT
- * @param handler Function pointer to the signal handler
+ * @param handler The signal handler function to register
  */
 void register_signal_handler(signal_handler_fn handler);
 
 /**
  * Sets the child process ID
- * @param pid Process ID of the child process
+ * @param pid The child process ID to set
  */
 void set_child_pid(pid_t pid);
 
 /**
- * Gets the current child process ID
- * @return Current child process ID, or -1 if no child process
+ * Gets the child process ID
+ * @return The child process ID
  */
 pid_t get_child_pid(void);
 

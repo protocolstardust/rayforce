@@ -23,6 +23,10 @@
 
 #include "signal.h"
 
+#if defined(OS_WINDOWS)
+#include <windows.h>
+#endif
+
 // Static variables for storing the child process ID and signal handler
 static pid_t __CHILD_PID = -1;
 static signal_handler_fn __SIGNAL_HANDLER_FN = NULL;
@@ -33,7 +37,11 @@ void register_signal_handler(signal_handler_fn handler) {
     // Set up standard signal handlers
     signal(SIGINT, __SIGNAL_HANDLER_FN);
     signal(SIGTERM, __SIGNAL_HANDLER_FN);
+
+// SIGQUIT is not available on Windows
+#if !defined(OS_WINDOWS)
     signal(SIGQUIT, __SIGNAL_HANDLER_FN);
+#endif
 }
 
 void set_child_pid(pid_t pid) { __CHILD_PID = pid; }
