@@ -1,8 +1,7 @@
 # RayforceDB: Redefining Speed and Simplicity in Data Management
 
-Welcome to RayforceDB, where performance, efficiency, and simplicity converge to set a new standard in the world of database systems.
-
 [![Build and Release](https://github.com/singaraiona/rayforce/actions/workflows/release.yml/badge.svg)](https://github.com/singaraiona/rayforce/actions/workflows/release.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/YOUR_USERNAME/YOUR_GIST_ID/raw/coverage.json)](https://YOUR_USERNAME.github.io/rayforce/coverage_report/)
 
 ## Elevated Performance
 
