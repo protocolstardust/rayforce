@@ -33,4 +33,4 @@ nav:
   - Reference:
     - Syntax: content/syntax.md
     - Functions: content/reference.md
-  - Coverage Report: coverage_report/index.html 
+  - Coverage Report: /coverage/index.html 

@@ -48,26 +48,28 @@ jobs:
         make clean
         make coverage || echo "Coverage generation failed but continuing..."
         
-    - name: Download existing site
+    - name: Setup site structure
       run: |
-        mkdir -p _site/tests_report
-        mkdir -p _site/coverage_report
-        mkdir -p _site/badges
-        curl -L "https://singaraiona.github.io/rayforce/tests_report/index.html" -o _site/tests_report/index.html || true
+        # Create site directories
+        mkdir -p site/coverage
+        mkdir -p site/badges
+        
+        # Build MkDocs site
+        mkdocs build -d site
         
     - name: Generate coverage report and badge
       id: coverage
       run: |
         if [ -f coverage.info ]; then
-          # Generate HTML report
-          genhtml coverage.info -o _site/coverage_report
+          # Generate HTML report directly in the site/coverage directory
+          genhtml coverage.info -o site/coverage --no-function-coverage --prefix $(pwd)
           
           # Extract coverage percentages
           LINE_COVERAGE=$(lcov --summary coverage.info 2>&1 | grep "lines" | awk '{print $4}' | cut -d'%' -f1)
           FUNC_COVERAGE=$(lcov --summary coverage.info 2>&1 | grep "functions" | awk '{print $4}' | cut -d'%' -f1)
           
           # Create coverage badges
-          echo "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='96' height='20' role='img' aria-label='coverage: ${LINE_COVERAGE}%'><title>coverage: ${LINE_COVERAGE}%</title><linearGradient id='s' x2='0' y2='100%'><stop offset='0' stop-color='#bbb' stop-opacity='.1'/><stop offset='1' stop-opacity='.1'/></linearGradient><clipPath id='r'><rect width='96' height='20' rx='3' fill='#fff'/></clipPath><g clip-path='url(#r)'><rect width='61' height='20' fill='#555'/><rect x='61' width='35' height='20' fill='#97ca00'/><rect width='96' height='20' fill='url(#s)'/></g><g fill='#fff' text-anchor='middle' font-family='Verdana,Geneva,DejaVu Sans,sans-serif' text-rendering='geometricPrecision' font-size='110'><text aria-hidden='true' x='315' y='150' fill='#010101' fill-opacity='.3' transform='scale(.1)' textLength='510'>coverage</text><text x='315' y='140' transform='scale(.1)' fill='#fff' textLength='510'>coverage</text><text aria-hidden='true' x='775' y='150' fill='#010101' fill-opacity='.3' transform='scale(.1)' textLength='250'>${LINE_COVERAGE}%</text><text x='775' y='140' transform='scale(.1)' fill='#fff' textLength='250'>${LINE_COVERAGE}%</text></g></svg>" > _site/badges/coverage.svg
+          echo "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='96' height='20' role='img' aria-label='coverage: ${LINE_COVERAGE}%'><title>coverage: ${LINE_COVERAGE}%</title><linearGradient id='s' x2='0' y2='100%'><stop offset='0' stop-color='#bbb' stop-opacity='.1'/><stop offset='1' stop-opacity='.1'/></linearGradient><clipPath id='r'><rect width='96' height='20' rx='3' fill='#fff'/></clipPath><g clip-path='url(#r)'><rect width='61' height='20' fill='#555'/><rect x='61' width='35' height='20' fill='#97ca00'/><rect width='96' height='20' fill='url(#s)'/></g><g fill='#fff' text-anchor='middle' font-family='Verdana,Geneva,DejaVu Sans,sans-serif' text-rendering='geometricPrecision' font-size='110'><text aria-hidden='true' x='315' y='150' fill='#010101' fill-opacity='.3' transform='scale(.1)' textLength='510'>coverage</text><text x='315' y='140' transform='scale(.1)' fill='#fff' textLength='510'>coverage</text><text aria-hidden='true' x='775' y='150' fill='#010101' fill-opacity='.3' transform='scale(.1)' textLength='250'>${LINE_COVERAGE}%</text><text x='775' y='140' transform='scale(.1)' fill='#fff' textLength='250'>${LINE_COVERAGE}%</text></g></svg>" > site/badges/coverage.svg
           
           echo "line_coverage=$LINE_COVERAGE" >> $GITHUB_OUTPUT
           echo "func_coverage=$FUNC_COVERAGE" >> $GITHUB_OUTPUT
@@ -77,7 +79,7 @@ jobs:
             echo "::warning::Coverage is below 40% (current: ${LINE_COVERAGE}%). Consider adding more tests."
           fi
         else
-          echo "<html><body><h1>Coverage Report</h1><p>No coverage data available. Coverage generation may have failed.</p></body></html>" > _site/coverage_report/index.html
+          echo "<html><body><h1>Coverage Report</h1><p>No coverage data available. Coverage generation may have failed.</p></body></html>" > site/coverage/index.html
           echo "line_coverage=0" >> $GITHUB_OUTPUT
           echo "func_coverage=0" >> $GITHUB_OUTPUT
           echo "::warning::No coverage data was generated"
@@ -91,7 +93,7 @@ jobs:
       if: success() || failure()  # Continue even if coverage check fails
       uses: actions/upload-pages-artifact@v3
       with:
-        path: _site
+        path: site
         
     - name: Deploy to GitHub Pages
       if: success() || failure()  # Continue even if coverage check fails
