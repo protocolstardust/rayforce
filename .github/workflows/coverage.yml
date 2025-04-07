@@ -68,6 +68,19 @@ jobs:
           exit 1
         fi
 
+    - name: Download current Pages content
+      if: success() || failure()
+      run: |
+        # Create a temporary directory for current content
+        mkdir -p temp_current
+        # Try to download current pages content
+        curl -L "https://singaraiona.github.io/rayforce/tests_report/index.html" -o temp_current/tests_report_index.html || true
+        if [ -f temp_current/tests_report_index.html ]; then
+          mkdir -p docs/tests_report
+          mv temp_current/tests_report_index.html docs/tests_report/index.html
+        fi
+        rm -rf temp_current
+
     - name: Build documentation
       if: success() || failure()  # Continue even if coverage check fails
       run: |
@@ -75,7 +88,7 @@ jobs:
         mkdir -p temp_site
         # Build MkDocs into the temporary directory
         mkdocs build --site-dir temp_site
-        # Copy the built site to docs, preserving the coverage report
+        # Copy the built site to docs, preserving both coverage and tests reports
         cp -r temp_site/* docs/
         # Clean up
         rm -rf temp_site

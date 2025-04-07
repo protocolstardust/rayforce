@@ -34,6 +34,15 @@ jobs:
         # Run tests and capture output, stripping ANSI escape sequences
         make tests | sed 's/\x1b\[[0-9;]*m//g' | tee test_output.txt
         
+        # Download current coverage report
+        mkdir -p temp_current
+        curl -L "https://singaraiona.github.io/rayforce/coverage_report/index.html" -o temp_current/coverage_index.html || true
+        if [ -f temp_current/coverage_index.html ]; then
+          mkdir -p docs/coverage_report
+          cp -r temp_current/* docs/coverage_report/
+        fi
+        rm -rf temp_current
+
         # Convert test output to HTML
         cat > docs/tests_report/index.html << 'EOF'
         <!DOCTYPE html>
