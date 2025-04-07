@@ -54,7 +54,26 @@ jobs:
           genhtml coverage.info -o docs/coverage_report
           # Extract coverage percentage for the badge
           COVERAGE=$(lcov --summary coverage.info | grep "lines" | awk '{print $4}' | cut -d'%' -f1)
-          sed -i "s/coverage-[0-9]*%25/coverage-${COVERAGE}%25/" README.md
+          # Determine badge color based on coverage percentage
+          if [ "$COVERAGE" -ge 90 ]; then
+            COLOR="success"
+          elif [ "$COVERAGE" -ge 70 ]; then
+            COLOR="important"
+          else
+            COLOR="critical"
+          fi
+          # Update README.md with the coverage percentage and color
+          sed -i "s/coverage-[0-9]*%25-[a-z]*/coverage-${COVERAGE}%25-${COLOR}/" README.md
+          # If the pattern wasn't found, try a different pattern
+          if ! grep -q "coverage-${COVERAGE}%25" README.md; then
+            sed -i "s/coverage-[0-9]*%25/coverage-${COVERAGE}%25-${COLOR}/" README.md
+          fi
+          # Commit the updated README.md
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add README.md
+          git commit -m "Update coverage badge to ${COVERAGE}%" || echo "No changes to commit"
+          git push || echo "No changes to push"
         else
           mkdir -p docs/coverage_report
           echo "<html><body><h1>Coverage Report</h1><p>No tests available yet.</p></body></html>" > docs/coverage_report/index.html
