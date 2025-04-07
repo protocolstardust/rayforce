@@ -1,8 +1,6 @@
 # RayforceDB: Redefining Speed and Simplicity in Data Management
 
-[![Tests](https://github.com/singaraiona/rayforce/actions/workflows/tests.yml/badge.svg)](https://github.com/singaraiona/rayforce/actions/workflows/tests.yml)
-[![Coverage](https://github.com/singaraiona/rayforce/actions/workflows/coverage.yml/badge.svg)](https://singaraiona.github.io/rayforce/coverage_report/)
-[![Release](https://img.shields.io/badge/Release-latest-blue?logo=github&style=flat)](https://github.com/singaraiona/rayforce/releases)
+[![Tests](https://img.shields.io/badge/Tests-passing-success?logo=github&style=flat)](https://github.com/singaraiona/rayforce/actions/workflows/tests.yml) [![Coverage](https://github.com/singaraiona/rayforce/actions/workflows/coverage.yml/badge.svg)](https://singaraiona.github.io/rayforce/coverage_report/) [![Release](https://img.shields.io/badge/Release-latest-blue?logo=github&style=flat)](https://github.com/singaraiona/rayforce/releases)
 
 ## Elevated Performance
 
