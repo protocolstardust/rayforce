@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}/coverage_report/
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - uses: actions/checkout@v4
@@ -51,8 +51,9 @@ jobs:
     - name: Generate coverage report
       id: coverage
       run: |
+        mkdir -p _site
         if [ -f coverage.info ]; then
-          genhtml coverage.info -o coverage_report
+          genhtml coverage.info -o _site/coverage_report
           # Extract coverage percentage for the badge
           COVERAGE=$(lcov --summary coverage.info | grep "lines" | awk '{print $4}' | cut -d'%' -f1)
           echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
@@ -62,8 +63,8 @@ jobs:
             exit 1
           fi
         else
-          mkdir -p coverage_report
-          echo "<html><body><h1>Coverage Report</h1><p>No tests available yet.</p></body></html>" > coverage_report/index.html
+          mkdir -p _site/coverage_report
+          echo "<html><body><h1>Coverage Report</h1><p>No tests available yet.</p></body></html>" > _site/coverage_report/index.html
           echo "coverage=0" >> $GITHUB_OUTPUT
           exit 1
         fi
@@ -76,7 +77,7 @@ jobs:
       if: success() || failure()  # Continue even if coverage check fails
       uses: actions/upload-pages-artifact@v3
       with:
-        path: coverage_report
+        path: _site
         
     - name: Deploy to GitHub Pages
       if: success() || failure()  # Continue even if coverage check fails

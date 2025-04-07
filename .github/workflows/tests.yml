@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}/tests_report/
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
     - uses: actions/checkout@v4
     
@@ -29,13 +29,13 @@ jobs:
     - name: Run tests and generate report
       run: |
         # Create tests directory
-        mkdir -p tests_report
+        mkdir -p _site/tests_report
         
         # Run tests and capture output, stripping ANSI escape sequences
         make tests | sed 's/\x1b\[[0-9;]*m//g' | tee test_output.txt
         
         # Convert test output to HTML
-        cat > tests_report/index.html << 'EOF'
+        cat > _site/tests_report/index.html << 'EOF'
         <!DOCTYPE html>
         <html>
         <head>
@@ -127,10 +127,10 @@ jobs:
                 echo "</div>"
             done
             echo "</div>"
-        } >> tests_report/index.html
+        } >> _site/tests_report/index.html
         
         # Close HTML
-        echo '</div></body></html>' >> tests_report/index.html
+        echo '</div></body></html>' >> _site/tests_report/index.html
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
@@ -138,7 +138,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: tests_report
+        path: _site
         
     - name: Deploy to GitHub Pages
       id: deployment
