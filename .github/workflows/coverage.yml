@@ -43,13 +43,13 @@ jobs:
           echo "<html><body><h1>Coverage Report</h1><p>No tests available yet.</p></body></html>" > coverage_report/index.html
         fi
         
-    - name: Create a simple HTML page that embeds the coverage report
+    - name: Create a separate coverage page
       run: |
-        mkdir -p docs/coverage
+        mkdir -p docs/coverage_report
         if [ -f coverage.info ]; then
           # Copy the coverage report to the docs directory
-          cp -r coverage_report/* docs/coverage/
-          # Create an index.html file in the docs directory
+          cp -r coverage_report/* docs/coverage_report/
+          # Create a simple index.html file for the coverage report
           echo "<!DOCTYPE html>
           <html>
           <head>
@@ -60,6 +60,9 @@ jobs:
               .container { max-width: 1200px; margin: 0 auto; }
               .header { margin-bottom: 20px; }
               .content { border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+              .nav { margin-bottom: 20px; }
+              .nav a { color: #0366d6; text-decoration: none; }
+              .nav a:hover { text-decoration: underline; }
             </style>
           </head>
           <body>
@@ -67,13 +70,16 @@ jobs:
               <div class='header'>
                 <h1>RayforceDB Coverage Report</h1>
                 <p>This page shows the code coverage report for RayforceDB.</p>
+                <div class='nav'>
+                  <a href='../'>← Back to Documentation</a>
+                </div>
               </div>
               <div class='content'>
-                <iframe src='coverage/index.html' width='100%' height='800px' frameborder='0'></iframe>
+                <iframe src='index.html' width='100%' height='800px' frameborder='0'></iframe>
               </div>
             </div>
           </body>
-          </html>" > docs/index.html
+          </html>" > docs/coverage_report/index.html
         else
           # Create a simple index.html file if no coverage data is available
           echo "<!DOCTYPE html>
@@ -86,6 +92,9 @@ jobs:
               .container { max-width: 1200px; margin: 0 auto; }
               .header { margin-bottom: 20px; }
               .content { border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+              .nav { margin-bottom: 20px; }
+              .nav a { color: #0366d6; text-decoration: none; }
+              .nav a:hover { text-decoration: underline; }
             </style>
           </head>
           <body>
@@ -93,13 +102,16 @@ jobs:
               <div class='header'>
                 <h1>RayforceDB Coverage Report</h1>
                 <p>No coverage data is available yet.</p>
+                <div class='nav'>
+                  <a href='../'>← Back to Documentation</a>
+                </div>
               </div>
               <div class='content'>
                 <p>Coverage reports will be available here once tests are added to the project.</p>
               </div>
             </div>
           </body>
-          </html>" > docs/index.html
+          </html>" > docs/coverage_report/index.html
         fi
         
     - name: Setup Pages
