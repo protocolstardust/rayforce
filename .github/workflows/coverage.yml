@@ -52,11 +52,16 @@ jobs:
       run: |
         # Create site directories
         rm -rf site
+        mkdir -p site
+        
+        # Copy existing docs to site root
+        if [ -d "docs" ]; then
+          cp -r docs/* site/
+        fi
+        
+        # Create coverage directory
         mkdir -p site/coverage
         mkdir -p site/badges
-        
-        # Build MkDocs site
-        mkdocs build -d site
         
     - name: Generate coverage report and badge
       id: coverage

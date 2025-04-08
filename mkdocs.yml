@@ -26,11 +26,32 @@ theme:
     - content.code.copy
 
 nav:
-  - Home: index.md
+  - Home: index.html
   - Getting Started:
-    - Installation: content/getstarted/install.md
-    - Tutorial: content/getstarted/tutorial.md
+    - Installation: content/getstarted/index.html
   - Reference:
-    - Syntax: content/syntax.md
-    - Functions: content/reference.md
-  - Coverage Report: /coverage/index.html 
+    - Syntax: content/syntax.html
+    - Functions: content/reference.html
+    - Atomic Operations: content/atomic.html
+    - FAQ: content/faq.html
+  - Components:
+    - Time: content/time/index.html
+    - Update: content/update/index.html
+    - Temporal: content/temporal/index.html
+    - REPL: content/repl/index.html
+    - Serialization: content/serde/index.html
+    - Order: content/order/index.html
+    - Query: content/query/index.html
+    - Math: content/math/index.html
+    - Join: content/join/index.html
+    - Logic: content/logic/index.html
+    - Iteration: content/iter/index.html
+    - Items: content/items/index.html
+    - IO: content/io/index.html
+    - Interfacing: content/interfacing/index.html
+    - Format: content/format/index.html
+    - Environment: content/env/index.html
+    - Composition: content/compose/index.html
+    - Comparison: content/cmp/index.html
+  - Benchmarks: content/benchmarks/index.html
+  - License: content/license.html 
