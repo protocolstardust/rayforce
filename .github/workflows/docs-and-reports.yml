@@ -51,7 +51,10 @@ jobs:
     - name: Convert Test Output to HTML
       run: |
         set +e
-        total_tests=$(head -n 1 test_output.txt | grep -oE '[0-9]+')
+        # Extract total tests from the correct line
+        total_tests=$(grep "Total tests:" test_output.txt | grep -oE '[0-9]+')
+        echo "Extracted total tests: $total_tests"
+        
         {
           echo '<html><head>'
           echo '<style>'
