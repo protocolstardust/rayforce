@@ -32,21 +32,6 @@ jobs:
         pip install mkdocs-material
         pip install mkdocs-git-revision-date-plugin
         
-    - name: Build documentation
-      run: mkdocs build
-      
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: site
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
-
     - name: Run Tests
       run: |
         # Run tests and capture output, stripping ANSI escape sequences
@@ -65,4 +50,19 @@ jobs:
       run: |
         echo '<html><head><style>body { font-family: Arial, sans-serif; } .passed { color: green; } .failed { color: red; }</style></head><body><h1>Test Report</h1><pre>' > site/tests_report/index.html
         cat test_output.txt | sed 's/Passed/<span class="passed">✓ Passed<\/span>/g' | sed 's/Failed/<span class="failed">✗ Failed<\/span>/g' >> site/tests_report/index.html
-        echo '</pre></body></html>' >> site/tests_report/index.html 
+        echo '</pre></body></html>' >> site/tests_report/index.html
+
+    - name: Build documentation
+      run: mkdocs build
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: site
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4 
