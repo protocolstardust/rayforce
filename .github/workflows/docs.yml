@@ -52,6 +52,11 @@ jobs:
         cat test_output.txt | sed 's/Passed/<span class="passed">✓ Passed<\/span>/g' | sed 's/Failed/<span class="failed">✗ Failed<\/span>/g' >> site/tests_report/index.html
         echo '</pre></body></html>' >> site/tests_report/index.html
 
+    - name: Deploy Test Report
+      run: |
+        mkdir -p docs/tests_report
+        mv site/tests_report/index.html docs/tests_report/index.html
+
     - name: Build documentation
       run: mkdocs build
 
