@@ -45,4 +45,20 @@ jobs:
         
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v4 
+      uses: actions/deploy-pages@v4
+
+    - name: Run Tests
+      run: |
+        # Run tests and capture output
+        make tests | tee test_output.txt
+
+    - name: Upload Test Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-report
+        path: test_output.txt
+
+    - name: Include Test Report in Site
+      run: |
+        mkdir -p site/tests_report
+        cp test_output.txt site/tests_report/index.html 
