@@ -36,7 +36,9 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y lcov
   
     - name: Build documentation
-      run: mkdocs build
+      run: |
+        cd docs
+        mkdocs build
 
     - name: Create Directories for Reports
       run: |
