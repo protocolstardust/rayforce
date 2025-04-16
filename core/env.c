@@ -219,7 +219,7 @@ nil_t init_functions(obj_p functions)
 
     // Vary               
     REGISTER_FN(functions,  "do",                  TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_do);
-    REGISTER_FN(functions,  "and",                 TYPE_VARY,     FN_NONE,                   ray_and);
+    REGISTER_FN(functions,  "and",                 TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_and);
     REGISTER_FN(functions,  "env",                 TYPE_VARY,     FN_NONE,                   ray_env);
     REGISTER_FN(functions,  "memstat",             TYPE_VARY,     FN_NONE,                   ray_memstat);
     REGISTER_FN(functions,  "gc",                  TYPE_VARY,     FN_NONE,                   ray_gc);

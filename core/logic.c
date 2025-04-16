@@ -27,41 +27,58 @@
 #include "ops.h"
 #include "error.h"
 #include "string.h"
+#include "eval.h"
 
 obj_p ray_and(obj_p *x, u64_t n) {
     b8_t *lhs, *rhs, *res;
     u64_t i, j, l;
-    obj_p vec;
+    obj_p p, a, b, vec;
 
     if (n == 0)
         return B8(B8_FALSE);
 
-    if (n == 1)
-        return clone_obj(x[0]);
+    a = eval(x[0]);
+    if (IS_ERR(a) || n == 1)
+        return a;
 
-    for (i = 0; i < n; i++) {
-        if (x[i]->type != TYPE_B8)
-            THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(x[i]->type), type_name(TYPE_B8));
+    if (a->type != TYPE_B8) {
+        drop_obj(a);
+        THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(a->type), type_name(TYPE_B8));
     }
 
-    l = x[0]->len;
-
-    for (i = 0; i < n; i++) {
-        if (x[i]->len != l)
-            THROW(ERR_TYPE, "and: different lengths: '%ld, '%ld", l, x[i]->len);
-    }
-
+    l = a->len;
     vec = B8(l);
-    res = AS_B8(vec);
-    lhs = AS_B8(x[0]);
 
     for (i = 1; i < n; i++) {
-        rhs = AS_B8(x[i]);
-        for (j = 0; j < l; j++)
-            res[j] = lhs[j] && rhs[j];
+        b = eval(x[i]);
+        if (IS_ERR(b)) {
+            drop_obj(a);
+            drop_obj(vec);
+            return b;
+        }
 
-        lhs = res;
+        if (b->type != TYPE_B8) {
+            drop_obj(a);
+            drop_obj(b);
+            drop_obj(vec);
+            THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(b->type), type_name(TYPE_B8));
+        }
+
+        if (b->len != l) {
+            drop_obj(a);
+            drop_obj(b);
+            drop_obj(vec);
+            THROW(ERR_TYPE, "and: different lengths: '%ld, '%ld", l, b->len);
+        }
+
+        for (j = 0; j < l; j++)
+            AS_B8(vec)[j] = AS_B8(a)[j] && AS_B8(b)[j];
+
+        drop_obj(a);
+        a = b;
     }
+
+    drop_obj(a);
 
     return vec;
 }
