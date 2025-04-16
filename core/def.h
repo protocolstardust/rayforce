@@ -69,7 +69,11 @@
 #define __USE_MISC
 #define _DEFAULT_SOURCE
 #endif
-#define RAY_PAGE_SIZE 4096
+#if defined(__arm64__)
+#define RAY_PAGE_SIZE 65536  // 64K for Apple Silicon
+#else
+#define RAY_PAGE_SIZE 16384  // 16K for Intel Mac
+#endif
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/mman.h>
