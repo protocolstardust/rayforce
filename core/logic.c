@@ -30,57 +30,56 @@
 #include "eval.h"
 
 obj_p ray_and(obj_p *x, u64_t n) {
-    b8_t *lhs, *rhs, *res;
+    b8_t *mask, *next_mask;
     u64_t i, j, l;
-    obj_p p, a, b, vec;
+    obj_p next, res;
 
     if (n == 0)
         return B8(B8_FALSE);
 
-    a = eval(x[0]);
-    if (IS_ERR(a) || n == 1)
-        return a;
+    // Evaluate first expression and validate type
+    res = eval(x[0]);
+    if (IS_ERR(res) || n == 1)
+        return res;
 
-    if (a->type != TYPE_B8) {
-        drop_obj(a);
-        THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(a->type), type_name(TYPE_B8));
+    if (res->type != TYPE_B8) {
+        drop_obj(res);
+        THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(res->type), type_name(TYPE_B8));
     }
 
-    l = a->len;
-    vec = B8(l);
+    l = res->len;
+    mask = AS_B8(res);
 
+    // Process remaining expressions
     for (i = 1; i < n; i++) {
-        b = eval(x[i]);
-        if (IS_ERR(b)) {
-            drop_obj(a);
-            drop_obj(vec);
-            return b;
+        next = eval(x[i]);
+        if (IS_ERR(next)) {
+            drop_obj(res);
+            return next;
         }
 
-        if (b->type != TYPE_B8) {
-            drop_obj(a);
-            drop_obj(b);
-            drop_obj(vec);
-            THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(b->type), type_name(TYPE_B8));
+        if (next->type != TYPE_B8) {
+            drop_obj(res);
+            drop_obj(next);
+            THROW(ERR_TYPE, "and: unsupported types: '%s, '%s", type_name(next->type), type_name(TYPE_B8));
         }
 
-        if (b->len != l) {
-            drop_obj(a);
-            drop_obj(b);
-            drop_obj(vec);
-            THROW(ERR_TYPE, "and: different lengths: '%ld, '%ld", l, b->len);
+        if (next->len != l) {
+            drop_obj(res);
+            drop_obj(next);
+            THROW(ERR_TYPE, "and: different lengths: '%ld, '%ld", l, next->len);
         }
 
-        for (j = 0; j < l; j++)
-            AS_B8(vec)[j] = AS_B8(a)[j] && AS_B8(b)[j];
+        // Perform element-wise AND
+        next_mask = AS_B8(next);
+        for (j = 0; j < l; j++) {
+            mask[j] &= next_mask[j];
+        }
 
-        drop_obj(a);
-        a = b;
+        drop_obj(next);
     }
 
-    drop_obj(a);
-
-    return vec;
+    return res;
 }
 
 obj_p ray_or(obj_p x, obj_p y) {
