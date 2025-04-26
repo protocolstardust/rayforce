@@ -32,6 +32,51 @@
 #include "heap.h"
 #include "poll.h"
 
+i64_t repl_recv(poll_p poll, selector_p selector) {
+    b8_t error;
+    repl_p repl;
+    obj_p str;
+
+    repl = (repl_p)selector->data;
+
+    if (!term_getc(repl->term)) {
+        poll->code = 1;
+        return -1;
+    }
+
+    str = term_read(repl->term);
+
+    if (str == NULL_OBJ)
+        return POLL_PENDING;
+
+    selector->rx.buf = str;
+
+    return str->len;
+}
+
+poll_result_t repl_read(poll_p poll, selector_p selector) {
+    b8_t error;
+    obj_p str, res;
+    repl_p repl;
+
+    repl = (repl_p)selector->data;
+    str = selector->rx.buf;
+
+    if (IS_ERR(str))
+        io_write(STDOUT_FILENO, 2, str);
+    else if (str != NULL_OBJ) {
+        res = ray_eval_str(str, repl->name);
+        drop_obj(str);
+        io_write(STDOUT_FILENO, 2, res);
+        error = IS_ERR(res);
+        drop_obj(res);
+        if (!error)
+            timeit_print();
+    }
+
+    term_prompt(repl->term);
+}
+
 repl_p repl_create(poll_p poll) {
     repl_p repl;
     struct poll_registry_t registry;
@@ -43,12 +88,10 @@ repl_p repl_create(poll_p poll) {
     registry.fd = STDIN_FILENO;
     registry.type = SELECTOR_TYPE_STDIN;
     registry.events = POLL_EVENT_READ | POLL_EVENT_ERROR | POLL_EVENT_HUP;
-    registry.open_fn = repl_on_open;
-    registry.close_fn = repl_on_close;
     registry.recv_fn = repl_recv;
-    registry.recv_error_fn = repl_on_error;
-    registry.send_fn = NULL;
-    registry.send_error_fn = NULL;
+    registry.read_fn = repl_read;
+    registry.close_fn = repl_on_close;
+    registry.error_fn = repl_on_error;
     registry.data = repl;
 
     repl->id = poll_register(poll, &registry);
@@ -87,36 +130,6 @@ poll_result_t repl_on_close(poll_p poll, selector_p selector) {
 poll_result_t repl_on_error(poll_p poll, selector_p selector) {
     UNUSED(poll);
     UNUSED(selector);
-
-    return POLL_READY;
-}
-
-poll_result_t repl_recv(poll_p poll, selector_p selector) {
-    b8_t error;
-    repl_p repl = (repl_p)selector->data;
-    obj_p str, res;
-
-    if (!term_getc(repl->term)) {
-        poll->code = 1;
-        return POLL_EXIT;
-    }
-
-    str = term_read(repl->term);
-    if (str != NULL) {
-        if (IS_ERR(str))
-            io_write(STDOUT_FILENO, 2, str);
-        else if (str != NULL_OBJ) {
-            res = ray_eval_str(str, repl->name);
-            drop_obj(str);
-            io_write(STDOUT_FILENO, 2, res);
-            error = IS_ERR(res);
-            drop_obj(res);
-            if (!error)
-                timeit_print();
-        }
-
-        term_prompt(repl->term);
-    }
 
     return POLL_READY;
 }

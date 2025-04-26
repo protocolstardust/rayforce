@@ -58,7 +58,14 @@ typedef enum selector_type_t {
     SELECTOR_TYPE_FILE = 4,
 } selector_type_t;
 
-typedef poll_result_t (*poll_event_fn)(struct poll_t *, struct selector_t *);
+// low level read/write functions
+typedef i64_t (*poll_recv_fn)(struct poll_t *, struct selector_t *);
+typedef i64_t (*poll_send_fn)(struct poll_t *, struct selector_t *);
+
+// poll callbacks
+typedef poll_result_t (*poll_read_fn)(struct poll_t *, struct selector_t *);
+typedef poll_result_t (*poll_error_fn)(struct poll_t *, struct selector_t *);
+typedef poll_result_t (*poll_close_fn)(struct poll_t *, struct selector_t *);
 
 #if defined(OS_WINDOWS)
 
@@ -100,28 +107,24 @@ typedef struct selector_t {
 
     selector_type_t type;
 
-    poll_event_fn open_fn;
-    poll_event_fn close_fn;
-    poll_event_fn recv_fn;
-    poll_event_fn recv_error_fn;
-    poll_event_fn send_fn;
-    poll_event_fn send_error_fn;
+    poll_error_fn error_fn;
+    poll_close_fn close_fn;
 
     raw_p data;
 
     struct {
-        u8_t msgtype;
         i64_t bytes_transfered;
-        i64_t size;
-        u8_t *buf;
+        obj_p buf;
+        poll_recv_fn recv_fn;  // to be called when the selector is ready to read
+        poll_read_fn read_fn;  // to be called when the recv_fn returns POLL_READY
     } rx;
 
     struct {
         b8_t isset;
         i64_t bytes_transfered;
-        i64_t size;
-        u8_t *buf;
-        queue_p queue;  // queue for data waiting to be sent
+        obj_p buf;
+        queue_p queue;         // queue for buffers waiting to be sent
+        poll_send_fn send_fn;  // to be called when the selector is ready to send
     } tx;
 
 } *selector_p;
@@ -144,12 +147,11 @@ typedef struct poll_registry_t {
     i64_t fd;
     selector_type_t type;
     poll_events_t events;
-    poll_event_fn open_fn;
-    poll_event_fn close_fn;
-    poll_event_fn recv_fn;
-    poll_event_fn recv_error_fn;
-    poll_event_fn send_fn;
-    poll_event_fn send_error_fn;
+    poll_read_fn read_fn;
+    poll_error_fn error_fn;
+    poll_close_fn close_fn;
+    poll_recv_fn recv_fn;
+    poll_send_fn send_fn;
     raw_p data;
 } *poll_registry_p;
 
@@ -163,6 +165,6 @@ selector_p poll_get_selector(poll_p poll, i64_t id);
 // Exit the app
 nil_t poll_exit(poll_p poll, i64_t code);
 
-#endif  // OS_WINDOWS
+#endif  // OS
 
 #endif  // POLL_H

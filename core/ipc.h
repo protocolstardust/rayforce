@@ -37,7 +37,6 @@ poll_result_t ipc_on_close(poll_p poll, selector_p selector);
 poll_result_t ipc_recv_handshake(poll_p poll, selector_p selector);
 poll_result_t ipc_recv_msg(poll_p poll, selector_p selector);
 poll_result_t ipc_recv_header(poll_p poll, selector_p selector);
-poll_result_t ipc_recv(poll_p poll, selector_p selector);
 poll_result_t ipc_on_error(poll_p poll, selector_p selector);
 
 // send ipc messages

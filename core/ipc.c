@@ -38,6 +38,16 @@ nil_t poll_set_usr_fd(i64_t fd) {
     drop_obj(s);
 }
 
+i64_t ipc_recv(poll_p poll, selector_p selector) {
+    return sock_recv(selector->fd, &AS_U8(selector->rx.buf)[selector->rx.bytes_transfered],
+                     selector->rx.buf->len - selector->rx.bytes_transfered);
+}
+
+i64_t ipc_send(poll_p poll, selector_p selector) {
+    return sock_send(selector->fd, &AS_U8(selector->tx.buf)[selector->tx.bytes_transfered],
+                     selector->tx.buf->len - selector->tx.bytes_transfered);
+}
+
 poll_result_t ipc_on_open(poll_p poll, selector_p selector) {
     UNUSED(poll);
     // i64_t clbnm;
@@ -234,7 +244,7 @@ poll_result_t ipc_recv_header(poll_p poll, selector_p selector) {
     return POLL_READY;
 }
 
-poll_result_t ipc_recv(poll_p poll, selector_p selector) {
+poll_result_t ipc_recv1(poll_p poll, selector_p selector) {
     if (selector->rx.buf == NULL)
         selector->rx.buf = (u8_t *)heap_alloc(sizeof(struct header_t));
 
@@ -306,11 +316,11 @@ poll_result_t _send(poll_p poll, selector_p selector) {
 obj_p read_obj(selector_p selector) {
     obj_p res;
 
-    res = de_raw(selector->rx.buf, selector->rx.size);
-    heap_free(selector->rx.buf);
-    selector->rx.buf = NULL;
-    selector->rx.bytes_transfered = 0;
-    selector->rx.size = 0;
+    // res = de_raw(selector->rx.buf, selector->rx.size);
+    // heap_free(selector->rx.buf);
+    // selector->rx.buf = NULL;
+    // selector->rx.bytes_transfered = 0;
+    // selector->rx.size = 0;
 
     return res;
 }

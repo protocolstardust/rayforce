@@ -39,7 +39,6 @@ nil_t repl_destroy(repl_p repl);
 
 poll_result_t repl_on_open(poll_p poll, selector_p selector);
 poll_result_t repl_on_close(poll_p poll, selector_p selector);
-poll_result_t repl_recv(poll_p poll, selector_p selector);
 poll_result_t repl_on_error(poll_p poll, selector_p selector);
 
 #endif  // REPL_H

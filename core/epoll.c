@@ -106,19 +106,16 @@ i64_t poll_register(poll_p poll, poll_registry_p registry) {
     selector->id = id;
     selector->fd = registry->fd;
     selector->type = registry->type;
-    selector->open_fn = registry->open_fn;
+    selector->error_fn = registry->error_fn;
     selector->close_fn = registry->close_fn;
-    selector->recv_fn = registry->recv_fn;
-    selector->recv_error_fn = registry->recv_error_fn;
-    selector->send_fn = registry->send_fn;
-    selector->send_error_fn = registry->send_error_fn;
+    selector->rx.recv_fn = registry->recv_fn;
+    selector->rx.read_fn = registry->read_fn;
+    selector->tx.send_fn = registry->send_fn;
     selector->data = registry->data;
     selector->tx.isset = B8_FALSE;
-    selector->rx.buf = NULL;
-    selector->rx.size = 0;
+    selector->rx.buf = NULL_OBJ;
     selector->rx.bytes_transfered = 0;
-    selector->tx.buf = NULL;
-    selector->tx.size = 0;
+    selector->tx.buf = NULL_OBJ;
     selector->tx.bytes_transfered = 0;
     selector->tx.queue = queue_create(TX_QUEUE_SIZE);
 
@@ -155,6 +152,74 @@ nil_t poll_deregister(poll_p poll, i64_t id) {
     heap_free(selector);
 }
 
+poll_result_t poll_recv(poll_p poll, selector_p selector) {
+    i64_t size;
+
+    while (selector->rx.bytes_transfered < selector->rx.buf->len) {
+        size = selector->rx.recv_fn(poll, selector);
+        if (size == -1)
+            return POLL_ERROR;
+        else if (size == 0)
+            return POLL_PENDING;
+
+        selector->rx.bytes_transfered += size;
+
+        printf("tf: %lld, buf len: %lld\n", selector->rx.bytes_transfered, selector->rx.buf->len);
+        }
+
+    return POLL_READY;
+}
+
+poll_result_t poll_send(poll_p poll, selector_p selector) {
+    i64_t size;
+    obj_p buf;
+    struct epoll_event ev;
+
+send:
+    while (selector->tx.bytes_transfered < selector->tx.buf->len) {
+        size = selector->tx.send_fn(poll, selector);
+        if (size == -1)
+            return POLL_ERROR;
+        else if (size == 0) {
+            // setup epoll for write event only if it's not already set
+            if (!selector->tx.isset) {
+                selector->tx.isset = B8_TRUE;
+                ev.events |= POLL_EVENT_WRITE;
+                ev.data.ptr = selector;
+                if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
+                    return POLL_ERROR;
+            }
+
+            return POLL_PENDING;
+        }
+
+        selector->tx.bytes_transfered += size;
+    }
+
+    // reset tx buffer
+    drop_obj(selector->tx.buf);
+    selector->tx.buf = NULL_OBJ;
+    selector->tx.bytes_transfered = 0;
+
+    buf = (obj_p)queue_pop(selector->tx.queue);
+
+    if (buf != NULL) {
+        selector->tx.buf = AS_U8(buf);
+        goto send;
+    }
+
+    // remove write event only if it's set
+    if (selector->tx.isset) {
+        selector->tx.isset = B8_FALSE;
+        ev.events &= ~POLL_EVENT_WRITE;
+        ev.data.ptr = selector;
+        if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
+            return POLL_ERROR;
+    }
+
+    return POLL_READY;
+}
+
 i64_t poll_run(poll_p poll) {
     i64_t n, nfds, timeout;
     poll_result_t poll_result;
@@ -189,20 +254,23 @@ i64_t poll_run(poll_p poll) {
             }
 
             // read
-            if (ev.events & POLL_EVENT_READ && selector->recv_fn != NULL) {
-                poll_result = selector->recv_fn(poll, selector);
-                if (poll_result == POLL_PENDING)
-                    continue;
-
+            if (ev.events & POLL_EVENT_READ) {
+                poll_result = poll_recv(poll, selector);
                 if (poll_result == POLL_ERROR) {
                     poll_deregister(poll, selector->id);
                     continue;
                 }
+
+                if (poll_result == POLL_READY && selector->rx.read_fn != NULL)
+                    poll_result = selector->rx.read_fn(poll, selector);
+
+                if (poll_result == POLL_ERROR)
+                    poll_deregister(poll, selector->id);
             }
 
             // write
-            if (ev.events & POLL_EVENT_WRITE && selector->send_fn != NULL) {
-                poll_result = selector->send_fn(poll, selector);
+            if (ev.events & POLL_EVENT_WRITE) {
+                poll_result = poll_send(poll, selector);
 
                 if (poll_result == POLL_ERROR)
                     poll_deregister(poll, selector->id);
