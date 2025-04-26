@@ -147,10 +147,10 @@ typedef struct poll_registry_t {
     i64_t fd;
     selector_type_t type;
     poll_events_t events;
-    poll_read_fn read_fn;
     poll_error_fn error_fn;
     poll_close_fn close_fn;
     poll_recv_fn recv_fn;
+    poll_read_fn read_fn;
     poll_send_fn send_fn;
     raw_p data;
 } *poll_registry_p;

@@ -155,7 +155,7 @@ nil_t poll_deregister(poll_p poll, i64_t id) {
 poll_result_t poll_recv(poll_p poll, selector_p selector) {
     i64_t size;
 
-    while (selector->rx.bytes_transfered < selector->rx.buf->len) {
+    while (selector->rx.bytes_transfered < selector->rx.buf->len || is_null(selector->rx.buf)) {
         size = selector->rx.recv_fn(poll, selector);
         if (size == -1)
             return POLL_ERROR;
@@ -163,9 +163,6 @@ poll_result_t poll_recv(poll_p poll, selector_p selector) {
             return POLL_PENDING;
 
         selector->rx.bytes_transfered += size;
-
-        printf("tf: %lld, buf len: %lld\n", selector->rx.bytes_transfered, selector->rx.buf->len);
-        fflush(stdout);
     }
 
     return POLL_READY;
@@ -231,11 +228,12 @@ i64_t poll_run(poll_p poll) {
         timeout = timer_next_timeout(poll->timers);
         nfds = epoll_wait(poll->fd, events, MAX_EVENTS, timeout);
 
-        if (nfds == -1 && errno == EINTR)
-            continue;
+        if (nfds == -1) {
+            if (errno == EINTR)
+                continue;
 
-        if (nfds == -1)
             return 1;
+        }
 
         for (n = 0; n < nfds; n++) {
             ev = events[n];
@@ -262,11 +260,19 @@ i64_t poll_run(poll_p poll) {
                     continue;
                 }
 
+                if (poll_result == POLL_PENDING)
+                    continue;
+
                 if (poll_result == POLL_READY && selector->rx.read_fn != NULL)
                     poll_result = selector->rx.read_fn(poll, selector);
 
-                // if (poll_result == POLL_ERROR)
-                poll_deregister(poll, selector->id);
+                // clear rx buffer
+                selector->rx.bytes_transfered = 0;
+                drop_obj(selector->rx.buf);
+                selector->rx.buf = NULL_OBJ;
+
+                if (poll_result == POLL_ERROR)
+                    poll_deregister(poll, selector->id);
             }
 
             // write

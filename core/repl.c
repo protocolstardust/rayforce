@@ -46,8 +46,8 @@ i64_t repl_recv(poll_p poll, selector_p selector) {
 
     str = term_read(repl->term);
 
-    if (str == NULL_OBJ)
-        return POLL_PENDING;
+    if (str == NULL)
+        return 0;
 
     selector->rx.buf = str;
 

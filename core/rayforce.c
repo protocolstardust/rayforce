@@ -1798,7 +1798,7 @@ obj_p remove_obj(obj_p *obj, obj_p idx) {
 }
 
 b8_t is_null(obj_p obj) {
-    return (obj == NULL) || (obj->type == TYPE_NULL) || (obj->type == -TYPE_I64 && obj->i64 == NULL_I64) ||
+    return (obj->type == TYPE_NULL) || (obj->type == -TYPE_I64 && obj->i64 == NULL_I64) ||
            (obj->type == -TYPE_SYMBOL && obj->i64 == NULL_I64) || (obj->type == -TYPE_F64 && obj->f64 == NULL_F64) ||
            (obj->type == -TYPE_TIMESTAMP && obj->i64 == NULL_I64) || (obj->type == -TYPE_C8 && obj->c8 == '\0');
 }
