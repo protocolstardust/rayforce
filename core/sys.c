@@ -199,7 +199,10 @@ obj_p sys_timeit_activate(i32_t argc, str_p argv[]) {
 
 // TODO: implement
 obj_p sys_listen(i32_t argc, str_p argv[]) {
-    i64_t res;
+    UNUSED(argc);
+    UNUSED(argv);
+
+    i64_t res = 0;
 
     // if (argc != 1)
     //     THROW(ERR_LENGTH, "listen: expected 1 argument");

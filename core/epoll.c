@@ -157,6 +157,7 @@ poll_result_t poll_deregister(poll_p poll, i64_t id) {
 }
 
 poll_result_t poll_recv(poll_p poll, selector_p selector) {
+    UNUSED(poll);
     i64_t size, total;
 
     total = selector->rx.size;
@@ -214,7 +215,7 @@ send_loop:
     buf = (obj_p)queue_pop(selector->tx.queue);
 
     if (buf != NULL) {
-        selector->tx.buf = AS_U8(buf);
+        selector->tx.buf = buf;
         goto send_loop;
     }
 
@@ -302,6 +303,8 @@ poll_result_t poll_run(poll_p poll) {
 }
 
 poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
+    UNUSED(poll);
+
     if (selector->rx.buf == NULL_OBJ)
         selector->rx.buf = heap_alloc(size);
     else {
@@ -321,6 +324,8 @@ poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) 
 }
 
 poll_result_t poll_rx_buf_release(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+
     drop_obj(selector->rx.buf);
     selector->rx.buf = NULL_OBJ;
     selector->rx.size = 0;

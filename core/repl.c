@@ -110,6 +110,8 @@ nil_t repl_destroy(repl_p repl) {
 }
 
 poll_result_t repl_on_close(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+
     repl_destroy(selector->data);
 
     return POLL_READY;

@@ -60,7 +60,7 @@ nil_t ray_clean(nil_t) { runtime_destroy(); }
 u8_t version(nil_t) { return RAYFORCE_VERSION; }
 
 nil_t zero_obj(obj_p obj) {
-    u64_t size;
+    i64_t size;
 
     size = size_of(obj) - sizeof(struct obj_t);
     memset(obj->arr, 0, size);
@@ -101,8 +101,8 @@ obj_p null(i8_t type) {
     }
 }
 
-obj_p nullv(i8_t type, u64_t len) {
-    u64_t i;
+obj_p nullv(i8_t type, i64_t len) {
+    i64_t i;
     obj_p vec;
     i8_t t;
 
@@ -183,7 +183,7 @@ obj_p f64(f64_t val) {
     return f;
 }
 
-obj_p symbol(lit_p s, u64_t n) {
+obj_p symbol(lit_p s, i64_t n) {
     i64_t id = symbols_intern(s, n);
     obj_p a = atom(TYPE_SYMBOL);
     a->i64 = id;
@@ -234,7 +234,7 @@ obj_p timestamp(i64_t val) {
     return t;
 }
 
-obj_p vector(i8_t type, u64_t len) {
+obj_p vector(i8_t type, i64_t len) {
     i8_t t;
     obj_p vec;
 
@@ -261,8 +261,8 @@ obj_p vector(i8_t type, u64_t len) {
     return vec;
 }
 
-obj_p vn_symbol(u64_t len, ...) {
-    u64_t i;
+obj_p vn_symbol(i64_t len, ...) {
+    i64_t i;
     i64_t sym, *syms;
     obj_p res;
     str_p s;
@@ -284,8 +284,8 @@ obj_p vn_symbol(u64_t len, ...) {
     return res;
 }
 
-obj_p vn_list(u64_t len, ...) {
-    u64_t i;
+obj_p vn_list(i64_t len, ...) {
+    i64_t i;
     obj_p l;
     va_list args;
 
@@ -342,7 +342,7 @@ obj_p anymap(obj_p sym, obj_p vec) {
     return e;
 }
 
-obj_p resize_obj(obj_p *obj, u64_t len) {
+obj_p resize_obj(obj_p *obj, i64_t len) {
     i64_t elem_size, obj_size;
     obj_p new_obj;
 
@@ -400,7 +400,7 @@ obj_p push_raw(obj_p *obj, raw_p val) {
 }
 
 obj_p push_obj(obj_p *obj, obj_p val) {
-    u64_t i, l;
+    i64_t i, l;
     obj_p res, lst = NULL_OBJ;
 
     // change object type to a coresponding list
@@ -451,7 +451,7 @@ obj_p push_obj(obj_p *obj, obj_p val) {
 }
 
 obj_p append_list(obj_p *obj, obj_p vals) {
-    u64_t i, c, l, size1, size2;
+    i64_t i, c, l, size1, size2;
     obj_p res;
 
     switch (MTYPE2((*obj)->type, vals->type)) {
@@ -497,7 +497,7 @@ obj_p append_list(obj_p *obj, obj_p vals) {
 }
 
 obj_p unify_list(obj_p *obj) {
-    u64_t i, l;
+    i64_t i, l;
     obj_p res;
     i8_t type;
 
@@ -533,7 +533,7 @@ obj_p unify_list(obj_p *obj) {
 }
 
 obj_p diverse_obj(obj_p *obj) {
-    u64_t i, l;
+    i64_t i, l;
     obj_p res;
 
     switch ((*obj)->type) {
@@ -584,7 +584,7 @@ obj_p ins_raw(obj_p *obj, i64_t idx, raw_p val) {
 
 obj_p ins_obj(obj_p *obj, i64_t idx, obj_p val) {
     i64_t i;
-    u64_t l;
+    i64_t l;
     obj_p ret;
 
     if (!IS_VECTOR(*obj))
@@ -663,7 +663,7 @@ obj_p ins_sym(obj_p *obj, i64_t idx, lit_p str) {
 }
 
 obj_p at_idx(obj_p obj, i64_t idx) {
-    u64_t size;
+    i64_t size;
     i64_t i, m, n, l;
     obj_p k, v, res;
     u8_t *buf;
@@ -894,8 +894,8 @@ obj_p at_idx(obj_p obj, i64_t idx) {
     }
 }
 
-obj_p at_ids(obj_p obj, i64_t ids[], u64_t len) {
-    u64_t i, xl;
+obj_p at_ids(obj_p obj, i64_t ids[], i64_t len) {
+    i64_t i, xl;
     i64_t mapid, m, n;
     u8_t *u8inp, *u8out;
     i16_t *i16inp, *i16out;
@@ -1090,7 +1090,7 @@ obj_p at_ids(obj_p obj, i64_t ids[], u64_t len) {
 }
 
 obj_p at_obj(obj_p obj, obj_p idx) {
-    u64_t i, n, l;
+    i64_t i, n, l;
     i64_t j, *ids;
     obj_p v;
 
@@ -1147,7 +1147,7 @@ obj_p at_obj(obj_p obj, obj_p idx) {
     }
 }
 
-obj_p at_sym(obj_p obj, lit_p str, u64_t n) {
+obj_p at_sym(obj_p obj, lit_p str, i64_t n) {
     obj_p sym, res;
 
     sym = symbol(str, n);
@@ -1195,8 +1195,8 @@ obj_p set_idx(obj_p *obj, i64_t idx, obj_p val) {
     }
 }
 
-obj_p set_ids(obj_p *obj, i64_t ids[], u64_t len, obj_p vals) {
-    u64_t i;
+obj_p set_ids(obj_p *obj, i64_t ids[], i64_t len, obj_p vals) {
+    i64_t i;
 
     switch (MTYPE2((*obj)->type, vals->type)) {
         case MTYPE2(TYPE_I64, -TYPE_I64):
@@ -1274,8 +1274,8 @@ obj_p set_ids(obj_p *obj, i64_t ids[], u64_t len, obj_p vals) {
     }
 }
 
-obj_p __expand(obj_p obj, u64_t len) {
-    u64_t i;
+obj_p __expand(obj_p obj, i64_t len) {
+    i64_t i;
     obj_p res;
 
     switch (obj->type) {
@@ -1336,7 +1336,7 @@ i64_t find_obj_idx(obj_p obj, obj_p val) {
     i16_t vi16;
     i32_t vi32;
     i64_t vi64;
-    u64_t i;
+    i64_t i;
     obj_p eq;
 
     switch (MTYPE2(obj->type, val->type)) {
@@ -1476,7 +1476,7 @@ obj_p set_dict_obj(obj_p *obj, obj_p idx, obj_p val) {
 
 obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
     obj_p k, v, res;
-    u64_t i, n, l;
+    i64_t i, n, l;
     i64_t j, id = NULL_I64, *ids = NULL;
 
     // dispatch:
@@ -1656,8 +1656,8 @@ obj_p remove_idx(obj_p *obj, i64_t idx) {
     }
 }
 
-obj_p remove_ids(obj_p *obj, i64_t ids[], u64_t len) {
-    u64_t i, j;
+obj_p remove_ids(obj_p *obj, i64_t ids[], i64_t len) {
+    i64_t i, j;
 
     if (len == 0 || (*obj)->len == 0 || len > (*obj)->len)
         return *obj;
@@ -1974,7 +1974,7 @@ i64_t find_raw(obj_p obj, raw_p val) {
 
 obj_p cast_obj(i8_t type, obj_p obj) {
     obj_p v, res, err, msg;
-    u64_t i, l;
+    i64_t i, l;
 
     // Do nothing if the type is the same
     if (type == obj->type)
@@ -2287,7 +2287,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
     DEBUG_ASSERT(is_valid(obj), "invalid object type: %d", obj->type);
 
     u32_t rc;
-    u64_t i, l;
+    i64_t i, l;
 
     if (!__RC_SYNC) {
         (obj)->rc -= 1;
@@ -2376,7 +2376,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
 nil_t drop_raw(raw_p ptr) { heap_free(ptr); }
 
 obj_p copy_obj(obj_p obj) {
-    u64_t i, l;
+    i64_t i, l;
     obj_p res;
 
     switch (obj->type) {

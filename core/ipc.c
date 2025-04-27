@@ -80,11 +80,11 @@ poll_result_t ipc_listener_accept(poll_p poll, selector_p selector) {
     return POLL_OK;
 }
 
-i64_t ipc_listener_close(poll_p poll, selector_p selector) {
+poll_result_t ipc_listener_close(poll_p poll, selector_p selector) {
     UNUSED(poll);
     UNUSED(selector);
 
-    return 0;
+    return POLL_OK;
 }
 
 poll_result_t ipc_listen(poll_p poll, i64_t port) {
@@ -142,8 +142,6 @@ poll_result_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
-    i64_t size;
-
     if (AS_U8(selector->rx.buf)[selector->rx.size - 1] == '\0') {
         // send handshake response
         if (ipc_send_handshake(poll, selector) == POLL_ERROR)
@@ -186,7 +184,7 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
 
     ctx = (ipc_ctx_p)selector->data;
 
-    res = de_raw(selector->rx.buf, selector->rx.buf->len);
+    res = de_raw(AS_U8(selector->rx.buf), selector->rx.buf->len);
 
     poll_rx_buf_release(poll, selector);
 
@@ -246,6 +244,7 @@ poll_result_t ipc_on_close(poll_p poll, selector_p selector) {
 
 poll_result_t ipc_send_handshake(poll_p poll, selector_p selector) {
     UNUSED(poll);
+    UNUSED(selector);
 
     // i64_t sz, size;
     // u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
@@ -265,6 +264,9 @@ poll_result_t ipc_send_handshake(poll_p poll, selector_p selector) {
 
 // Send
 poll_result_t _send(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+    UNUSED(selector);
+
     //     i64_t size;
     //     obj_p obj;
     //     nil_t *v;
@@ -326,12 +328,16 @@ poll_result_t _send(poll_p poll, selector_p selector) {
 }
 
 obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
-    poll_result_t poll_result = POLL_OK;
-    selector_p selector;
-    i32_t result;
-    i64_t idx;
-    obj_p res;
-    fd_set fds;
+    UNUSED(poll);
+    UNUSED(id);
+    UNUSED(msg);
+
+    // poll_result_t poll_result = POLL_OK;
+    // selector_p selector;
+    // i32_t result;
+    // i64_t idx;
+    // obj_p res;
+    // fd_set fds;
 
     //     idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
@@ -401,12 +407,13 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
     //             goto recv;
     //     }
 
-    return res;
+    return NULL_OBJ;
 }
 
 obj_p ipc_send_async(poll_p poll, i64_t id, obj_p msg) {
-    i64_t idx;
-    selector_p selector;
+    UNUSED(poll);
+    UNUSED(id);
+    UNUSED(msg);
 
     // idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
