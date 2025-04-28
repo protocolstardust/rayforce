@@ -1222,7 +1222,7 @@ obj_p index_in_i64_i64(i64_t x[], i64_t xl, i64_t y[], i64_t yl) {
 
     min = (scope_x.min > scope_y.min) ? scope_x.min : scope_y.min;
     max = (scope_x.max < scope_y.max) ? scope_x.max : scope_y.max;
-    range = max - min + 1;
+    range = min==NULL_I64 ? MAX_I64 : max - min + 1;
 
     vec = B8(xl);
     r = AS_B8(vec);
@@ -1415,8 +1415,8 @@ obj_p index_find_guid(guid_t x[], i64_t xl, guid_t y[], i64_t yl) {
     __index_find_ctx_t ctx;
 
     // calc hashes
-    res = I64(MAXU64(xl, yl));
-    ht = ht_oa_create(MAXU64(xl, yl) * 2, -1);
+    res = I64(MAXI64(xl, yl));
+    ht = ht_oa_create(MAXI64(xl, yl) * 2, -1);
 
     hashes = (i64_t *)AS_I64(res);
 
@@ -1452,8 +1452,8 @@ obj_p index_find_obj(obj_p x[], i64_t xl, obj_p y[], i64_t yl) {
     __index_find_ctx_t ctx;
 
     // calc hashes
-    res = I64(MAXU64(xl, yl));
-    ht = ht_oa_create(MAXU64(xl, yl) * 2, -1);
+    res = I64(MAXI64(xl, yl));
+    ht = ht_oa_create(MAXI64(xl, yl) * 2, -1);
 
     hashes = (i64_t *)AS_I64(res);
 
@@ -2130,7 +2130,7 @@ obj_p index_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
     ll = ops_count(AS_LIST(lcols)[0]);
     rl = ops_count(AS_LIST(rcols)[0]);
     ht = ht_oa_create(rl, -1);
-    rids = I64(MAXU64(ll, rl));
+    rids = I64(MAXI64(ll, rl));
 
     // Right hashes
     __index_list_precalc_hash(rcols, (i64_t *)AS_I64(rids), len, rl, NULL, B8_TRUE);
