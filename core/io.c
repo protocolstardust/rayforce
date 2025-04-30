@@ -65,6 +65,10 @@ obj_p ray_hopen(obj_p *x, i64_t n) {
         timeout = x[1]->i64;
     }
 
+    // Allow only in main thread
+    if (!ray_is_main_thread())
+        THROW(ERR_NOT_SUPPORTED, "hopen: expected main thread");
+
     // Open socket
     if (sock_addr_from_str(AS_C8(x[0]), x[0]->len, &addr) != -1) {
         id = ipc_open(runtime_get()->poll, &addr, timeout);
@@ -87,6 +91,10 @@ obj_p ray_hopen(obj_p *x, i64_t n) {
 }
 
 obj_p ray_hclose(obj_p x) {
+    // Allow only in main thread
+    if (!ray_is_main_thread())
+        THROW(ERR_NOT_SUPPORTED, "hclose: expected main thread");
+
     switch (x->type) {
         case -TYPE_I32:
             fs_fclose(x->i32);
@@ -216,6 +224,11 @@ obj_p io_write(i64_t fd, u8_t msg_type, obj_p obj) {
             return NULL_OBJ;
         default:
             // send ipc msg
+
+            // Allow only in main thread
+            if (!ray_is_main_thread())
+                THROW(ERR_NOT_SUPPORTED, "write sock: expected main thread");
+
             switch (msg_type) {
                 case MSG_TYPE_RESP:
                     return ipc_send_async(runtime_get()->poll, fd, clone_obj(obj));

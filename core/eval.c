@@ -667,3 +667,5 @@ obj_p ray_exit(obj_p *x, i64_t n) {
 
     __builtin_unreachable();
 }
+
+b8_t ray_is_main_thread(nil_t) { return heap_get()->id == 0; }

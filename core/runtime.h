@@ -45,7 +45,6 @@ typedef struct runtime_t {
     symbols_p symbols;      // vector_symbols pool.
     poll_p poll;            // I/O event loop handle.
     obj_p fdmaps;           // File descriptors mappings.
-    sock_addr_t addr;       // Socket address that a process listen.
     query_ctx_p query_ctx;  // Query context stack.
     pool_p pool;            // Executors pool.
 } *runtime_p;

@@ -123,7 +123,6 @@ i32_t runtime_create(i32_t argc, str_p argv[]) {
     __RUNTIME = (runtime_p)heap_mmap(sizeof(struct runtime_t));
     __RUNTIME->symbols = symbols;
     __RUNTIME->env = env_create();
-    __RUNTIME->addr = (sock_addr_t){{0}, 0};
     __RUNTIME->fdmaps = dict(I64(0), LIST(0));
     __RUNTIME->args = NULL_OBJ;
     __RUNTIME->query_ctx = NULL;

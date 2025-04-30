@@ -116,5 +116,6 @@ inline __attribute__((always_inline)) obj_p unwrap(obj_p obj, i64_t id) {
 inline __attribute__((always_inline)) b8_t stack_enough(i64_t n) { return __INTERPRETER->sp + n < EVAL_STACK_SIZE; }
 
 obj_p ray_exit(obj_p *x, i64_t n);
+b8_t ray_is_main_thread(nil_t);
 
 #endif  // EVAL_H
