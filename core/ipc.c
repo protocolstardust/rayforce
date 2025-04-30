@@ -233,11 +233,18 @@ poll_result_t ipc_read_header(poll_p poll, selector_p selector) {
 
     ipc_header_t *header;
 
+    LOG_DEBUG("Reading header from connection %lld", selector->id);
+
     header = (ipc_header_t *)selector->rx.buf->data;
 
+    LOG_TRACE("Header read: {.prefix: 0x%08x, .version: %d, .flags: %d, .endian: %d, .msgtype: %d, .size: %lld}",
+              header->prefix, header->version, header->flags, header->endian, header->msgtype, header->size);
+
     // request the buffer for the entire message (including the header)
+    LOG_DEBUG("Requesting buffer for message of size %lld", ISIZEOF(struct ipc_header_t) + header->size);
     poll_rx_buf_request(poll, selector, ISIZEOF(struct ipc_header_t) + header->size);
 
+    LOG_DEBUG("Switching to message reading mode");
     selector->rx.read_fn = ipc_read_msg;
 
     return POLL_READY;
@@ -280,6 +287,8 @@ poll_result_t ipc_read_msg(poll_p poll, selector_p selector) {
         v = eval_obj(res);
         drop_obj(res);
     }
+
+    LOG_TRACE_OBJ("Resulting object: ", v);
 
     poll_set_usr_fd(0);
 
