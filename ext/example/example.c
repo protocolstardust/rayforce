@@ -22,7 +22,7 @@
  */
 
 #include <stdio.h>
-#include "../core/rayforce.h"
+#include "../../core/rayforce.h"
 
 obj_p myfn(obj_p a, obj_p b) {
     if (is_null(a) || is_null(b))
