@@ -54,19 +54,14 @@ extern struct obj_t __NULL_OBJECT;
 #define IS_EXTERNAL_COMPOUND(x) ((x)->mmod == MMOD_EXTERNAL_COMPOUND)
 #define IS_EXTERNAL_SERIALIZED(x) ((x)->mmod == MMOD_EXTERNAL_SERIALIZED)
 
-#define ISNANF64(x)                                      \
-    ((((union {                                          \
-          f64_t d;                                       \
-          u64_t u;                                       \
-      }){.d = (x)})                                      \
-          .u &                                           \
-      0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && \
-     (((union {                                          \
-          f64_t d;                                       \
-          u64_t u;                                       \
-      }){.d = (x)})                                      \
-          .u &                                           \
-      0x000FFFFFFFFFFFFFULL) != 0)
+#define ISNANF64(x)                                                                                       \
+    ({                                                                                                    \
+        union {                                                                                           \
+            f64_t d;                                                                                      \
+            u64_t u;                                                                                      \
+        } _u = {.d = (x)};                                                                                \
+        ((_u.u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (_u.u & 0x000FFFFFFFFFFFFFULL) != 0); \
+    })
 
 #define ISIZEOF(type) ((i64_t)sizeof(type))
 #define ALIGNUP(x, a) (((x) + (a) - 1) & ~((a) - 1))
@@ -129,7 +124,8 @@ extern struct obj_t __NULL_OBJECT;
 #define CNTF64(x, y) (ISNANF64(y) ? (x) : ((x) + 1))
 #define ADDI32(x, y) (((x) == NULL_I32) ? (y) : ((y) == NULL_I32) ? (x) : ((x) + (y)))
 #define ADDI64(x, y) (((x) == NULL_I64) ? (y) : ((y) == NULL_I64) ? (x) : ((x) + (y)))
-#define ADDF64(x, y) (ISNANF64(x) ? (y) : ISNANF64(y) ? (x) : ((x) + (y)))
+// #define ADDF64(x, y) (ISNANF64(x) ? (y) : ISNANF64(y) ? (x) : ((x) + (y)))
+#define ADDF64(x, y) ((x) + (y))
 #define SUBI32(x, y) (((x) == NULL_I32) ? -(y) : ((y) == NULL_I32) ? (x) : ((x) - (y)))
 #define SUBI64(x, y) (((x) == NULL_I64) ? -(y) : ((y) == NULL_I64) ? (x) : ((x) - (y)))
 #define SUBF64(x, y) (ISNANF64(x) ? -(y) : ISNANF64(y) ? (x) : ((x) - (y)))
