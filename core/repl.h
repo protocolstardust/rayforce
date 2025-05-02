@@ -34,7 +34,7 @@ typedef struct repl_t {
     term_p term;
 } *repl_p;
 
-repl_p repl_create();
+repl_p repl_create(poll_p poll);
 nil_t repl_destroy(repl_p repl);
 
 nil_t repl_on_open(poll_p poll, selector_p selector);
