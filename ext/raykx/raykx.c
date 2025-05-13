@@ -311,7 +311,7 @@ static nil_t raykx_on_close(poll_p poll, selector_p selector) {
 obj_p raykx_process_msg(poll_p poll, selector_p selector, obj_p msg) {
     UNUSED(poll);
 
-    obj_p s, res;
+    obj_p res;
     raykx_ctx_p ctx;
 
     ctx = (raykx_ctx_p)selector->data;
@@ -321,11 +321,9 @@ obj_p raykx_process_msg(poll_p poll, selector_p selector, obj_p msg) {
     if (IS_ERR(msg) || is_null(msg))
         res = msg;
     else if (msg->type == TYPE_C8) {
-        s = cstring_from_obj(msg);
+        LOG_TRACE("Evaluating string message: %s", AS_C8(msg));
+        res = ray_eval_str(msg, ctx->name);
         drop_obj(msg);
-        LOG_TRACE("Evaluating string message: %s", AS_C8(s));
-        res = ray_eval_str(s, ctx->name);
-        drop_obj(s);
     } else {
         LOG_TRACE("Evaluating object message");
         res = eval_obj(msg);

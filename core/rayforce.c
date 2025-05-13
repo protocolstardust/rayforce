@@ -2475,17 +2475,17 @@ u32_t rc_obj(obj_p obj) {
 
 str_p type_name(i8_t type) { return str_from_symbol(env_get_typename_by_type(&runtime_get()->env, type)); }
 
-obj_p eval_str(lit_p str) {
-    obj_p s, res;
+obj_p parse_str(lit_p str) { return parse(str, strlen(str), NULL_OBJ); }
 
-    s = cstring_from_str(str, strlen(str));
-    res = ray_eval_str(s, NULL_OBJ);
-    drop_obj(s);
+obj_p eval_str(lit_p str) {
+    obj_p p, res;
+
+    p = parse_str(str);
+    res = eval(p);
+    drop_obj(p);
 
     return res;
 }
-
-obj_p parse_str(lit_p str) { return parse(str, NULL_OBJ); }
 
 b8_t rc_sync_get() { return __RC_SYNC; }
 

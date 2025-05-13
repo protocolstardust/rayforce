@@ -446,7 +446,7 @@ obj_p ray_parse_str(i64_t fd, obj_p str, obj_p file) {
         THROW(ERR_TYPE, "parse: expected string, got %s", type_name(str->type));
 
     info = nfo(clone_obj(file), clone_obj(str));
-    res = parse(AS_C8(str), info);
+    res = parse(AS_C8(str), str->len, info);
     drop_obj(info);
 
     return res;
@@ -491,7 +491,7 @@ obj_p ray_eval_str(obj_p str, obj_p file) {
 
     timeit_reset();
     timeit_span_start("top-level");
-    parsed = parse(AS_C8(str), info);
+    parsed = parse(AS_C8(str), str->len, info);
     timeit_tick("parse");
 
     if (IS_ERR(parsed)) {
