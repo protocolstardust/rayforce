@@ -71,7 +71,11 @@ i64_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
     UNUSED(poll);
 
     LOG_TRACE("Requesting buffer of %d", size);
-    selector->rx.buf = heap_realloc(selector->rx.buf, ISIZEOF(struct poll_buffer_t) + size);
+    if (selector->rx.buf == NULL) {
+        selector->rx.buf = heap_alloc(ISIZEOF(struct poll_buffer_t) + size);
+    } else {
+        selector->rx.buf = heap_realloc(selector->rx.buf, ISIZEOF(struct poll_buffer_t) + size);
+    }
     LOG_TRACE("New buffer: %p", selector->rx.buf);
     if (selector->rx.buf == NULL)
         return -1;

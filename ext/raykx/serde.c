@@ -172,9 +172,9 @@ static const i8_t raykx_type_to_k_table[128] = {
         b++;                              \
         memcpy(&$n, b, sizeof(i32_t));    \
         b += sizeof(i32_t);               \
-        $o = t($n);                       \
+        $o = r($n);                       \
         $m = $n * ISIZEOF(t##_t);         \
-        memcpy($o->raw, b, 32);           \
+        memcpy($o->raw, b, $m);           \
         b += $m;                          \
         (*l) -= ($m + sizeof(i32_t) + 1); \
         $o->type = TYPE_##r;              \

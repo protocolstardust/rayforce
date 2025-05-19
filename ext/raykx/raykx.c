@@ -240,6 +240,7 @@ static option_t raykx_read_header(poll_p poll, selector_p selector) {
     UNUSED(poll);
     raykx_header_p header;
     raykx_ctx_p ctx;
+    i64_t msg_size;
 
     LOG_DEBUG("Reading KDB+ message header from connection %lld", selector->id);
 
@@ -249,13 +250,16 @@ static option_t raykx_read_header(poll_p poll, selector_p selector) {
     LOG_TRACE("Header read: {.endianness: %d, .msgtype: %d, .compressed: %d, .reserved: %d, .size: %lld}",
               header->endianness, header->msgtype, header->compressed, header->reserved, header->size);
 
+    // Store message size before requesting new buffer
+    msg_size = header->size - ISIZEOF(struct raykx_header_t);
+    ctx->msgtype = header->msgtype;
+
     // request the buffer for the entire message (including the header)
-    LOG_DEBUG("Requesting buffer for message of size %lld", header->size);
-    poll_rx_buf_request(poll, selector, header->size - ISIZEOF(struct raykx_header_t));
+    LOG_DEBUG("Requesting buffer for message of size %lld", msg_size);
+    poll_rx_buf_request(poll, selector, msg_size);
 
     LOG_DEBUG("Switching to message reading mode");
     selector->rx.read_fn = raykx_read_msg;
-    ctx->msgtype = header->msgtype;
 
     return option_some(NULL);
 }
