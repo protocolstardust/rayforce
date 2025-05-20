@@ -128,7 +128,7 @@ i32_t runtime_create(i32_t argc, str_p argv[]) {
     __RUNTIME->args = NULL_OBJ;
     __RUNTIME->query_ctx = NULL;
     __RUNTIME->pool = NULL;
-    __RUNTIME->dynlibs = LIST(0);
+    __RUNTIME->dynlibs = I64(0);
 
     interpreter_create(0);
 
@@ -224,7 +224,7 @@ nil_t runtime_destroy(nil_t) {
     // destroy dynamic libraries
     l = __RUNTIME->dynlibs->len;
     for (i = 0; i < l; i++) {
-        dl = (dynlib_p)AS_LIST(__RUNTIME->dynlibs)[i];
+        dl = (dynlib_p)AS_I64(__RUNTIME->dynlibs)[i];
         dynlib_close(dl);
     }
     drop_obj(__RUNTIME->dynlibs);

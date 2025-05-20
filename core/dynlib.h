@@ -31,9 +31,8 @@ typedef struct dynlib_t {
     raw_p handle;
 } *dynlib_p;
 
-obj_p dynlib_open(obj_p path);
+dynlib_p dynlib_open(obj_p path);
 nil_t dynlib_close(dynlib_p dl);
-obj_p dynlib_loadfn(obj_p path, obj_p func, i64_t nargs);
 obj_p ray_loadfn(obj_p *args, i64_t n);
 
 #endif  // DYNLIB_H
