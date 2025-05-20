@@ -479,29 +479,25 @@ obj_p eval_obj(obj_p obj) {
     return res;
 }
 
-obj_p ray_eval_str(obj_p str, obj_p file) {
-    obj_p parsed, res, info, fn;
+obj_p eval_str_w_attr(lit_p str, i64_t len, obj_p nfo) {
+    obj_p parsed, res, fn;
     ctx_p ctx;
     i64_t sp;
 
-    if (str->type != TYPE_C8)
-        THROW(ERR_TYPE, "eval: expected string, got %s", type_name(str->type));
-
-    info = nfo(clone_obj(file), clone_obj(str));
-
     timeit_reset();
     timeit_span_start("top-level");
-    parsed = parse(AS_C8(str), str->len, info);
+
+    parsed = parse(str, len, nfo);
     timeit_tick("parse");
 
     if (IS_ERR(parsed)) {
-        drop_obj(info);
+        drop_obj(nfo);
         return parsed;
     }
 
     sp = __INTERPRETER->sp;
     stack_push(NULL_OBJ);  // null env
-    fn = lambda(NULL_OBJ, NULL_OBJ, info);
+    fn = lambda(NULL_OBJ, NULL_OBJ, nfo);
 
     ctx = ctx_push(fn);
     ctx->sp = sp;
@@ -520,6 +516,19 @@ obj_p ray_eval_str(obj_p str, obj_p file) {
     timeit_span_end("top-level");
 
     return res;
+}
+
+obj_p eval_str(lit_p str) { return eval_str_w_attr(str, strlen(str), NULL_OBJ); }
+
+obj_p ray_eval_str(obj_p str, obj_p file) {
+    obj_p info;
+
+    if (str->type != TYPE_C8)
+        THROW(ERR_TYPE, "eval: expected string, got %s", type_name(str->type));
+
+    info = nfo(clone_obj(file), clone_obj(str));
+
+    return eval_str_w_attr(AS_C8(str), str->len, info);
 }
 
 obj_p try_obj(obj_p obj, obj_p ctch) {

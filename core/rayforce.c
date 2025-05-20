@@ -2497,16 +2497,6 @@ str_p type_name(i8_t type) { return str_from_symbol(env_get_typename_by_type(&ru
 
 obj_p parse_str(lit_p str) { return parse(str, strlen(str), NULL_OBJ); }
 
-obj_p eval_str(lit_p str) {
-    obj_p p, res;
-
-    p = parse_str(str);
-    res = eval(p);
-    drop_obj(p);
-
-    return res;
-}
-
 b8_t rc_sync_get() { return __RC_SYNC; }
 
 nil_t rc_sync_set(b8_t on) { __RC_SYNC = on; }
