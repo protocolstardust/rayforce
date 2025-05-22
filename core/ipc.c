@@ -210,9 +210,10 @@ option_t ipc_read_handshake(poll_p poll, selector_p selector) {
 
     if (selector->rx.buf->offset > 0 && selector->rx.buf->data[selector->rx.buf->offset - 1] == '\0') {
         LOG_DEBUG("Handshake received, sending response");
-        // send handshake response
-        buf = poll_buf_create(ISIZEOF(handshake));
-        memcpy(buf->data, handshake, ISIZEOF(handshake));
+
+        // send handshake response (single byte version)
+        buf = poll_buf_create(2);
+        memcpy(buf->data, handshake, 2);
         poll_send_buf(poll, selector, buf);
 
         // Now we are ready for income messages and can call userspace callback (if any)
@@ -222,13 +223,12 @@ option_t ipc_read_handshake(poll_p poll, selector_p selector) {
         LOG_DEBUG("Handshake completed, switching to header reading mode");
 
         poll_rx_buf_request(poll, selector, ISIZEOF(struct ipc_header_t));
-        poll_rx_buf_reset(poll, selector);
 
-        return option_none();
+        return option_some(NULL);
     }
 
     // extend the buffer to the next 1 byte
-    poll_rx_buf_request(poll, selector, selector->rx.buf->size + 1);
+    poll_rx_buf_extend(poll, selector, 1);
 
     return option_some(NULL);
 }
@@ -236,6 +236,8 @@ option_t ipc_read_handshake(poll_p poll, selector_p selector) {
 option_t ipc_read_header(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
+    i64_t msgtype;
+    i64_t msgsize;
     ipc_header_t *header;
     ipc_ctx_p ctx;
 
@@ -243,17 +245,19 @@ option_t ipc_read_header(poll_p poll, selector_p selector) {
 
     ctx = (ipc_ctx_p)selector->data;
     header = (ipc_header_t *)selector->rx.buf->data;
+    msgtype = header->msgtype;
+    msgsize = header->size;
 
     LOG_TRACE("Header read: {.prefix: 0x%08x, .version: %d, .flags: %d, .endian: %d, .msgtype: %d, .size: %lld}",
               header->prefix, header->version, header->flags, header->endian, header->msgtype, header->size);
 
     // request the buffer for the entire message (including the header)
-    LOG_DEBUG("Requesting buffer for message of size %lld", ISIZEOF(struct ipc_header_t) + header->size);
-    poll_rx_buf_request(poll, selector, ISIZEOF(struct ipc_header_t) + header->size);
+    LOG_DEBUG("Requesting buffer for message of size %lld", ISIZEOF(struct ipc_header_t) + msgsize);
+    poll_rx_buf_extend(poll, selector, msgsize);
 
     LOG_DEBUG("Switching to message reading mode");
     selector->rx.read_fn = ipc_read_msg;
-    ctx->msgtype = header->msgtype;
+    ctx->msgtype = msgtype;
 
     return option_some(NULL);
 }
@@ -261,13 +265,18 @@ option_t ipc_read_header(poll_p poll, selector_p selector) {
 option_t ipc_read_msg(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
+    i64_t size;
     obj_p res;
+    ipc_header_t *header;
 
     LOG_DEBUG("Reading message from connection %lld", selector->id);
-    res = de_raw(selector->rx.buf->data, selector->rx.buf->size);
+    header = (ipc_header_t *)selector->rx.buf->data;
+    size = header->size;
+    LOG_DEBUG("Message size: %lld", size);
+    res = de_raw(selector->rx.buf->data + ISIZEOF(struct ipc_header_t), &size);
+    LOG_DEBUG("Message read");
 
     // Prepare for the next message
-    poll_rx_buf_release(poll, selector);
     poll_rx_buf_request(poll, selector, ISIZEOF(struct ipc_header_t));
     selector->rx.read_fn = ipc_read_header;
 
@@ -311,9 +320,16 @@ nil_t ipc_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t msgtype) {
     LOG_TRACE("Serializing message");
     size = size_obj(msg);
     buf = poll_buf_create(ISIZEOF(struct ipc_header_t) + size);
-    ser_raw(buf->data, size, msg);
+
     header = (ipc_header_t *)buf->data;
+    header->prefix = SERDE_PREFIX;
+    header->version = RAYFORCE_VERSION;
+    header->flags = 0x00;
+    header->endian = 0x00;
     header->msgtype = msgtype;
+    header->size = size;
+
+    ser_raw(buf->data + ISIZEOF(struct ipc_header_t), msg);
     LOG_DEBUG("Sending message of size %lld", size);
     poll_send_buf(poll, selector, buf);
     LOG_DEBUG("Message sent");
@@ -420,7 +436,6 @@ obj_p ipc_send(poll_p poll, i64_t id, obj_p msg, u8_t msgtype) {
                 LOG_ERROR("Error occurred on connection %lld", selector->id);
                 return option_take(&result);
             }
-
         } while (option_is_none(&result));
     }
 

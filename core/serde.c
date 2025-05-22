@@ -164,7 +164,7 @@ i64_t size_obj(obj_p obj) {
     }
 }
 
-i64_t save_obj(u8_t *buf, i64_t len, obj_p obj) {
+i64_t ser_raw(u8_t *buf, obj_p obj) {
     i64_t i, l, c;
     str_p s;
 
@@ -302,19 +302,19 @@ i64_t save_obj(u8_t *buf, i64_t len, obj_p obj) {
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             for (i = 0, c = 0; i < l; i++)
-                c += save_obj(buf + c, len, AS_LIST(obj)[i]);
+                c += ser_raw(buf + c, AS_LIST(obj)[i]);
 
             return ISIZEOF(i8_t) + ISIZEOF(i64_t) + c;
 
         case TYPE_TABLE:
         case TYPE_DICT:
-            c = save_obj(buf, len, AS_LIST(obj)[0]);
-            c += save_obj(buf + c, len, AS_LIST(obj)[1]);
+            c = ser_raw(buf, AS_LIST(obj)[0]);
+            c += ser_raw(buf + c, AS_LIST(obj)[1]);
             return ISIZEOF(i8_t) + c;
 
         case TYPE_LAMBDA:
-            c = save_obj(buf, len, AS_LAMBDA(obj)->args);
-            c += save_obj(buf + c, len, AS_LAMBDA(obj)->body);
+            c = ser_raw(buf, AS_LAMBDA(obj)->args);
+            c += ser_raw(buf + c, AS_LAMBDA(obj)->body);
             return ISIZEOF(i8_t) + c;
 
         case TYPE_UNARY:
@@ -326,32 +326,12 @@ i64_t save_obj(u8_t *buf, i64_t len, obj_p obj) {
         case TYPE_ERR:
             buf[0] = (i8_t)AS_ERROR(obj)->code;
             c = ISIZEOF(i8_t);
-            c += save_obj(buf + c, len, AS_ERROR(obj)->msg);
+            c += ser_raw(buf + c, AS_ERROR(obj)->msg);
             return ISIZEOF(i8_t) + c;
 
         default:
             return 0;
     }
-}
-
-i64_t ser_raw(u8_t *buf, i64_t len, obj_p obj) {
-    i64_t size;
-    ipc_header_t *header;
-
-    size = len + ISIZEOF(struct ipc_header_t);
-
-    header = (ipc_header_t *)buf;
-    header->prefix = SERDE_PREFIX;
-    header->version = RAYFORCE_VERSION;
-    header->flags = 0;
-    header->endian = 0;
-    header->msgtype = 0;
-    header->size = len;
-
-    if (save_obj(buf + ISIZEOF(struct ipc_header_t), len, obj) == 0)
-        return -1;
-
-    return size;
 }
 
 obj_p ser_obj(obj_p obj) {
@@ -372,7 +352,7 @@ obj_p ser_obj(obj_p obj) {
     header->msgtype = 0;
     header->size = size;
 
-    if (save_obj(AS_U8(buf) + ISIZEOF(struct ipc_header_t), size, obj) == 0) {
+    if (ser_raw(AS_U8(buf) + ISIZEOF(struct ipc_header_t), obj) == 0) {
         drop_obj(buf);
         THROW(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
     }
@@ -380,7 +360,7 @@ obj_p ser_obj(obj_p obj) {
     return buf;
 }
 
-obj_p load_obj(u8_t **buf, i64_t *len) {
+obj_p de_raw(u8_t *buf, i64_t *len) {
     i8_t code;
     i64_t i, l, c, id;
     obj_p obj, k, v;
@@ -389,8 +369,8 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
     if (*len == 0)
         return NULL_OBJ;
 
-    type = **buf;
-    (*buf)++;
+    type = buf[0];
+    buf++;
     (*len)--;
 
     switch (type) {
@@ -398,87 +378,87 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
             return NULL_OBJ;
         case -TYPE_B8:
             if (*len < 1)
-                return error_str(ERR_IO, "load_obj: buffer underflow");
-            obj = b8(**buf);
-            (*buf)++;
+                return error_str(ERR_IO, "de_raw: buffer underflow");
+            obj = b8(buf[0]);
+            buf++;
             (*len)--;
             return obj;
 
         case -TYPE_U8:
             if (*len < 1)
-                return error_str(ERR_IO, "load_obj: buffer underflow");
-            obj = u8(**buf);
-            (*buf)++;
+                return error_str(ERR_IO, "de_raw: buffer underflow");
+            obj = u8(buf[0]);
+            buf++;
             (*len)--;
             return obj;
 
         case -TYPE_I16:
             if (*len < ISIZEOF(i16_t))
-                return error_str(ERR_IO, "load_obj: buffer underflow");
+                return error_str(ERR_IO, "de_raw: buffer underflow");
             obj = i16(0);
-            memcpy(&obj->i16, *buf, ISIZEOF(i16_t));
-            *buf += ISIZEOF(i16_t);
-            *len -= ISIZEOF(i16_t);
+            memcpy(&obj->i16, buf, ISIZEOF(i16_t));
+            buf += ISIZEOF(i16_t);
+            (*len) -= ISIZEOF(i16_t);
             return obj;
 
         case -TYPE_I32:
         case -TYPE_DATE:
         case -TYPE_TIME:
             if (*len < ISIZEOF(i32_t))
-                return error_str(ERR_IO, "load_obj: buffer underflow");
+                return error_str(ERR_IO, "de_raw: buffer underflow");
             obj = i32(0);
-            memcpy(&obj->i32, *buf, ISIZEOF(i32_t));
-            *buf += ISIZEOF(i32_t);
-            *len -= ISIZEOF(i32_t);
+            memcpy(&obj->i32, buf, ISIZEOF(i32_t));
+            buf += ISIZEOF(i32_t);
+            (*len) -= ISIZEOF(i32_t);
             obj->type = type;
             return obj;
 
         case -TYPE_I64:
         case -TYPE_TIMESTAMP:
             if (*len < ISIZEOF(i64_t))
-                return error_str(ERR_IO, "load_obj: buffer underflow");
+                return error_str(ERR_IO, "de_raw: buffer underflow");
             obj = i64(0);
-            memcpy(&obj->i64, *buf, ISIZEOF(i64_t));
-            *buf += ISIZEOF(i64_t);
-            *len -= ISIZEOF(i64_t);
+            memcpy(&obj->i64, buf, ISIZEOF(i64_t));
+            buf += ISIZEOF(i64_t);
+            (*len) -= ISIZEOF(i64_t);
             obj->type = type;
             return obj;
 
         case -TYPE_F64:
             if (*len < ISIZEOF(f64_t))
-                return error_str(ERR_IO, "load_obj: buffer underflow");
+                return error_str(ERR_IO, "de_raw: buffer underflow");
             obj = f64(0);
-            memcpy(&obj->f64, *buf, ISIZEOF(f64_t));
-            *buf += ISIZEOF(f64_t);
-            *len -= ISIZEOF(f64_t);
+            memcpy(&obj->f64, buf, ISIZEOF(f64_t));
+            buf += ISIZEOF(f64_t);
+            (*len) -= ISIZEOF(f64_t);
             return obj;
 
         case -TYPE_SYMBOL:
             if (*len < 1)
-                return error_str(ERR_IO, "load_obj: buffer underflow");
-            l = str_len((str_p)*buf, *len);
+                return error_str(ERR_IO, "de_raw: buffer underflow");
+            l = str_len((str_p)buf, *len);
             if (l >= *len)
-                return error_str(ERR_IO, "load_obj: invalid symbol length");
-            i = symbols_intern((str_p)*buf, l);
+                return error_str(ERR_IO, "de_raw: invalid symbol length");
+            i = symbols_intern((str_p)buf, l);
             obj = symboli64(i);
-            *buf += l + 1;
-            *len -= l + 1;
+            buf += l + 1;
+            (*len) -= l + 1;
             return obj;
 
         case -TYPE_C8:
             if (*len < 1)
-                return error_str(ERR_IO, "load_obj: buffer underflow");
-            obj = c8((*buf)[0]);
-            (*buf)++;
+                return error_str(ERR_IO, "de_raw: buffer underflow");
+            obj = c8(buf[0]);
+            buf++;
             (*len)--;
             return obj;
 
         case -TYPE_GUID:
             if (*len < ISIZEOF(guid_t))
-                return error_str(ERR_IO, "load_obj: buffer underflow");
-            obj = guid(*buf);
-            *buf += ISIZEOF(guid_t);
-            *len -= ISIZEOF(guid_t);
+                return error_str(ERR_IO, "de_raw: buffer underflow");
+            obj = guid(buf);
+            buf += ISIZEOF(guid_t);
+            (*len) -= ISIZEOF(guid_t);
             return obj;
 
         case TYPE_B8:
@@ -491,72 +471,72 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
         case TYPE_GUID:
         case TYPE_LIST:
             if (*len < ISIZEOF(i64_t))
-                return error_str(ERR_IO, "load_obj: buffer underflow");
-            memcpy(&l, *buf, ISIZEOF(i64_t));
-            *buf += ISIZEOF(i64_t);
-            *len -= ISIZEOF(i64_t);
+                return error_str(ERR_IO, "de_raw: buffer underflow");
+            memcpy(&l, buf, ISIZEOF(i64_t));
+            buf += ISIZEOF(i64_t);
+            (*len) -= ISIZEOF(i64_t);
 
             // Check for unreasonable length values that might indicate corruption
             if (l > 1000000000)  // 1 billion elements is likely a corrupted value
-                return error_str(ERR_IO, "load_obj: unreasonable length value, possible corruption");
+                return error_str(ERR_IO, "de_raw: unreasonable length value, possible corruption");
 
             // Continue with type-specific handling
             switch (type) {
                 case TYPE_B8:
                     if (*len < l * ISIZEOF(b8_t))
-                        return error_str(ERR_IO, "load_obj: buffer underflow");
+                        return error_str(ERR_IO, "de_raw: buffer underflow");
                     obj = B8(l);
                     if (IS_ERR(obj))
                         return obj;
-                    memcpy(AS_B8(obj), *buf, l * ISIZEOF(b8_t));
-                    *buf += l * ISIZEOF(b8_t);
-                    *len -= l * ISIZEOF(b8_t);
+                    memcpy(AS_B8(obj), buf, l * ISIZEOF(b8_t));
+                    buf += l * ISIZEOF(b8_t);
+                    (*len) -= l * ISIZEOF(b8_t);
                     return obj;
 
                 case TYPE_U8:
                     if (*len < l * ISIZEOF(u8_t))
-                        return error_str(ERR_IO, "load_obj: buffer underflow");
+                        return error_str(ERR_IO, "de_raw: buffer underflow");
                     obj = U8(l);
                     if (IS_ERR(obj))
                         return obj;
-                    memcpy(AS_U8(obj), *buf, l * ISIZEOF(u8_t));
-                    *buf += l * ISIZEOF(u8_t);
-                    *len -= l * ISIZEOF(u8_t);
+                    memcpy(AS_U8(obj), buf, l * ISIZEOF(u8_t));
+                    buf += l * ISIZEOF(u8_t);
+                    (*len) -= l * ISIZEOF(u8_t);
                     return obj;
 
                 case TYPE_C8:
                     if (*len < l * ISIZEOF(c8_t))
-                        return error_str(ERR_IO, "load_obj: buffer underflow");
+                        return error_str(ERR_IO, "de_raw: buffer underflow");
                     obj = C8(l);
                     if (IS_ERR(obj))
                         return obj;
-                    memcpy(AS_C8(obj), *buf, l * ISIZEOF(c8_t));
-                    *buf += l * ISIZEOF(c8_t);
-                    *len -= l * ISIZEOF(c8_t);
+                    memcpy(AS_C8(obj), buf, l * ISIZEOF(c8_t));
+                    buf += l * ISIZEOF(c8_t);
+                    (*len) -= l * ISIZEOF(c8_t);
                     return obj;
 
                 case TYPE_I64:
                 case TYPE_TIMESTAMP:
                     if (*len < l * ISIZEOF(i64_t))
-                        return error_str(ERR_IO, "load_obj: buffer underflow");
+                        return error_str(ERR_IO, "de_raw: buffer underflow");
                     obj = I64(l);
                     if (IS_ERR(obj))
                         return obj;
-                    memcpy(AS_I64(obj), *buf, l * ISIZEOF(i64_t));
-                    *buf += l * ISIZEOF(i64_t);
-                    *len -= l * ISIZEOF(i64_t);
+                    memcpy(AS_I64(obj), buf, l * ISIZEOF(i64_t));
+                    buf += l * ISIZEOF(i64_t);
+                    (*len) -= l * ISIZEOF(i64_t);
                     obj->type = type;
                     return obj;
 
                 case TYPE_F64:
                     if (*len < l * ISIZEOF(f64_t))
-                        return error_str(ERR_IO, "load_obj: buffer underflow");
+                        return error_str(ERR_IO, "de_raw: buffer underflow");
                     obj = F64(l);
                     if (IS_ERR(obj))
                         return obj;
-                    memcpy(AS_F64(obj), *buf, l * ISIZEOF(f64_t));
-                    *buf += l * ISIZEOF(f64_t);
-                    *len -= l * ISIZEOF(f64_t);
+                    memcpy(AS_F64(obj), buf, l * ISIZEOF(f64_t));
+                    buf += l * ISIZEOF(f64_t);
+                    (*len) -= l * ISIZEOF(f64_t);
                     return obj;
 
                 case TYPE_SYMBOL:
@@ -567,30 +547,30 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
                         if (*len < 1) {
                             obj->len = i;
                             drop_obj(obj);
-                            return error_str(ERR_IO, "load_obj: buffer underflow");
+                            return error_str(ERR_IO, "de_raw: buffer underflow");
                         }
-                        c = str_len((str_p)*buf, *len);
+                        c = str_len((str_p)buf, *len);
                         if (c >= *len) {
                             obj->len = i;
                             drop_obj(obj);
-                            return error_str(ERR_IO, "load_obj: invalid symbol length");
+                            return error_str(ERR_IO, "de_raw: invalid symbol length");
                         }
-                        id = symbols_intern((str_p)*buf, c);
+                        id = symbols_intern((str_p)buf, c);
                         AS_SYMBOL(obj)[i] = id;
-                        *buf += c + 1;
-                        *len -= c + 1;
+                        buf += c + 1;
+                        (*len) -= c + 1;
                     }
                     return obj;
 
                 case TYPE_GUID:
                     if (*len < l * ISIZEOF(guid_t))
-                        return error_str(ERR_IO, "load_obj: buffer underflow");
+                        return error_str(ERR_IO, "de_raw: buffer underflow");
                     obj = GUID(l);
                     if (IS_ERR(obj))
                         return obj;
-                    memcpy(AS_C8(obj), *buf, l * ISIZEOF(guid_t));
-                    *buf += l * ISIZEOF(guid_t);
-                    *len -= l * ISIZEOF(guid_t);
+                    memcpy(AS_C8(obj), buf, l * ISIZEOF(guid_t));
+                    buf += l * ISIZEOF(guid_t);
+                    (*len) -= l * ISIZEOF(guid_t);
                     return obj;
 
                 case TYPE_LIST:
@@ -598,7 +578,7 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
                     if (IS_ERR(obj))
                         return obj;
                     for (i = 0; i < l; i++) {
-                        v = load_obj(buf, len);
+                        v = de_raw(buf, len);
                         if (IS_ERR(v)) {
                             obj->len = i;
                             drop_obj(obj);
@@ -610,16 +590,16 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
                     return obj;
             }
             // Should never reach here
-            return error_str(ERR_IO, "load_obj: internal error");
+            return error_str(ERR_IO, "de_raw: internal error");
 
         case TYPE_TABLE:
         case TYPE_DICT:
-            k = load_obj(buf, len);
+            k = de_raw(buf, len);
 
             if (IS_ERR(k))
                 return k;
 
-            v = load_obj(buf, len);
+            v = de_raw(buf, len);
 
             if (IS_ERR(v)) {
                 drop_obj(k);
@@ -632,12 +612,12 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
                 return dict(k, v);
 
         case TYPE_LAMBDA:
-            k = load_obj(buf, len);
+            k = de_raw(buf, len);
 
             if (IS_ERR(k))
                 return k;
 
-            v = load_obj(buf, len);
+            v = de_raw(buf, len);
 
             if (IS_ERR(v)) {
                 drop_obj(k);
@@ -650,39 +630,43 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
         case TYPE_BINARY:
         case TYPE_VARY:
             if (*len < 1)
-                return error_str(ERR_IO, "load_obj: buffer underflow");
+                return error_str(ERR_IO, "de_raw: buffer underflow");
             // Check for null terminator within buffer
             for (i = 0; i < *len; i++) {
-                if ((*buf)[i] == 0)
+                if (buf[i] == 0)
                     break;
             }
             if (i >= *len)
-                return error_str(ERR_IO, "load_obj: unterminated string");
+                return error_str(ERR_IO, "de_raw: unterminated string");
 
-            k = env_get_internal_function((str_p)*buf);
-            *buf += i + 1;
-            *len -= i + 1;
+            k = env_get_internal_function((str_p)buf);
+            buf += i + 1;
+            (*len) -= i + 1;
 
             return k;
 
         case TYPE_ERR:
             if (*len < 1)
-                return error_str(ERR_IO, "load_obj: buffer underflow");
-            code = **buf;
-            (*buf)++;
+                return error_str(ERR_IO, "de_raw: buffer underflow");
+            code = buf[0];
+            buf++;
             (*len)--;
-            v = load_obj(buf, len);
+            v = de_raw(buf, len);
             obj = error_obj(code, v);
             return obj;
 
         default:
-            THROW(ERR_NOT_SUPPORTED, "load_obj: unsupported type: %d", type);
+            THROW(ERR_NOT_SUPPORTED, "de_raw: unsupported type: %d", type);
     }
 }
 
-obj_p de_raw(u8_t *buf, i64_t len) {
-    i64_t l;
+obj_p de_obj(obj_p obj) {
+    i64_t len;
+    u8_t *buf;
     ipc_header_t *header;
+
+    len = obj->len;
+    buf = AS_U8(obj);
 
     // Check if buffer is large enough to contain a header
     if (len < ISIZEOF(struct ipc_header_t))
@@ -704,10 +688,8 @@ obj_p de_raw(u8_t *buf, i64_t len) {
     if (header->size + ISIZEOF(struct ipc_header_t) != len)
         return error_str(ERR_IO, "de: corrupted data in a buffer");
 
+    len = header->size;
     buf += ISIZEOF(struct ipc_header_t);
-    l = header->size;
 
-    return load_obj(&buf, &l);
+    return de_raw(buf, &len);
 }
-
-obj_p de_obj(obj_p obj) { return de_raw(AS_U8(obj), obj->len); }

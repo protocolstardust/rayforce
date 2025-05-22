@@ -194,7 +194,7 @@ obj_p binary_set(obj_p x, obj_p y) {
 
                     for (i = 0, size = 0; i < l; i++) {
                         v = AS_LIST(y)[i];
-                        sz = save_obj(b, l, v);
+                        sz = ser_raw(b, v);
 
                         if (sz == 0) {
                             drop_obj(col);

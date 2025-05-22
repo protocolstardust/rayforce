@@ -137,11 +137,11 @@ obj_p ray_read(obj_p x) {
                 return error_str(ERR_IO, "read: file too small to contain valid header");
             }
 
-            cur = map;
             sz = size;
 
             while (sz > 0) {
-                val = load_obj(&cur, &sz);
+                cur = map + sz;
+                val = de_raw(cur, &sz);
 
                 if (IS_ERR(val)) {
                     drop_obj(val);
@@ -242,7 +242,7 @@ obj_p ray_write(obj_p x, obj_p y) {
         case -TYPE_I32:
             size = size_obj(y);
             buf = U8(size);
-            size = save_obj(AS_U8(buf), size, y);
+            size = ser_raw(AS_U8(buf), y);
             fs_fwrite(x->i32, AS_C8(buf), size);
             drop_obj(buf);
             return NULL_OBJ;

@@ -774,7 +774,7 @@ obj_p at_idx(obj_p obj, i64_t idx) {
                 idx = obj->len + idx;
             if (idx >= 0 && idx < (i64_t)v->len) {
                 buf = AS_U8(k) + AS_I64(v)[idx];
-                return load_obj(&buf, &size);
+                return de_raw(buf, &size);
             }
 
             return NULL_OBJ;

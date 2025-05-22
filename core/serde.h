@@ -40,12 +40,10 @@ typedef struct ipc_header_t {
 
 RAYASSERT(sizeof(ipc_header_t) == 16, ipc_header_t)
 
-obj_p de_raw(u8_t *buf, i64_t len);
-i64_t ser_raw(u8_t *buf, i64_t len, obj_p obj);
+obj_p de_raw(u8_t *buf, i64_t *len);
+i64_t ser_raw(u8_t *buf, obj_p obj);
 i64_t size_of_type(i8_t type);
 i64_t size_of(obj_p obj);
 i64_t size_obj(obj_p obj);
-i64_t save_obj(u8_t *buf, i64_t len, obj_p obj);
-obj_p load_obj(u8_t **buf, i64_t *len);
 
 #endif  // SERDE_H

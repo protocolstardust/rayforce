@@ -268,7 +268,7 @@ obj_p ray_at(obj_p x, obj_p y) {
 
             buf = AS_U8(k) + AS_I64(v)[y->i64];
 
-            return load_obj(&buf, &xl);
+            return de_raw(buf, &xl);
 
         case MTYPE2(TYPE_MAPLIST, TYPE_I64):
             k = MAPLIST_KEY(x);
@@ -289,7 +289,7 @@ obj_p ray_at(obj_p x, obj_p y) {
                 }
 
                 buf = AS_U8(k) + AS_I64(v)[AS_I64(y)[i]];
-                AS_LIST(res)[i] = load_obj(&buf, &size);
+                AS_LIST(res)[i] = de_raw(buf, &size);
             }
 
             return res;
@@ -528,7 +528,7 @@ obj_p ray_take(obj_p x, obj_p y) {
             for (i = 0, j = (l - m % l) * f; i < m; i++, j++) {
                 if (AS_I64(s)[j % l] >= (i64_t)n) {
                     buf = AS_U8(k) + AS_I64(s)[j % l];
-                    v = load_obj(&buf, &size);
+                    v = de_raw(buf, &size);
                     if (IS_ERR(v)) {
                         res->len = i;
                         drop_obj(res);
@@ -932,7 +932,7 @@ obj_p ray_value(obj_p x) {
             for (i = 0; i < xl; i++) {
                 if (AS_I64(e)[i] < sl) {
                     buf = AS_U8(k) + AS_I64(e)[i];
-                    v = load_obj(&buf, &size);
+                    v = de_raw(buf, &size);
 
                     if (IS_ERR(v)) {
                         res->len = i;
@@ -982,7 +982,7 @@ obj_p ray_value(obj_p x) {
 
                 for (j = 0; j < n; j++) {
                     buf = AS_U8(k) + AS_I64(v)[j];
-                    objptr[j] = load_obj(&buf, &size);
+                    objptr[j] = de_raw(buf, &size);
                 }
 
                 objptr += n;
