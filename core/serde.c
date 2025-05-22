@@ -105,52 +105,47 @@ i64_t size_obj(obj_p obj) {
         case -TYPE_DATE:
         case -TYPE_TIME:
             return ISIZEOF(i8_t) + ISIZEOF(i32_t);
-
         case -TYPE_I64:
         case -TYPE_TIMESTAMP:
             return ISIZEOF(i8_t) + ISIZEOF(i64_t);
-
         case -TYPE_F64:
             return ISIZEOF(i8_t) + ISIZEOF(f64_t);
-
         case -TYPE_SYMBOL:
             return ISIZEOF(i8_t) + SYMBOL_STRLEN(obj->i64) + 1;
-
         case -TYPE_C8:
             return ISIZEOF(i8_t) + ISIZEOF(c8_t);
         case -TYPE_GUID:
             return ISIZEOF(i8_t) + ISIZEOF(guid_t);
-
         case TYPE_GUID:
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + obj->len * ISIZEOF(guid_t);
+            return ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t) + obj->len * ISIZEOF(guid_t);
         case TYPE_B8:
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + obj->len * ISIZEOF(b8_t);
+            return ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t) + obj->len * ISIZEOF(b8_t);
         case TYPE_U8:
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + obj->len * ISIZEOF(u8_t);
+            return ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t) + obj->len * ISIZEOF(u8_t);
         case TYPE_I64:
         case TYPE_TIMESTAMP:
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + obj->len * ISIZEOF(i64_t);
+            return ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t) + obj->len * ISIZEOF(i64_t);
         case TYPE_F64:
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + obj->len * ISIZEOF(f64_t);
+            return ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t) + obj->len * ISIZEOF(f64_t);
         case TYPE_C8:
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + obj->len * ISIZEOF(c8_t);
+            return ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t) + obj->len * ISIZEOF(c8_t);
         case TYPE_SYMBOL:
             l = obj->len;
-            size = ISIZEOF(i8_t) + ISIZEOF(i64_t);
+            size = ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
                 size += SYMBOL_STRLEN(AS_SYMBOL(obj)[i]) + 1;
             return size;
         case TYPE_LIST:
             l = obj->len;
-            size = ISIZEOF(i8_t) + ISIZEOF(i64_t);
+            size = ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
                 size += size_obj(AS_LIST(obj)[i]);
             return size;
         case TYPE_TABLE:
         case TYPE_DICT:
-            return ISIZEOF(i8_t) + size_obj(AS_LIST(obj)[0]) + size_obj(AS_LIST(obj)[1]);
+            return ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t) + size_obj(AS_LIST(obj)[0]) + size_obj(AS_LIST(obj)[1]);
         case TYPE_LAMBDA:
-            return ISIZEOF(i8_t) + size_obj(AS_LAMBDA(obj)->args) + size_obj(AS_LAMBDA(obj)->body);
+            return ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t) + size_obj(AS_LAMBDA(obj)->args) + size_obj(AS_LAMBDA(obj)->body);
         case TYPE_UNARY:
         case TYPE_BINARY:
         case TYPE_VARY:
@@ -177,107 +172,108 @@ i64_t ser_raw(u8_t *buf, obj_p obj) {
         case -TYPE_B8:
             buf[0] = obj->b8;
             return ISIZEOF(i8_t) + ISIZEOF(b8_t);
-
         case -TYPE_U8:
             buf[0] = obj->u8;
             return ISIZEOF(i8_t) + ISIZEOF(u8_t);
-
         case -TYPE_I16:
             memcpy(buf, &obj->i16, ISIZEOF(i16_t));
             return ISIZEOF(i8_t) + ISIZEOF(i16_t);
-
         case -TYPE_I32:
         case -TYPE_DATE:
         case -TYPE_TIME:
             memcpy(buf, &obj->i32, ISIZEOF(i32_t));
             return ISIZEOF(i8_t) + ISIZEOF(i32_t);
-
         case -TYPE_I64:
         case -TYPE_TIMESTAMP:
             memcpy(buf, &obj->i64, ISIZEOF(i64_t));
             return ISIZEOF(i8_t) + ISIZEOF(i64_t);
-
         case -TYPE_F64:
             memcpy(buf, &obj->f64, ISIZEOF(f64_t));
             return ISIZEOF(i8_t) + ISIZEOF(f64_t);
-
         case -TYPE_SYMBOL:
             s = str_from_symbol(obj->i64);
             return ISIZEOF(i8_t) + str_cpy((str_p)buf, s) + 1;
-
         case -TYPE_C8:
             buf[0] = obj->c8;
             return ISIZEOF(i8_t) + ISIZEOF(c8_t);
         case -TYPE_GUID:
             memcpy(buf, AS_C8(obj), ISIZEOF(guid_t));
             return ISIZEOF(i8_t) + ISIZEOF(guid_t);
-
         case TYPE_B8:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
                 buf[i] = AS_B8(obj)[i];
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(b8_t);
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(b8_t) + 1;
         case TYPE_U8:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
                 buf[i] = AS_U8(obj)[i];
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(u8_t);
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(u8_t) + 1;
         case TYPE_C8:
+            buf[0] = 0;  // attrs
+            buf++;
             l = ops_count(obj);
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             memcpy(buf, AS_C8(obj), l);
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(c8_t);
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(c8_t) + 1;
         case TYPE_I16:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
                 memcpy(buf + i * ISIZEOF(i16_t), &AS_I16(obj)[i], ISIZEOF(i16_t));
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(i16_t);
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(i16_t) + 1;
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
                 memcpy(buf + i * ISIZEOF(i32_t), &AS_I32(obj)[i], ISIZEOF(i32_t));
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(i32_t);
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(i32_t) + 1;
         case TYPE_I64:
         case TYPE_TIMESTAMP:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
                 memcpy(buf + i * ISIZEOF(i64_t), &AS_I64(obj)[i], ISIZEOF(i64_t));
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(i64_t);
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(i64_t) + 1;
         case TYPE_F64:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
                 memcpy(buf + i * ISIZEOF(f64_t), &AS_F64(obj)[i], ISIZEOF(f64_t));
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(f64_t);
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(f64_t) + 1;
         case TYPE_SYMBOL:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
@@ -288,47 +284,48 @@ i64_t ser_raw(u8_t *buf, obj_p obj) {
                 c++;
             }
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + c;
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + c + 1;
         case TYPE_GUID:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             memcpy(buf, AS_C8(obj), l * ISIZEOF(guid_t));
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(guid_t);
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + l * ISIZEOF(guid_t) + 1;
         case TYPE_LIST:
+            buf[0] = 0;  // attrs
+            buf++;
             l = obj->len;
             memcpy(buf, &l, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             for (i = 0, c = 0; i < l; i++)
                 c += ser_raw(buf + c, AS_LIST(obj)[i]);
 
-            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + c;
-
+            return ISIZEOF(i8_t) + ISIZEOF(i64_t) + c + 1;
         case TYPE_TABLE:
         case TYPE_DICT:
+            buf[0] = 0;  // attrs
+            buf++;
             c = ser_raw(buf, AS_LIST(obj)[0]);
             c += ser_raw(buf + c, AS_LIST(obj)[1]);
-            return ISIZEOF(i8_t) + c;
-
+            return ISIZEOF(i8_t) + c + 1;
         case TYPE_LAMBDA:
+            buf[0] = 0;  // attrs
+            buf++;
             c = ser_raw(buf, AS_LAMBDA(obj)->args);
             c += ser_raw(buf + c, AS_LAMBDA(obj)->body);
-            return ISIZEOF(i8_t) + c;
-
+            return ISIZEOF(i8_t) + c + 1;
         case TYPE_UNARY:
         case TYPE_BINARY:
         case TYPE_VARY:
             c = str_cpy((str_p)buf, env_get_internal_name(obj));
             return ISIZEOF(i8_t) + c + 1;
-
         case TYPE_ERR:
             buf[0] = (i8_t)AS_ERROR(obj)->code;
             c = ISIZEOF(i8_t);
             c += ser_raw(buf + c, AS_ERROR(obj)->msg);
             return ISIZEOF(i8_t) + c;
-
         default:
             return 0;
     }
@@ -383,7 +380,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             buf++;
             (*len)--;
             return obj;
-
         case -TYPE_U8:
             if (*len < 1)
                 return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -391,7 +387,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             buf++;
             (*len)--;
             return obj;
-
         case -TYPE_I16:
             if (*len < ISIZEOF(i16_t))
                 return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -400,7 +395,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             buf += ISIZEOF(i16_t);
             (*len) -= ISIZEOF(i16_t);
             return obj;
-
         case -TYPE_I32:
         case -TYPE_DATE:
         case -TYPE_TIME:
@@ -412,7 +406,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             (*len) -= ISIZEOF(i32_t);
             obj->type = type;
             return obj;
-
         case -TYPE_I64:
         case -TYPE_TIMESTAMP:
             if (*len < ISIZEOF(i64_t))
@@ -423,7 +416,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             (*len) -= ISIZEOF(i64_t);
             obj->type = type;
             return obj;
-
         case -TYPE_F64:
             if (*len < ISIZEOF(f64_t))
                 return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -432,7 +424,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             buf += ISIZEOF(f64_t);
             (*len) -= ISIZEOF(f64_t);
             return obj;
-
         case -TYPE_SYMBOL:
             if (*len < 1)
                 return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -444,7 +435,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             buf += l + 1;
             (*len) -= l + 1;
             return obj;
-
         case -TYPE_C8:
             if (*len < 1)
                 return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -452,7 +442,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             buf++;
             (*len)--;
             return obj;
-
         case -TYPE_GUID:
             if (*len < ISIZEOF(guid_t))
                 return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -460,7 +449,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
             buf += ISIZEOF(guid_t);
             (*len) -= ISIZEOF(guid_t);
             return obj;
-
         case TYPE_B8:
         case TYPE_U8:
         case TYPE_C8:
@@ -472,6 +460,7 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
         case TYPE_LIST:
             if (*len < ISIZEOF(i64_t))
                 return error_str(ERR_IO, "de_raw: buffer underflow");
+            buf++;  // skip attrs
             memcpy(&l, buf, ISIZEOF(i64_t));
             buf += ISIZEOF(i64_t);
             (*len) -= ISIZEOF(i64_t);
@@ -492,7 +481,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
                     buf += l * ISIZEOF(b8_t);
                     (*len) -= l * ISIZEOF(b8_t);
                     return obj;
-
                 case TYPE_U8:
                     if (*len < l * ISIZEOF(u8_t))
                         return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -503,7 +491,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
                     buf += l * ISIZEOF(u8_t);
                     (*len) -= l * ISIZEOF(u8_t);
                     return obj;
-
                 case TYPE_C8:
                     if (*len < l * ISIZEOF(c8_t))
                         return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -514,7 +501,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
                     buf += l * ISIZEOF(c8_t);
                     (*len) -= l * ISIZEOF(c8_t);
                     return obj;
-
                 case TYPE_I64:
                 case TYPE_TIMESTAMP:
                     if (*len < l * ISIZEOF(i64_t))
@@ -527,7 +513,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
                     (*len) -= l * ISIZEOF(i64_t);
                     obj->type = type;
                     return obj;
-
                 case TYPE_F64:
                     if (*len < l * ISIZEOF(f64_t))
                         return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -538,7 +523,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
                     buf += l * ISIZEOF(f64_t);
                     (*len) -= l * ISIZEOF(f64_t);
                     return obj;
-
                 case TYPE_SYMBOL:
                     obj = SYMBOL(l);
                     if (IS_ERR(obj))
@@ -561,7 +545,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
                         (*len) -= c + 1;
                     }
                     return obj;
-
                 case TYPE_GUID:
                     if (*len < l * ISIZEOF(guid_t))
                         return error_str(ERR_IO, "de_raw: buffer underflow");
@@ -572,7 +555,6 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
                     buf += l * ISIZEOF(guid_t);
                     (*len) -= l * ISIZEOF(guid_t);
                     return obj;
-
                 case TYPE_LIST:
                     obj = LIST(l);
                     if (IS_ERR(obj))
@@ -594,6 +576,7 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
 
         case TYPE_TABLE:
         case TYPE_DICT:
+            buf++;  // skip attrs
             k = de_raw(buf, len);
 
             if (IS_ERR(k))
@@ -612,6 +595,7 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
                 return dict(k, v);
 
         case TYPE_LAMBDA:
+            buf++;  // skip attrs
             k = de_raw(buf, len);
 
             if (IS_ERR(k))
