@@ -27,7 +27,7 @@
 #include "rayforce.h"
 
 typedef struct sock_addr_t {
-    c8_t ip[16];  // For IPv4 addresses
+    c8_t ip[256];  // For IPv4 addresses or hostnames
     i64_t port;
 } sock_addr_t;
 
