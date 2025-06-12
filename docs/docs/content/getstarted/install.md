@@ -7,9 +7,10 @@ There are two ways to install RayforceDB:
 
 # :material-download: Download a pre-built binary
 
-You can download the latest pre-built `rayforce` binary for your platform from the [release page](https://github.com/singaraiona/rayforce/releases) or directly here (linux version):
+You can download the latest pre-built `rayforce` binary for your platform from the [release page](https://github.com/singaraiona/rayforce/releases) or directly here:
 
 - [Download Linux binary](../../assets/rayforce_linux_x86_64)
+- [Download MacOS binary](../../assets/rayforce_mac_arm64)
 
 For Linux, you can use the following commands to download and run the binary from this documentation (if you are viewing it locally or from your server):
 
