@@ -31,6 +31,7 @@
 #include "sort.h"
 #include "order.h"
 #include "runtime.h"
+#include "serde.h" // for size_of_type
 
 #define __UNOP_FOLD(x, lt, ot, op, ln, of, iv)                  \
     ({                                                          \
@@ -685,7 +686,7 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, i32, time, time, time, MULI32, len, offset, out);
 
         case MTYPE2(TYPE_I64, -TYPE_I32):
-            return __BINOP_V_A(x, y, i64, i32, i64, i64, MULI64, len, offset, out);
+            return __BINOP_V_A(x, y, i64, i64, i64, i64, MULI64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_I64):
             return __BINOP_V_A(x, y, i64, i64, i64, i64, MULI64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_F64):
@@ -1418,7 +1419,7 @@ obj_p ray_sq_sub_partial(obj_p x, obj_p y, i64_t len, i64_t offset) {
 
 obj_p unop_fold(raw_p op, obj_p x) {
     pool_p pool;
-    i64_t i, l, n, chunk;
+    i64_t i, l, n;
     obj_p v, res;
     obj_p (*unop)(obj_p);
     raw_p argv[3];
@@ -1441,13 +1442,27 @@ obj_p unop_fold(raw_p op, obj_p x) {
         return v;
     }
 
+    // --- PAGE-ALIGNED CHUNKING ---
+    i64_t elem_size = size_of_type(x->type);
+    i64_t page_size = RAY_PAGE_SIZE;
+    i64_t elems_per_page = page_size / elem_size;
+    if (elems_per_page == 0) elems_per_page = 1;
+    i64_t base_chunk = (l + n - 1) / n;
+    // round up to nearest multiple of elems_per_page
+    base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
+
     pool_prepare(pool);
-    chunk = l / n;
-
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, op, 3, x, chunk, i * chunk);
-
-    pool_add_task(pool, op, 3, x, l - i * chunk, i * chunk);
+    i64_t offset = 0;
+    for (i = 0; i < n - 1; i++) {
+        i64_t this_chunk = base_chunk;
+        if (offset + this_chunk > l) this_chunk = l - offset;
+        pool_add_task(pool, op, 3, x, this_chunk, offset);
+        offset += this_chunk;
+        if (offset >= l) break;
+    }
+    // last chunk
+    if (offset < l)
+        pool_add_task(pool, op, 3, x, l - offset, offset);
 
     v = pool_run(pool);
     if (IS_ERR(v))
@@ -1515,7 +1530,7 @@ obj_p unop_map(raw_p op, obj_p x) {
 
 obj_p binop_map(raw_p op, obj_p x, obj_p y) {
     pool_p pool;
-    i64_t i, l, n, chunk;
+    i64_t i, l, n;
     obj_p v, out;
     raw_p argv[5];
     i8_t t;
@@ -1560,13 +1575,25 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
         return out;
     }
 
+    // --- PAGE-ALIGNED CHUNKING ---
+    i64_t elem_size = size_of_type(t);
+    i64_t page_size = RAY_PAGE_SIZE;
+    i64_t elems_per_page = page_size / elem_size;
+    if (elems_per_page == 0) elems_per_page = 1;
+    i64_t base_chunk = (l + n - 1) / n;
+    base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
+
     pool_prepare(pool);
-    chunk = l / n;
-
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, op, 5, x, y, chunk, i * chunk, out);
-
-    pool_add_task(pool, op, 5, x, y, l - i * chunk, i * chunk, out);
+    i64_t offset = 0;
+    for (i = 0; i < n - 1; i++) {
+        i64_t this_chunk = base_chunk;
+        if (offset + this_chunk > l) this_chunk = l - offset;
+        pool_add_task(pool, op, 5, x, y, this_chunk, offset, out);
+        offset += this_chunk;
+        if (offset >= l) break;
+    }
+    if (offset < l)
+        pool_add_task(pool, op, 5, x, y, l - offset, offset, out);
 
     v = pool_run(pool);
     if (IS_ERR(v)) {
@@ -1582,10 +1609,11 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
 
 obj_p binop_fold(raw_p op, obj_p x, obj_p y) {
     pool_p pool;
-    i64_t i, n, chunk, l = x->len;
+    i64_t i, n, l;
     obj_p v, res;
     raw_p argv[4];
 
+    l = x->len;
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
 
@@ -1598,13 +1626,25 @@ obj_p binop_fold(raw_p op, obj_p x, obj_p y) {
         return v;
     }
 
+    // --- PAGE-ALIGNED CHUNKING ---
+    i64_t elem_size = size_of_type(x->type);
+    i64_t page_size = RAY_PAGE_SIZE;
+    i64_t elems_per_page = page_size / elem_size;
+    if (elems_per_page == 0) elems_per_page = 1;
+    i64_t base_chunk = (l + n - 1) / n;
+    base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
+
     pool_prepare(pool);
-    chunk = l / n;
-
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, op, 4, x, y, chunk, i * chunk);
-
-    pool_add_task(pool, op, 4, x, y, l - i * chunk, i * chunk);
+    i64_t offset = 0;
+    for (i = 0; i < n - 1; i++) {
+        i64_t this_chunk = base_chunk;
+        if (offset + this_chunk > l) this_chunk = l - offset;
+        pool_add_task(pool, op, 4, x, y, this_chunk, offset);
+        offset += this_chunk;
+        if (offset >= l) break;
+    }
+    if (offset < l)
+        pool_add_task(pool, op, 4, x, y, l - offset, offset);
 
     v = pool_run(pool);
     if (IS_ERR(v))

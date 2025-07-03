@@ -336,7 +336,7 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, i64_t, i64_t, obj_p);
 
 obj_p cmp_map(raw_p op, obj_p x, obj_p y) {
     pool_p pool = runtime_get()->pool;
-    i64_t i, l, n, chunk;
+    i64_t i, l, n;
     obj_p v, map, res;
     ray_cmp_f cmp_fn = (ray_cmp_f)op;
 
@@ -414,13 +414,25 @@ obj_p cmp_map(raw_p op, obj_p x, obj_p y) {
         return res;
     }
 
+    // --- PAGE-ALIGNED CHUNKING ---
+    i64_t elem_size = sizeof(b8_t); // result is always B8 vector
+    i64_t page_size = RAY_PAGE_SIZE;
+    i64_t elems_per_page = page_size / elem_size;
+    if (elems_per_page == 0) elems_per_page = 1;
+    i64_t base_chunk = (l + n - 1) / n;
+    base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
+
     pool_prepare(pool);
-    chunk = l / n;
-
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, op, 5, x, y, chunk, i * chunk, res);
-
-    pool_add_task(pool, op, 5, x, y, l - i * chunk, i * chunk, res);
+    i64_t offset = 0;
+    for (i = 0; i < n - 1; i++) {
+        i64_t this_chunk = base_chunk;
+        if (offset + this_chunk > l) this_chunk = l - offset;
+        pool_add_task(pool, op, 5, x, y, this_chunk, offset, res);
+        offset += this_chunk;
+        if (offset >= l) break;
+    }
+    if (offset < l)
+        pool_add_task(pool, op, 5, x, y, l - offset, offset, res);
 
     v = pool_run(pool);
     if (IS_ERR(v)) {

@@ -408,7 +408,7 @@ obj_p parse_csv_line(i8_t types[], i64_t cnt, str_p start, str_p end, i64_t row,
     return NULL_OBJ;
 }
 
-obj_p parse_csv_range(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t lines, i64_t start_line, obj_p cols,
+obj_p parse_csv_range(i8_t types[], i64_t num_types, str_p buf, i64_t size, i64_t lines, i64_t start_line, obj_p cols,
                       c8_t sep) {
     i64_t i, j, k, l;
     str_p line_end, prev;
@@ -456,14 +456,20 @@ obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
 
     pool_prepare(pool);
 
-    lines_per_batch = (total_lines + num_batches - 1) / num_batches;  // Calculate lines per batch
+    // --- PAGE-ALIGNED CHUNKING ---
+    i64_t page_size = RAY_PAGE_SIZE;
+    // Estimate average line length (avoid div by zero)
+    i64_t avg_line_len = size / (total_lines ? total_lines : 1);
+    i64_t lines_per_page = (avg_line_len > 0) ? (page_size / avg_line_len) : 1;
+    if (lines_per_page == 0) lines_per_page = 1;
+    lines_per_batch = (total_lines + num_batches - 1) / num_batches;
+    // round up to nearest multiple of lines_per_page
+    lines_per_batch = ((lines_per_batch + lines_per_page - 1) / lines_per_page) * lines_per_page;
 
-    for (batch = 0; batch < num_batches; ++batch) {
-        start_line = batch * lines_per_batch;
+    for (batch = 0, start_line = 0; start_line < total_lines; batch++, start_line = end_line) {
         end_line = start_line + lines_per_batch;
-        if (batch == num_batches - 1 || end_line > total_lines)
-            end_line = total_lines;  // Adjust the last batch to cover all remaining lines
-
+        if (end_line > total_lines)
+            end_line = total_lines;
         lines_in_batch = end_line - start_line;
 
         // Now calculate the actual buffer positions for start_line and end_line
@@ -691,10 +697,12 @@ obj_p ray_parse(obj_p x) {
 }
 
 obj_p ray_eval(obj_p x) {
-    if (!x || x->type != TYPE_C8)
-        THROW(ERR_TYPE, "eval: expected string");
-
-    return ray_eval_str(x, NULL_OBJ);
+    switch (x->type) {
+        case TYPE_C8:
+            return ray_eval_str(x, NULL_OBJ);
+        default:
+            return eval_obj(x);
+    }
 }
 
 obj_p ray_load(obj_p x) {

@@ -414,7 +414,6 @@ obj_p ray_upsert(obj_p *x, i64_t n) {
     i64_t i, j, m, p, l, ll, keys;
     i64_t row, *rows;
     obj_p obj, k1, k2, idx, col, lst, *val = NULL, v;
-    b8_t single_rec;
 
     if (n != 3)
         THROW(ERR_LENGTH, "upsert: expected 3 arguments, got %lld", n);
