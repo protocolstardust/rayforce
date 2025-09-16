@@ -445,7 +445,7 @@ obj_p parse_csv_range(i8_t types[], i64_t num_types, str_p buf, i64_t size, i64_
 
 obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t total_lines, obj_p cols, c8_t sep) {
     obj_p err, res = NULL_OBJ;
-    i64_t i, l, batch, batch_size, num_batches, lines_per_batch, start_line, end_line, lines_in_batch;
+    i64_t i, l, batch_size, num_batches, lines_per_batch, start_line, end_line, lines_in_batch;
     str_p batch_start, batch_end;
     pool_p pool = runtime_get()->pool;
 
@@ -466,7 +466,7 @@ obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
     // round up to nearest multiple of lines_per_page
     lines_per_batch = ((lines_per_batch + lines_per_page - 1) / lines_per_page) * lines_per_page;
 
-    for (batch = 0, start_line = 0; start_line < total_lines; batch++, start_line = end_line) {
+    for (start_line = 0; start_line < total_lines; start_line = end_line) {
         end_line = start_line + lines_per_batch;
         if (end_line > total_lines)
             end_line = total_lines;

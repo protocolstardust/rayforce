@@ -184,6 +184,19 @@ obj_p aggr_first_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
     obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
 
     switch (val->type) {
+        case TYPE_U8:
+        case TYPE_B8:
+        case TYPE_C8:
+        case TYPE_I16:
+        AGGR_ITER(index, len, offset, val, res, u8, u8, $out[$y] = 0,
+                      if ($out[$y] == 0) $out[$y] = $in[$x]);
+            return res;
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+        AGGR_ITER(index, len, offset, val, res, i32, i32, $out[$y] = NULL_I32,
+                      if ($out[$y] == NULL_I32) $out[$y] = $in[$x]);
+            return res;
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
@@ -217,6 +230,34 @@ obj_p aggr_first(obj_p val, obj_p index) {
     n = index_group_count(index);
 
     switch (val->type) {
+        case TYPE_U8:
+        case TYPE_B8:
+        case TYPE_C8:
+            parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
+            if (IS_ERR(parts))
+                return parts;
+            res = AGGR_COLLECT(parts, n, u8, u8, if ($out[$y] == 0) $out[$y] = $in[$x]);
+            res->type = val->type;
+            drop_obj(parts);
+            return res;
+        case TYPE_I16:
+            parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
+            if (IS_ERR(parts))
+                return parts;
+            res = AGGR_COLLECT(parts, n, i16, i16, if ($out[$y] == NULL_I16) $out[$y] = $in[$x]);
+            res->type = val->type;
+            drop_obj(parts);
+            return res;
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
+            if (IS_ERR(parts))
+                return parts;
+            res = AGGR_COLLECT(parts, n, i32, i32, if ($out[$y] == NULL_I32) $out[$y] = $in[$x]);
+            res->type = val->type;
+            drop_obj(parts);
+            return res;
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
