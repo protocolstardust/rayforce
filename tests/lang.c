@@ -2728,6 +2728,13 @@ test_result_t test_lang_query() {
                    "(table [Symbol s]"
                    "(list [apll good msfk ibmd amznt fbad baba]"
                    "[7.00 9.00 11.00 3.00 4.00 5.00 6.00]))");
+
+    // Test and with select - this exposes the parallel processing bug
+    TEST_ASSERT_EQ(
+        "(set t (table ['a 'b 'c] (list (take 25001 [false true]) (take 25001 [true false]) (take 25001 1)))) (count "
+        "(select {c: c from: t where: (and a b)}))",
+        "0");
+
     PASS();
 }
 

@@ -133,9 +133,9 @@ static obj_p logic_map(obj_p *x, i64_t n, lit_p op_name, logic_op_f op_func) {
                     chunk = l / m;
 
                     for (i = 0; i < m - 1; i++)
-                        pool_add_task(pool, op_func, 5, AS_B8(res), AS_B8(next), chunk, i * chunk, res, (raw_p)l);
+                        pool_add_task(pool, op_func, 5, AS_B8(res), AS_B8(next), chunk, i * chunk, (raw_p)l);
 
-                    pool_add_task(pool, op_func, 5, AS_B8(res), AS_B8(next), l - i * chunk, i * chunk, res, (raw_p)l);
+                    pool_add_task(pool, op_func, 5, AS_B8(res), AS_B8(next), l - i * chunk, i * chunk, (raw_p)l);
 
                     v = pool_run(pool);
 
@@ -163,9 +163,9 @@ static obj_p logic_map(obj_p *x, i64_t n, lit_p op_name, logic_op_f op_func) {
                     chunk = l / m;
 
                     for (i = 0; i < m - 1; i++)
-                        pool_add_task(pool, op_func, 5, AS_B8(res), &next->b8, chunk, i * chunk, res, (raw_p)1);
+                        pool_add_task(pool, op_func, 5, AS_B8(res), &next->b8, chunk, i * chunk, (raw_p)1);
 
-                    pool_add_task(pool, op_func, 5, AS_B8(res), &next->b8, l - i * chunk, i * chunk, res, (raw_p)1);
+                    pool_add_task(pool, op_func, 5, AS_B8(res), &next->b8, l - i * chunk, i * chunk, (raw_p)1);
 
                     v = pool_run(pool);
 
