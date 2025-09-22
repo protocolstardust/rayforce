@@ -188,13 +188,12 @@ obj_p aggr_first_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
         case TYPE_B8:
         case TYPE_C8:
         case TYPE_I16:
-        AGGR_ITER(index, len, offset, val, res, u8, u8, $out[$y] = 0,
-                      if ($out[$y] == 0) $out[$y] = $in[$x]);
+            AGGR_ITER(index, len, offset, val, res, u8, u8, $out[$y] = 0, if ($out[$y] == 0) $out[$y] = $in[$x]);
             return res;
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:
-        AGGR_ITER(index, len, offset, val, res, i32, i32, $out[$y] = NULL_I32,
+            AGGR_ITER(index, len, offset, val, res, i32, i32, $out[$y] = NULL_I32,
                       if ($out[$y] == NULL_I32) $out[$y] = $in[$x]);
             return res;
         case TYPE_I64:
@@ -624,9 +623,16 @@ obj_p aggr_min(obj_p val, obj_p index) {
 obj_p aggr_count_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
     i64_t len = (i64_t)arg1, offset = (i64_t)arg2;
     obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
-
     UNUSED(val);
     switch (val->type) {
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            AGGR_ITER(index, len, offset, val, res, i32, i32, $out[$y] = 0, {
+                UNUSED($in);
+                $out[$y]++;
+            });
+            return res;
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
@@ -665,7 +671,6 @@ obj_p aggr_count_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
 obj_p aggr_count(obj_p val, obj_p index) {
     i64_t n;
     obj_p parts, res;
-
     n = index_group_count(index);
     parts = aggr_map((raw_p)aggr_count_partial, val, TYPE_I64, index);
     if (IS_ERR(parts))
@@ -761,6 +766,20 @@ obj_p aggr_collect(obj_p val, obj_p index) {
     l = index_group_len(index);
 
     switch (val->type) {
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            res = LIST(n);
+            AGGR_ITER(
+                index, l, 0, val, res, i32, list,
+                {
+                    m = cnts[$y];
+                    $out[$y] = vector(val->type, m);
+                    $out[$y]->len = 0;
+                },
+                AS_I32($out[$y])[$out[$y]->len++] = $in[$x]);
+            drop_obj(cnt);
+            return res;
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
