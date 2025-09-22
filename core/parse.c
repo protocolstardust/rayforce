@@ -1104,15 +1104,6 @@ obj_p parse_dict(parser_t *parser) {
 
 nil_t skip_whitespaces(parser_t *parser) {
     while (!at_eof(parser)) {
-        // Skip shebang
-        if (*parser->current == '#' && *(parser->current + 1) == '!') {
-            while (*parser->current != '\n' && !at_eof(parser))
-                parser->current++;
-
-            parser->line++;
-            parser->column = 0;
-        }
-
         // Handle whitespace characters
         if (is_whitespace(*parser->current)) {
             // Treat newline and carriage return as spaces
@@ -1124,15 +1115,14 @@ nil_t skip_whitespaces(parser_t *parser) {
             }
             parser->current++;
         }
-
         // Handle comments
         else if (*parser->current == ';') {
             while (*parser->current != '\n' && !at_eof(parser)) {
                 parser->current++;
                 parser->column++;
             }
+            parser->current++;
         }
-
         else
             break;
     }
@@ -1171,7 +1161,7 @@ obj_p parser_advance(parser_t *parser) {
         tok = parse_number(parser);
         if (at_eof(parser))
             return tok;
-        
+
         return tok;
     }
 
@@ -1248,6 +1238,15 @@ obj_p parse(lit_p input, i64_t input_len, obj_p nfo) {
         .column = 0,
         .replace_symbols = B8_TRUE,
     };
+
+    // Skip shebang
+    if (*parser.current == '#' && *(parser.current + 1) == '!') {
+        while (*parser.current != '\n' && !at_eof(&parser))
+            parser.current++;
+
+        parser.line++;
+        parser.column = 0;
+    }
 
     res = parse_do(&parser);
 
