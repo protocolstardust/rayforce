@@ -122,6 +122,10 @@ b8_t ops_eq_idx(obj_p a, i64_t ai, obj_p b, i64_t bi) {
         case MTYPE2(TYPE_B8, TYPE_B8):
         case MTYPE2(TYPE_C8, TYPE_C8):
             return AS_U8(a)[ai] == AS_U8(b)[bi];
+        case MTYPE2(TYPE_I32, TYPE_I32):
+        case MTYPE2(TYPE_DATE, TYPE_DATE):
+        case MTYPE2(TYPE_TIME, TYPE_TIME):
+            return AS_I32(a)[ai] == AS_I32(b)[bi];
         case MTYPE2(TYPE_I64, TYPE_I64):
         case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
         case MTYPE2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):

@@ -81,6 +81,7 @@ i64_t __index_list_cmp_row(i64_t row1, i64_t row2, raw_p seed) {
 
 obj_p index_hash_obj_partial(obj_p obj, i64_t out[], i64_t filter[], i64_t len, i64_t offset, b8_t resolve) {
     u8_t *u8v;
+    i32_t *i32v;
     guid_t *g64v;
     i64_t i, *u64v;
     obj_p k, v, *l64v;
@@ -113,6 +114,17 @@ obj_p index_hash_obj_partial(obj_p obj, i64_t out[], i64_t filter[], i64_t len, 
             else
                 for (i = offset; i < len + offset; i++)
                     out[i] = hash_index_u64((i64_t)u8v[i], out[i]);
+            break;
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            i32v = (i32_t *)AS_I32(obj);
+            if (filter)
+                for (i = offset; i < len + offset; i++)
+                    out[i] = hash_index_u64((i64_t)i32v[filter[i]], out[i]);
+            else
+                for (i = offset; i < len + offset; i++)
+                    out[i] = hash_index_u64((i64_t)i32v[i], out[i]);
             break;
         case TYPE_I64:
         case TYPE_SYMBOL:
