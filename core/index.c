@@ -2304,11 +2304,43 @@ static inline i64_t __asof_idx_i32(i32_t lv, i32_t rvs[], i64_t ids[], i64_t len
     return v;
 }
 
+static obj_p __asof_ids_partial(__index_list_ctx_t *ctx, obj_p lxcol, obj_p rxcol, obj_p ht, obj_p hashes, i64_t ll,
+                                i64_t rl, obj_p ids) {
+    i64_t i, j, idx;
+
+    switch (lxcol->type) {
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            for (i = 0, j = 0; i < ll; i++) {
+                idx = ht_oa_tab_get_with(ht, i, &__index_list_hash_get, &__index_list_cmp_row, ctx);
+                if (idx != NULL_I64)
+                    AS_I64(ids)
+                [i] = __asof_idx_i32(AS_I32(lxcol)[i], AS_I32(rxcol), AS_I64(AS_LIST(AS_LIST(ht)[1])[idx]),
+                                     AS_LIST(AS_LIST(ht)[1])[idx]->len);
+                else AS_I64(ids)[i] = NULL_I64;
+            }
+            break;
+        default:
+            drop_obj(ids);
+            drop_obj(hashes);
+            for (i = 0; i < rl; i++)
+                if (AS_I64(AS_LIST(ht)[0])[i] != NULL_I64)
+                    drop_obj(AS_LIST(AS_LIST(ht)[1])[i]);
+
+            drop_obj(ht);
+            THROW(ERR_TYPE, "index_asof_join_obj: invalid type: %s", type_name(lxcol->type));
+    }
+
+    return NULL_OBJ;
+}
+
 obj_p index_asof_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol) {
-    i64_t i, j, ll, rl;
+    i64_t i, ll, rl, n;
     obj_p v, ht, ids, hashes;
     i64_t idx;
     __index_list_ctx_t ctx;
+    pool_p pool;
 
     ll = ops_count(AS_LIST(lcols)[0]);
     rl = ops_count(AS_LIST(rcols)[0]);
@@ -2336,30 +2368,30 @@ obj_p index_asof_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol) {
     __index_list_precalc_hash(lcols, (i64_t *)AS_I64(hashes), lcols->len, ll, NULL, B8_TRUE);
     ctx = (__index_list_ctx_t){rcols, lcols, (i64_t *)AS_I64(hashes), NULL};
 
-    switch (lxcol->type) {
-        case TYPE_I32:
-        case TYPE_DATE:
-        case TYPE_TIME:
-            for (i = 0, j = 0; i < ll; i++) {
-                idx = ht_oa_tab_get_with(ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
-                if (idx != NULL_I64)
-                    AS_I64(ids)
-                [i] = __asof_idx_i32(AS_I32(lxcol)[i], AS_I32(rxcol), AS_I64(AS_LIST(AS_LIST(ht)[1])[idx]),
-                                     AS_LIST(AS_LIST(ht)[1])[idx]->len);
-                else AS_I64(ids)[i] = NULL_I64;
-            }
-            break;
-        default:
+    pool = pool_get();
+    n = pool_split_by(pool, ll, 0);
+
+    if (n == 1) {
+        __asof_ids_partial(&ctx, lxcol, rxcol, ht, hashes, ll, rl, ids);
+        goto clean;
+    } else {
+        pool_prepare(pool);
+        for (i = 0; i < n - 1; i++)
+            pool_add_task(pool, (raw_p)__asof_ids_partial, 8, &ctx, lxcol, rxcol, ht, hashes, ll, rl, ids);
+        pool_add_task(pool, (raw_p)__asof_ids_partial, 8, &ctx, lxcol, rxcol, ht, hashes, ll, rl, ids);
+        v = pool_run(pool);
+
+        if (IS_ERR(v)) {
             drop_obj(ids);
             drop_obj(hashes);
-            for (i = 0; i < rl; i++)
-                if (AS_I64(AS_LIST(ht)[0])[i] != NULL_I64)
-                    drop_obj(AS_LIST(AS_LIST(ht)[1])[i]);
-
             drop_obj(ht);
-            THROW(ERR_TYPE, "index_asof_join_obj: invalid type: %s", type_name(lxcol->type));
+            return v;
+        }
+
+        drop_obj(v);
     }
 
+clean:
     drop_obj(hashes);
     for (i = 0; i < rl; i++)
         if (AS_I64(AS_LIST(ht)[0])[i] != NULL_I64)
