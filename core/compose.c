@@ -759,9 +759,17 @@ obj_p ray_concat(obj_p x, obj_p y) {
 }
 
 obj_p ray_remove(obj_p x, obj_p y) {
-    // TODO: implement
-    UNUSED(y);
-    return clone_obj(x);
+    obj_p r;
+    switch (y->type) {
+        case -TYPE_I32:
+            r = cow_obj(x);
+            return remove_idx(&r, y->i32);
+        case -TYPE_I64:
+            r = cow_obj(x);
+            return remove_idx(&r, y->i64);
+        default:
+            THROW(ERR_TYPE, "remove: unsupported type: '%s", type_name(y->type));
+    }
 }
 
 obj_p ray_distinct(obj_p x) {

@@ -628,7 +628,7 @@ obj_p aggr_count_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:
-            AGGR_ITER(index, len, offset, val, res, i32, i32, $out[$y] = 0, {
+            AGGR_ITER(index, len, offset, val, res, i32, i64, $out[$y] = 0, {
                 UNUSED($in);
                 $out[$y]++;
             });
@@ -677,7 +677,6 @@ obj_p aggr_count(obj_p val, obj_p index) {
         return parts;
     res = AGGR_COLLECT(parts, n, i64, i64, $out[$y] += $in[$x]);
     drop_obj(parts);
-
     return res;
 }
 

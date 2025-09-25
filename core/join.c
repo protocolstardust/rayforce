@@ -29,6 +29,7 @@
 #include "compose.h"
 #include "error.h"
 #include "index.h"
+#include "aggr.h"
 
 obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], i64_t len) {
     i64_t i;
@@ -298,7 +299,7 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
 
 obj_p ray_asof_join(obj_p *x, i64_t n) {
     i64_t i, j, ll, rl, *ids;
-    obj_p idx, v, ajkl, ajkr;
+    obj_p idx, v, ajkl, ajkr, keys, kvals, rvals;
 
     if (n != 3)
         THROW(ERR_ARITY, "asof-join");
@@ -334,12 +335,23 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
         THROW(ERR_TYPE, "asof-join: incompatible types");
     }
 
-    idx = ray_bin(ajkl, ajkr);
-    DEBUG_OBJ(idx);
+    // idx = ray_bin(ajkr, ajkl);
+    // DEBUG_OBJ(idx);
 
-    // for (i = 0; i < ll; i++) {}
+    keys = cow_obj(x[0]);
+    keys = remove_idx(&keys, keys->len - 1);
+    kvals = at_obj(x[1], keys);
 
-    return NULL_OBJ;
+    idx = index_group_list(kvals, NULL_OBJ);
+    rvals = aggr_collect(ajkr, idx);
+
+    drop_obj(keys);
+    drop_obj(idx);
+    drop_obj(kvals);
+    drop_obj(ajkl);
+    drop_obj(ajkr);
+
+    return rvals;
 }
 
 obj_p ray_window_join(obj_p *x, i64_t n) {
