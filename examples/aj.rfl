@@ -8,5 +8,4 @@
 (set ask (+ 12 (/ (til (* 2 n))2)))
 (set trades (table [Sym Ts Price] (list tsym ttime price)))
 (set quotes (table [Sym Ts Bid Ask] (list bsym btime bid ask)))
-(set intervals (list (- ttime 120000) (+ ttime 60000)))
-(println "wj % time: % ms" n (timeit (set wj (window-join [Sym Ts] intervals trades quotes {bid: (min Bid) ask: (max Ask)}))))
+(println "asof % time: % ms" n (timeit (set aj (asof-join [Sym Ts] trades quotes))))
