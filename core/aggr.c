@@ -184,9 +184,8 @@ nil_t index_bin_i32_(i32_t val, i32_t vals[], i32_t offset, i64_t len, i64_t *le
                         $li = indexl_bin_i32_($kl, AS_I32(AS_LIST(Index)[3]), $fi, $ti - $fi + 1); \
                         $ri = indexr_bin_i32_($kr, AS_I32(AS_LIST(Index)[3]), $fi, $ti - $fi + 1); \
                     }                                                                              \
-                    if ($rn == NULL_OBJ || AS_I32(AS_LIST(Index)[3])[$li] > $kr                    \
-                        || AS_I32(AS_LIST(Index)[3])[$ri] < $kl                                    \
-                                                            ) {                                    \
+                    if ($rn == NULL_OBJ || AS_I32(AS_LIST(Index)[3])[$li] > $kr ||                 \
+                        AS_I32(AS_LIST(Index)[3])[$ri] < $kl) {                                    \
                         Incoerce##_t $nil = __NULL_##Incoerce;                                     \
                         memcpy(&$out[$y], &$nil, __SIZE_OF_##Incoerce);                            \
                         continue;                                                                  \
@@ -944,62 +943,30 @@ obj_p aggr_dev(obj_p val, obj_p index) {
 }
 
 obj_p aggr_collect(obj_p val, obj_p index) {
-    i64_t l, m, n;
-    i64_t *cnts;
+    i64_t i, l, m, n;
     obj_p cnt, k, v, res;
 
-    cnt = aggr_count(val, index);
-    if (IS_ERR(cnt))
-        return cnt;
-
-    cnts = AS_I64(cnt);
-    n = cnt->len;
     l = index_group_len(index);
+    n = index_group_count(index);
+
+    res = LIST(n);
+    for (i = 0; i < n; i++)
+        AS_LIST(res)[i] = vector(val->type, 0);
 
     switch (val->type) {
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:
-            res = LIST(n);
-            AGGR_ITER(
-                index, l, 0, val, res, i32, list,
-                {
-                    m = cnts[$y];
-                    $out[$y] = vector(val->type, m);
-                    $out[$y]->len = 0;
-                },
-                AS_I32($out[$y])[$out[$y]->len++] = $in[$x]);
-            drop_obj(cnt);
+            AGGR_ITER(index, l, 0, val, res, i32, list, , push_raw($out + $y, $in + $x));
             return res;
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
-            res = LIST(n);
-            AGGR_ITER(
-                index, l, 0, val, res, i64, list,
-                {
-                    m = cnts[$y];
-                    $out[$y] = vector(val->type, m);
-                    $out[$y]->len = 0;
-                },
-                AS_I64($out[$y])[$out[$y]->len++] = $in[$x]);
-            drop_obj(cnt);
-
+            AGGR_ITER(index, l, 0, val, res, i64, list, , push_raw($out + $y, $in + $x));
             return res;
         case TYPE_F64:
-            res = LIST(n);
-            AGGR_ITER(
-                index, l, 0, val, res, f64, list,
-                {
-                    m = cnts[$y];
-                    $out[$y] = vector(val->type, m);
-                    $out[$y]->len = 0;
-                },
-                AS_F64($out[$y])[$out[$y]->len++] = $in[$x]);
-            drop_obj(cnt);
-
+            AGGR_ITER(index, l, 0, val, res, f64, list, , push_raw($out + $y, $in + $x));
             return res;
-
         case TYPE_ENUM:
             k = ray_key(val);
             if (IS_ERR(k))
@@ -1012,39 +979,19 @@ obj_p aggr_collect(obj_p val, obj_p index) {
                 return v;
 
             if (v->type != TYPE_SYMBOL) {
-                drop_obj(cnt);
                 drop_obj(v);
+                drop_obj(res);
                 return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", type_name(v->type));
             }
 
-            res = LIST(n);
-            AGGR_ITER(
-                index, l, 0, val, res, i64, list,
-                {
-                    m = cnts[$y];
-                    $out[$y] = SYMBOL(m);
-                    $out[$y]->len = 0;
-                },
-                AS_SYMBOL($out[$y])[$out[$y]->len++] = AS_SYMBOL(v)[$in[$x]]);
+            AGGR_ITER(index, l, 0, val, res, i64, list, , push_raw($out + $y, AS_SYMBOL(v) + $in[$x]));
             drop_obj(v);
-            drop_obj(cnt);
-
             return res;
         case TYPE_LIST:
-            res = LIST(n);
-            AGGR_ITER(
-                index, l, 0, val, res, list, list,
-                {
-                    m = cnts[$y];
-                    $out[$y] = LIST(m);
-                    $out[$y]->len = 0;
-                },
-                AS_LIST($out[$y])[$out[$y]->len++] = clone_obj($in[$x]));
-            drop_obj(cnt);
-
+            AGGR_ITER(index, l, 0, val, res, list, list, , push_obj($out + $y, clone_obj($in[$x])));
             return res;
         default:
-            drop_obj(cnt);
+            drop_obj(res);
             THROW(ERR_TYPE, "collect: unsupported type: '%s", type_name(val->type));
     }
 }
