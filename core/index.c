@@ -33,7 +33,6 @@
 #include "pool.h"
 #include "runtime.h"  // for RAY_PAGE_SIZE
 #include "serde.h"    // for size_of_type
-#include "filter.h"
 
 const i64_t MAX_RANGE = 1 << 20;
 

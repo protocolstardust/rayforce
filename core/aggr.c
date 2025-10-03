@@ -25,16 +25,13 @@
 #include "math.h"
 #include "ops.h"
 #include "error.h"
-#include "hash.h"
 #include "rayforce.h"
 #include "util.h"
 #include "items.h"
 #include "unary.h"
-#include "group.h"
 #include "string.h"
 #include "runtime.h"
 #include "index.h"
-#include "cmp.h"
 #include "pool.h"
 
 i64_t indexr_bin_i32_(i32_t val, i32_t vals[], i64_t offset, i64_t len) {
