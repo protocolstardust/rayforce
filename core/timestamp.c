@@ -21,11 +21,9 @@
  *   SOFTWARE.
  */
 
-#include <errno.h>
 #include <limits.h>
 #include "date.h"
 #include "timestamp.h"
-#include "ops.h"
 #include "util.h"
 #include "error.h"
 #include "string.h"

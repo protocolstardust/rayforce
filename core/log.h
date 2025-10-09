@@ -3,6 +3,7 @@
 
 #include "rayforce.h"
 #include "def.h"
+#include "format.h"
 
 #ifdef DEBUG
 

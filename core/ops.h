@@ -26,6 +26,7 @@
 
 #include "rayforce.h"
 #include "temporal.h"
+#include "string.h"
 
 // Global null object to be referenced by all null objects.
 extern struct obj_t __NULL_OBJECT;

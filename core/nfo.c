@@ -23,9 +23,7 @@
 
 #include "nfo.h"
 #include "string.h"
-#include "heap.h"
 #include "ops.h"
-#include "util.h"
 
 obj_p nfo(obj_p filename, obj_p source) { return vn_list(3, filename, source, ht_oa_create(32, TYPE_I64)); }
 

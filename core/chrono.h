@@ -52,7 +52,7 @@ typedef struct {
 } ray_clock_t;
 
 #else
-
+#include <time.h>
 typedef struct {
     struct timespec clock;
 } ray_clock_t;

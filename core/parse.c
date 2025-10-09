@@ -23,22 +23,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <limits.h>
 #include "parse.h"
 #include "rayforce.h"
-#include "heap.h"
 #include "format.h"
 #include "string.h"
-#include "util.h"
 #include "nfo.h"
-#include "runtime.h"
 #include "ops.h"
-#include "eval.h"
 #include "date.h"
 #include "time.h"
 #include "timestamp.h"
 #include "error.h"
+#include "symbols.h"
+#include "env.h"
+#include "lambda.h"
 
 struct obj_t __PARSE_ADVANCE_OBJECT = {.type = TYPE_NULL};
 
@@ -1122,8 +1120,7 @@ nil_t skip_whitespaces(parser_t *parser) {
                 parser->column++;
             }
             parser->current++;
-        }
-        else
+        } else
             break;
     }
 }

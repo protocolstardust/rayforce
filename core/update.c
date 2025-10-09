@@ -22,16 +22,12 @@
  */
 
 #include "update.h"
-#include "heap.h"
-#include "util.h"
 #include "runtime.h"
 #include "error.h"
 #include "eval.h"
 #include "filter.h"
 #include "binary.h"
-#include "unary.h"
 #include "vary.h"
-#include "iter.h"
 #include "index.h"
 #include "items.h"
 #include "group.h"

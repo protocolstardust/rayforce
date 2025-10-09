@@ -22,16 +22,11 @@
  */
 
 #include "serde.h"
-#include "util.h"
-#include "format.h"
 #include "symbols.h"
 #include "string.h"
-#include "heap.h"
 #include "lambda.h"
 #include "env.h"
-#include "eval.h"
 #include "error.h"
-#include "sys.h"
 
 i64_t size_of_type(i8_t type) {
     switch (type) {

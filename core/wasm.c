@@ -27,16 +27,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include "parse.h"
-#include "hash.h"
 #include "format.h"
 #include "util.h"
 #include "string.h"
 #include "poll.h"
 #include "heap.h"
-#include "runtime.h"
-#include "sys.h"
-#include "fs.h"
 
 #define __ABOUT \
     "\

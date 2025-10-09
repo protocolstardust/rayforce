@@ -22,8 +22,6 @@
  */
 
 #include "logic.h"
-#include "util.h"
-#include "heap.h"
 #include "ops.h"
 #include "error.h"
 #include "string.h"
@@ -62,7 +60,7 @@ static obj_p and_op_partial(raw_p x, raw_p y, raw_p z, raw_p k, raw_p l) {
 
 static obj_p or_op_partial(raw_p x, raw_p y, raw_p z, raw_p k, raw_p l) {
     b8_t m, *mask, *next_mask;
-    i64_t i, j, n, c, offset;
+    i64_t i, n, c, offset;
 
     n = (i64_t)z;
     offset = (i64_t)k;
@@ -202,55 +200,6 @@ static obj_p logic_map(obj_p *x, i64_t n, lit_p op_name, logic_op_f op_func) {
 obj_p ray_and(obj_p *x, i64_t n) { return logic_map(x, n, "and", and_op_partial); }
 
 obj_p ray_or(obj_p *x, i64_t n) { return logic_map(x, n, "or", or_op_partial); }
-
-// obj_p ray_or(obj_p x, obj_p y) {
-//     i64_t i, l;
-//     obj_p v, res;
-
-//     switch (MTYPE2(x->type, y->type)) {
-//         case MTYPE2(-TYPE_B8, -TYPE_B8):
-//             return (b8(x->b8 || y->b8));
-
-//         case MTYPE2(TYPE_B8, TYPE_B8):
-//             l = x->len;
-//             res = B8(x->len);
-//             for (i = 0; i < l; i++)
-//                 AS_B8(res)[i] = AS_B8(x)[i] | AS_B8(y)[i];
-
-//             return res;
-
-//         case MTYPE2(TYPE_PARTEDB8, TYPE_PARTEDB8):
-//             l = x->len;
-//             if (l != y->len)
-//                 THROW(ERR_TYPE, "or: different lengths: '%ld, '%ld", x->len, y->len);
-
-//             res = LIST(l);
-//             res->type = TYPE_PARTEDB8;
-//             for (i = 0; i < l; i++) {
-//                 if (AS_LIST(x)[i] == NULL_OBJ)
-//                     AS_LIST(res)[i] = clone_obj(AS_LIST(y)[i]);
-//                 else if (AS_LIST(y)[i] == NULL_OBJ)
-//                     AS_LIST(res)[i] = clone_obj(AS_LIST(x)[i]);
-//                 else if (AS_LIST(x)[i]->type == -TYPE_B8 || AS_LIST(y)[i]->type == -TYPE_B8)
-//                     AS_LIST(res)[i] = b8(B8_TRUE);
-//                 else {
-//                     v = ray_or(AS_LIST(x)[i], AS_LIST(y)[i]);
-//                     if (IS_ERR(v)) {
-//                         res->len = i;
-//                         drop_obj(res);
-//                         return v;
-//                     }
-
-//                     AS_LIST(res)[i] = v;
-//                 }
-//             }
-
-//             return res;
-
-//         default:
-//             THROW(ERR_TYPE, "or: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
-//     }
-// }
 
 obj_p ray_like(obj_p x, obj_p y) {
     i64_t i, l;

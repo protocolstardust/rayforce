@@ -22,12 +22,9 @@
  */
 
 #include "runtime.h"
-#include "mmap.h"
 #include "util.h"
-#include "unary.h"
 #include "io.h"
 #include "string.h"
-#include "signal.h"
 #include "repl.h"
 #include "ipc.h"
 #include "dynlib.h"

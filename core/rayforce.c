@@ -23,13 +23,8 @@
 
 #include "rayforce.h"
 #include <stdio.h>
-#include "atomic.h"
-#include "binary.h"
 #include "error.h"
-#include "eval.h"
-#include "filter.h"
 #include "format.h"
-#include "fs.h"
 #include "heap.h"
 #include "items.h"
 #include "lambda.h"
@@ -37,9 +32,7 @@
 #include "ops.h"
 #include "runtime.h"
 #include "serde.h"
-#include "sock.h"
 #include "string.h"
-#include "sys.h"
 #include "unary.h"
 #include "util.h"
 #include "fdmap.h"

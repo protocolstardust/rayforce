@@ -22,7 +22,6 @@
  */
 
 #include <stdio.h>
-#include "util.h"
 #include "error.h"
 #include "string.h"
 #include "dynlib.h"

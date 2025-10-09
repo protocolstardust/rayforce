@@ -35,7 +35,6 @@
 #include "env.h"
 #include "mmap.h"
 #include "fs.h"
-#include "eval.h"
 
 #define MAX_PATH_LEN 128
 #define HIST_FILE_PATH ".rayhist.dat"

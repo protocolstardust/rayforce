@@ -31,7 +31,6 @@
 #include "heap.h"
 #include "util.h"
 #include "runtime.h"
-#include "ops.h"
 #include "atomic.h"
 
 str_p string_intern(symbols_p symbols, lit_p str, i64_t len) {

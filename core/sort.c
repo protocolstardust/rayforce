@@ -22,7 +22,6 @@
  */
 
 #include "sort.h"
-#include "util.h"
 #include "string.h"
 #include "ops.h"
 #include "error.h"

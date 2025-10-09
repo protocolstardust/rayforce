@@ -23,16 +23,8 @@
 
 #include "misc.h"
 #include "ops.h"
-#include "util.h"
 #include "runtime.h"
-#include "sock.h"
-#include "fs.h"
-#include "items.h"
-#include "unary.h"
-#include "error.h"
-#include "index.h"
 #include "aggr.h"
-#include "compose.h"
 
 obj_p ray_type(obj_p x) {
     i8_t type;

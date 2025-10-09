@@ -23,12 +23,10 @@
 
 #include <math.h>
 #include "util.h"
-#include "heap.h"
 #include "ops.h"
 #include "error.h"
 #include "aggr.h"
 #include "pool.h"
-#include "sort.h"
 #include "order.h"
 #include "runtime.h"
 #include "serde.h"  // for size_of_type

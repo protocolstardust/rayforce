@@ -23,26 +23,17 @@
 
 #include "query.h"
 #include "env.h"
-#include "util.h"
 #include "unary.h"
-#include "binary.h"
-#include "vary.h"
 #include "eval.h"
 #include "items.h"
 #include "compose.h"
 #include "error.h"
-#include "math.h"
 #include "aggr.h"
-#include "iter.h"
 #include "index.h"
 #include "group.h"
 #include "filter.h"
-#include "update.h"
-#include "progress.h"
-#include "pool.h"
 #include "chrono.h"
 #include "runtime.h"
-#include "fs.h"
 
 obj_p remap_filter(obj_p tab, obj_p index) { return filter_map(tab, index); }
 

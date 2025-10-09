@@ -27,8 +27,6 @@
 #include "io.h"
 #include "eval.h"
 #include "term.h"
-#include "error.h"
-#include "symbols.h"
 #include "heap.h"
 #include "poll.h"
 #include "string.h"

@@ -24,7 +24,6 @@
 #include "progress.h"
 #include "term.h"
 #include "format.h"
-#include "util.h"
 #include <stdio.h>
 
 #define PROGRESS_BAR_WIDTH 40

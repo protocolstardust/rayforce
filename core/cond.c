@@ -24,8 +24,6 @@
 #include "cond.h"
 #include "eval.h"
 #include "ops.h"
-#include "util.h"
-#include "heap.h"
 #include "error.h"
 
 obj_p ray_cond(obj_p *x, i64_t n) {

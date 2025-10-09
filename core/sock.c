@@ -29,7 +29,6 @@
 #include "string.h"
 #include "log.h"
 #include "ops.h"
-#include "format.h"
 
 i64_t sock_addr_from_str(str_p str, i64_t len, sock_addr_t *addr) {
     i64_t r;
@@ -83,10 +82,10 @@ i64_t sock_open(sock_addr_t *addr, i64_t timeout) {
 
     // Set up hints for getaddrinfo
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;     // Allow IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM; // TCP socket
+    hints.ai_family = AF_UNSPEC;      // Allow IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;  // TCP socket
     hints.ai_flags = 0;
-    hints.ai_protocol = 0;           // Any protocol
+    hints.ai_protocol = 0;  // Any protocol
 
     // Get address info
     if (getaddrinfo(addr->ip, port_str, &hints, &result) != 0) {
@@ -298,10 +297,10 @@ i64_t sock_open(sock_addr_t *addr, i64_t timeout) {
 
     // Set up hints for getaddrinfo
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;     // Allow IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM; // TCP socket
+    hints.ai_family = AF_UNSPEC;      // Allow IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;  // TCP socket
     hints.ai_flags = 0;
-    hints.ai_protocol = 0;           // Any protocol
+    hints.ai_protocol = 0;  // Any protocol
 
     // Get address info
     if (getaddrinfo(addr->ip, port_str, &hints, &result) != 0) {

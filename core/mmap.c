@@ -22,8 +22,6 @@
  */
 
 #include "mmap.h"
-#include "string.h"
-#include "util.h"
 
 #if defined(OS_WINDOWS)
 

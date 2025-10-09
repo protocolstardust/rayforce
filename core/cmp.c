@@ -24,13 +24,11 @@
 #include "cmp.h"
 #include "util.h"
 #include "unary.h"
-#include "heap.h"
 #include "ops.h"
 #include "error.h"
 #include "items.h"
 #include "runtime.h"
 #include "pool.h"
-#include "string.h"
 
 typedef obj_p (*ray_cmp_f)(obj_p, obj_p, i64_t, i64_t, obj_p);
 

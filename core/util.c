@@ -21,14 +21,8 @@
  *   SOFTWARE.
  */
 
-#include <stdio.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include "util.h"
-#include "format.h"
-#include "heap.h"
-#include "env.h"
-#include "runtime.h"
 
 #if defined(DEBUG)
 

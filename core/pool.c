@@ -25,7 +25,6 @@
 #include "util.h"
 #include "runtime.h"
 #include "error.h"
-#include "symbols.h"
 #include "atomic.h"
 #include "util.h"
 #include "heap.h"

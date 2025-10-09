@@ -22,14 +22,11 @@
  */
 
 #include "order.h"
-#include "util.h"
 #include "ops.h"
-#include "items.h"
-#include "heap.h"
 #include "sort.h"
 #include "error.h"
 #include "compose.h"
-#include <string.h>
+#include "string.h"
 
 obj_p ray_iasc(obj_p x) {
     switch (x->type) {

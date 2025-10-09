@@ -22,23 +22,14 @@
  */
 
 #include "binary.h"
-#include <errno.h>
-#include <time.h>
 #include "compose.h"
 #include "def.h"
 #include "error.h"
-#include "format.h"
 #include "fs.h"
-#include "hash.h"
-#include "items.h"
 #include "ops.h"
 #include "runtime.h"
 #include "serde.h"
-#include "sock.h"
 #include "string.h"
-#include "unary.h"
-#include "util.h"
-#include "vary.h"
 #include "io.h"
 #include "iter.h"
 

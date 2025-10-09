@@ -21,7 +21,6 @@
  *   SOFTWARE.
  */
 
-#include "def.h"
 #include "os.h"
 #include "error.h"
 #include "string.h"

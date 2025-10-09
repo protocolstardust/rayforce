@@ -25,15 +25,8 @@
 #include "ops.h"
 #include "string.h"
 #include "util.h"
-#include "hash.h"
 #include "heap.h"
-#include "serde.h"
-#include "items.h"
-#include "unary.h"
-#include "eval.h"
 #include "error.h"
-#include "runtime.h"
-#include "pool.h"
 
 __thread i64_t __RND_SEED__ = 0;
 

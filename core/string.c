@@ -21,10 +21,7 @@
  *   SOFTWARE.
  */
 
-#include <math.h>
 #include "string.h"
-#include "heap.h"
-#include "util.h"
 #include "ops.h"
 #include "error.h"
 
