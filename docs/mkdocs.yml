@@ -228,6 +228,8 @@ nav:
     - Joins:
       - Left join: content/join/left_join.md
       - Inner join: content/join/inner_join.md
+      - Asof join: content/join/asof_join.md
+      - Window join: content/join/window_join.md
     - Updates:
       - Alter: content/update/alter.md
       - Insert: content/update/insert.md

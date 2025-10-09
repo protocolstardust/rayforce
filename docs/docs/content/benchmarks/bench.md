@@ -87,13 +87,13 @@ Load CSV: ```t: ("SSSJJJJJF";enlist",") 0: hsym `$":./db-benchmark/G1_1e7_1e2_0_
 
 Load CSV: ```(set t (csv [Symbol Symbol Symbol I64 I64 I64 I64 I64 F64] "./db-benchmark/G1_1e7_1e2_0_0.csv"))```
 
-- Q1: ```\t (select {v1: (sum v1) from: t by: id1}) --> 60ms```
-- Q2: ```\t (select {v1: (sum v1) from: t by: {id1: id1 id2: id2}}) --> 74ms```
-- Q3: ```\t (select {v1: (sum v1) v3: (avg v3) from: t by: id3}) --> 118ms```
-- Q4: ```\t (select {v1: (avg v1) v2: (avg v2) v3: (avg v3) from: t by: id4}) --> 72ms```
-- Q5: ```\t (select {v1: (sum v1) v2: (sum v2) v3: (sum v3) from: t by: id6}) --> 122ms```
-- Q6: ```\t (select {range_v1_v2: (- (max v1) (min v2)) from: t by: id3}) --> 104ms```
-- Q7: ```\t (select {v3: (sum v3) count: (map count v3) from: t by: {id1: id1 id2: id2 id3: id3 id4: id4 id5: id5 id6: id6}}) --> 1394ms```
+- Q1: ```(timeit (select {v1: (sum v1) from: t by: id1})) --> 60ms```
+- Q2: ```(timeit (select {v1: (sum v1) from: t by: {id1: id1 id2: id2}})) --> 74ms```
+- Q3: ```(timeit (select {v1: (sum v1) v3: (avg v3) from: t by: id3})) --> 118ms```
+- Q4: ```(timeit (select {v1: (avg v1) v2: (avg v2) v3: (avg v3) from: t by: id4})) --> 72ms```
+- Q5: ```(timeit (select {v1: (sum v1) v2: (sum v2) v3: (sum v3) from: t by: id6})) --> 122ms```
+- Q6: ```(timeit (select {range_v1_v2: (- (max v1) (min v2)) from: t by: id3})) --> 104ms```
+- Q7: ```(timeit (select {v3: (sum v3) count: (map count v3) from: t by: {id1: id1 id2: id2 id3: id3 id4: id4 id5: id5 id6: id6}})) --> 1394ms```
 
 ### ThePlatform
 
@@ -184,8 +184,8 @@ Load CSV:
 
 Queries:
 
-- Q1: ```\t (lj [id1 id2] x y) --> 3149ms```
-- Q2: ```\t (ij [id1 id2] x y) --> 1610ms```
+- Q1: ```(timeit (lj [id1 id2] x y)) --> 3149ms```
+- Q2: ```(timeit (ij [id1 id2] x y)) --> 1610ms```
 
 ### ThePlatform
 
@@ -211,3 +211,21 @@ Queries:
 | ? (4.0)                         | 3174  | 3098  |
 | Rayforce                        | 3149  | 1610  |
 | ThePlatform                     | 23987 | 34104 |
+
+
+## Window Join Benchmark
+
+## ? (4.0)
+
+![window join](../../assets/wj_benchq.png)
+
+### Rayforce
+
+![window join](../../assets/wj_benchr.png)
+
+### Window Join Results
+
+| DB                              | Q1    |
+| ------------------------------- | ----- |
+| ? (4.0)                         | ~33 min |
+| Rayforce                        | 59145.60 ms |

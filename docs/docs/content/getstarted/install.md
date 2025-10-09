@@ -12,23 +12,13 @@ You can download the latest pre-built `rayforce` binary for your platform from t
 - [Download Linux binary](../../assets/rayforce_linux_x86_64)
 - [Download MacOS binary](../../assets/rayforce_mac_arm64)
 
-For Linux, you can use the following commands to download and run the binary from this documentation (if you are viewing it locally or from your server):
-
-```sh
-curl -LO <YOUR_DOCS_URL>/assets/rayforce
-chmod +x rayforce
-./rayforce -f examples/table.rfl
-```
-
-Replace `<YOUR_DOCS_URL>` with the actual URL where your documentation is hosted, or use the relative link if browsing locally.
-
 # :material-source-repository-multiple: Building from source
 
 These OSes are supported (for now):
 
 - [Linux](#linux)
-- [Windows](#windows)
 - [MacOS](#macos)
+- [Windows](#windows) (unstable)
 
 # :material-linux: Linux
 
