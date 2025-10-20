@@ -939,6 +939,15 @@ obj_p aggr_collect(obj_p val, obj_p index) {
         AS_LIST(res)[i] = vector(val->type, 0);
 
     switch (val->type) {
+        case TYPE_B8:
+            AGGR_ITER(index, l, 0, val, res, b8, list, , push_raw($out + $y, $in + $x), );
+            return res;
+        case TYPE_U8:
+            AGGR_ITER(index, l, 0, val, res, u8, list, , push_raw($out + $y, $in + $x), );
+            return res;
+        case TYPE_I16:
+            AGGR_ITER(index, l, 0, val, res, i16, list, , push_raw($out + $y, $in + $x), );
+            return res;
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:

@@ -21,16 +21,13 @@
  *   SOFTWARE.
  */
 
-#include "heap.h"
 #include "iter.h"
-#include "util.h"
 #include "lambda.h"
 #include "unary.h"
 #include "binary.h"
 #include "vary.h"
 #include "eval.h"
 #include "error.h"
-#include "runtime.h"
 #include "pool.h"
 
 obj_p map_unary_fn(unary_f fn, i64_t attrs, obj_p x) {
@@ -55,7 +52,7 @@ obj_p map_unary_fn(unary_f fn, i64_t attrs, obj_p x) {
 
                 if (attrs & FN_ATOMIC) {
                     for (i = 0; i < l; i++)
-                        pool_add_task(pool, (raw_p)map_unary, 3, fn, v[i]);
+                        pool_add_task(pool, (raw_p)map_unary_fn, 3, fn, attrs, v[i]);
                 } else {
                     for (i = 0; i < l; i++)
                         pool_add_task(pool, (raw_p)fn, 1, v[i]);
@@ -215,6 +212,7 @@ obj_p map_binary_right_fn(binary_f fn, i64_t attrs, obj_p x, obj_p y) {
                 return item;
 
             res = item->type < 0 ? vector(item->type, l) : LIST(l);
+
             ins_obj(&res, 0, item);
 
             for (i = 1; i < l; i++) {
