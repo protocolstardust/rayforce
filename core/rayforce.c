@@ -564,6 +564,9 @@ obj_p diverse_obj(obj_p *obj) {
             drop_obj(*obj);
             *obj = res;
             return res;
+        case TYPE_LIST:
+            // List is already diverse/heterogeneous, return as-is
+            return *obj;
         default:
             res = LIST(1);
             AS_LIST(res)[0] = *obj;
