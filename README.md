@@ -1,38 +1,63 @@
-# RayforceDB - The vector database
+# RayforceDB
 
 ![RayforceDB Cover](docs/assets/images/cover.png)
 
 [![Tests](https://img.shields.io/badge/Tests-passing-success?logo=github&style=flat)](https://singaraiona.github.io/rayforce/tests_report/) [![Coverage](https://img.shields.io/badge/Coverage-passing-brightgreen?style=flat&logo=github)](https://singaraiona.github.io/rayforce/coverage_report/) [![Release](https://img.shields.io/badge/Release-latest-blue?logo=github&style=flat)](https://github.com/singaraiona/rayforce/releases) [![Documentation](https://img.shields.io/badge/Documentation-latest-blue?logo=github&style=flat)](https://singaraiona.github.io/rayforce/)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## Elevated Performance
+A high-performance columnar vector database written in pure C. RayforceDB combines the power of columnar storage with SIMD vectorization to deliver fast analytics on time-series and big data workloads.
 
-Leveraging the raw power of columnar storage, RayforceDB unlocks the full potential of data retrieval and querying. Coupled with the prowess of vectorization, the system promises seamless data processing, ensuring optimal speed regardless of the dataset size.
+## Features
 
-## Feather-light Footprint
+- **Columnar storage** with vectorized operations for analytical workloads
+- **Minimal footprint**: <1Mb binary, zero dependencies
+- **Cross-platform**: Linux, macOS, Windows, WebAssembly
+- **Simple query language**: Lisp-like Rayfall syntax, no complex SQL
+- **Custom memory management**: Parallel lockfree buddy allocator optimized for analytical workloads
 
-While most modern databases are heavy with features, they come at the cost of increased size and complexity. RayforceDB stands distinctively apart with its incredibly minimal footprint of just about 300K. This ensures rapid deployment, streamlined backups, and a highly efficient use of storage resources.
+## Quick Start
 
-## Zero Dependencies
+```bash
+git clone https://github.com/singaraiona/rayforce.git
+cd rayforce
+make release
+./rayforce
+```
 
-Bid adieu to cumbersome installations and intricate setups. RayforceDB is self-contained and autonomous. With no dependencies, not only does it assure smooth deployment, but it also guarantees a consistent experience across platforms, ensuring that your projects remain unhindered by external factors.
+## Use Cases
 
-## The Power of Simplicity
+- Financial analytics and high-frequency trading data
+- IoT sensor data and time-series monitoring
+- Real-time analytics and streaming data
+- Embedded systems and edge computing
+- Data science and exploratory analysis
+- LLMs and semantic retrieval
 
-To converse with RayforceDB, you won't need to learn complex SQL or proprietary query languages. Instead, engage with a clean, intuitive lisp-like language. The simplicity does not come at the cost of capability. This unique language, while being minimalistic, empowers you to perform intricate queries and operations with elegance and efficiency.
+## Building
 
-## Time-Series Mastery
+```bash
+make debug      # Debug build with sanitizers
+make release    # Optimized production build
+make tests      # Run test suite
+make bench      # Run benchmark suite
+```
 
-In the age of continuous data streams, the ability to handle time-series data effectively is paramount. RayforceDB addresses this need head-on. With built-in support for time-series data management, you can effortlessly store, retrieve, and analyze time-bound datasets.
+## Documentation
 
-## Adept at Handling Big Data
+- [Full Documentation](https://singaraiona.github.io/rayforce/)
+- [Test Reports](https://singaraiona.github.io/rayforce/tests_report/)
+- [Coverage Reports](https://singaraiona.github.io/rayforce/coverage_report/)
 
-As the digital universe expands, so does the expanse of data. RayforceDB is meticulously crafted to manage the colossal waves of big data. Advanced compression algorithms ensure that even large-scale datasets occupy minimal storage.
+## Contributing
 
-## CPU Cache Efficiency: Small Footprint's Big Advantage
+Contributions are welcome! You can help by:
 
-In the world of high-performance computing, every microsecond counts. With a size of just <1MB, RayforceDB is designed to fit entirely within a CPU's cache, reaping the benefits of instantaneous data access, enhanced parallel processing, reduced bottlenecks, and energy efficiency.
+- Reporting bugs and requesting features via [GitHub Issues](https://github.com/singaraiona/rayforce/issues)
+- Submitting pull requests
+- Creating example scripts and use cases
+- Improving documentation
 
----
+## Sponsor
 
-**Join the RayforceDB revolution. Dive into the future of efficient and powerful data management.**
+RayforceDB is proudly sponsored by **[Lynx Capital](https://www.lynxcapitalsecurities.com/)**.
+
+Their support has been instrumental in making RayforceDB a mature, production-ready database system. Lynx Capital's commitment to innovative open-source technologies in the financial sector has enabled RayforceDB to reach its full potential.
