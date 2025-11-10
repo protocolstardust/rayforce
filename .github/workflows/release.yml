@@ -6,6 +6,9 @@ on:
       - 'v*.*'
       - 'nightly'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -139,4 +142,4 @@ jobs:
             ${{ github.workspace }}/ubuntu-latest-x86_64.tar.gz/ubuntu-latest-x86_64.tar.gz \
             ${{ github.workspace }}/macos-14-arm64.tar.gz/macos-14-arm64.tar.gz
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
