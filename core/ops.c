@@ -84,10 +84,10 @@ i64_t ops_next_prime(i64_t x) {
     return x;
 }
 
-i64_t ops_rand_u64(nil_t) {
+u64_t ops_rand_u64(nil_t) {
     if (__RND_SEED__ == 0) {
         // Use a more robust seeding strategy
-        __RND_SEED__ = time(NULL) ^ (i64_t)&ops_rand_u64 ^ (i64_t)&time;
+        __RND_SEED__ = time(NULL) ^ (u64_t)&ops_rand_u64 ^ (u64_t)&time;
     }
 
     // XORShift algorithm for better randomness

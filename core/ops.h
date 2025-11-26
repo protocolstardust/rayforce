@@ -179,7 +179,7 @@ typedef enum { ERROR_TYPE_OS, ERROR_TYPE_SYS, ERROR_TYPE_SOCK } os_ray_error_typ
 b8_t ops_as_b8(obj_p x);
 b8_t ops_is_prime(i64_t x);
 i64_t ops_next_prime(i64_t x);
-i64_t ops_rand_u64(nil_t);
+u64_t ops_rand_u64(nil_t);
 i64_t ops_count(obj_p x);
 i64_t ops_count_ones(b8_t *mask, i64_t len);
 i64_t ops_rank(obj_p *x, i64_t n);
