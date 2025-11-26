@@ -142,7 +142,7 @@ static obj_p __left_join_inner(obj_p ltab, obj_p rtab, obj_p ksyms, obj_p kcols,
     if (ksyms->len == 1) {
         l = rescols->len;
         resvals = vector(TYPE_LIST, l);
-        AS_LIST(resvals)[0] = kcols;
+        AS_LIST(resvals)[0] = clone_obj(kcols);
         for (i = 1; i < l; i++)
             AS_LIST(resvals)[i] = clone_obj(AS_LIST(vals)[i - 1]);
         drop_obj(vals);
