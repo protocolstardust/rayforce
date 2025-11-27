@@ -342,7 +342,7 @@ i64_t f64_fmt_into(obj_p *dst, f64_t val) {
     order = log10(val < 0 ? -val : val);
 
     if (val && (order > 6 || order < -1))
-        return str_fmt_into(dst, NO_LIMIT, "%.*e", 3 * F64_PRECISION, val);
+        return str_fmt_into(dst, NO_LIMIT, "%.*e", F64_PRECISION, val);
 
     return str_fmt_into(dst, NO_LIMIT, "%.*f", F64_PRECISION, val);
 }
