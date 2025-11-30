@@ -52,17 +52,18 @@ option_t repl_on_data(poll_p poll, selector_p selector, raw_p data) {
         error = IS_ERR(res);
         if (error)
             io_write(STDERR_FILENO, 2, res);
-        else
+        else if (!repl->silent)  // Only print output if not in silent mode
             io_write(STDOUT_FILENO, 2, res);
 
-        if (!error)
+        if (!error && !repl->silent)
             timeit_print();
     }
 
     drop_obj(res);
     drop_obj(str);
 
-    term_prompt(repl->term);
+    if (!repl->silent)
+        term_prompt(repl->term);
 
     return option_none();
 }
@@ -70,10 +71,26 @@ option_t repl_on_data(poll_p poll, selector_p selector, raw_p data) {
 option_t repl_read(poll_p poll, selector_p selector) {
     obj_p str;
     repl_p repl;
+    c8_t line_buf[TERM_BUF_SIZE];
+    i64_t len;
 
     LOG_TRACE("repl_read");
 
     repl = (repl_p)selector->data;
+
+    if (repl->silent) {
+        // In silent mode, just read entire lines directly
+        len = read(STDIN_FILENO, line_buf, TERM_BUF_SIZE - 1);
+
+        if (len <= 0) {
+            poll->code = (len < 0) ? 1 : 0;
+            return option_error(sys_error(ERR_IO, "stdin read failed"));
+        }
+
+        line_buf[len] = '\0';
+        str = string_from_str(line_buf, len);
+        return option_some(str);
+    }
 
     if (!term_getc(repl->term)) {
         poll->code = 1;
@@ -88,13 +105,20 @@ option_t repl_read(poll_p poll, selector_p selector) {
     return option_some(str);
 }
 
-repl_p repl_create(poll_p poll) {
+repl_p repl_create(poll_p poll, b8_t silent) {
     repl_p repl;
     struct poll_registry_t registry = ZERO_INIT_STRUCT;
 
     repl = (repl_p)heap_alloc(sizeof(struct repl_t));
     repl->name = string_from_str("repl", 4);
-    repl->term = term_create();
+    repl->silent = silent;
+
+    // Only create term if not in silent mode
+    if (!silent) {
+        repl->term = term_create();
+    } else {
+        repl->term = NULL;
+    }
 
     registry.fd = STDIN_FILENO;
     registry.type = SELECTOR_TYPE_STDIN;
@@ -113,14 +137,16 @@ repl_p repl_create(poll_p poll) {
         return NULL;
     }
 
-    term_prompt(repl->term);
+    if (!silent)
+        term_prompt(repl->term);
 
     return repl;
 }
 
 nil_t repl_destroy(repl_p repl) {
     drop_obj(repl->name);
-    term_destroy(repl->term);
+    if (repl->term)
+        term_destroy(repl->term);
     heap_free(repl);
 }
 

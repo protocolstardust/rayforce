@@ -24,7 +24,6 @@
 #include "../core/rayforce.h"
 #include "../core/runtime.h"
 #include "../core/format.h"
-#include "../core/util.h"
 #include "../core/sys.h"
 
 nil_t print_logo(sys_info_t *info) {
@@ -45,13 +44,27 @@ i32_t main(i32_t argc, str_p argv[]) {
     i32_t code = -1;
     sys_info_t *info;
     runtime_p runtime;
+    obj_p repl_arg;
+    b8_t silent_mode = B8_FALSE;
 
     runtime = runtime_create(argc, argv);
     if (runtime == NULL)
         return -1;
 
-    info = &runtime_get()->sys_info;
-    print_logo(info);
+    // Check if silent mode is enabled (repl flag is "0" or "false")
+    repl_arg = runtime_get_arg("repl");
+    if (!is_null(repl_arg)) {
+        silent_mode = (str_cmp(AS_C8(repl_arg), repl_arg->len, "0", 1) == 0) ||
+                      (str_cmp(AS_C8(repl_arg), repl_arg->len, "false", 5) == 0);
+        drop_obj(repl_arg);
+    }
+
+    // Only print logo if not in silent mode
+    if (!silent_mode) {
+        info = &runtime_get()->sys_info;
+        print_logo(info);
+    }
+
     code = runtime_run();
     runtime_destroy();
 

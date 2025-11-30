@@ -192,20 +192,25 @@ runtime_p runtime_create(i32_t argc, str_p argv[]) {
 
 i32_t runtime_run(nil_t) {
     b8_t repl_enabled = B8_FALSE;
+    b8_t silent_mode = B8_FALSE;
     i64_t port;
     obj_p arg;
 
     if (__RUNTIME->poll) {
         arg = runtime_get_arg("repl");
         if (is_null(arg)) {
-            repl_create(__RUNTIME->poll);
+            repl_create(__RUNTIME->poll, B8_FALSE);
             drop_obj(arg);
         } else {
             repl_enabled =
                 (str_cmp(AS_C8(arg), arg->len, "true", 4) == 0) || (str_cmp(AS_C8(arg), arg->len, "1", 1) == 0);
+            silent_mode =
+                (str_cmp(AS_C8(arg), arg->len, "0", 1) == 0) || (str_cmp(AS_C8(arg), arg->len, "false", 5) == 0);
             drop_obj(arg);
             if (repl_enabled)
-                repl_create(__RUNTIME->poll);
+                repl_create(__RUNTIME->poll, B8_FALSE);
+            else if (silent_mode)
+                repl_create(__RUNTIME->poll, B8_TRUE);
         }
 
         arg = runtime_get_arg("port");
