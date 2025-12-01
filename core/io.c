@@ -21,11 +21,9 @@
  *   SOFTWARE.
  */
 
-#include <errno.h>
 #include <limits.h>
 #include "io.h"
 #include "fs.h"
-#include "util.h"
 #include "ops.h"
 #include "sock.h"
 #include "heap.h"
@@ -36,13 +34,13 @@
 #include "date.h"
 #include "time.h"
 #include "timestamp.h"
-#include "sys.h"
 #include "string.h"
 #include "unary.h"
 #include "binary.h"
 #include "compose.h"
 #include "items.h"
 #include "ipc.h"
+#include "parse.h"
 
 obj_p ray_hopen(obj_p *x, i64_t n) {
     i64_t fd, id, timeout = 0;
@@ -526,6 +524,42 @@ obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
     return NULL_OBJ;  // Success
 }
 
+static i64_t symbol_from_str_trimmed(str_p src, i64_t len) {
+    c8_t buf[256];  // Stack buffer for common case
+    c8_t *trimmed;
+    i64_t i, j = 0;
+    i64_t result;
+    c8_t c;
+
+    // Fast path: use stack buffer for small strings
+    if (len <= 256) {
+        trimmed = buf;
+    } else {
+        // Fallback to heap for large strings
+        trimmed = (c8_t *)heap_alloc(len);
+        if (trimmed == NULL)
+            return NULL_I64;
+    }
+
+    // Filter: keep only alphabetical characters (A-Z, a-z)
+    for (i = 0; i < len; i++) {
+        c = src[i];
+        // Manual check for alphabetic characters for better performance
+        // This is faster than isalpha() and avoids locale-dependent behavior
+        if (is_alphanum(c))
+            trimmed[j++] = c;
+    }
+
+    // Intern the trimmed string
+    result = symbols_intern(trimmed, j);
+
+    // Free heap-allocated buffer if used
+    if (trimmed != buf)
+        heap_free(trimmed);
+
+    return result;
+}
+
 obj_p ray_read_csv(obj_p *x, i64_t n) {
     i64_t fd, size;
     i64_t i, l, len, lines;
@@ -643,7 +677,7 @@ obj_p ray_read_csv(obj_p *x, i64_t n) {
                         pos--;
                 }
 
-                AS_SYMBOL(names)[i] = symbols_intern(prev, pos - prev);
+                AS_SYMBOL(names)[i] = symbol_from_str_trimmed(prev, pos - prev);
                 pos++;
                 len -= (pos - prev);
             }
