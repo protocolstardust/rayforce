@@ -60,6 +60,20 @@ obj_p cstring_from_str(lit_p str, i64_t len) {
 
 obj_p cstring_from_obj(obj_p obj) { return cstring_from_str(AS_C8(obj), obj->len); }
 
+i64_t b8_from_str(lit_p src, i64_t len, b8_t *dst) {
+    if (len < 4) {
+        *dst = B8_FALSE;
+        return 0;
+    }
+
+    if (strncmp(src, "true", 4) == 0 || strncmp(src, "True", 4) == 0 || strncmp(src, "TRUE", 4) == 0) {
+        *dst = B8_TRUE;
+        return 4;
+    }
+
+    return 0;
+}
+
 // in hex
 i64_t u8_from_str(lit_p str, i64_t len, u8_t *dst) {
     i64_t i, n;

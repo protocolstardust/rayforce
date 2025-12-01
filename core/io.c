@@ -261,6 +261,7 @@ obj_p ray_write(obj_p x, obj_p y) {
 }
 
 obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
+    b8_t num_b8 = 0;
     i64_t n, num_i64 = 0;  // Initialize to avoid uninitialized value
 
     switch (type) {
@@ -269,8 +270,8 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
                 AS_B8(out)[row] = 0;
                 break;
             }
-            i64_from_str(start, end - start, &num_i64);
-            AS_B8(out)[row] = 0 != num_i64;
+            b8_from_str(start, end - start, &num_b8);
+            AS_B8(out)[row] = num_b8;
             break;
         case TYPE_U8:
             if (start == NULL || end == NULL) {
