@@ -64,11 +64,22 @@ heap_p heap_create(i64_t id) {
 
     memset(__HEAP->freelist, 0, sizeof(__HEAP->freelist));
 
-    if (os_get_var("HEAP_SWAP", HEAP_SWAP, sizeof(HEAP_SWAP)) == -1)
+    if (os_get_var("HEAP_SWAP", HEAP_SWAP, sizeof(HEAP_SWAP)) == -1) {
         snprintf(HEAP_SWAP, sizeof(HEAP_SWAP), "%s", DEFAULT_HEAP_SWAP);
+    } else {
+        size_t len = strnlen(HEAP_SWAP, sizeof(HEAP_SWAP));
 
-    if (HEAP_SWAP[strlen(HEAP_SWAP) - 1] != '/')
-        strcat(HEAP_SWAP, "/");
+        // Treat empty or truncated values as unset
+        if (len == 0 || len >= sizeof(HEAP_SWAP) - 1) {
+            snprintf(HEAP_SWAP, sizeof(HEAP_SWAP), "%s", DEFAULT_HEAP_SWAP);
+            len = strnlen(HEAP_SWAP, sizeof(HEAP_SWAP));
+        }
+
+        if (HEAP_SWAP[len - 1] != '/' && len < sizeof(HEAP_SWAP) - 1) {
+            HEAP_SWAP[len++] = '/';
+            HEAP_SWAP[len] = '\0';
+        }
+    }
 
     LOG_DEBUG("Heap created successfully with swap path: %s", HEAP_SWAP);
     return __HEAP;
