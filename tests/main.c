@@ -216,6 +216,7 @@ test_entry_t tests[] = {
     {"test_lang_or", test_lang_or},
     {"test_lang_and", test_lang_and},
     {"test_lang_bin", test_lang_bin},
+    {"test_lang_timestamp", test_lang_timestamp},
 };
 // ---
 

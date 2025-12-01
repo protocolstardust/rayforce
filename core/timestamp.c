@@ -116,6 +116,249 @@ i64_t timestamp_into_i64(timestamp_t ts) {
     return (dss * NSECS_IN_DAY + offs);
 }
 
+// Parse ISO format timestamp: 2004-10-21 12:00:00+02:00 or 2004-10-21T12:00:00Z
+static timestamp_t timestamp_from_str_iso(str_p src, i64_t len) {
+    timestamp_t ts = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0, .hours = 0, .mins = 0, .secs = 0, .nanos = 0};
+    lit_p cur = src;
+    i64_t val, digit_count;
+    i32_t tz_offset_mins = 0;
+
+    if (len < 10) {  // Minimum: YYYY-MM-DD
+        ts.null = B8_TRUE;
+        return ts;
+    }
+
+    // Parse year (4 digits)
+    val = 0;
+    for (int i = 0; i < 4 && len > 0; i++) {
+        if (!is_digit(*cur)) {
+            ts.null = B8_TRUE;
+            return ts;
+        }
+        val = val * 10 + (*cur - '0');
+        cur++;
+        len--;
+    }
+    ts.year = (u16_t)val;
+
+    // Skip '-'
+    if (len == 0 || *cur != '-') {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    cur++;
+    len--;
+
+    // Parse month (2 digits)
+    val = 0;
+    for (int i = 0; i < 2 && len > 0; i++) {
+        if (!is_digit(*cur)) {
+            ts.null = B8_TRUE;
+            return ts;
+        }
+        val = val * 10 + (*cur - '0');
+        cur++;
+        len--;
+    }
+    if (val < 1 || val > 12) {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    ts.month = (u8_t)val;
+
+    // Skip '-'
+    if (len == 0 || *cur != '-') {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    cur++;
+    len--;
+
+    // Parse day (2 digits)
+    val = 0;
+    for (int i = 0; i < 2 && len > 0; i++) {
+        if (!is_digit(*cur)) {
+            ts.null = B8_TRUE;
+            return ts;
+        }
+        val = val * 10 + (*cur - '0');
+        cur++;
+        len--;
+    }
+    if (val < 1 || val > 31) {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    ts.day = (u8_t)val;
+
+    // Optional time component
+    if (len == 0)
+        return ts;
+
+    // Skip 'T' or ' '
+    if (*cur != 'T' && *cur != ' ') {
+        return ts;  // Date only, valid
+    }
+    cur++;
+    len--;
+
+    if (len < 8) {  // Need at least HH:MM:SS
+        ts.null = B8_TRUE;
+        return ts;
+    }
+
+    // Parse hours (2 digits)
+    val = 0;
+    for (int i = 0; i < 2 && len > 0; i++) {
+        if (!is_digit(*cur)) {
+            ts.null = B8_TRUE;
+            return ts;
+        }
+        val = val * 10 + (*cur - '0');
+        cur++;
+        len--;
+    }
+    if (val > 23) {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    ts.hours = (u8_t)val;
+
+    // Skip ':'
+    if (len == 0 || *cur != ':') {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    cur++;
+    len--;
+
+    // Parse minutes (2 digits)
+    val = 0;
+    for (int i = 0; i < 2 && len > 0; i++) {
+        if (!is_digit(*cur)) {
+            ts.null = B8_TRUE;
+            return ts;
+        }
+        val = val * 10 + (*cur - '0');
+        cur++;
+        len--;
+    }
+    if (val > 59) {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    ts.mins = (u8_t)val;
+
+    // Skip ':'
+    if (len == 0 || *cur != ':') {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    cur++;
+    len--;
+
+    // Parse seconds (2 digits)
+    val = 0;
+    for (int i = 0; i < 2 && len > 0; i++) {
+        if (!is_digit(*cur)) {
+            ts.null = B8_TRUE;
+            return ts;
+        }
+        val = val * 10 + (*cur - '0');
+        cur++;
+        len--;
+    }
+    if (val > 59) {
+        ts.null = B8_TRUE;
+        return ts;
+    }
+    ts.secs = (u8_t)val;
+
+    // Optional fractional seconds
+    if (len > 0 && *cur == '.') {
+        cur++;
+        len--;
+        val = 0;
+        digit_count = 0;
+        while (len > 0 && is_digit(*cur) && digit_count < 9) {
+            val = val * 10 + (*cur - '0');
+            cur++;
+            len--;
+            digit_count++;
+        }
+        // Convert to nanoseconds (pad with zeros if needed)
+        while (digit_count < 9) {
+            val *= 10;
+            digit_count++;
+        }
+        ts.nanos = (u32_t)val;
+        // Skip remaining fractional digits
+        while (len > 0 && is_digit(*cur)) {
+            cur++;
+            len--;
+        }
+    }
+
+    // Parse timezone: Z, +HH:MM, -HH:MM
+    if (len > 0) {
+        if (*cur == 'Z' || *cur == 'z') {
+            // UTC, no offset needed
+        } else if (*cur == '+' || *cur == '-') {
+            b8_t is_negative = (*cur == '-');
+            cur++;
+            len--;
+
+            if (len < 2) {
+                ts.null = B8_TRUE;
+                return ts;
+            }
+
+            // Parse timezone hours
+            val = 0;
+            for (int i = 0; i < 2 && len > 0; i++) {
+                if (!is_digit(*cur)) {
+                    ts.null = B8_TRUE;
+                    return ts;
+                }
+                val = val * 10 + (*cur - '0');
+                cur++;
+                len--;
+            }
+            tz_offset_mins = (i32_t)val * 60;
+
+            // Optional ':' and minutes
+            if (len > 0 && *cur == ':') {
+                cur++;
+                len--;
+            }
+
+            if (len >= 2 && is_digit(*cur)) {
+                val = 0;
+                for (int i = 0; i < 2 && len > 0; i++) {
+                    if (!is_digit(*cur)) {
+                        ts.null = B8_TRUE;
+                        return ts;
+                    }
+                    val = val * 10 + (*cur - '0');
+                    cur++;
+                    len--;
+                }
+                tz_offset_mins += (i32_t)val;
+            }
+
+            if (is_negative)
+                tz_offset_mins = -tz_offset_mins;
+
+            // Apply timezone offset to timestamp (convert to UTC)
+            i64_t ts_i64 = timestamp_into_i64(ts);
+            ts_i64 -= (i64_t)tz_offset_mins * 60 * 1000000000;
+            ts = timestamp_from_i64(ts_i64);
+        }
+    }
+
+    return ts;
+}
+
 timestamp_t timestamp_from_str(str_p src, i64_t len) {
     i64_t cnt = 0, val = 0, digit_count, digit;
     timestamp_t ts = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0, .hours = 0, .mins = 0, .secs = 0, .nanos = 0};
@@ -126,6 +369,14 @@ timestamp_t timestamp_from_str(str_p src, i64_t len) {
         return ts;
     }
 
+    // Quick format detection: ISO format has '-' at position 4 (index 4)
+    // Rayforce format has '.' at position 4
+    // Example: "2004-10-21..." vs "2004.10.21..."
+    if (len >= 5 && src[4] == '-') {
+        return timestamp_from_str_iso(src, len);
+    }
+
+    // Parse rayforce format: 2004.10.21D10:00:00.000000000
     while (len > 0 && cnt < 7) {
         // Reset value for the next number
         val = 0;

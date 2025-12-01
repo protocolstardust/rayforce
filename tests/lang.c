@@ -3479,3 +3479,63 @@ test_result_t test_lang_bin() {
 
     PASS();
 }
+
+test_result_t test_lang_timestamp() {
+    // Test ISO date-only format
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21\")", "2004.10.21D00:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2024-03-20\")", "2024.03.20D00:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2023-12-31\")", "2023.12.31D00:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-01-01\")", "2025.01.01D00:00:00.000000000");
+
+    // Test ISO date-time with space separator
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00\")", "2004.10.21D12:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04 15:41:47\")", "2025.03.04D15:41:47.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2023-06-15 09:30:45\")", "2023.06.15D09:30:45.000000000");
+
+    // Test ISO date-time with T separator
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21T12:00:00\")", "2004.10.21D12:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04T15:41:47\")", "2025.03.04D15:41:47.000000000");
+
+    // Test ISO with fractional seconds (milliseconds)
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00.010\")", "2004.10.21D12:00:00.010000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04 15:41:47.123\")", "2025.03.04D15:41:47.123000000");
+
+    // Test ISO with fractional seconds (microseconds)
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00.010500\")", "2004.10.21D12:00:00.010500000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04 15:41:47.123456\")", "2025.03.04D15:41:47.123456000");
+
+    // Test ISO with fractional seconds (nanoseconds)
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00.010000000\")", "2004.10.21D12:00:00.010000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04T15:41:47.087221025\")", "2025.03.04D15:41:47.087221025");
+
+    // Test ISO with UTC timezone (Z)
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21T12:00:00Z\")", "2004.10.21D12:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04T15:41:47.123456789Z\")", "2025.03.04D15:41:47.123456789");
+
+    // Test ISO with positive timezone offset
+    // 2004-10-21 12:00:00+02:00 should convert to 10:00:00 UTC
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00+02:00\")", "2004.10.21D10:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21T12:00:00+02:00\")", "2004.10.21D10:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04 15:41:47+05:30\")", "2025.03.04D10:11:47.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2023-06-15 18:30:00+01:00\")", "2023.06.15D17:30:00.000000000");
+
+    // Test ISO with negative timezone offset
+    // 2004-10-21 12:00:00-05:00 should convert to 17:00:00 UTC
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00-05:00\")", "2004.10.21D17:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00.010-23:00\")", "2004.10.22D11:00:00.010000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04T08:00:00-08:00\")", "2025.03.04D16:00:00.000000000");
+
+    // Test ISO with timezone without colon separator
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00+0200\")", "2004.10.21D10:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00-0500\")", "2004.10.21D17:00:00.000000000");
+
+    // Test ISO with fractional seconds and timezone
+    TEST_ASSERT_EQ("(as 'timestamp \"2004-10-21 12:00:00.123456+02:00\")", "2004.10.21D10:00:00.123456000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025-03-04T15:41:47.087-05:00\")", "2025.03.04D20:41:47.087000000");
+
+    // Test that rayforce format still works
+    TEST_ASSERT_EQ("(as 'timestamp \"2004.10.21D12:00:00.000000000\")", "2004.10.21D12:00:00.000000000");
+    TEST_ASSERT_EQ("(as 'timestamp \"2025.03.04D15:41:47.087221025\")", "2025.03.04D15:41:47.087221025");
+
+    PASS();
+}
