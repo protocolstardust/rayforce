@@ -238,6 +238,7 @@ obj_p timestamp(i64_t val) {
 
 obj_p vector(i8_t type, i64_t len) {
     i8_t t;
+    i64_t data_size;
     obj_p vec;
 
     if (type < 0)
@@ -249,16 +250,21 @@ obj_p vector(i8_t type, i64_t len) {
     else
         t = TYPE_LIST;
 
-    vec = (obj_p)heap_alloc(sizeof(struct obj_t) + len * size_of_type(t));
+    data_size = len * size_of_type(t);
+    vec = (obj_p)heap_alloc(sizeof(struct obj_t) + data_size);
 
     if (vec == NULL)
         THROW(ERR_HEAP, "oom");
 
     vec->mmod = MMOD_INTERNAL;
+    vec->order = 0;  // Initialize order field to avoid uninitialized bytes
     vec->type = t;
     vec->rc = 1;
     vec->len = len;
     vec->attrs = 0;
+
+    // Zero out the data area to avoid uninitialized bytes being written to disk
+    memset(vec->raw, 0, data_size);
 
     return vec;
 }

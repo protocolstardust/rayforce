@@ -52,8 +52,7 @@ obj_p binary_call(obj_p f, obj_p x, obj_p y) {
 obj_p binary_set(obj_p x, obj_p y) {
     i64_t fd, c = 0;
     i64_t i, l, sz, size;
-    u32_t rc;
-    u8_t *b, mmod;
+    u8_t *b;
     obj_p res, col, s, p, k, v, e, path, buf;
     c8_t objbuf[RAY_PAGE_SIZE] = {0};
 
@@ -272,10 +271,18 @@ obj_p binary_set(obj_p x, obj_p y) {
                             return res;
                         }
 
-                        size = size_of(y);
+                        // Create a clean struct obj_t header to avoid writing uninitialized bytes
+                        struct obj_t clean_header;
+                        memset(&clean_header, 0, sizeof(struct obj_t));
+                        clean_header.mmod = MMOD_EXTERNAL_SIMPLE;
+                        clean_header.order = 0;
+                        clean_header.type = y->type;
+                        clean_header.attrs = y->attrs;
+                        clean_header.rc = 0;
+                        clean_header.len = y->len;
 
-                        c = fs_fwrite(fd, (str_p)y, size);
-
+                        // Write the clean header
+                        c = fs_fwrite(fd, (str_p)&clean_header, sizeof(struct obj_t));
                         if (c == -1) {
                             e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
                             drop_obj(path);
@@ -283,21 +290,9 @@ obj_p binary_set(obj_p x, obj_p y) {
                             return e;
                         }
 
-                        // write mmod
-                        lseek(fd, 0, SEEK_SET);
-                        mmod = MMOD_EXTERNAL_SIMPLE;
-                        c = fs_fwrite(fd, (str_p)&mmod, sizeof(u8_t));
-                        if (c == -1) {
-                            e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                            drop_obj(path);
-                            fs_fclose(fd);
-                            return e;
-                        }
-
-                        // write rc = 0
-                        lseek(fd, sizeof(u32_t), SEEK_SET);
-                        rc = 0;
-                        c = fs_fwrite(fd, (str_p)&rc, sizeof(u32_t));
+                        // Write the data
+                        size = y->len * size_of_type(y->type);
+                        c = fs_fwrite(fd, AS_C8(y), size);
                         if (c == -1) {
                             e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
                             drop_obj(path);

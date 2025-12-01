@@ -259,7 +259,7 @@ obj_p ray_write(obj_p x, obj_p y) {
 }
 
 obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
-    i64_t n, num_i64;
+    i64_t n, num_i64 = 0;  // Initialize to avoid uninitialized value
 
     switch (type) {
         case TYPE_B8:
@@ -300,6 +300,10 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
             AS_TIME(out)[row] = time_into_i32(time_from_str(start, end - start));
             break;
         case TYPE_I64:
+            if (start == NULL || end == NULL) {
+                AS_I64(out)[row] = NULL_I64;
+                break;
+            }
             i64_from_str(start, end - start, &num_i64);
             AS_I64(out)[row] = num_i64;
             break;
@@ -311,6 +315,10 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
             AS_TIMESTAMP(out)[row] = timestamp_into_i64(timestamp_from_str(start, end - start));
             break;
         case TYPE_F64:
+            if (start == NULL || end == NULL) {
+                AS_F64(out)[row] = NULL_F64;
+                break;
+            }
             f64_from_str(start, end - start, &AS_F64(out)[row]);
             break;
         case TYPE_SYMBOL:
@@ -462,7 +470,8 @@ obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
     // Estimate average line length (avoid div by zero)
     i64_t avg_line_len = size / (total_lines ? total_lines : 1);
     i64_t lines_per_page = (avg_line_len > 0) ? (page_size / avg_line_len) : 1;
-    if (lines_per_page == 0) lines_per_page = 1;
+    if (lines_per_page == 0)
+        lines_per_page = 1;
     lines_per_batch = (total_lines + num_batches - 1) / num_batches;
     // round up to nearest multiple of lines_per_page
     lines_per_batch = ((lines_per_batch + lines_per_page - 1) / lines_per_page) * lines_per_page;
