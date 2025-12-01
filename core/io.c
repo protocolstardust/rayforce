@@ -173,11 +173,11 @@ obj_p ray_read(obj_p x) {
         case TYPE_C8:
             s = cstring_from_obj(x);
             fd = fs_fopen(AS_C8(s), ATTR_RDONLY);
-            drop_obj(s);
 
             // error handling if file does not exist
             if (fd == -1) {
                 res = sys_error(ERROR_TYPE_SYS, AS_C8(s));
+                drop_obj(s);
                 return res;
             }
 
@@ -191,9 +191,11 @@ obj_p ray_read(obj_p x) {
             if (c != size) {
                 drop_obj(res);
                 res = sys_error(ERROR_TYPE_SYS, AS_C8(s));
+                drop_obj(s);
                 return res;
             }
 
+            drop_obj(s);
             return res;
         default:
             THROW(ERR_TYPE, "read: unsupported type: '%s", type_name(x->type));
