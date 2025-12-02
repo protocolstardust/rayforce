@@ -227,8 +227,16 @@ obj_p ray_alter(obj_p *x, i64_t n) {
     if (x[0]->type != -TYPE_SYMBOL)
         return res;
 
-    if ((*cur) != res) {
+    // If the object was reallocated (e.g., by push_obj), update the reference
+    // Note: we don't drop *cur if obj == *cur originally, since they're the same object
+    // and res is already pointing to the (possibly reallocated) version
+    if (obj != *cur) {
+        // obj was a copy, so drop the original
         drop_obj(*cur);
+        *cur = res;
+    } else if (res != obj) {
+        // obj was not a copy (cow returned same object), but it got reallocated
+        // So just update the pointer without dropping
         *cur = res;
     }
 
