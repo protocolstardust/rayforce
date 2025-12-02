@@ -45,7 +45,7 @@
 obj_p ray_hopen(obj_p *x, i64_t n) {
     i64_t fd, id, timeout = 0;
     sock_addr_t addr;
-    obj_p path;
+    obj_p path, msg, err;
 
     if (n == 0)
         THROW(ERR_LENGTH, "hopen: expected at least 1 argument, got 0");
@@ -71,8 +71,12 @@ obj_p ray_hopen(obj_p *x, i64_t n) {
     if (sock_addr_from_str(AS_C8(x[0]), x[0]->len, &addr) != -1) {
         id = ipc_open(runtime_get()->poll, &addr, timeout);
 
-        if (id == -1)
-            return sys_error(ERROR_TYPE_SYS, AS_C8(x));
+        if (id == -1) {
+            msg = cstring_from_str(AS_C8(x[0]), x[0]->len);
+            err = sys_error(ERROR_TYPE_SYS, AS_C8(msg));
+            drop_obj(msg);
+            return err;
+        }
 
         return i64(id);
     }
@@ -83,7 +87,7 @@ obj_p ray_hopen(obj_p *x, i64_t n) {
     drop_obj(path);
 
     if (fd == -1)
-        return sys_error(ERROR_TYPE_SYS, AS_C8(x));
+        return sys_error(ERROR_TYPE_SYS, AS_C8(path));
 
     return i32((i32_t)fd);
 }
@@ -687,8 +691,9 @@ obj_p ray_read_csv(obj_p *x, i64_t n) {
                 drop_obj(names);
                 fs_fclose(fd);
                 mmap_free(buf, size);
-                res = ray_error(ERR_LENGTH, "csv: file '%s': invalid header (number of fields is less then csv contains)",
-                            AS_C8(path));
+                res =
+                    ray_error(ERR_LENGTH, "csv: file '%s': invalid header (number of fields is less then csv contains)",
+                              AS_C8(path));
                 drop_obj(path);
                 return res;
             }
