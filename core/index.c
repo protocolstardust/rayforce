@@ -1705,10 +1705,11 @@ i64_t index_group_distribute(i64_t keys[], i64_t filter[], i64_t out[], i64_t le
 
 obj_p index_group_i8(obj_p obj, obj_p filter) {
     i64_t i, j, n, len, range;
-    i64_t min, *hk, *hv, *values, *indices;
+    i64_t min, *hk, *hv, *indices;
+    i8_t* values;
     obj_p keys, vals;
 
-    values = AS_I64(obj);
+    values = AS_I8(obj);
     indices = is_null(filter) ? NULL : AS_I64(filter);
     len = indices ? filter->len : obj->len;
 
