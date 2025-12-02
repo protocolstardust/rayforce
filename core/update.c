@@ -747,12 +747,18 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
                     UNCOW_OBJ(obj, val, res);
                 }
 
-                if (!__suitable_lengths(AS_LIST(AS_LIST(obj)[1])[j], AS_LIST(vals)[i])) {
-                    res =
-                        ray_error(ERR_LENGTH,
-                                  "update: expected '%s of length %lld, as %lldth element in a values, got '%s of %lld",
-                                  type_name(AS_LIST(AS_LIST(obj)[1])[j]->type), AS_LIST(AS_LIST(obj)[1])[j]->len, j,
-                                  type_name(AS_LIST(vals)[i]->type), ops_count(AS_LIST(vals)[i]));
+                // When using filters, allow:
+                // 1. Scalars (atoms) - will be applied to all filtered rows
+                // 2. Vectors matching filter length - one value per filtered row
+                // 3. Vectors matching full table length - will use first filter->len elements
+                i64_t vals_len = ops_count(AS_LIST(vals)[i]);
+                if (!IS_ATOM(AS_LIST(vals)[i]) && vals_len != filters->len &&
+                    vals_len != AS_LIST(AS_LIST(obj)[1])[j]->len) {
+                    res = ray_error(ERR_LENGTH,
+                                    "update: expected '%s of length %lld (filter length) or %lld (table length), as "
+                                    "%lldth element, got '%s of %lld",
+                                    type_name(AS_LIST(AS_LIST(obj)[1])[j]->type), filters->len,
+                                    AS_LIST(AS_LIST(obj)[1])[j]->len, j, type_name(AS_LIST(vals)[i]->type), vals_len);
                     drop_obj(tab);
                     drop_obj(keys);
                     drop_obj(vals);
