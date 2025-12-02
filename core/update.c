@@ -68,7 +68,7 @@ obj_p __commit(obj_p src, obj_p obj, obj_p *val) {
         return clone_obj(src);
     }
 
-    return obj;
+    return (src == obj) ? clone_obj(obj) : obj;
 }
 
 b8_t __suitable_types(obj_p x, obj_p y) {
