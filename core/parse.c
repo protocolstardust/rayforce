@@ -638,7 +638,7 @@ obj_p parse_string(parser_t *parser) {
 
     str = C8(0);
 
-    while (!at_eof(parser) && *pos != '\n') {
+    while (!at_eof(parser)) {
         if (*pos == '\\') {
             switch (*++pos) {
                 case '\\':
@@ -693,6 +693,7 @@ obj_p parse_string(parser_t *parser) {
         } else if (*pos == '"')
             break;
 
+        // Include raw newlines in multiline strings
         push_raw(&str, pos++);
     }
 

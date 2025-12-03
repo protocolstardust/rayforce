@@ -66,7 +66,9 @@ option_t repl_on_data(poll_p poll, selector_p selector, raw_p data) {
     drop_obj(res);
     drop_obj(str);
 
-    if (!repl->silent)
+    // Only show regular prompt if not in multiline mode
+    // (continuation prompt is already shown by term_read when in multiline mode)
+    if (!repl->silent && repl->term->multiline_len == 0)
         term_prompt(repl->term);
 
     return option_none();

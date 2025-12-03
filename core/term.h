@@ -105,16 +105,16 @@ typedef struct term_t {
     i32_t buf_len;
     i32_t buf_pos;
     c8_t buf[TERM_BUF_SIZE];
-    i32_t multiline_len;  // Length of accumulated multi-line input
+    i32_t multiline_len;                // Length of accumulated multi-line input
     c8_t multiline_buf[TERM_BUF_SIZE];  // Accumulated multi-line input
     autocp_idx_t autocp_idx;
     i32_t autocp_buf_len;
     i32_t autocp_buf_pos;
     c8_t autocp_buf[TERM_BUF_SIZE];
     hist_p hist;
-    i32_t term_width;   // Terminal width in columns
-    i32_t term_height;  // Terminal height in rows
-    i32_t prompt_len;   // Length of the prompt (for wrapping calculation)
+    i32_t term_width;       // Terminal width in columns
+    i32_t term_height;      // Terminal height in rows
+    i32_t prompt_len;       // Length of the prompt (for wrapping calculation)
     i32_t last_total_rows;  // Number of rows used in last redraw
     i32_t last_cursor_row;  // Cursor row position from last redraw
 } *term_p;
@@ -129,6 +129,7 @@ i64_t hist_restore_current(hist_p hist, c8_t buf[]);
 
 term_p term_create();
 nil_t term_prompt(term_p term);
+nil_t term_continuation_prompt(term_p term);
 nil_t term_destroy(term_p term);
 i64_t term_getc(term_p term);
 obj_p term_read(term_p term);

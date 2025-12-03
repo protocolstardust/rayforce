@@ -96,7 +96,7 @@ nil_t term_get_size(term_p term) {
         term->term_width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
         term->term_height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
     } else {
-        term->term_width = 80;   // Default fallback
+        term->term_width = 80;  // Default fallback
         term->term_height = 24;
     }
 #else
@@ -105,7 +105,7 @@ nil_t term_get_size(term_p term) {
         term->term_width = w.ws_col;
         term->term_height = w.ws_row;
     } else {
-        term->term_width = 80;   // Default fallback
+        term->term_width = 80;  // Default fallback
         term->term_height = 24;
     }
 #endif
@@ -122,8 +122,8 @@ i32_t term_visual_width(const c8_t *str, i32_t len) {
         if (str[i] == '\033') {
             in_escape = 1;
         } else if (in_escape) {
-            if (str[i] == 'm' || str[i] == 'K' || str[i] == 'H' ||
-                str[i] == 'A' || str[i] == 'B' || str[i] == 'C' || str[i] == 'D') {
+            if (str[i] == 'm' || str[i] == 'K' || str[i] == 'H' || str[i] == 'A' || str[i] == 'B' || str[i] == 'C' ||
+                str[i] == 'D') {
                 in_escape = 0;
             }
         } else {
@@ -619,11 +619,22 @@ nil_t term_prompt(term_p term) {
     term_get_size(term);
 }
 
+nil_t term_continuation_prompt(term_p term) {
+    obj_p prompt = NULL_OBJ;
+
+    continuation_prompt_fmt_into(&prompt);
+    term->prompt_len = term_visual_width(AS_C8(prompt), (i32_t)prompt->len);
+    printf("%.*s", (i32_t)prompt->len, AS_C8(prompt));
+    fflush(stdout);
+    drop_obj(prompt);
+}
+
 i64_t term_redraw_into(term_p term, obj_p *dst) {
     i64_t i, j, l, n, c;
     str_p verb;
 
-    n = prompt_fmt_into(dst);
+    // Use continuation prompt when in multiline mode
+    n = (term->multiline_len > 0) ? continuation_prompt_fmt_into(dst) : prompt_fmt_into(dst);
 
     l = term->buf_len;
 
@@ -763,7 +774,8 @@ nil_t term_redraw(term_p term) {
     total_width = term->prompt_len + term_visual_width(term->buf, term->buf_len);
     if (term->term_width > 0) {
         term->last_total_rows = (total_width + term->term_width - 1) / term->term_width;
-        if (term->last_total_rows == 0) term->last_total_rows = 1;
+        if (term->last_total_rows == 0)
+            term->last_total_rows = 1;
     }
 
     // Position cursor at buf_pos
@@ -904,25 +916,65 @@ c8_t opposite_paren(c8_t c) {
 paren_t term_find_open_paren(term_p term) {
     i32_t i, p, squote, dquote;
     paren_t parens[TERM_BUF_SIZE];
+    c8_t c, prev;
 
     p = 0;
     squote = -1;
     dquote = -1;
+    prev = 0;
 
-    // Find the last open parenthesis
-    for (i = 0; i < term->buf_pos; i++) {
-        switch (term->buf[i]) {
+    // First scan multiline buffer (if in multiline mode)
+    for (i = 0; i < term->multiline_len; i++) {
+        c = term->multiline_buf[i];
+        switch (c) {
             case KEYCODE_RPAREN:
             case KEYCODE_RCURLY:
             case KEYCODE_RBRACKET:
-                if (p > 0 && opposite_paren(parens[p - 1].type) == term->buf[i])
+                if (p > 0 && opposite_paren(parens[p - 1].type) == c)
+                    p--;
+                break;
+            case KEYCODE_LPAREN:
+            case KEYCODE_LCURLY:
+            case KEYCODE_LBRACKET:
+                parens[p].pos = -1;  // Mark as in multiline buffer (not current line)
+                parens[p].type = c;
+                p++;
+                break;
+            case KEYCODE_SQUOTE:
+                if (squote == -1)
+                    squote = -1;  // In multiline buffer
+                else
+                    squote = -1;
+                break;
+            case KEYCODE_DQUOTE:
+                if (prev != '\\') {
+                    if (dquote == -1)
+                        dquote = -1;  // In multiline buffer
+                    else
+                        dquote = -1;
+                }
+                break;
+            default:
+                break;
+        }
+        prev = c;
+    }
+
+    // Then scan current line buffer
+    for (i = 0; i < term->buf_pos; i++) {
+        c = term->buf[i];
+        switch (c) {
+            case KEYCODE_RPAREN:
+            case KEYCODE_RCURLY:
+            case KEYCODE_RBRACKET:
+                if (p > 0 && opposite_paren(parens[p - 1].type) == c)
                     p--;
                 break;
             case KEYCODE_LPAREN:
             case KEYCODE_LCURLY:
             case KEYCODE_LBRACKET:
                 parens[p].pos = i;
-                parens[p].type = term->buf[i];
+                parens[p].type = c;
                 p++;
                 break;
             case KEYCODE_SQUOTE:
@@ -932,7 +984,7 @@ paren_t term_find_open_paren(term_p term) {
                     squote = -1;
                 break;
             case KEYCODE_DQUOTE:
-                if (i == 0 || term->buf[i - 1] != '\\') {
+                if (i == 0 ? (prev != '\\') : (term->buf[i - 1] != '\\')) {
                     if (dquote == -1)
                         dquote = i;
                     else
@@ -1106,16 +1158,20 @@ b8_t term_autocomplete_paren(term_p term) {
 
     open_paren = term_find_open_paren(term);
 
-    if (open_paren.pos == -1) {
+    // No open paren found (type == 0 means nothing was found)
+    if (open_paren.type == 0) {
         return term_autocomplete_word(term);
     } else if (open_paren.type == KEYCODE_DQUOTE) {
-        if (term_autocomplete_path(term, open_paren.pos + 1))
+        // For quotes, only do path autocomplete if quote is on current line
+        if (open_paren.pos >= 0 && term_autocomplete_path(term, open_paren.pos + 1))
             return B8_TRUE;
     } else if (term_autocomplete_word(term)) {
         return B8_TRUE;
     }
 
-    term_highlight_pos(term, open_paren.pos);
+    // Highlight the open paren position (only if on current line)
+    if (open_paren.pos >= 0)
+        term_highlight_pos(term, open_paren.pos);
 
     if (term->buf_pos < term->buf_len)
         memmove(term->buf + term->buf_pos + 1, term->buf + term->buf_pos, term->buf_len - term->buf_pos);
@@ -1162,7 +1218,7 @@ b8_t term_check_balance(c8_t *buf, i32_t len) {
             continue;
         }
 
-        // Skip characters inside double-quoted strings
+        // Skip characters inside double-quoted strings (including newlines for multiline strings)
         if (in_dquote)
             continue;
 
@@ -1214,7 +1270,7 @@ obj_p term_handle_return(term_p term) {
             if (r != term->buf_len - 2)
                 exit_code = 0;
             poll_exit(runtime_get()->poll, exit_code);
-            return NULL;
+            return NULL_OBJ;
         }
 
         if (IS_CMD(term, ":u")) {
@@ -1306,11 +1362,15 @@ obj_p term_handle_escape(term_p term) {
     }
 
     // CTRL+Right/ALT+Right (wordwise) esc
-    if (IS_ESC(term, "\x1b""f") || IS_ESC(term,"\x1b[5C")) {
-        if(term->buf_pos < term->buf_len) {
+    if (IS_ESC(term,
+               "\x1b"
+               "f") ||
+        IS_ESC(term, "\x1b[5C")) {
+        if (term->buf_pos < term->buf_len) {
             i32_t old_pos = term->buf_pos;
             term->buf_pos++;
-            while(term->buf_pos < term->buf_len && is_alphanum(term->buf[term->buf_pos]))term->buf_pos++;
+            while (term->buf_pos < term->buf_len && is_alphanum(term->buf[term->buf_pos]))
+                term->buf_pos++;
             term_goto_position(term, old_pos, term->buf_pos);
             fflush(stdout);
         }
@@ -1329,11 +1389,15 @@ obj_p term_handle_escape(term_p term) {
     }
 
     // CTRL+Left/ALT+Left (wordwise) esc
-    if (IS_ESC(term, "\x1b""b") || IS_ESC(term,"\x1b[5D")) {
-        if(term->buf_pos > 0) {
+    if (IS_ESC(term,
+               "\x1b"
+               "b") ||
+        IS_ESC(term, "\x1b[5D")) {
+        if (term->buf_pos > 0) {
             i32_t old_pos = term->buf_pos;
             term->buf_pos--;
-            while(term->buf_pos > 0 && is_alphanum(term->buf[term->buf_pos-1]))term->buf_pos--;
+            while (term->buf_pos > 0 && is_alphanum(term->buf[term->buf_pos - 1]))
+                term->buf_pos--;
             term_goto_position(term, old_pos, term->buf_pos);
             fflush(stdout);
         }
@@ -1352,7 +1416,7 @@ obj_p term_handle_escape(term_p term) {
     }
 
     // Home esc
-    if (IS_ESC(term, "\x1b[1~")||IS_ESC(term, "\x1b[H")) {
+    if (IS_ESC(term, "\x1b[1~") || IS_ESC(term, "\x1b[H")) {
         if (term->buf_pos > 0) {
             i32_t old_pos = term->buf_pos;
             term->buf_pos = 0;
@@ -1363,7 +1427,7 @@ obj_p term_handle_escape(term_p term) {
     }
 
     // End esc
-    if (IS_ESC(term,"\x1b[4~")||IS_ESC(term, "\x1b[F")) {
+    if (IS_ESC(term, "\x1b[4~") || IS_ESC(term, "\x1b[F")) {
         if (term->buf_len > 0) {
             i32_t old_pos = term->buf_pos;
             term->buf_pos = term->buf_len;
@@ -1443,7 +1507,7 @@ obj_p term_read(term_p term) {
             } else if (res == NULL) {
                 // Unbalanced expression - show continuation prompt
                 line_new();
-                term_prompt(term);
+                term_continuation_prompt(term);
             } else {
                 // Command processed (NULL_OBJ)
                 term->multiline_len = 0;
@@ -1469,13 +1533,15 @@ obj_p term_read(term_p term) {
             term->input_len = 0;
             break;
         case KEYCODE_CTRL_A:
-            term_goto_position(term, term->buf_pos, 0);fflush(stdout);
-            term->buf_pos = 0;term->input_len = 0;
+            term_goto_position(term, term->buf_pos, 0);
+            fflush(stdout);
+            term->buf_pos = 0;
+            term->input_len = 0;
             break;
 
         case KEYCODE_CTRL_B:
-            if(term->buf_pos) {
-                term_goto_position(term, term->buf_pos, term->buf_pos-1);
+            if (term->buf_pos) {
+                term_goto_position(term, term->buf_pos, term->buf_pos - 1);
                 term->buf_pos--;
                 fflush(stdout);
             }
@@ -1483,7 +1549,7 @@ obj_p term_read(term_p term) {
             break;
 
         case KEYCODE_CTRL_D:
-            if(term->buf_pos == 0 && term->buf_len == 0){
+            if (term->buf_pos == 0 && term->buf_len == 0) {
                 poll_exit(runtime_get()->poll, 0);
             } else {
                 term_handle_delete_char(term);
@@ -1493,13 +1559,14 @@ obj_p term_read(term_p term) {
             break;
 
         case KEYCODE_CTRL_E:
-            term_goto_position(term, term->buf_pos, term->buf_len);fflush(stdout);
+            term_goto_position(term, term->buf_pos, term->buf_len);
+            fflush(stdout);
             term->buf_pos = term->buf_len;
             term->input_len = 0;
             break;
 
         case KEYCODE_CTRL_F:
-            if(term->buf_pos < term->buf_len) {
+            if (term->buf_pos < term->buf_len) {
                 term_goto_position(term, term->buf_pos, term->buf_pos + 1);
                 term->buf_pos++;
                 fflush(stdout);
@@ -1508,7 +1575,8 @@ obj_p term_read(term_p term) {
             break;
 
         case KEYCODE_CTRL_K:
-            while(term->buf_pos<term->buf_len)term_handle_delete_char(term);
+            while (term->buf_pos < term->buf_len)
+                term_handle_delete_char(term);
             term_redraw(term);
             term->input_len = 0;
             break;
@@ -1520,13 +1588,15 @@ obj_p term_read(term_p term) {
             hist_save_current(term->hist, term->buf, term->buf_len);
             term->buf_len = term->buf_pos = hist_next(term->hist, term->buf);
         update_history:
-            if(term->buf_len < 0)term->buf_len = term->buf_pos = 0;
+            if (term->buf_len < 0)
+                term->buf_len = term->buf_pos = 0;
             term_redraw(term);
             term->input_len = 0;
             break;
         case KEYCODE_CTRL_W:
             autocp_reset_current(term);
-            while(term->buf_pos>0&&is_alphanum(term->buf[term->buf_pos-1]))term_handle_backspace(term);
+            while (term->buf_pos > 0 && is_alphanum(term->buf[term->buf_pos - 1]))
+                term_handle_backspace(term);
             term->input_len = 0;
             break;
         case KEYCODE_ESCAPE:

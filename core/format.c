@@ -110,6 +110,11 @@ i64_t prompt_fmt_into(obj_p *dst) {
                            : str_fmt_into(dst, NO_LIMIT, "%s%s %s", GREEN, ascii_glyphs[GLYPH_R_ARROW], RESET);
 }
 
+i64_t continuation_prompt_fmt_into(obj_p *dst) {
+    return (__USE_UNICODE) ? str_fmt_into(dst, NO_LIMIT, "%s%s %s", GRAY, unicode_glyphs[GLYPH_HDOTS], RESET)
+                           : str_fmt_into(dst, NO_LIMIT, "%s.. %s", GRAY, RESET);
+}
+
 nil_t debug_str(obj_p str) {
     i64_t i, l;
     str_p s;
