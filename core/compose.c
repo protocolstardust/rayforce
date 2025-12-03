@@ -118,6 +118,9 @@ obj_p ray_til(obj_p x) {
     if (x->type != -TYPE_I64)
         return error_str(ERR_TYPE, "til: expected i64");
 
+    if (x->i64 < 0)
+        THROW(ERR_INDEX, "til: expected non-negative length, got %lld", x->i64);
+
     return __til(x, NULL_OBJ);
 }
 
@@ -176,8 +179,7 @@ obj_p ray_reverse(obj_p x) {
             THROW(ERR_TYPE, "reverse: unsupported type: '%s", type_name(x->type));
     }
 
-    res->attrs = (x->attrs & ~(ATTR_ASC | ATTR_DESC)) |
-                 ((x->attrs & ATTR_ASC) ? ATTR_DESC : 0) |
+    res->attrs = (x->attrs & ~(ATTR_ASC | ATTR_DESC)) | ((x->attrs & ATTR_ASC) ? ATTR_DESC : 0) |
                  ((x->attrs & ATTR_DESC) ? ATTR_ASC : 0);
 
     return res;
@@ -270,7 +272,7 @@ obj_p ray_table(obj_p x, obj_p y) {
                 break;
             default:
                 return ray_error(ERR_TYPE, "table: unsupported type: '%s' in a values list",
-                             type_name(AS_LIST(y)[i]->type));
+                                 type_name(AS_LIST(y)[i]->type));
         }
     }
 
@@ -402,6 +404,13 @@ obj_p ray_rand(obj_p x, obj_p y) {
     switch (MTYPE2(x->type, y->type)) {
         case MTYPE2(-TYPE_I64, -TYPE_I64):
             count = x->i64;
+
+            if (count < 0)
+                THROW(ERR_INDEX, "rand: expected non-negative count, got %lld", count);
+
+            if (y->i64 <= 0)
+                THROW(ERR_INDEX, "rand: expected positive upper bound, got %lld", y->i64);
+
             vec = I64(count);
 
             for (i = 0; i < count; i++)

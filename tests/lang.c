@@ -4201,3 +4201,37 @@ test_result_t test_lang_error() {
 
     PASS();
 }
+
+// ==================== SAFETY/EDGE CASE TESTS ====================
+// These tests verify that invalid inputs return proper errors instead of segfaulting
+test_result_t test_lang_safety() {
+    // ========== TIL NEGATIVE LENGTH ==========
+    TEST_ASSERT_ER("(til -1)", "non-negative length");
+    TEST_ASSERT_ER("(til -100)", "non-negative length");
+
+    // ========== RAND NEGATIVE/ZERO ==========
+    TEST_ASSERT_ER("(rand -1 10)", "non-negative count");
+    TEST_ASSERT_ER("(rand 5 0)", "positive upper bound");
+    TEST_ASSERT_ER("(rand 5 -1)", "positive upper bound");
+
+    // ========== MODIFY WRONG ARITY ==========
+    TEST_ASSERT_ER("(do (set v [1 2]) (modify 'v * 2))", "expected at least 4 arguments");
+
+    // ========== OUT OF BOUNDS ACCESS ==========
+    TEST_ASSERT_ER("(do (set v [1 2 3]) (alter 'v set -10 0))", "out of range");
+
+    // ========== NULL OPERATIONS ==========
+    TEST_ASSERT_ER("(+ null 1)", "unsupported type");
+    TEST_ASSERT_ER("(sum null)", "unsupported type");
+
+    // ========== VALID EDGE CASES (should not crash) ==========
+    TEST_ASSERT_EQ("(til 0)", "[]");
+    TEST_ASSERT_EQ("(rand 0 10)", "[]");
+    TEST_ASSERT_EQ("(at [] 0)", "0Nl");
+    TEST_ASSERT_EQ("(first [])", "0Nl");
+    TEST_ASSERT_EQ("(last [])", "0Nl");
+    TEST_ASSERT_EQ("(/ 1 0)", "0Nl");
+    TEST_ASSERT_EQ("(group [])", "{}");
+
+    PASS();
+}

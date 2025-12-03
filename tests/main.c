@@ -237,6 +237,7 @@ test_entry_t tests[] = {
     {"test_lang_string_ops", test_lang_string_ops},
     {"test_lang_do_let", test_lang_do_let},
     {"test_lang_error", test_lang_error},
+    {"test_lang_safety", test_lang_safety},
 };
 // ---
 

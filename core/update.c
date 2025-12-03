@@ -134,6 +134,7 @@ obj_p *at_obj_ref(obj_p obj, obj_p idx) {
 
 obj_p dot_obj(obj_p obj, obj_p idx) {
     i64_t i, l;
+    obj_p *ref;
 
     switch (idx->type) {
         case TYPE_NULL:
@@ -155,7 +156,10 @@ obj_p dot_obj(obj_p obj, obj_p idx) {
             return obj;
 
         default:
-            return *at_obj_ref(cow_obj(obj), idx);
+            ref = at_obj_ref(cow_obj(obj), idx);
+            if (ref == NULL)
+                THROW(ERR_NOT_FOUND, "dot: invalid index");
+            return *ref;
     }
 }
 
@@ -255,8 +259,8 @@ obj_p ray_modify(obj_p *x, i64_t n) {
 
     cur = NULL;
 
-    if (n < 3)
-        THROW(ERR_LENGTH, "modify: expected at least 3 arguments, got %lld", n);
+    if (n < 4)
+        THROW(ERR_LENGTH, "modify: expected at least 4 arguments, got %lld", n);
 
     if (x[1]->type < TYPE_LAMBDA || x[1]->type > TYPE_VARY)
         THROW(ERR_TYPE, "modify: expected function as 2nd argument, got '%s'", type_name(x[1]->type));
