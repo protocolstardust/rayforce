@@ -952,14 +952,14 @@ obj_p ray_update(obj_p obj) {
         }
 
         bins = index_group(groupby, filters);
-        drop_obj(groupby);
         prm = group_map(tab, bins);
+        drop_obj(bins);
 
         if (IS_ERR(prm)) {
             drop_obj(tabsym);
             drop_obj(tab);
             drop_obj(filters);
-            drop_obj(bins);
+            drop_obj(groupby);
             return prm;
         }
 
@@ -989,7 +989,7 @@ obj_p ray_update(obj_p obj) {
             drop_obj(vals);
             drop_obj(tab);
             drop_obj(keys);
-            drop_obj(bins);
+            drop_obj(groupby);
 
             return val;
         }
@@ -1015,7 +1015,7 @@ obj_p ray_update(obj_p obj) {
             drop_obj(vals);
             drop_obj(tab);
             drop_obj(keys);
-            drop_obj(bins);
+            drop_obj(groupby);
 
             return val;
         }
@@ -1027,5 +1027,5 @@ obj_p ray_update(obj_p obj) {
     drop_obj(tab);
 
     // This one will take care of dropping all the arguments
-    return __update_table(tabsym, keys, vals, filters, bins);
+    return __update_table(tabsym, keys, vals, filters, groupby);
 }

@@ -2913,8 +2913,12 @@ test_result_t test_lang_update() {
         "t",
         "(table [ID Name Value] (list [1 2 3] [alice bob charlie] [10.0 99.0 30.0]))");
 
-    // Note: Update with groupby test removed due to pre-existing bug in hash_index_obj
-    // that doesn't handle TYPE_NULL (126) when grouping by symbol columns
+    // Test 24: Update with groupby
+    TEST_ASSERT_EQ(
+        "(set t (table [Group ID Value] (list [a a b b] [1 2 3 4] [10.0 20.0 30.0 40.0])))"
+        "(update {from: 't Total: (sum Value) by: Group})"
+        "t",
+        "(table [Group ID Value Total] (list [a a b b] [1 2 3 4] [10.0 20.0 30.0 40.0] [30.0 30.0 70.0 70.0]))");
 
     PASS();
 }
