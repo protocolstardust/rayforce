@@ -1967,8 +1967,18 @@ obj_p index_group(obj_p val, obj_p filter) {
             if (filter->type == TYPE_PARTEDI64) {
                 l = filter->len;
                 for (i = 0; i < l; i++) {
-                    if (AS_LIST(filter)[i] != NULL_OBJ)
-                        g++;
+                    obj_p fentry = AS_LIST(filter)[i];
+                    // Count non-null AND non-empty filter entries
+                    // i64(-1) marker means "take all rows" - count it
+                    // Empty I64 vector means no rows match - don't count it
+                    if (fentry != NULL_OBJ) {
+                        if (fentry->type == -TYPE_I64 && fentry->i64 == -1) {
+                            g++;  // Marker for "take all rows"
+                        } else if (fentry->len > 0) {
+                            g++;  // Has actual indices
+                        }
+                        // Empty vector (len == 0) - don't count
+                    }
                 }
             } else {
                 g = AS_LIST(val)[0]->len;

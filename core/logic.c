@@ -102,6 +102,7 @@ static obj_p logic_map(obj_p *x, i64_t n, lit_p op_name, logic_op_f op_func) {
     // Process remaining expressions
     for (i = 1; i < n; i++) {
         next = eval(x[i]);
+
         if (IS_ERR(next)) {
             drop_obj(res);
             return next;
@@ -186,6 +187,67 @@ static obj_p logic_map(obj_p *x, i64_t n, lit_p op_name, logic_op_f op_func) {
                 res = next;
                 next = v;
                 goto va;
+
+            case MTYPE2(TYPE_PARTEDB8, TYPE_PARTEDB8):
+                // Combine two parted booleans - result is TYPE_PARTEDB8
+                // Each element: NULL_OBJ (no match), b8(TRUE) (all match), or B8 vector
+                l = res->len;
+                if (l != (i64_t)next->len) {
+                    drop_obj(res);
+                    drop_obj(next);
+                    THROW(ERR_TYPE, "%s: different lengths: '%ld, '%ld", op_name, l, (i64_t)next->len);
+                }
+
+                for (j = 0; j < l; j++) {
+                    obj_p a = AS_LIST(res)[j];
+                    obj_p b = AS_LIST(next)[j];
+
+                    // NULL_OBJ handling: and(NULL,x)=NULL, or(NULL,x)=x
+                    if (a == NULL_OBJ) {
+                        if (op_func == or_op_partial && b != NULL_OBJ) {
+                            AS_LIST(res)[j] = b;
+                            AS_LIST(next)[j] = NULL_OBJ;
+                        }
+                        continue;
+                    }
+                    if (b == NULL_OBJ) {
+                        if (op_func == and_op_partial) {
+                            drop_obj(a);
+                            AS_LIST(res)[j] = NULL_OBJ;
+                        }
+                        continue;
+                    }
+
+                    // Both b8(TRUE): and=TRUE, or=TRUE
+                    if (a->type == -TYPE_B8 && b->type == -TYPE_B8) {
+                        op_func(&a->b8, &b->b8, (raw_p)1, (raw_p)0, (raw_p)1);
+                        if (!a->b8) {
+                            drop_obj(a);
+                            AS_LIST(res)[j] = NULL_OBJ;
+                        }
+                        continue;
+                    }
+
+                    // b8(TRUE) with B8 vector: result is vector
+                    if (a->type == -TYPE_B8) {
+                        op_func(AS_B8(b), &a->b8, (raw_p)b->len, (raw_p)0, (raw_p)0);
+                        drop_obj(a);
+                        AS_LIST(res)[j] = b;
+                        AS_LIST(next)[j] = NULL_OBJ;
+                        continue;
+                    }
+                    if (b->type == -TYPE_B8) {
+                        op_func(AS_B8(a), &b->b8, (raw_p)a->len, (raw_p)0, (raw_p)0);
+                        continue;
+                    }
+
+                    // Both B8 vectors: element-wise
+                    op_func(AS_B8(a), AS_B8(b), (raw_p)a->len, (raw_p)0, (raw_p)1);
+                }
+
+                drop_obj(next);
+                break;
+
             default:
                 drop_obj(res);
                 drop_obj(next);

@@ -477,15 +477,46 @@ obj_p aggr_first(obj_p val, obj_p index) {
         //     drop_obj(parts);
         //     return res;
         case TYPE_PARTEDLIST:
+            filter = index_group_filter(index);
             res = LIST(n);
-            for (i = 0; i < n; i++)
-                AS_LIST(res)[i] = at_idx(AS_LIST(val)[i], 0);
+            if (filter == NULL_OBJ) {
+                // No filter - iterate over all partitions
+                for (i = 0; i < n; i++)
+                    AS_LIST(res)[i] = at_idx(AS_LIST(val)[i], 0);
+            } else {
+                // With filter - iterate all partitions, only take matching ones
+                l = filter->len;
+                for (i = 0, j = 0; i < l; i++) {
+                    obj_p fentry = AS_LIST(filter)[i];
+                    // Check for non-null AND non-empty filter entry
+                    if (fentry != NULL_OBJ) {
+                        if ((fentry->type == -TYPE_I64 && fentry->i64 == -1) || fentry->len > 0) {
+                            AS_LIST(res)[j++] = at_idx(AS_LIST(val)[i], 0);
+                        }
+                    }
+                }
+                res->len = j;
+            }
             return res;
-        case TYPE_PARTEDB8:
         case TYPE_PARTEDU8:
+            filter = index_group_filter(index);
             res = vector(AS_LIST(val)[0]->type, n);
-            for (i = 0; i < n; i++)
-                AS_B8(res)[i] = AS_B8(AS_LIST(val)[i])[0];
+            if (filter == NULL_OBJ) {
+                // No filter - iterate over all partitions
+                for (i = 0; i < n; i++)
+                    AS_B8(res)[i] = AS_B8(AS_LIST(val)[i])[0];
+            } else {
+                // With filter - iterate all partitions, only take matching ones
+                l = filter->len;
+                for (i = 0, j = 0; i < l; i++) {
+                    obj_p fentry = AS_LIST(filter)[i];
+                    if (fentry != NULL_OBJ) {
+                        if ((fentry->type == -TYPE_I64 && fentry->i64 == -1) || fentry->len > 0) {
+                            AS_B8(res)[j++] = AS_B8(AS_LIST(val)[i])[0];
+                        }
+                    }
+                }
+            }
             return res;
         case TYPE_PARTEDI64:
         case TYPE_PARTEDTIMESTAMP:
@@ -597,9 +628,9 @@ obj_p aggr_last_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p ar
 }
 
 obj_p aggr_last(obj_p val, obj_p index) {
-    i64_t i, n;
+    i64_t i, j, n, l;
     i64_t *xo, *xe;
-    obj_p parts, res, ek, sym;
+    obj_p parts, res, ek, sym, filter;
 
     n = index_group_count(index);
 
@@ -662,9 +693,25 @@ obj_p aggr_last(obj_p val, obj_p index) {
             drop_obj(parts);
             return res;
         case TYPE_PARTEDLIST:
+            filter = index_group_filter(index);
             res = LIST(n);
-            for (i = 0; i < n; i++)
-                AS_LIST(res)[i] = at_idx(AS_LIST(val)[i], -1);
+            if (filter == NULL_OBJ) {
+                // No filter - iterate over all partitions
+                for (i = 0; i < n; i++)
+                    AS_LIST(res)[i] = at_idx(AS_LIST(val)[i], -1);
+            } else {
+                // With filter - iterate all partitions, only take matching ones
+                l = filter->len;
+                for (i = 0, j = 0; i < l; i++) {
+                    obj_p fentry = AS_LIST(filter)[i];
+                    if (fentry != NULL_OBJ) {
+                        if ((fentry->type == -TYPE_I64 && fentry->i64 == -1) || fentry->len > 0) {
+                            AS_LIST(res)[j++] = at_idx(AS_LIST(val)[i], -1);
+                        }
+                    }
+                }
+                res->len = j;
+            }
             return res;
         default:
             return ray_error(ERR_TYPE, "last: unsupported type: '%s'", type_name(val->type));
@@ -959,8 +1006,8 @@ obj_p aggr_dev(obj_p val, obj_p index) {
 }
 
 obj_p aggr_collect(obj_p val, obj_p index) {
-    i64_t i, l, n;
-    obj_p k, v, res;
+    i64_t i, j, l, n;
+    obj_p k, v, res, filter;
 
     l = index_group_len(index);
     n = index_group_count(index);
@@ -1017,6 +1064,31 @@ obj_p aggr_collect(obj_p val, obj_p index) {
             return res;
         case TYPE_LIST:
             AGGR_ITER(index, l, 0, val, res, list, list, , push_obj($out + $y, clone_obj($in[$x])), );
+            return res;
+        case TYPE_PARTEDF64:
+        case TYPE_PARTEDI64:
+        case TYPE_PARTEDTIMESTAMP:
+        case TYPE_PARTEDGUID:
+        case TYPE_PARTEDENUM:
+        case TYPE_PARTEDLIST:
+            // For parted types with INDEX_TYPE_PARTEDCOMMON, each partition is a group
+            // Collect all values from matching partitions
+            drop_obj(res);
+            filter = index_group_filter(index);
+            res = LIST(n);
+            if (filter == NULL_OBJ) {
+                // No filter - each partition is a group
+                for (i = 0; i < (i64_t)val->len; i++)
+                    AS_LIST(res)[i] = ray_value(AS_LIST(val)[i]);
+            } else {
+                // With filter - only include matching partitions
+                l = filter->len;
+                for (i = 0, j = 0; i < l; i++) {
+                    if (AS_LIST(filter)[i] != NULL_OBJ)
+                        AS_LIST(res)[j++] = ray_value(AS_LIST(val)[i]);
+                }
+                res->len = j;
+            }
             return res;
         default:
             drop_obj(res);
