@@ -21,6 +21,7 @@
  *   SOFTWARE.
  */
 
+#include <math.h>
 #include "aggr.h"
 #include "math.h"
 #include "ops.h"
@@ -33,6 +34,7 @@
 #include "runtime.h"
 #include "index.h"
 #include "pool.h"
+#include "order.h"
 
 i64_t indexr_bin_i32_(i32_t val, i32_t vals[], i64_t offset, i64_t len) {
     i64_t left, right, mid, idx;
@@ -1387,26 +1389,629 @@ obj_p aggr_avg(obj_p val, obj_p index) {
     }
 }
 
-obj_p aggr_med(obj_p val, obj_p index) {
-    obj_p res;
+// Partial function for median - computes median for each collected group
+obj_p aggr_med_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
+    i64_t len = (i64_t)arg1, offset = (i64_t)arg2;
+    obj_p collected = (obj_p)arg3, res = (obj_p)arg5;
+    UNUSED(arg4);
 
-    // TODO: implement incremental median
-    val = aggr_collect(val, index);
-    res = ray_med(val);
-    drop_obj(val);
+    i64_t i, l;
+    i64_t *xisort;
+    f64_t *xfsort;
+    f64_t med;
+    f64_t *fo = AS_F64(res);
+    obj_p grp, sorted;
+
+    for (i = offset; i < offset + len; i++) {
+        grp = AS_LIST(collected)[i];
+        l = grp->len;
+
+        if (l == 0) {
+            fo[i] = NULL_F64;
+            continue;
+        }
+
+        switch (grp->type) {
+            case TYPE_I64:
+            case TYPE_TIMESTAMP: {
+                i64_t mid = l / 2;
+                sorted = ray_asc(grp);
+                xisort = AS_I64(sorted);
+                if (l % 2 == 0)
+                    med = ((f64_t)xisort[mid - 1] + (f64_t)xisort[mid]) / 2.0;
+                else
+                    med = (f64_t)xisort[mid];
+                drop_obj(sorted);
+                fo[i] = med;
+                break;
+            }
+            case TYPE_F64: {
+                i64_t mid = l / 2;
+                sorted = ray_asc(grp);
+                xfsort = AS_F64(sorted);
+                if (l % 2 == 0)
+                    med = (xfsort[mid - 1] + xfsort[mid]) / 2.0;
+                else
+                    med = xfsort[mid];
+                drop_obj(sorted);
+                fo[i] = med;
+                break;
+            }
+            default:
+                fo[i] = NULL_F64;
+                break;
+        }
+    }
 
     return res;
 }
 
-obj_p aggr_dev(obj_p val, obj_p index) {
+static obj_p aggr_map_med(obj_p collected, obj_p index) {
+    pool_p pool = runtime_get()->pool;
+    i64_t i, l, n, chunk;
     obj_p res;
+    raw_p argv[6];
 
-    // TODO: implement incremental stddev
-    val = aggr_collect(val, index);
-    res = ray_dev(val);
-    drop_obj(val);
+    n = collected->len;
+    l = pool_get_executors_count(pool);
+
+    if (l > n)
+        l = n;
+
+    res = F64(n);
+
+    if (l == 1) {
+        argv[0] = (raw_p)n;
+        argv[1] = (raw_p)0;
+        argv[2] = collected;
+        argv[3] = index;
+        argv[4] = (raw_p)res;
+        res = pool_call_task_fn((raw_p)aggr_med_partial, 5, argv);
+        return res;
+    }
+
+    pool_prepare(pool);
+    chunk = n / l;
+
+    for (i = 0; i < l - 1; i++)
+        pool_add_task(pool, (raw_p)aggr_med_partial, 5, chunk, i * chunk, collected, index, clone_obj(res));
+
+    pool_add_task(pool, (raw_p)aggr_med_partial, 5, n - i * chunk, i * chunk, collected, index, clone_obj(res));
+
+    obj_p v = pool_run(pool);
+    if (IS_ERR(v)) {
+        drop_obj(res);
+        return v;
+    }
+    drop_obj(v);
+    return res;
+}
+
+obj_p aggr_med(obj_p val, obj_p index) {
+    obj_p collected, res;
+
+    // Collect values into groups first (this is parallelized via aggr_collect)
+    collected = aggr_collect(val, index);
+    if (IS_ERR(collected))
+        return collected;
+
+    // Then compute median for each group in parallel
+    res = aggr_map_med(collected, index);
+    drop_obj(collected);
 
     return res;
+}
+
+// Partial function for stddev - accumulates sum, sum_sq, and count in one pass
+// Result structure: list of [sum (f64), sum_sq (f64), count (i64)]
+obj_p aggr_dev_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
+    i64_t len = (i64_t)arg1, offset = (i64_t)arg2;
+    obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
+
+    // res is a list: [sum (f64), sum_sq (f64), count (i64)]
+    obj_p sum_obj = AS_LIST(res)[0];
+    obj_p sumsq_obj = AS_LIST(res)[1];
+    obj_p cnt_obj = AS_LIST(res)[2];
+
+    i64_t i, x, y, n, o;
+    i64_t *group_ids, *source, *filter;
+    i64_t shift;
+    index_type_t index_type;
+    f64_t *so, *sqo;
+    i64_t *co;
+    f64_t v;
+
+    index_type = index_group_type(index);
+    n = (index_type == INDEX_TYPE_PARTEDCOMMON) ? 1 : index_group_count(index);
+    if (index_type == INDEX_TYPE_WINDOW)
+        n = len;
+    o = (index_type == INDEX_TYPE_WINDOW) ? offset : 0;
+    group_ids = index_group_ids(index);
+    filter = index_group_filter_ids(index);
+
+    so = AS_F64(sum_obj);
+    sqo = AS_F64(sumsq_obj);
+    co = AS_I64(cnt_obj);
+
+    // Initialize
+    for (y = o; y < n + o; ++y) {
+        so[y] = 0.0;
+        sqo[y] = 0.0;
+        co[y] = 0;
+    }
+
+    switch (val->type) {
+        case TYPE_I64:
+        case TYPE_TIMESTAMP: {
+            i64_t *in = AS_I64(val);
+
+            switch (index_type) {
+                case INDEX_TYPE_SHIFT:
+                    source = index_group_source(index);
+                    shift = index_group_shift(index);
+                    if (filter != NULL) {
+                        for (i = 0; i < len; ++i) {
+                            x = filter[i + offset];
+                            y = group_ids[source[x] - shift];
+                            if (in[x] != NULL_I64) {
+                                v = (f64_t)in[x];
+                                so[y] += v;
+                                sqo[y] += v * v;
+                                co[y]++;
+                            }
+                        }
+                    } else {
+                        for (i = 0; i < len; ++i) {
+                            x = i + offset;
+                            y = group_ids[source[x] - shift];
+                            if (in[x] != NULL_I64) {
+                                v = (f64_t)in[x];
+                                so[y] += v;
+                                sqo[y] += v * v;
+                                co[y]++;
+                            }
+                        }
+                    }
+                    break;
+                case INDEX_TYPE_IDS:
+                    if (filter != NULL) {
+                        for (i = 0; i < len; ++i) {
+                            x = filter[i + offset];
+                            y = group_ids[i + offset];
+                            if (in[x] != NULL_I64) {
+                                v = (f64_t)in[x];
+                                so[y] += v;
+                                sqo[y] += v * v;
+                                co[y]++;
+                            }
+                        }
+                    } else {
+                        for (i = 0; i < len; ++i) {
+                            x = i + offset;
+                            y = group_ids[x];
+                            if (in[x] != NULL_I64) {
+                                v = (f64_t)in[x];
+                                so[y] += v;
+                                sqo[y] += v * v;
+                                co[y]++;
+                            }
+                        }
+                    }
+                    break;
+                case INDEX_TYPE_PARTEDCOMMON:
+                    for (i = 0; i < len; ++i) {
+                        x = i + offset;
+                        if (in[x] != NULL_I64) {
+                            v = (f64_t)in[x];
+                            so[0] += v;
+                            sqo[0] += v * v;
+                            co[0]++;
+                        }
+                    }
+                    break;
+                case INDEX_TYPE_WINDOW: {
+                    i64_t li, ri, fi, ti, kl, kr, it;
+                    obj_p rn;
+                    it = index_group_meta(index)->i64;
+                    for (i = offset; i < offset + len; ++i) {
+                        y = i;
+                        rn = AS_LIST(AS_LIST(index)[5])[i];
+                        if (rn != NULL_OBJ) {
+                            fi = AS_I64(rn)[0];
+                            ti = AS_I64(rn)[1];
+                            kl = AS_I32(AS_LIST(AS_LIST(index)[4])[0])[i];
+                            kr = AS_I32(AS_LIST(AS_LIST(index)[4])[1])[i];
+                            if (it == 0) {
+                                li = indexr_bin_i32_(kl, AS_I32(AS_LIST(index)[3]), fi, ti - fi + 1);
+                            } else {
+                                li = indexl_bin_i32_(kl, AS_I32(AS_LIST(index)[3]), fi, ti - fi + 1);
+                            }
+                            ri = indexr_bin_i32_(kr, AS_I32(AS_LIST(index)[3]), fi, ti - fi + 1);
+                        }
+                        if (rn == NULL_OBJ || AS_I32(AS_LIST(index)[3])[li] > kr ||
+                            (it == 1 && AS_I32(AS_LIST(index)[3])[ri] < kl)) {
+                            so[y] = NULL_F64;
+                            sqo[y] = NULL_F64;
+                            co[y] = 0;
+                        } else {
+                            for (x = li; x <= ri; ++x) {
+                                if (in[x] != NULL_I64) {
+                                    v = (f64_t)in[x];
+                                    so[y] += v;
+                                    sqo[y] += v * v;
+                                    co[y]++;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            return res;
+        }
+        case TYPE_F64: {
+            f64_t *in = AS_F64(val);
+
+            switch (index_type) {
+                case INDEX_TYPE_SHIFT:
+                    source = index_group_source(index);
+                    shift = index_group_shift(index);
+                    if (filter != NULL) {
+                        for (i = 0; i < len; ++i) {
+                            x = filter[i + offset];
+                            y = group_ids[source[x] - shift];
+                            if (!ISNANF64(in[x])) {
+                                v = in[x];
+                                so[y] += v;
+                                sqo[y] += v * v;
+                                co[y]++;
+                            }
+                        }
+                    } else {
+                        for (i = 0; i < len; ++i) {
+                            x = i + offset;
+                            y = group_ids[source[x] - shift];
+                            if (!ISNANF64(in[x])) {
+                                v = in[x];
+                                so[y] += v;
+                                sqo[y] += v * v;
+                                co[y]++;
+                            }
+                        }
+                    }
+                    break;
+                case INDEX_TYPE_IDS:
+                    if (filter != NULL) {
+                        for (i = 0; i < len; ++i) {
+                            x = filter[i + offset];
+                            y = group_ids[i + offset];
+                            if (!ISNANF64(in[x])) {
+                                v = in[x];
+                                so[y] += v;
+                                sqo[y] += v * v;
+                                co[y]++;
+                            }
+                        }
+                    } else {
+                        for (i = 0; i < len; ++i) {
+                            x = i + offset;
+                            y = group_ids[x];
+                            if (!ISNANF64(in[x])) {
+                                v = in[x];
+                                so[y] += v;
+                                sqo[y] += v * v;
+                                co[y]++;
+                            }
+                        }
+                    }
+                    break;
+                case INDEX_TYPE_PARTEDCOMMON:
+                    for (i = 0; i < len; ++i) {
+                        x = i + offset;
+                        if (!ISNANF64(in[x])) {
+                            v = in[x];
+                            so[0] += v;
+                            sqo[0] += v * v;
+                            co[0]++;
+                        }
+                    }
+                    break;
+                case INDEX_TYPE_WINDOW: {
+                    i64_t li, ri, fi, ti, kl, kr, it;
+                    obj_p rn;
+                    it = index_group_meta(index)->i64;
+                    for (i = offset; i < offset + len; ++i) {
+                        y = i;
+                        rn = AS_LIST(AS_LIST(index)[5])[i];
+                        if (rn != NULL_OBJ) {
+                            fi = AS_I64(rn)[0];
+                            ti = AS_I64(rn)[1];
+                            kl = AS_I32(AS_LIST(AS_LIST(index)[4])[0])[i];
+                            kr = AS_I32(AS_LIST(AS_LIST(index)[4])[1])[i];
+                            if (it == 0) {
+                                li = indexr_bin_i32_(kl, AS_I32(AS_LIST(index)[3]), fi, ti - fi + 1);
+                            } else {
+                                li = indexl_bin_i32_(kl, AS_I32(AS_LIST(index)[3]), fi, ti - fi + 1);
+                            }
+                            ri = indexr_bin_i32_(kr, AS_I32(AS_LIST(index)[3]), fi, ti - fi + 1);
+                        }
+                        if (rn == NULL_OBJ || AS_I32(AS_LIST(index)[3])[li] > kr ||
+                            (it == 1 && AS_I32(AS_LIST(index)[3])[ri] < kl)) {
+                            so[y] = NULL_F64;
+                            sqo[y] = NULL_F64;
+                            co[y] = 0;
+                        } else {
+                            for (x = li; x <= ri; ++x) {
+                                if (!ISNANF64(in[x])) {
+                                    v = in[x];
+                                    so[y] += v;
+                                    sqo[y] += v * v;
+                                    co[y]++;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            return res;
+        }
+        default:
+            // Clean up the list contents and return error
+            drop_obj(sum_obj);
+            drop_obj(sumsq_obj);
+            drop_obj(cnt_obj);
+            res->len = 0;
+            drop_obj(res);
+            return ray_error(ERR_TYPE, "dev: unsupported type: '%s'", type_name(val->type));
+    }
+}
+
+static obj_p aggr_map_dev_other(obj_p val, obj_p index) {
+    pool_p pool = runtime_get()->pool;
+    i64_t i, l, n, group_count, group_len, out_len, chunk;
+    obj_p res, sc;
+    raw_p argv[6];
+
+    group_count = index_group_count(index);
+    group_len = index_group_len(index);
+    out_len = group_count;
+
+    n = pool_split_by(pool, group_len, group_count);
+
+    if (n == 1) {
+        argv[0] = (raw_p)group_len;
+        argv[1] = (raw_p)0;
+        argv[2] = val;
+        argv[3] = index;
+        sc = vn_list(3, F64(out_len), F64(out_len), I64(out_len));
+        argv[4] = (raw_p)sc;
+        res = pool_call_task_fn((raw_p)aggr_dev_partial, 5, argv);
+        return vn_list(1, res);
+    }
+
+    pool_prepare(pool);
+    l = group_len;
+    chunk = l / n;
+
+    for (i = 0; i < n - 1; i++) {
+        sc = vn_list(3, F64(out_len), F64(out_len), I64(out_len));
+        pool_add_task(pool, (raw_p)aggr_dev_partial, 5, chunk, i * chunk, val, index, sc);
+    }
+
+    sc = vn_list(3, F64(out_len), F64(out_len), I64(out_len));
+    pool_add_task(pool, (raw_p)aggr_dev_partial, 5, l - i * chunk, i * chunk, val, index, sc);
+
+    return pool_run(pool);
+}
+
+static obj_p aggr_map_dev_parted(obj_p val, obj_p index) {
+    pool_p pool = runtime_get()->pool;
+    i64_t i, l, n, group_count, group_len, out_len, chunk;
+    obj_p res, sc;
+    raw_p argv[6];
+
+    group_count = index_group_count(index);
+    group_len = val->len;
+    out_len = 1;
+
+    n = pool_split_by(pool, group_len, group_count);
+
+    if (n == 1) {
+        argv[0] = (raw_p)group_len;
+        argv[1] = (raw_p)0;
+        argv[2] = val;
+        argv[3] = index;
+        sc = vn_list(3, F64(out_len), F64(out_len), I64(out_len));
+        argv[4] = (raw_p)sc;
+        res = pool_call_task_fn((raw_p)aggr_dev_partial, 5, argv);
+        return vn_list(1, res);
+    }
+
+    pool_prepare(pool);
+    l = group_len;
+    chunk = l / n;
+
+    for (i = 0; i < n - 1; i++) {
+        sc = vn_list(3, F64(out_len), F64(out_len), I64(out_len));
+        pool_add_task(pool, (raw_p)aggr_dev_partial, 5, chunk, i * chunk, val, index, sc);
+    }
+
+    sc = vn_list(3, F64(out_len), F64(out_len), I64(out_len));
+    pool_add_task(pool, (raw_p)aggr_dev_partial, 5, l - i * chunk, i * chunk, val, index, sc);
+
+    return pool_run(pool);
+}
+
+static obj_p aggr_map_dev_window(obj_p val, obj_p index) {
+    pool_p pool = runtime_get()->pool;
+    i64_t i, l, n, group_count, group_len, out_len, chunk;
+    obj_p v, res, sc;
+    raw_p argv[6];
+
+    group_count = index_group_count(index);
+    group_len = index_group_len(index);
+    out_len = group_count;
+
+    n = pool_get_executors_count(pool);
+    res = vn_list(3, F64(out_len), F64(out_len), I64(out_len));
+
+    if (n == 1) {
+        argv[0] = (raw_p)group_len;
+        argv[1] = (raw_p)0;
+        argv[2] = val;
+        argv[3] = index;
+        argv[4] = (raw_p)res;
+        res = pool_call_task_fn((raw_p)aggr_dev_partial, 5, argv);
+        return vn_list(1, res);
+    }
+
+    if (n > group_count)
+        n = group_count;
+
+    pool_prepare(pool);
+    l = group_len;
+    chunk = l / n;
+
+    for (i = 0; i < n - 1; i++) {
+        sc = vn_list(3, clone_obj(AS_LIST(res)[0]), clone_obj(AS_LIST(res)[1]), clone_obj(AS_LIST(res)[2]));
+        pool_add_task(pool, (raw_p)aggr_dev_partial, 5, chunk, i * chunk, val, index, sc);
+    }
+
+    sc = vn_list(3, clone_obj(AS_LIST(res)[0]), clone_obj(AS_LIST(res)[1]), clone_obj(AS_LIST(res)[2]));
+    pool_add_task(pool, (raw_p)aggr_dev_partial, 5, l - i * chunk, i * chunk, val, index, sc);
+
+    v = pool_run(pool);
+    if (IS_ERR(v)) {
+        drop_obj(res);
+        return v;
+    }
+    drop_obj(v);
+    return vn_list(1, res);
+}
+
+static obj_p aggr_map_dev(obj_p val, obj_p index) {
+    switch (index_group_type(index)) {
+        case INDEX_TYPE_PARTEDCOMMON:
+            return aggr_map_dev_parted(val, index);
+        case INDEX_TYPE_WINDOW:
+            return aggr_map_dev_window(val, index);
+        default:
+            return aggr_map_dev_other(val, index);
+    }
+}
+
+obj_p aggr_dev(obj_p val, obj_p index) {
+    i64_t i, j, l, n;
+    f64_t *so, *sqo, *fo;
+    f64_t mean, variance;
+    i64_t *co;
+    obj_p parts, res, part;
+
+    n = index_group_count(index);
+
+    switch (val->type) {
+        case TYPE_I64:
+        case TYPE_TIMESTAMP:
+        case TYPE_F64:
+            parts = aggr_map_dev(val, index);
+            if (IS_ERR(parts))
+                return parts;
+
+            // Collect and combine partial results: parts is list of [sum, sum_sq, count] lists
+            l = parts->len;
+            res = F64(n);
+            fo = AS_F64(res);
+
+            // Initialize from first partition
+            part = AS_LIST(parts)[0];
+            so = AS_F64(AS_LIST(part)[0]);
+            sqo = AS_F64(AS_LIST(part)[1]);
+            co = AS_I64(AS_LIST(part)[2]);
+
+            // Copy first partition's values to result arrays for accumulation
+            f64_t *acc_sum = AS_F64(AS_LIST(part)[0]);
+            f64_t *acc_sumsq = AS_F64(AS_LIST(part)[1]);
+            i64_t *acc_cnt = AS_I64(AS_LIST(part)[2]);
+
+            // Combine remaining partitions
+            for (j = 1; j < l; j++) {
+                part = AS_LIST(parts)[j];
+                so = AS_F64(AS_LIST(part)[0]);
+                sqo = AS_F64(AS_LIST(part)[1]);
+                co = AS_I64(AS_LIST(part)[2]);
+                for (i = 0; i < n; i++) {
+                    acc_sum[i] += so[i];
+                    acc_sumsq[i] += sqo[i];
+                    acc_cnt[i] += co[i];
+                }
+            }
+
+            // Final computation: stddev = sqrt(sum_sq/n - (sum/n)^2)
+            for (i = 0; i < n; i++) {
+                if (acc_cnt[i] == 0) {
+                    fo[i] = NULL_F64;
+                } else if (acc_cnt[i] == 1) {
+                    fo[i] = 0.0;
+                } else {
+                    mean = acc_sum[i] / (f64_t)acc_cnt[i];
+                    variance = acc_sumsq[i] / (f64_t)acc_cnt[i] - mean * mean;
+                    // Handle floating point errors that might make variance slightly negative
+                    fo[i] = (variance < 0.0) ? 0.0 : sqrt(variance);
+                }
+            }
+
+            drop_obj(parts);
+            return res;
+
+        case TYPE_PARTEDI64:
+        case TYPE_PARTEDF64: {
+            obj_p filter, pparts, ppart;
+            f64_t total_sum, total_sumsq;
+            i64_t total_cnt;
+
+            filter = index_group_filter(index);
+            l = val->len;
+            res = F64(n);
+            fo = AS_F64(res);
+
+            for (i = 0, j = 0; i < l; i++) {
+                if (filter == NULL_OBJ || AS_LIST(filter)[i] != NULL_OBJ) {
+                    pparts = aggr_map_dev(AS_LIST(val)[i], index);
+                    if (IS_ERR(pparts)) {
+                        drop_obj(res);
+                        return pparts;
+                    }
+
+                    // Combine all partial results for this partition
+                    total_sum = 0.0;
+                    total_sumsq = 0.0;
+                    total_cnt = 0;
+                    for (i64_t k = 0; k < pparts->len; k++) {
+                        ppart = AS_LIST(pparts)[k];
+                        total_sum += AS_F64(AS_LIST(ppart)[0])[0];
+                        total_sumsq += AS_F64(AS_LIST(ppart)[1])[0];
+                        total_cnt += AS_I64(AS_LIST(ppart)[2])[0];
+                    }
+
+                    if (total_cnt == 0) {
+                        fo[j++] = NULL_F64;
+                    } else if (total_cnt == 1) {
+                        fo[j++] = 0.0;
+                    } else {
+                        mean = total_sum / (f64_t)total_cnt;
+                        variance = total_sumsq / (f64_t)total_cnt - mean * mean;
+                        fo[j++] = (variance < 0.0) ? 0.0 : sqrt(variance);
+                    }
+                    drop_obj(pparts);
+                }
+            }
+            return res;
+        }
+
+        default:
+            return ray_error(ERR_TYPE, "dev: unsupported type: '%s'", type_name(val->type));
+    }
 }
 
 obj_p aggr_collect(obj_p val, obj_p index) {
