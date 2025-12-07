@@ -34,18 +34,20 @@ i64_t fs_fopen(lit_p path, i64_t attrs) {
     DWORD flags = FILE_ATTRIBUTE_NORMAL;
     DWORD disposition = OPEN_ALWAYS;
 
-    s = cstring_from_str(path, strlen(path));
-    tmp_path = AS_C8(s);
-    p = tmp_path;
+    if (attrs & ATTR_WRONLY){
+        s = cstring_from_str(path, strlen(path));
+        tmp_path = AS_C8(s);
+        p = tmp_path;
 
-    while ((slash = strchr(p + 1, '/')) != NULL) {
-        *slash = '\0';
-        CreateDirectory(tmp_path, NULL);
-        *slash = '/';
-        p = slash;
+        while ((slash = strchr(p + 1, '/')) != NULL) {
+            *slash = '\0';
+            CreateDirectory(tmp_path, NULL);
+            *slash = '/';
+            p = slash;
+        }
+
+        drop_obj(s);
     }
-
-    drop_obj(s);
 
     // Handle append flag
     if (attrs & ATTR_APPEND) {
@@ -254,18 +256,18 @@ i64_t fs_fopen(lit_p path, i64_t attrs) {
     obj_p s;
     str_p tmp_path, p, slash;
 
-    s = cstring_from_str(path, strlen(path));
-    tmp_path = AS_C8(s);
-    p = tmp_path;
-
-    while ((slash = strchr(p + 1, '/')) != NULL) {
-        *slash = '\0';
-        fs_dcreate(tmp_path);
-        *slash = '/';
-        p = slash;
+    if (attrs & ATTR_CREAT) {
+        s = cstring_from_str(path, strlen(path));
+        tmp_path = AS_C8(s);
+        p = tmp_path;
+        while ((slash = strchr(p + 1, '/')) != NULL) {
+            *slash = '\0';
+            fs_dcreate(tmp_path);
+            *slash = '/';
+            p = slash;
+        }
+        drop_obj(s);
     }
-
-    drop_obj(s);
 
     return open(path, attrs, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 }
