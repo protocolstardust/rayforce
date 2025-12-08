@@ -1,0 +1,536 @@
+/* ============================================================================
+   HERO SECTION - TWO COLUMN LAYOUT WITH CODE EDITOR
+   ============================================================================ */
+
+/* ============================================================================
+   HERO SECTION AS FULL-WINDOW OVERLAY
+   ============================================================================ */
+
+/* Prevent body scroll when hero section is present */
+body:has(.hero-section) {
+  overflow: hidden !important;
+}
+
+/* Hide page title on hero section pages */
+.md-content__inner:has(.hero-section) h1:first-of-type:not(.hero-title),
+.md-content__inner:has(.hero-section) > h1:first-child:not(.hero-title),
+.md-content__inner:has(.hero-section) > .md-typeset > h1:first-child:not(.hero-title) {
+  display: none !important;
+}
+
+/* Ensure hero section is above all other content */
+body:has(.hero-section) .md-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero Section Container - Fixed overlay covering entire viewport */
+.hero-section {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  z-index: 1000 !important;
+  background-color: var(--navy-900);
+}
+
+/* Background with subtle grid pattern and large yellow glow */
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background-color: var(--navy-900);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+  /* Large yellow gradient glow for entire window */
+  background: 
+    radial-gradient(
+      ellipse 150% 100% at 50% 50%,
+      rgba(233, 163, 32, 0.12) 0%,
+      rgba(233, 163, 32, 0.06) 40%,
+      transparent 70%
+    ),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    var(--navy-900);
+  background-size: 100% 100%, 50px 50px, 50px 50px, 100% 100%;
+}
+
+/* Container for two-column layout */
+.hero-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1600px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 4rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  padding: 4rem;
+  box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   LEFT COLUMN - MARKETING CONTENT
+   ============================================================================ */
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  color: white;
+  position: relative;
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* License Badge */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  width: fit-content;
+}
+
+.badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+}
+
+/* Main Title */
+.hero-title {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: flex-start;
+  gap: 1rem;
+  text-align: left;
+  width: 100%;
+}
+
+/* Hero Logo */
+.hero-logo {
+  height: auto;
+  max-width: 100%;
+  width: auto;
+  max-height: 600px;
+  display: block;
+  margin: 0;
+  padding: 0;
+  object-fit: contain;
+  align-self: flex-start;
+}
+
+.title-part1 {
+  color: white;
+}
+
+.title-part2 {
+  color: var(--accent-primary);
+  align-self: flex-start;
+  text-align: left;
+}
+
+/* Description */
+.hero-description {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  max-width: 600px;
+}
+
+/* Info Box */
+.hero-info-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  width: fit-content;
+  position: relative;
+}
+
+.info-icon {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.hero-info-box strong {
+  color: white;
+}
+
+/* Buttons */
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  position: relative;
+}
+
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.hero-btn-primary {
+  background: var(--navy-900) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.hero-btn-primary:hover {
+  background: rgba(10, 14, 23, 0.9) !important;
+  color: white !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode specific styling for primary button */
+[data-md-color-scheme="slate"] .hero-btn-primary {
+  background: var(--navy-900) !important;
+  color: white !important;
+}
+
+[data-md-color-scheme="slate"] .hero-btn-primary:hover {
+  background: rgba(10, 14, 23, 0.9) !important;
+  color: white !important;
+}
+
+.hero-btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hero-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 1rem;
+}
+
+/* Install Command Box */
+.hero-install-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  width: fit-content;
+  margin-top: 0.5rem;
+  position: relative;
+}
+
+.hero-install-box code {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9375rem;
+  padding: 0;
+  border: none;
+}
+
+.copy-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+  transition: color 0.2s ease;
+}
+
+.copy-btn:hover {
+  color: white;
+}
+
+/* ============================================================================
+   RIGHT COLUMN - CODE EDITOR
+   ============================================================================ */
+
+.hero-right {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.code-editor {
+  width: 100%;
+  max-width: 700px;
+  min-width: 600px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Window Controls (macOS style) */
+.code-window-controls {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.25rem 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.window-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.window-dot-red {
+  background: #ff5f56;
+}
+
+.window-dot-yellow {
+  background: #ffbd2e;
+}
+
+.window-dot-green {
+  background: #27c93f;
+}
+
+/* Code Tabs - Hidden */
+.code-tabs {
+  display: none !important;
+}
+
+/* Code Content */
+.code-content {
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+  overflow-x: auto;
+  overflow-y: auto;
+  height: 600px !important;
+  max-height: 600px !important;
+  min-height: 600px !important;
+  width: 100%;
+  line-height: 0.5;
+  flex: 1;
+}
+
+.code-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.code-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.code-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.code-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.code-content pre {
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.58rem;
+  line-height: 0.5;
+  counter-reset: line;
+  position: relative;
+  padding-left: 2.5rem;
+  white-space: pre;
+  overflow-x: visible;
+  min-width: fit-content;
+}
+
+.code-content code {
+  background: transparent !important;
+  padding: 0;
+  border: none;
+  color: inherit;
+  font-size: inherit;
+  display: block;
+}
+
+.code-line {
+  display: block;
+  counter-increment: line;
+  position: relative;
+  padding-left: 0;
+  min-height: 1em;
+  margin: 0;
+  padding: 0;
+  white-space: pre;
+  overflow-x: visible;
+  line-height: 1;
+}
+
+.code-line::before {
+  content: counter(line);
+  position: absolute;
+  left: -2.5rem;
+  width: 2rem;
+  text-align: right;
+  padding-right: 0.5rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.5rem;
+  user-select: none;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.code-comment {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.code-keyword {
+  color: var(--accent-primary);
+}
+
+.code-string {
+  color: #34d399;
+}
+
+.code-number {
+  color: var(--accent-primary);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+@media screen and (max-width: 1024px) {
+  .hero-container {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    padding: 0 2rem;
+  }
+  
+  .hero-right {
+    order: -1;
+  }
+  
+  .code-editor {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .code-content {
+    height: 600px;
+    max-height: 600px;
+    min-height: 600px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .hero-section {
+    height: 100vh !important;
+    min-height: 100vh !important;
+  }
+  
+  .hero-container {
+    padding: 2rem 1.5rem;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .hero-logo {
+    max-height: 80px;
+  }
+  
+  .hero-description {
+    font-size: 1rem;
+  }
+  
+  .hero-buttons {
+    flex-direction: column;
+  }
+  
+  .hero-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .code-content {
+    padding: 1rem;
+  }
+  
+  .code-content pre {
+    font-size: 0.75rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .hero-container {
+    padding: 1.5rem 1rem;
+  }
+  
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .hero-logo {
+    max-height: 60px;
+  }
+  
+  .hero-badge,
+  .hero-info-box,
+  .hero-install-box {
+    font-size: 0.8125rem;
+  }
+}

@@ -1,69 +1,65 @@
 site_name: RayforceDB
-repo_url: https://github.com/singaraiona/rayforce
+repo_url: https://github.com/RayforceDB/rayforce
 repo_name: GitHub
 
 theme:
   name: material
-  # custom_dir: overrides
   icon:
     repo: fontawesome/brands/github 
-  # logo: assets/logo.png
-  favicon: images/favicon.png
+  favicon: assets/logo.png
   features:
-    - header.autohide
-    - announce.dismiss
-    # - navigation.tabs
-    - navigation.sections
-    - navigation.top
-    - navigation.indexes
-    - search.suggest
-    - search.highlight
-    - navigation.footer
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
     - content.code.copy
-    # - content.action.view
-    - toc.follow
+    - content.tooltips
+    - navigation.expand
+    - navigation.indexes
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
 
   palette:
-    # Light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: blue       # Milvus-style blue
-      accent: light blue # Lighter accent like Milvus
+      primary: amber
+      accent: amber
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    # Dark mode    
+
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: blue      # Keep consistent branding
-      accent: light blue # Keep consistent accent
+      primary: amber
+      accent: amber
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+
   font:
-    text: Roboto
-    code: JetBrains Mono  # Changed to JetBrains Mono for better code readability
-  icon:
-    logo: material/lumx
+    text: Outfit
+    code: JetBrains Mono
+
+  logo: assets/logo.png
 
 
 extra:
     social:
       - icon: fontawesome/brands/github 
-        link: https://github.com/singaraiona
+        link: https://github.com/RayforceDB
       - icon: fontawesome/brands/linkedin
         link: https://www.linkedin.com/in/anton-kundenko-a22a3667
       - icon: fontawesome/solid/paper-plane
         link: mailto:<singaraiona@gmail.com>
 
-copyright: Copyright &copy; 2023 RayforceDB
+copyright: Copyright &copy; 2025 RayforceDB
 
 plugins:
   - offline
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-  # - minify:
-  #     minify_html: true
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -100,20 +96,18 @@ markdown_extensions:
   - footnotes
 
 extra_css:
-  - https://adobe-fonts.github.io/source-code-pro/source-code-pro.css
-  - https://cdnjs.cloudflare.com/ajax/libs/asciinema-player/2.6.1/asciinema-player.css
   - css/custom.css
+  - css/hero.css
 
-extra_javascript:
-  - https://cdnjs.cloudflare.com/ajax/libs/asciinema-player/2.6.1/asciinema-player.js
-  
-# Page tree
 nav:
   - Home: index.md
+  - Get Started:
+    - Overview: content2/get-started/overview.md
+    - Benchmarks: content2/get-started/benchmarks.md
+    - Technical Details: content2/get-started/technical-details.md
+
   - Documentation:
-    - Getting Started: 
-      - Install: content/getstarted/install.md
-      - Tutorial: content/getstarted/tutorial.md
+    - Overview: content2/documentation/overview.md
     - Benchmarks: 
       - Compare to other DBs: content/benchmarks/bench.md
       - Run benchmarks: content/benchmarks/run.md
@@ -266,5 +260,6 @@ nav:
     - Interfacing: 
       - IPC: content/interfacing/ipc.md
       - Load function: content/interfacing/loadfn.md
-  - FAQ: content/faq.md
-  - License: content/license.md
+
+  - FAQ: content2/faq/overview.md
+  - License: content2/license.md

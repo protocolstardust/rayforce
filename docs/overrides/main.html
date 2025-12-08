@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {% if page.meta and page.meta.hide %}
+    {% set hidden_class = "md-content__inner" %}
+  {% endif %}
+  <article class="md-content__inner md-typeset">
+    {% block content %}
+      {% if "material/tags" in config.plugins and tags %}
+        {% include "partials/tags.html" %}
+      {% endif %}
+      {% include "partials/actions.html" %}
+      {% if page.meta and "hide" in page.meta and "title" in page.meta.hide %}
+        {# Hide title if requested #}
+      {% elif "\x3ch1" not in page.content %}
+        {# Only show h1 if it's not already in content and title is not hidden #}
+        {% if not (page.meta and "hide" in page.meta and "navigation.top" in page.meta.hide) %}
+          <h1>{{ page.title | d(config.site_name, true) }}</h1>
+        {% endif %}
+      {% endif %}
+      {{ page.content }}
+      {% include "partials/source-file.html" %}
+      {% include "partials/feedback.html" %}
+      {% include "partials/comments.html" %}
+    {% endblock %}
+  </article>
+{% endblock %}

@@ -1,6 +1,6 @@
+# Binaries
 *.o
 *.so
-.vscode/
 *.a
 *.gch
 rayforce
@@ -13,7 +13,13 @@ rayforce.data
 rayforce_wrap.*
 *.dat
 gmon.out
+
+# Python
 __pycache__/
+
+# Misc
+docs/site/
 CLAUDE.md
 .claude/
 .DS_Store
+.vscode/
