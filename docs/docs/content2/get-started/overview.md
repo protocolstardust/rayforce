@@ -57,10 +57,8 @@ The <b>ultra-fast</b> columnar database engineered to deliver the <b>best high-s
 </div>
 
 !!! note ""
-    RayforceDB delivers exceptional performance, competing with the fastest databases while maintaining simplicity and efficiency. Our benchmarks are based on the [H2OAI Group By Benchmark](https://h2oai.github.io/db-benchmark/) standard. [View full benchmarks →](content/benchmarks/bench.md)
+    RayforceDB delivers exceptional performance, competing with the fastest databases while maintaining simplicity and efficiency. Our benchmarks are based on the [H2OAI Group By Benchmark](https://h2oai.github.io/db-benchmark/) standard. [View full benchmarks →](content2/get-started/benchmarks/overview.md)
 
-
-![image](assets/cover.png)
 
 <div class="grid cards" markdown>
 
@@ -69,7 +67,7 @@ The <b>ultra-fast</b> columnar database engineered to deliver the <b>best high-s
     ---
 
     Querying tables <b>has never been</b> this easy to follow...
-
+    
     [:octicons-arrow-right-24: Syntax](content2/documentation/overview.md)
 
 - :material-poll:{ .lg .middle } __Columnar storage__
@@ -77,15 +75,15 @@ The <b>ultra-fast</b> columnar database engineered to deliver the <b>best high-s
     ---
 
     Columnar storage allows RayforceDB to outperform the alternative solutions
-
-    [:octicons-arrow-right-24: Syntax](content2/get-started/benchmarks.md)
+    
+    [:octicons-arrow-right-24: Technical Details](./technical-details.md)
 
 
 - :material-language-c:{ .lg .middle } __Plain C__
 
     ---
 
-    The application size is less than single PNG file - <b>under 1 MB!</b>
+    The application size is less than a single PNG file - <b>under 1 MB!</b>
 
     It can fit entirely into the CPU cache!
 
@@ -93,6 +91,8 @@ The <b>ultra-fast</b> columnar database engineered to deliver the <b>best high-s
 
     ---
 
-    RayforceDB is licensed under MIT and available on [GitHub](https://github.com/singaraiona/rayforce)
+    RayforceDB is licensed under MIT and available on [GitHub](https://github.com/RayforceDB/rayforce)
+
+    [:octicons-arrow-right-24: Contribute](./contribute.md)
 
 </div>

@@ -11,14 +11,14 @@ template: main.html
   <div class="hero-container">
     <div class="hero-left">
       <h1 class="hero-title">
-        <img src="assets/inverted-logo-full-transparent.png" alt="RayforceDB" class="hero-logo">
+        <img src="assets/logo_cream_full.svg" alt="RayforceDB" class="hero-logo">
       </h1>
       <p class="hero-description">
         The <b>ultra-fast</b> columnar database engineered to deliver the <b>best high-speed performance</b> for your real-time storage solutions.
       </p>
       <div class="hero-buttons">
         <a href="content2/get-started/overview.html" class="hero-btn hero-btn-primary">
-          <span class="btn-icon">↓</span>
+          <span class="btn-icon">🔎</span>
           <span>Get Started</span>
         </a>
         <a href="https://rayforcedb.zulipchat.com" class="hero-btn hero-btn-secondary">

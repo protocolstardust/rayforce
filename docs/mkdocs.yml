@@ -103,8 +103,14 @@ nav:
   - Home: index.md
   - Get Started:
     - Overview: content2/get-started/overview.md
-    - Benchmarks: content2/get-started/benchmarks.md
+    - Benchmarks:
+      - Overview: content2/get-started/benchmarks/overview.md
+      - Group By: content2/get-started/benchmarks/group-by.md
+      - Inner Join: content2/get-started/benchmarks/inner-join.md
+      - Left Join: content2/get-started/benchmarks/left-join.md
+      - Window Join: content2/get-started/benchmarks/window-join.md
     - Technical Details: content2/get-started/technical-details.md
+    - Contribute: content2/get-started/contribute.md
 
   - Documentation:
     - Overview: content2/documentation/overview.md
