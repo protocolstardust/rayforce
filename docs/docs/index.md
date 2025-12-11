@@ -102,7 +102,7 @@ The high-performance columnar database engineered for lightning-fast analytics a
 
 <h2>See it in action</h2>
 
-<asciinema-player src="assets/demo.cast" autoplay="true" loop="true" preload rows="18" cols="120" fit="width" theme="asciinema" speed="1.5"></asciinema-player>
+<img src="assets/demo.gif" alt="RayforceDB Demo" class="demo-gif">
 
 </div>
 
