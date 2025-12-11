@@ -228,8 +228,8 @@ hist_p hist_create() {
         fsize = HIST_SIZE;
     }
 
-    // Map file to memory
-    lines = (str_p)mmap_file(fd, NULL, fsize, 0);
+    // Map file to memory with shared mapping so changes persist
+    lines = (str_p)mmap_file_shared(fd, NULL, fsize, 0);
     if (lines == NULL) {
         perror("can't map history file");
 #if defined(OS_WINDOWS)
