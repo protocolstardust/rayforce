@@ -115,18 +115,32 @@ nav:
     - Overview: content2/documentation/overview.md
     - Data Types:
       - Overview: content2/documentation/data-types/overview.md
-      - Boolean: content2/documentation/data-types/boolean.md
       - Integers: content2/documentation/data-types/integers.md
-      - Symbol: content2/documentation/data-types/symbol.md
-      - Temporal: content2/documentation/data-types/temporal.md
       - Float: content2/documentation/data-types/float.md
-      - GUID: content2/documentation/data-types/guid.md
+      - Temporal: content2/documentation/data-types/temporal.md
+      - Symbol: content2/documentation/data-types/symbol.md
+      - String: content2/documentation/data-types/string.md
       - Char: content2/documentation/data-types/char.md
-      - Vector: content2/documentation/data-types/vectors.md
+      - GUID: content2/documentation/data-types/guid.md
+      - Boolean: content2/documentation/data-types/boolean.md
+      - Enum: content2/documentation/data-types/enum.md
+      - Vector: content2/documentation/data-types/vector.md
       - List: content2/documentation/data-types/list.md
       - Table: content2/documentation/data-types/table.md
+      - Dictionary: content2/documentation/data-types/dictionary.md
       - Functions: content2/documentation/data-types/functions.md
-      - Other: content2/documentation/data-types/other/overview.md
+      - Other: content2/documentation/data-types/other.md
+    - Queries:
+      - Overview: content2/documentation/queries/overview.md
+    - Operations:
+      - Overview: content2/documentation/operations/overview.md
+      - IO:
+        - Overview: content2/documentation/operations/IO/overview.md
+
+    - IPC:
+      - Overview: content2/documentation/IPC/overview.md
+    - REPL:
+      - Overview: content2/documentation/REPL/overview.md
 
     # OLD {{
     # - Benchmarks: 

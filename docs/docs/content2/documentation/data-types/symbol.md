@@ -12,10 +12,11 @@ symbol
 Symbol
 ```
 
-Symbol can be used to associate a certain value with the variable, using function [`set`]()
+Symbol can be used to associate a certain value with the variable, using function [`set`](../operations/IO/overview.md)
 ```clj
 ↪ (set t (as 'B8 [true false]))
 [true false]
 ↪ t
 [true false]
 ```
+### :material-arrow-right: See Symbol usage as [:material-table: Table](./table.md) column headers.

@@ -15,3 +15,5 @@ B8
 (type [false false]) ;; Vector
 B8
 ```
+
+### :material-arrow-right: See boolean usage in [:material-function: Functions](./functions.md) context

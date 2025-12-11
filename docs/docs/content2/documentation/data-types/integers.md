@@ -1,4 +1,4 @@
-# :octicons-number-16: Integers
+# :octicons-number-16: Integer Types
 
 RayforceDB offers 4 types of different integers: [:material-numeric-8-box-outline: U8](./integers.md#unsigned-8-bit-integer), [:octicons-cpu-16: I16](./integers.md#signed-16-bit-integer), [:material-cpu-32-bit: I32](./integers.md#signed-32-bit-integer) and [:material-cpu-64-bit: I64](./integers.md#signed-64-bit-integer)
 
@@ -25,9 +25,9 @@ I64
     Doesn't occur naturally in data types, but can be explicitly casted
 
 ```clj
-↪ (type (as 'i32 1))
+↪ (type (as 'i32 1)) ;; Scalar
 i32
-↪ (type (as 'I32 (list 1 2)))
+↪ (type (as 'I32 (list 1 2)))  ;; Vector
 I32
 ```
 
