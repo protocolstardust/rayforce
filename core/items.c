@@ -37,6 +37,39 @@
 #include "cmp.h"
 #include "iter.h"
 
+// Helper for indexing i32-based vectors (I32/DATE/TIME) with i64 indices
+static inline obj_p at_vec_i32_by_i64(obj_p x, obj_p y) {
+    i64_t i, yl = y->len, xl = x->len;
+    obj_p res = vector(x->type, yl);
+    for (i = 0; i < yl; i++) {
+        i64_t idx = AS_I64(y)[i];
+        AS_I32(res)[i] = (idx < 0 || idx >= (i64_t)xl) ? NULL_I32 : AS_I32(x)[idx];
+    }
+    return res;
+}
+
+// Helper for indexing i64-based vectors (I64/SYMBOL/TIMESTAMP) with i64 indices
+static inline obj_p at_vec_i64_by_i64(obj_p x, obj_p y) {
+    i64_t i, yl = y->len, xl = x->len;
+    obj_p res = vector(x->type, yl);
+    for (i = 0; i < yl; i++) {
+        i64_t idx = AS_I64(y)[i];
+        AS_I64(res)[i] = (idx < 0 || idx >= (i64_t)xl) ? NULL_I64 : AS_I64(x)[idx];
+    }
+    return res;
+}
+
+// Helper for indexing f64 vectors with i64 indices
+static inline obj_p at_vec_f64_by_i64(obj_p x, obj_p y) {
+    i64_t i, yl = y->len, xl = x->len;
+    obj_p res = F64(yl);
+    for (i = 0; i < yl; i++) {
+        i64_t idx = AS_I64(y)[i];
+        AS_F64(res)[i] = (idx < 0 || idx >= (i64_t)xl) ? NULL_F64 : AS_F64(x)[idx];
+    }
+    return res;
+}
+
 obj_p ray_at(obj_p x, obj_p y) {
     i64_t i, j, yl, xl, n, size;
     obj_p res, k, s, v, cols;
@@ -71,43 +104,13 @@ obj_p ray_at(obj_p x, obj_p y) {
         case MTYPE2(TYPE_I32, TYPE_I64):
         case MTYPE2(TYPE_DATE, TYPE_I64):
         case MTYPE2(TYPE_TIME, TYPE_I64):
-            yl = y->len;
-            xl = x->len;
-            res = vector(x->type, yl);
-            for (i = 0; i < yl; i++) {
-                if (AS_I64(y)[i] >= (i64_t)xl)
-                    AS_I32(res)[i] = NULL_I32;
-                else
-                    AS_I32(res)[i] = AS_I32(x)[(i32_t)AS_I64(y)[i]];
-            }
-
-            return res;
+            return at_vec_i32_by_i64(x, y);
         case MTYPE2(TYPE_I64, TYPE_I64):
         case MTYPE2(TYPE_SYMBOL, TYPE_I64):
         case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
-            yl = y->len;
-            xl = x->len;
-            res = vector(x->type, yl);
-            for (i = 0; i < yl; i++) {
-                if (AS_I64(y)[i] >= (i64_t)xl)
-                    AS_I64(res)[i] = NULL_I64;
-                else
-                    AS_I64(res)[i] = AS_I64(x)[AS_I64(y)[i]];
-            }
-
-            return res;
+            return at_vec_i64_by_i64(x, y);
         case MTYPE2(TYPE_F64, TYPE_I64):
-            yl = y->len;
-            xl = x->len;
-            res = F64(yl);
-            for (i = 0; i < yl; i++) {
-                if (AS_I64(y)[i] >= (i64_t)xl)
-                    AS_F64(res)[i] = NULL_F64;
-                else
-                    AS_F64(res)[i] = AS_F64(x)[AS_I64(y)[i]];
-            }
-
-            return res;
+            return at_vec_f64_by_i64(x, y);
         case MTYPE2(TYPE_GUID, TYPE_I64):
             yl = y->len;
             xl = x->len;
