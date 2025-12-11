@@ -1,39 +1,118 @@
-# :material-database: Welcome to RayforceDB
+---
+hide:
+  - navigation
+  - toc
+---
 
-The "another one" columnar database engineered to optimize your data analytics and storage solutions, ensuring a seamless, high-speed experience, which has:
+<div class="hero-section" markdown>
+<div class="hero-content" markdown>
 
-<div class="grid cards" markdown>
+![RayforceDB](images/logo_dark_full.svg){ .hero-logo .light-only }
+![RayforceDB](images/logo_light_full.svg){ .hero-logo .dark-only }
 
-- :fontawesome-solid-feather-pointed:{ .lg .middle } __Simple LISP-like syntax__
+# Your data is about to get **faster**
 
-    ---
+The high-performance columnar database engineered for lightning-fast analytics and seamless data operations.
 
-    Using a simple and intuitive syntax simplifies the learning curve and making things clear.
+<div class="hero-socials" markdown>
+[:fontawesome-brands-github:](https://github.com/singaraiona/rayforce "GitHub")
+[:fontawesome-brands-x-twitter:](https://x.com/RayforceDB "X (Twitter)")
+[:fontawesome-brands-reddit:](https://www.reddit.com/r/rayforcedb/ "Reddit")
+[:simple-zulip:](https://rayforcedb.zulipchat.com/#narrow/channel/549008-Discuss "Zulip Chat")
+</div>
 
-    [:octicons-arrow-right-24: Syntax](content/syntax.md)
-
-- :material-poll:{ .lg .middle } __Columnar storage__
-
-    ---
-
-    The columnar storage is a great way to optimize the storage and speed up the queries
-    due to heavy usage of the vectorized operations.
-
-- :material-language-c:{ .lg .middle } __Plain C__
-
-    ---
-
-    RayforceDB is written in plain C with no dependencies,
-    which makes it easy to integrate and maintain. As a bonus, it's very compact (less 1Mb) to fit directly into CPU cache.
-
-- :material-scale-balance:{ .lg .middle } __Open Source, MIT__
-
-    ---
-
-    RayforceDB is licensed under MIT and available on [GitHub](https://github.com/singaraiona/rayforce)
-
-    [:octicons-arrow-right-24: Try it online](wasm/index.html)
+<div class="hero-buttons">
+<a href="content/getstarted/install.html" class="md-button md-button--primary">Get Started</a>
+<a href="https://github.com/singaraiona/rayforce" class="md-button">Get it on GitHub</a>
+</div>
 
 </div>
 
-<asciinema-player src="assets/demo.cast" preload rows="24" loop=1></asciinema-player>
+<div class="hero-ticker">
+<div class="hero-ticker__content">
+<span>⚡ Blazing Fast</span>
+<span>📊 Columnar Storage</span>
+<span>🔧 Zero Dependencies</span>
+<span>☁️ Cloud Native</span>
+<span>🧠 In-Process Embedding</span>
+<span>🚀 Sub-millisecond Queries</span>
+<span>💾 Under 1MB Binary</span>
+<span>🔓 MIT License</span>
+<span>⚡ Blazing Fast</span>
+<span>📊 Columnar Storage</span>
+<span>🔧 Zero Dependencies</span>
+<span>☁️ Cloud Native</span>
+<span>🧠 In-Process Embedding</span>
+<span>🚀 Sub-millisecond Queries</span>
+<span>💾 Under 1MB Binary</span>
+<span>🔓 MIT License</span>
+</div>
+</div>
+</div>
+
+<div class="features-section" markdown>
+
+## Think fast. **Build faster.**
+
+<div class="grid cards" markdown>
+
+- :material-lightning-bolt:{ .lg .middle .feature-icon } **Blazing Fast**
+
+    ---
+
+    Columnar storage with vectorized operations delivers sub-millisecond query performance on analytical workloads.
+
+- :fontawesome-solid-feather-pointed:{ .lg .middle .feature-icon } **Simple Syntax**
+
+    ---
+
+    Intuitive LISP-like syntax flattens the learning curve. Write powerful queries in minutes, not hours.
+
+    [:octicons-arrow-right-24: Learn Syntax](content/syntax.md)
+
+- :material-language-c:{ .lg .middle .feature-icon } **Pure C, Zero Dependencies**
+
+    ---
+
+    Under 1MB binary fits in CPU cache. No external dependencies means simple deployment anywhere.
+
+- :material-rocket-launch:{ .lg .middle .feature-icon } **Production Ready**
+
+    ---
+
+    Battle-tested columnar engine optimized for real-world analytics and data processing pipelines.
+
+- :material-memory:{ .lg .middle .feature-icon } **In-Process Embedding**
+
+    ---
+
+    No separate database server needed. Embed directly in your application for immediate data access with zero network overhead.
+
+- :material-cloud-outline:{ .lg .middle .feature-icon } **Cloud Native Scaling**
+
+    ---
+
+    Scale effortlessly on any cloud. No limits, no bottlenecks. Save costs by optimizing memory usage and CPU hours.
+
+</div>
+
+</div>
+
+<div class="demo-section">
+
+<h2>See it in action</h2>
+
+<asciinema-player src="assets/demo.cast" autoplay="true" loop="true" preload rows="18" cols="120" fit="width" theme="asciinema" speed="1.5"></asciinema-player>
+
+</div>
+
+<div class="cta-section" markdown>
+
+## Get started in **minutes**
+
+RayforceDB is open source under MIT license. Download, build, and run your first query today.
+
+[Read the Docs](content/getstarted/tutorial.md){ .md-button .md-button--primary }
+[Try Online](wasm/index.html){ .md-button }
+
+</div>

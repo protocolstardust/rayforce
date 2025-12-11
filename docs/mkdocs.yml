@@ -4,11 +4,11 @@ repo_name: GitHub
 
 theme:
   name: material
-  # custom_dir: overrides
+  custom_dir: overrides
   icon:
     repo: fontawesome/brands/github 
-  # logo: assets/logo.png
-  favicon: images/favicon.png
+  logo: images/logo_light_full.svg
+  favicon: images/favicon.svg
   features:
     - header.autohide
     - announce.dismiss
@@ -27,16 +27,16 @@ theme:
     # Light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: blue       # Milvus-style blue
-      accent: light blue # Lighter accent like Milvus
+      primary: custom     # Rayforce golden
+      accent: amber
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     # Dark mode    
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: blue      # Keep consistent branding
-      accent: light blue # Keep consistent accent
+      primary: custom     # Rayforce golden
+      accent: amber
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -51,6 +51,12 @@ extra:
     social:
       - icon: fontawesome/brands/github 
         link: https://github.com/singaraiona
+      - icon: fontawesome/brands/x-twitter
+        link: https://x.com/RayforceDB
+      - icon: fontawesome/brands/reddit
+        link: https://www.reddit.com/r/rayforcedb/
+      - icon: simple/zulip
+        link: https://rayforcedb.zulipchat.com/#narrow/channel/549008-Discuss
       - icon: fontawesome/brands/linkedin
         link: https://www.linkedin.com/in/anton-kundenko-a22a3667
       - icon: fontawesome/solid/paper-plane
@@ -125,6 +131,7 @@ nav:
       - Sub: content/math/sub.md
       - Mul: content/math/mul.md
       - Div: content/math/div.md
+      - Fdiv: content/math/fdiv.md
       - Mod: content/math/mod.md
       - Sum: content/math/sum.md
       - Avg: content/math/avg.md

@@ -41,7 +41,7 @@ Instead, pass the variable name as a quoted symbol so it can be resolved on the 
 ``` clj
 (write h 'employees) ; The symbol is sent as-is and evaluated server-side
 ```
-To understand the behavior better - refer to [Quote](../repl/quote.html) documentation
+To understand the behavior better - refer to [Quote](../repl/quote.md) documentation
 
 ## :material-message: Message format
 
