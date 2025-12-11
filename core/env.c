@@ -270,7 +270,7 @@ nil_t init_functions(obj_p functions)
     
 nil_t init_typenames(obj_p typenames)    
 {
-    REGISTER_TYPE(typenames,   -TYPE_ERR,           "Null");
+    REGISTER_TYPE(typenames,   -TYPE_ERR,             "Null");
     REGISTER_TYPE(typenames,   -TYPE_B8,              "b8");
     REGISTER_TYPE(typenames,   -TYPE_U8,              "u8");
     REGISTER_TYPE(typenames,   -TYPE_I16,             "i16");
