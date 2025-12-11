@@ -132,11 +132,16 @@ nav:
       - Other: content2/documentation/data-types/other.md
     - Queries:
       - Overview: content2/documentation/queries/overview.md
+      - Select: content2/documentation/queries/select.md
+      - Update: content2/documentation/queries/update.md
+      - Insert: content2/documentation/queries/insert.md
+      - Upsert: content2/documentation/queries/upsert.md
+      - Alter: content2/documentation/queries/alter.md
+      - Joins: content2/documentation/queries/joins.md
     - Operations:
       - Overview: content2/documentation/operations/overview.md
       - IO:
         - Overview: content2/documentation/operations/IO/overview.md
-
     - IPC:
       - Overview: content2/documentation/IPC/overview.md
     - REPL:
