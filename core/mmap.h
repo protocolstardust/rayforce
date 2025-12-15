@@ -29,6 +29,7 @@
 raw_p mmap_stack(i64_t size);
 raw_p mmap_alloc(i64_t size);
 raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset);
+raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset);
 i64_t mmap_free(raw_p addr, i64_t size);
 i64_t mmap_sync(raw_p addr, i64_t size);
 raw_p mmap_reserve(raw_p addr, i64_t size);

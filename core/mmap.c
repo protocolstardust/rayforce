@@ -34,13 +34,30 @@ raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
     HANDLE hMapping;
     raw_p ptr;
 
+    hMapping = CreateFileMapping((HANDLE)fd, NULL, PAGE_WRITECOPY, 0, size, NULL);
+
+    if (hMapping == NULL) {
+        return NULL;
+    }
+
+    ptr = MapViewOfFile(hMapping, FILE_MAP_COPY, (DWORD)(offset >> 32), (DWORD)(offset & 0xFFFFFFFF), size);
+    CloseHandle(hMapping);
+
+    return ptr;
+}
+
+raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
+    UNUSED(addr);  // Mark addr as intentionally unused on Windows
+    HANDLE hMapping;
+    raw_p ptr;
+
     hMapping = CreateFileMapping((HANDLE)fd, NULL, PAGE_READWRITE, 0, size, NULL);
 
     if (hMapping == NULL) {
         return NULL;
     }
 
-    ptr = MapViewOfFile(hMapping, FILE_MAP_ALL_ACCESS, (DWORD)(offset >> 32), (DWORD)(offset & 0xFFFFFFFF), size);
+    ptr = MapViewOfFile(hMapping, FILE_MAP_WRITE, (DWORD)(offset >> 32), (DWORD)(offset & 0xFFFFFFFF), size);
     CloseHandle(hMapping);
 
     return ptr;
@@ -87,6 +104,15 @@ raw_p mmap_alloc(i64_t size) {
 }
 
 raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
+    raw_p ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NONBLOCK | MAP_POPULATE, fd, offset);
+
+    if (ptr == MAP_FAILED)
+        return NULL;
+
+    return ptr;
+}
+
+raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
     raw_p ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NONBLOCK | MAP_POPULATE, fd, offset);
 
     if (ptr == MAP_FAILED)
@@ -133,6 +159,17 @@ raw_p mmap_alloc(i64_t size) {
 }
 
 raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
+    raw_p ptr;
+
+    ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, offset);
+
+    if (ptr == MAP_FAILED)
+        return NULL;
+
+    return ptr;
+}
+
+raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
     raw_p ptr;
 
     ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, offset);

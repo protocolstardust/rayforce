@@ -2643,8 +2643,8 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take -5 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))",
                    "(table [a b] (list [4 1 2 3 4] ['d 'a 'b 'c 'd]))");
 
-    TEST_ASSERT_ER("(take 2.0 1.0)", "take: unsupported types: 'f64, f64");
-    TEST_ASSERT_ER("(take 2 take)", "take: unsupported types: 'i64, Binary");
+    TEST_ASSERT_ER("(take 2.0 1.0)", "take: unsupported types: 'f64, 'f64");
+    TEST_ASSERT_ER("(take 2 take)", "take: unsupported types: 'i64, 'Binary");
 
     PASS();
 }
@@ -3931,18 +3931,22 @@ test_result_t test_lang_joins() {
     // asof-join with I64 + Timestamp
     TEST_ASSERT_EQ(
         "(set aj1 (table [ID Ts Val] (list [1 1 2 2] "
-        "[2024.01.01D10:00:01.000000000 2024.01.01D10:00:05.000000000 2024.01.01D10:00:03.000000000 2024.01.01D10:00:07.000000000] "
+        "[2024.01.01D10:00:01.000000000 2024.01.01D10:00:05.000000000 2024.01.01D10:00:03.000000000 "
+        "2024.01.01D10:00:07.000000000] "
         "[100 200 300 400])))"
         "(set aj2 (table [ID Ts Ref] (list [1 1 2 2] "
-        "[2024.01.01D10:00:00.000000000 2024.01.01D10:00:04.000000000 2024.01.01D10:00:02.000000000 2024.01.01D10:00:06.000000000] "
+        "[2024.01.01D10:00:00.000000000 2024.01.01D10:00:04.000000000 2024.01.01D10:00:02.000000000 "
+        "2024.01.01D10:00:06.000000000] "
         "[10 20 30 40])))"
         "(at (asof-join [ID Ts] aj1 aj2) 'Ref)",
         "[10 20 30 40]");
 
     // asof-join with Symbol + Date
     TEST_ASSERT_EQ(
-        "(set orders (table [Cust Date Amount] (list [A A B B] [2024.01.02 2024.01.05 2024.01.03 2024.01.06] [100 200 300 400])))"
-        "(set rates (table [Cust Date Rate] (list [A A B B] [2024.01.01 2024.01.04 2024.01.01 2024.01.05] [0.1 0.15 0.2 0.25])))"
+        "(set orders (table [Cust Date Amount] (list [A A B B] [2024.01.02 2024.01.05 2024.01.03 2024.01.06] [100 200 "
+        "300 400])))"
+        "(set rates (table [Cust Date Rate] (list [A A B B] [2024.01.01 2024.01.04 2024.01.01 2024.01.05] [0.1 0.15 "
+        "0.2 0.25])))"
         "(at (asof-join [Cust Date] orders rates) 'Rate)",
         "[0.1 0.15 0.2 0.25]");
 
@@ -4079,8 +4083,10 @@ test_result_t test_lang_joins() {
     // window-join with Enum columns (xasc converts Enum to Symbol)
     TEST_ASSERT_EQ(
         "(set sym ['a 'b])"
-        "(set trades (table [s time price] (list (enum 'sym ['a 'a 'b]) [10:00:01.000 10:00:05.000 10:00:03.000] [100 200 150])))"
-        "(set quotes (table [s time bid] (list (enum 'sym ['a 'a 'a 'b 'b]) [10:00:00.000 10:00:02.000 10:00:04.000 10:00:01.000 10:00:04.000] [99 100 101 149 151])))"
+        "(set trades (table [s time price] (list (enum 'sym ['a 'a 'b]) [10:00:01.000 10:00:05.000 10:00:03.000] [100 "
+        "200 150])))"
+        "(set quotes (table [s time bid] (list (enum 'sym ['a 'a 'a 'b 'b]) [10:00:00.000 10:00:02.000 10:00:04.000 "
+        "10:00:01.000 10:00:04.000] [99 100 101 149 151])))"
         "(set intervals (map-left + [-2000 2000] (at trades 'time)))"
         "(at (window-join [s time] intervals trades quotes {minBid: (min bid)}) 'minBid)",
         "[99 100 149]");
@@ -4115,7 +4121,8 @@ test_result_t test_lang_joins() {
 
     // inner-join with Timestamp
     TEST_ASSERT_EQ(
-        "(set t1 (table [ts val1] (list [2024.01.01D10:00:00.000000000 2024.01.01D10:00:01.000000000 2024.01.01D10:00:02.000000000] [100 200 300])))"
+        "(set t1 (table [ts val1] (list [2024.01.01D10:00:00.000000000 2024.01.01D10:00:01.000000000 "
+        "2024.01.01D10:00:02.000000000] [100 200 300])))"
         "(set t2 (table [ts val2] (list [2024.01.01D10:00:00.000000000 2024.01.01D10:00:02.000000000] [1000 3000])))"
         "(count (inner-join [ts] t1 t2))",
         "2");
@@ -4343,12 +4350,374 @@ test_result_t test_lang_set_ops() {
 
 // ==================== TYPE CASTING TESTS ====================
 test_result_t test_lang_cast() {
-    // ========== STRING/SYMBOL CASTS ==========
+    // ========== B8 (BOOLEAN) ATOM CASTS ==========
+    // b8 <- u8 (atom to atom - use lowercase)
+    TEST_ASSERT_EQ("(as 'b8 0x00)", "false");
+    TEST_ASSERT_EQ("(as 'b8 0x01)", "true");
+    TEST_ASSERT_EQ("(as 'b8 0xFF)", "true");
+    // b8 <- i16
+    TEST_ASSERT_EQ("(as 'b8 0h)", "false");
+    TEST_ASSERT_EQ("(as 'b8 1h)", "true");
+    TEST_ASSERT_EQ("(as 'b8 -1h)", "true");
+    // b8 <- i32
+    TEST_ASSERT_EQ("(as 'b8 0i)", "false");
+    TEST_ASSERT_EQ("(as 'b8 1i)", "true");
+    TEST_ASSERT_EQ("(as 'b8 -1i)", "true");
+    // b8 <- i64
+    TEST_ASSERT_EQ("(as 'b8 0)", "false");
+    TEST_ASSERT_EQ("(as 'b8 1)", "true");
+    TEST_ASSERT_EQ("(as 'b8 -1)", "true");
+    // b8 <- f64
+    TEST_ASSERT_EQ("(as 'b8 0.0)", "false");
+    TEST_ASSERT_EQ("(as 'b8 1.0)", "true");
+    TEST_ASSERT_EQ("(as 'b8 -1.5)", "true");
+    // b8 <- date (2000.01.01 is epoch/day 0, so it's false; 2000.01.02 is day 1, so true)
+    TEST_ASSERT_EQ("(as 'b8 2000.01.01)", "false");
+    TEST_ASSERT_EQ("(as 'b8 2000.01.02)", "true");
+    // b8 <- time (00:00:00.000 is 0ms, so false; 00:00:01.000 is 1000ms, so true)
+    TEST_ASSERT_EQ("(as 'b8 00:00:00.000)", "false");
+    TEST_ASSERT_EQ("(as 'b8 00:00:01.000)", "true");
+    // b8 <- timestamp (epoch is 0, so false; 1 nanosecond after is true)
+    TEST_ASSERT_EQ("(as 'b8 2000.01.01D00:00:00.000000000)", "false");
+    TEST_ASSERT_EQ("(as 'b8 2000.01.01D00:00:00.000000001)", "true");
+    // b8 <- String (empty string returns empty vector due to early check)
+    TEST_ASSERT_EQ("(as 'b8 \"a\")", "true");
+    TEST_ASSERT_EQ("(as 'b8 \"hello\")", "true");
+
+    // ========== B8 VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(as 'B8 [0h 1h 2h])", "[false true true]");
+    TEST_ASSERT_EQ("(as 'B8 [0i 1i -1i])", "[false true true]");
+    TEST_ASSERT_EQ("(as 'B8 [0 1 -1])", "[false true true]");
+    TEST_ASSERT_EQ("(as 'B8 [0.0 1.0 -1.5])", "[false true true]");
+
+    // ========== U8 (BYTE) ATOM CASTS ==========
+    // u8 <- b8
+    TEST_ASSERT_EQ("(as 'u8 false)", "0x00");
+    TEST_ASSERT_EQ("(as 'u8 true)", "0x01");
+    // u8 <- i16
+    TEST_ASSERT_EQ("(as 'u8 0h)", "0x00");
+    TEST_ASSERT_EQ("(as 'u8 255h)", "0xFF");
+    // u8 <- i32
+    TEST_ASSERT_EQ("(as 'u8 0i)", "0x00");
+    TEST_ASSERT_EQ("(as 'u8 255i)", "0xFF");
+    // u8 <- i64
+    TEST_ASSERT_EQ("(as 'u8 0)", "0x00");
+    TEST_ASSERT_EQ("(as 'u8 255)", "0xFF");
+    // u8 <- f64
+    TEST_ASSERT_EQ("(as 'u8 0.0)", "0x00");
+    TEST_ASSERT_EQ("(as 'u8 255.9)", "0xFF");
+    // u8 <- String
+    TEST_ASSERT_EQ("(as 'u8 \"42\")", "0x2A");
+
+    // ========== U8 VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(as 'U8 [0h 1h 255h])", "[0x00 0x01 0xFF]");
+    TEST_ASSERT_EQ("(as 'U8 [0i 1i 255i])", "[0x00 0x01 0xFF]");
+    TEST_ASSERT_EQ("(as 'U8 [0 1 255])", "[0x00 0x01 0xFF]");
+    TEST_ASSERT_EQ("(as 'U8 [0.0 1.0 255.0])", "[0x00 0x01 0xFF]");
+
+    // ========== I16 (SHORT) ATOM CASTS ==========
+    // i16 <- b8
+    TEST_ASSERT_EQ("(as 'i16 false)", "0h");
+    TEST_ASSERT_EQ("(as 'i16 true)", "1h");
+    // i16 <- u8
+    TEST_ASSERT_EQ("(as 'i16 0x00)", "0h");
+    TEST_ASSERT_EQ("(as 'i16 0xFF)", "255h");
+    // i16 <- i32
+    TEST_ASSERT_EQ("(as 'i16 0i)", "0h");
+    TEST_ASSERT_EQ("(as 'i16 100i)", "100h");
+    // i16 <- i64
+    TEST_ASSERT_EQ("(as 'i16 0)", "0h");
+    TEST_ASSERT_EQ("(as 'i16 100)", "100h");
+    // i16 <- f64
+    TEST_ASSERT_EQ("(as 'i16 0.0)", "0h");
+    TEST_ASSERT_EQ("(as 'i16 100.9)", "100h");
+    // i16 <- date
+    TEST_ASSERT_EQ("(type (as 'i16 2000.01.01))", "'i16");
+    // i16 <- time
+    TEST_ASSERT_EQ("(type (as 'i16 00:00:01.000))", "'i16");
+    // i16 <- timestamp
+    TEST_ASSERT_EQ("(type (as 'i16 2000.01.01D00:00:00.000000001))", "'i16");
+    // i16 <- String
+    TEST_ASSERT_EQ("(as 'i16 \"42\")", "42h");
+    TEST_ASSERT_EQ("(as 'i16 \"-100\")", "-100h");
+
+    // ========== I16 VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(as 'I16 [false true])", "[0h 1h]");
+    TEST_ASSERT_EQ("(as 'I16 [0x00 0xFF])", "[0h 255h]");
+    TEST_ASSERT_EQ("(as 'I16 [0i 100i -100i])", "[0h 100h -100h]");
+    TEST_ASSERT_EQ("(as 'I16 [0 100 -100])", "[0h 100h -100h]");
+    TEST_ASSERT_EQ("(as 'I16 [0.0 100.9 -100.9])", "[0h 100h -100h]");
+
+    // ========== I32 (INT) ATOM CASTS ==========
+    // i32 <- b8
+    TEST_ASSERT_EQ("(as 'i32 false)", "0i");
+    TEST_ASSERT_EQ("(as 'i32 true)", "1i");
+    // i32 <- u8
+    TEST_ASSERT_EQ("(as 'i32 0x00)", "0i");
+    TEST_ASSERT_EQ("(as 'i32 0xFF)", "255i");
+    // i32 <- i16
+    TEST_ASSERT_EQ("(as 'i32 0h)", "0i");
+    TEST_ASSERT_EQ("(as 'i32 -100h)", "-100i");
+    // i32 <- i64
+    TEST_ASSERT_EQ("(as 'i32 0)", "0i");
+    TEST_ASSERT_EQ("(as 'i32 1000000)", "1000000i");
+    // i32 <- f64
+    TEST_ASSERT_EQ("(as 'i32 0.0)", "0i");
+    TEST_ASSERT_EQ("(as 'i32 100.9)", "100i");
+    TEST_ASSERT_EQ("(as 'i32 -100.9)", "-100i");
+    // i32 <- date
+    TEST_ASSERT_EQ("(type (as 'i32 2000.01.01))", "'i32");
+    // i32 <- time
+    TEST_ASSERT_EQ("(type (as 'i32 00:00:01.000))", "'i32");
+    // i32 <- timestamp
+    TEST_ASSERT_EQ("(type (as 'i32 2000.01.01D00:00:00.000000001))", "'i32");
+    // i32 <- String
+    TEST_ASSERT_EQ("(as 'i32 \"42\")", "42i");
+    TEST_ASSERT_EQ("(as 'i32 \"-1000000\")", "-1000000i");
+
+    // ========== I32 VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(as 'I32 [false true])", "[0i 1i]");
+    TEST_ASSERT_EQ("(as 'I32 [0x00 0xFF])", "[0i 255i]");
+    TEST_ASSERT_EQ("(as 'I32 [0h 100h -100h])", "[0i 100i -100i]");
+    TEST_ASSERT_EQ("(as 'I32 [0 100 -100])", "[0i 100i -100i]");
+    TEST_ASSERT_EQ("(as 'I32 [0.0 100.9 -100.9])", "[0i 100i -100i]");
+
+    // ========== I64 (LONG) ATOM CASTS ==========
+    // i64 <- b8
+    TEST_ASSERT_EQ("(as 'i64 false)", "0");
+    TEST_ASSERT_EQ("(as 'i64 true)", "1");
+    // i64 <- u8
+    TEST_ASSERT_EQ("(as 'i64 0x00)", "0");
+    TEST_ASSERT_EQ("(as 'i64 0xFF)", "255");
+    // i64 <- i16
+    TEST_ASSERT_EQ("(as 'i64 0h)", "0");
+    TEST_ASSERT_EQ("(as 'i64 -100h)", "-100");
+    // i64 <- i32
+    TEST_ASSERT_EQ("(as 'i64 0i)", "0");
+    TEST_ASSERT_EQ("(as 'i64 -1000000i)", "-1000000");
+    // i64 <- f64
+    TEST_ASSERT_EQ("(as 'i64 0.0)", "0");
+    TEST_ASSERT_EQ("(as 'i64 100.9)", "100");
+    // i64 <- date
+    TEST_ASSERT_EQ("(type (as 'i64 2000.01.01))", "'i64");
+    // i64 <- time
+    TEST_ASSERT_EQ("(type (as 'i64 00:00:01.000))", "'i64");
+    // i64 <- timestamp
+    TEST_ASSERT_EQ("(type (as 'i64 2000.01.01D00:00:00.000000001))", "'i64");
+    // i64 <- String
+    TEST_ASSERT_EQ("(as 'i64 \"42\")", "42");
+    TEST_ASSERT_EQ("(as 'i64 \"-9999999999\")", "-9999999999");
+
+    // ========== I64 VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(as 'I64 [false true])", "[0 1]");
+    TEST_ASSERT_EQ("(as 'I64 [0x00 0xFF])", "[0 255]");
+    TEST_ASSERT_EQ("(as 'I64 [0h 100h -100h])", "[0 100 -100]");
+    TEST_ASSERT_EQ("(as 'I64 [0i 100i -100i])", "[0 100 -100]");
+    TEST_ASSERT_EQ("(as 'I64 [0.0 100.9 -100.9])", "[0 100 -100]");
+
+    // ========== F64 (FLOAT) ATOM CASTS ==========
+    // f64 <- b8
+    TEST_ASSERT_EQ("(as 'f64 false)", "0.00");
+    TEST_ASSERT_EQ("(as 'f64 true)", "1.00");
+    // f64 <- u8
+    TEST_ASSERT_EQ("(as 'f64 0x00)", "0.00");
+    TEST_ASSERT_EQ("(as 'f64 0xFF)", "255.00");
+    // f64 <- i16
+    TEST_ASSERT_EQ("(as 'f64 0h)", "0.00");
+    TEST_ASSERT_EQ("(as 'f64 -100h)", "-100.00");
+    // f64 <- i32
+    TEST_ASSERT_EQ("(as 'f64 0i)", "0.00");
+    TEST_ASSERT_EQ("(as 'f64 1000000i)", "1000000.00");
+    // f64 <- i64
+    TEST_ASSERT_EQ("(as 'f64 0)", "0.00");
+    TEST_ASSERT_EQ("(as 'f64 1000000)", "1000000.00");
+    // f64 <- date
+    TEST_ASSERT_EQ("(type (as 'f64 2000.01.01))", "'f64");
+    // f64 <- time
+    TEST_ASSERT_EQ("(type (as 'f64 00:00:01.000))", "'f64");
+    // f64 <- timestamp
+    TEST_ASSERT_EQ("(type (as 'f64 2000.01.01D00:00:00.000000001))", "'f64");
+    // f64 <- String
+    TEST_ASSERT_EQ("(as 'f64 \"42.5\")", "42.50");
+    TEST_ASSERT_EQ("(as 'f64 \"-100.25\")", "-100.25");
+
+    // ========== F64 VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(as 'F64 [false true])", "[0.0 1.0]");
+    TEST_ASSERT_EQ("(as 'F64 [0x00 0xFF])", "[0.0 255.0]");
+    TEST_ASSERT_EQ("(as 'F64 [0h 100h])", "[0.0 100.0]");
+    TEST_ASSERT_EQ("(as 'F64 [0i 100i])", "[0.0 100.0]");
+    TEST_ASSERT_EQ("(as 'F64 [0 100])", "[0.0 100.0]");
+
+    // ========== DATE ATOM CASTS ==========
+    // date <- b8
+    TEST_ASSERT_EQ("(type (as 'date false))", "'date");
+    TEST_ASSERT_EQ("(type (as 'date true))", "'date");
+    // date <- u8
+    TEST_ASSERT_EQ("(type (as 'date 0x00))", "'date");
+    // date <- i16
+    TEST_ASSERT_EQ("(type (as 'date 0h))", "'date");
+    // date <- i32
+    TEST_ASSERT_EQ("(type (as 'date 0i))", "'date");
+    TEST_ASSERT_EQ("(as 'date 0i)", "2000.01.01");
+    // date <- i64
+    TEST_ASSERT_EQ("(type (as 'date 0))", "'date");
+    TEST_ASSERT_EQ("(as 'date 0)", "2000.01.01");
+    // date <- f64
+    TEST_ASSERT_EQ("(type (as 'date 0.0))", "'date");
+    // date <- time (value copy)
+    TEST_ASSERT_EQ("(type (as 'date 00:00:01.000))", "'date");
+    // date <- timestamp
+    TEST_ASSERT_EQ("(type (as 'date 2000.01.01D00:00:00.000000001))", "'date");
+    // date <- String
+    TEST_ASSERT_EQ("(as 'date \"2024.03.20\")", "2024.03.20");
+
+    // ========== DATE VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(type (as 'Date [0 1 2]))", "'Date");
+    TEST_ASSERT_EQ("(type (as 'Date [0i 1i 2i]))", "'Date");
+    TEST_ASSERT_EQ("(type (as 'Date [0h 1h 2h]))", "'Date");
+    TEST_ASSERT_EQ("(type (as 'Date [0.0 1.0 2.0]))", "'Date");
+
+    // ========== TIME ATOM CASTS ==========
+    // time <- b8
+    TEST_ASSERT_EQ("(type (as 'time false))", "'time");
+    TEST_ASSERT_EQ("(type (as 'time true))", "'time");
+    // time <- u8
+    TEST_ASSERT_EQ("(type (as 'time 0x00))", "'time");
+    // time <- i16
+    TEST_ASSERT_EQ("(type (as 'time 0h))", "'time");
+    // time <- i32
+    TEST_ASSERT_EQ("(type (as 'time 0i))", "'time");
+    TEST_ASSERT_EQ("(as 'time 0i)", "00:00:00.000");
+    // time <- i64
+    TEST_ASSERT_EQ("(type (as 'time 0))", "'time");
+    TEST_ASSERT_EQ("(as 'time 1000)", "00:00:01.000");
+    // time <- f64
+    TEST_ASSERT_EQ("(type (as 'time 0.0))", "'time");
+    // time <- date (value copy)
+    TEST_ASSERT_EQ("(type (as 'time 2000.01.01))", "'time");
+    // time <- timestamp
+    TEST_ASSERT_EQ("(type (as 'time 2000.01.01D00:00:00.000000001))", "'time");
+    // time <- String
+    TEST_ASSERT_EQ("(as 'time \"12:30:45.123\")", "12:30:45.123");
+
+    // ========== TIME VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(type (as 'Time [0 1000 2000]))", "'Time");
+    TEST_ASSERT_EQ("(type (as 'Time [0i 1000i 2000i]))", "'Time");
+    TEST_ASSERT_EQ("(type (as 'Time [0h 1h 2h]))", "'Time");
+    TEST_ASSERT_EQ("(type (as 'Time [0.0 1000.0 2000.0]))", "'Time");
+
+    // ========== TIMESTAMP ATOM CASTS ==========
+    // timestamp <- b8
+    TEST_ASSERT_EQ("(type (as 'timestamp false))", "'timestamp");
+    TEST_ASSERT_EQ("(type (as 'timestamp true))", "'timestamp");
+    // timestamp <- u8
+    TEST_ASSERT_EQ("(type (as 'timestamp 0x00))", "'timestamp");
+    // timestamp <- i16
+    TEST_ASSERT_EQ("(type (as 'timestamp 0h))", "'timestamp");
+    // timestamp <- i32
+    TEST_ASSERT_EQ("(type (as 'timestamp 0i))", "'timestamp");
+    // timestamp <- i64
+    TEST_ASSERT_EQ("(type (as 'timestamp 0))", "'timestamp");
+    TEST_ASSERT_EQ("(as 'timestamp 0)", "2000.01.01D00:00:00.000000000");
+    // timestamp <- f64
+    TEST_ASSERT_EQ("(type (as 'timestamp 0.0))", "'timestamp");
+    // timestamp <- date
+    TEST_ASSERT_EQ("(type (as 'timestamp 2000.01.01))", "'timestamp");
+    // timestamp <- time
+    TEST_ASSERT_EQ("(type (as 'timestamp 00:00:01.000))", "'timestamp");
+    // timestamp <- String
+    TEST_ASSERT_EQ("(as 'timestamp \"2024.03.20D12:30:45.123456789\")", "2024.03.20D12:30:45.123456789");
+
+    // ========== TIMESTAMP VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(type (as 'Timestamp [0 1 2]))", "'Timestamp");
+    TEST_ASSERT_EQ("(type (as 'Timestamp [0i 1i 2i]))", "'Timestamp");
+    TEST_ASSERT_EQ("(type (as 'Timestamp [0h 1h 2h]))", "'Timestamp");
+    TEST_ASSERT_EQ("(type (as 'Timestamp [0.0 1.0 2.0]))", "'Timestamp");
+
+    // ========== SYMBOL ATOM CASTS ==========
+    // symbol <- b8
+    TEST_ASSERT_EQ("(as 'symbol false)", "'0");
+    TEST_ASSERT_EQ("(as 'symbol true)", "'1");
+    // symbol <- u8
+    TEST_ASSERT_EQ("(as 'symbol 0x00)", "'0");
+    TEST_ASSERT_EQ("(as 'symbol 0xFF)", "'255");
+    // symbol <- i16
+    TEST_ASSERT_EQ("(as 'symbol 42h)", "'42");
+    TEST_ASSERT_EQ("(as 'symbol -100h)", "'-100");
+    // symbol <- i32
+    TEST_ASSERT_EQ("(as 'symbol 42i)", "'42");
+    TEST_ASSERT_EQ("(as 'symbol -1000000i)", "'-1000000");
+    // symbol <- i64
+    TEST_ASSERT_EQ("(as 'symbol 42)", "'42");
+    TEST_ASSERT_EQ("(as 'symbol -9999999999)", "'-9999999999");
+    // symbol <- f64
+    TEST_ASSERT_EQ("(type (as 'symbol 42.5))", "'symbol");
+    // symbol <- date
+    TEST_ASSERT_EQ("(type (as 'symbol 2024.03.20))", "'symbol");
+    // symbol <- time
+    TEST_ASSERT_EQ("(type (as 'symbol 12:30:45.123))", "'symbol");
+    // symbol <- timestamp
+    TEST_ASSERT_EQ("(type (as 'symbol 2024.03.20D12:30:45.123456789))", "'symbol");
+    // symbol <- guid
+    TEST_ASSERT_EQ("(type (as 'symbol (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\")))", "'symbol");
+    // symbol <- String
+    TEST_ASSERT_EQ("(as 'symbol \"hello\")", "'hello");
+
+    // ========== STRING/CHAR CASTS ==========
     TEST_ASSERT_EQ("(as 'String 'hello)", "\"hello\"");
     TEST_ASSERT_EQ("(as 'String 123)", "\"123\"");
+    TEST_ASSERT_EQ("(as 'String 123i)", "\"123\"");
+    TEST_ASSERT_EQ("(as 'String 123h)", "\"123\"");
+    TEST_ASSERT_EQ("(as 'String 123.45)", "\"123.45\"");
+    TEST_ASSERT_EQ("(as 'String true)", "\"true\"");
+    TEST_ASSERT_EQ("(as 'String false)", "\"false\"");
+    TEST_ASSERT_EQ("(as 'String 2024.03.20)", "\"2024.03.20\"");
+    TEST_ASSERT_EQ("(as 'String 12:30:45.123)", "\"12:30:45.123\"");
+
+    // ========== CHAR ATOM CASTS ==========
+    // char <- symbol (get first character)
+    TEST_ASSERT_EQ("(as 'char 'a)", "'a'");
+    TEST_ASSERT_EQ("(as 'char 'hello)", "'h'");
+    TEST_ASSERT_EQ("(as 'char 'XYZ)", "'X'");
+    // char <- String (get first character)
+    TEST_ASSERT_EQ("(as 'char \"a\")", "'a'");
+    TEST_ASSERT_EQ("(as 'char \"hello\")", "'h'");
+    TEST_ASSERT_EQ("(as 'char \"XYZ\")", "'X'");
 
     // ========== GUID CASTS ==========
     TEST_ASSERT_EQ("(type (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\"))", "'guid");
+
+    // ========== IDENTITY CASTS (same type) ==========
+    TEST_ASSERT_EQ("(as 'b8 true)", "true");
+    TEST_ASSERT_EQ("(as 'u8 0xFF)", "0xFF");
+    TEST_ASSERT_EQ("(as 'i16 100h)", "100h");
+    TEST_ASSERT_EQ("(as 'i32 100i)", "100i");
+    TEST_ASSERT_EQ("(as 'i64 100)", "100");
+    TEST_ASSERT_EQ("(as 'f64 100.5)", "100.50");
+    TEST_ASSERT_EQ("(as 'date 2024.03.20)", "2024.03.20");
+    TEST_ASSERT_EQ("(as 'time 12:30:45.123)", "12:30:45.123");
+    TEST_ASSERT_EQ("(as 'symbol 'hello)", "'hello");
+
+    // ========== EMPTY VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(type (as 'B8 []))", "'B8");
+    TEST_ASSERT_EQ("(type (as 'U8 []))", "'U8");
+    TEST_ASSERT_EQ("(type (as 'I16 []))", "'I16");
+    TEST_ASSERT_EQ("(type (as 'I32 []))", "'I32");
+    TEST_ASSERT_EQ("(type (as 'I64 []))", "'I64");
+    TEST_ASSERT_EQ("(type (as 'F64 []))", "'F64");
+    TEST_ASSERT_EQ("(type (as 'Date []))", "'Date");
+    TEST_ASSERT_EQ("(type (as 'Time []))", "'Time");
+    TEST_ASSERT_EQ("(type (as 'Timestamp []))", "'Timestamp");
+
+    // ========== TABLE/DICT CASTS ==========
+    TEST_ASSERT_EQ("(type (as 'Table {a: [1 2 3] b: [4 5 6]}))", "'Table");
+    TEST_ASSERT_EQ("(type (as 'Dict (as 'Table {a: [1 2 3] b: [4 5 6]})))", "'Dict");
+
+    // ========== LIST TO VECTOR CASTS ==========
+    TEST_ASSERT_EQ("(as 'I64 (list 1 2 3))", "[1 2 3]");
+    TEST_ASSERT_EQ("(as 'I32 (list 1i 2i 3i))", "[1i 2i 3i]");
+    TEST_ASSERT_EQ("(as 'F64 (list 1.0 2.0 3.0))", "[1.0 2.0 3.0]");
+    TEST_ASSERT_EQ("(as 'B8 (list true false true))", "[true false true]");
 
     PASS();
 }
