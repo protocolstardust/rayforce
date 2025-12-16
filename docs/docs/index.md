@@ -296,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     Native Python integration through FFI bindings. Use RayforceDB directly from your Python applications with zero overhead.
 
-    [:octicons-arrow-right-24: Python Docs](https://raypy.rayforcedb.com)
+    [:octicons-arrow-right-24: Python Docs](https://py.rayforcedb.com)
 
 - :material-web:{ .lg .middle .feature-icon } **WebAssembly**
 
