@@ -1469,7 +1469,6 @@ obj_p unop_map(raw_p op, obj_p x) {
     i64_t i, l, n, chunk;
     obj_p v, out;
     obj_p (*unop)(obj_p);
-    raw_p argv[4];
 
     if (IS_ATOM(x)) {
         unop = (obj_p(*)(obj_p))op;
@@ -1512,7 +1511,6 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
     pool_p pool;
     i64_t i, l, n;
     obj_p v, out;
-    raw_p argv[5];
     i8_t t;
 
     if (IS_VECTOR(x) && IS_VECTOR(y)) {
