@@ -1421,13 +1421,8 @@ obj_p unop_fold(raw_p op, obj_p x) {
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
 
-    if (n == 1) {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)l;
-        argv[2] = (raw_p)0;
-        v = pool_call_task_fn(op, 3, argv);
-        return v;
-    }
+    if (n == 1)
+        return ((obj_p(*)(obj_p, i64_t, i64_t))op)(x, l, 0);
 
     // --- PAGE-ALIGNED CHUNKING ---
     i64_t elem_size = size_of_type(x->type);
@@ -1488,13 +1483,8 @@ obj_p unop_map(raw_p op, obj_p x) {
     out = (rc_obj(x) == 1) ? clone_obj(x) : vector(x->type, l);
 
     if (n == 1) {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)l;
-        argv[2] = (raw_p)0;
-        argv[3] = (raw_p)out;
-        v = pool_call_task_fn(op, 4, argv);
+        v = ((obj_p(*)(obj_p, i64_t, i64_t, obj_p))op)(x, l, 0, out);
         if (IS_ERR(v)) {
-            out->len = 0;
             drop_obj(out);
             return v;
         }
@@ -1555,14 +1545,8 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
                                                              : vector(t, l);
 
     if (n == 1) {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)y;
-        argv[2] = (raw_p)l;
-        argv[3] = (raw_p)0;
-        argv[4] = (raw_p)out;
-        v = pool_call_task_fn(op, 5, argv);
+        v = ((obj_p(*)(obj_p, obj_p, i64_t, i64_t, obj_p))op)(x, y, l, 0, out);
         if (IS_ERR(v)) {
-            out->len = 0;
             drop_obj(out);
             return v;
         }
@@ -1614,14 +1598,8 @@ obj_p binop_fold(raw_p op, obj_p x, obj_p y) {
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
 
-    if (n == 1) {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)y;
-        argv[2] = (raw_p)l;
-        argv[3] = (raw_p)0;
-        v = pool_call_task_fn(op, 4, argv);
-        return v;
-    }
+    if (n == 1)
+        return ((obj_p(*)(obj_p, obj_p, i64_t, i64_t))op)(x, y, l, 0);
 
     // --- PAGE-ALIGNED CHUNKING ---
     i64_t elem_size = size_of_type(x->type);
