@@ -1525,9 +1525,8 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
     else if (IS_VECTOR(y))
         l = y->len;
     else {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)y;
-        return pool_call_task_fn(op, 2, argv);
+        // Both x and y are scalars - partial function handles this directly
+        return ((obj_p(*)(obj_p, obj_p, i64_t, i64_t, obj_p))op)(x, y, 0, 0, NULL);
     }
 
     t = (op == ray_fdiv_partial)                            ? TYPE_F64
