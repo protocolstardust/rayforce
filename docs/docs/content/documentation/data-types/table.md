@@ -84,4 +84,15 @@ Reads a CSV file and converts it into a [:material-table: Table](../data-types/t
 
 Takes a vector of type symbols specifying the column types, a file path, and optionally a separator character (defaults to comma).
 
+### :material-file-export-outline: Write CSV
+
+Writes a [:material-table: Table](../data-types/table.md) to a CSV file.
+
+```clj
+(write-csv "/path/to/file.csv" t)
+(write-csv "/path/to/file.csv" t ';')
+```
+
+Takes a file path, a table, and optionally a separator character (defaults to comma). The first row of the output file contains column names.
+
 ### :material-arrow-right: Next: Table [:simple-googlebigquery: Queries](../queries/overview.md)

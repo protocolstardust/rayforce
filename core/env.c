@@ -249,6 +249,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "insert",              TYPE_VARY,     FN_NONE,                   ray_insert);
     REGISTER_FN(functions,  "upsert",              TYPE_VARY,     FN_NONE,                   ray_upsert);
     REGISTER_FN(functions,  "read-csv",            TYPE_VARY,     FN_NONE,                   ray_read_csv);
+    REGISTER_FN(functions,  "write-csv",           TYPE_VARY,     FN_NONE,                   ray_write_csv);
     REGISTER_FN(functions,  "left-join",           TYPE_VARY,     FN_NONE,                   ray_left_join);
     REGISTER_FN(functions,  "inner-join",          TYPE_VARY,     FN_NONE,                   ray_inner_join);
     REGISTER_FN(functions,  "asof-join",           TYPE_VARY,     FN_NONE,                   ray_asof_join);
