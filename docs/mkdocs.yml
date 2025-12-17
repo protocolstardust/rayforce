@@ -128,6 +128,7 @@ nav:
 
   - Documentation:
     - Overview: content/documentation/overview.md
+    - Symbols, Enums & Persistence: content/documentation/symbols-and-enums.md
     - Data Types:
       - Overview: content/documentation/data-types/overview.md
       - Integers: content/documentation/data-types/integers.md

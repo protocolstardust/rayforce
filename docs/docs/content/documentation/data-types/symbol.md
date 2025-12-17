@@ -20,3 +20,5 @@ Symbol can be used to associate a certain value with the variable, using functio
 [true false]
 ```
 ### :material-arrow-right: See Symbol usage as [:material-table: Table](./table.md) column headers.
+
+### :material-book-open-page-variant: For an in-depth explanation of how symbols work internally, why they use interning, and how they relate to enums and symfiles, see the [:material-alphabetical-variant: Symbols, Enums, and Symfiles Guide](../symbols-and-enums.md).

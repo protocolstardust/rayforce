@@ -52,6 +52,9 @@ Stores a [:material-table: Table](../data-types/table.md) as a splayed table on 
 
 Optionally accepts a string path to a symfile. If provided, symbol columns will use this shared symfile.
 
+!!! tip "Understanding Symfiles"
+    The symfile is crucial for persisting symbol columns. See the [:material-alphabetical-variant: Symbols, Enums, and Symfiles Guide](../symbols-and-enums.md) for a detailed explanation of why symfiles are needed and how they enable data to be loaded across different processes.
+
 !!! note ""
     The table path must end with a trailing slash to indicate it's a directory.
 
@@ -72,6 +75,9 @@ Stores a [:material-table: Table](../data-types/table.md) as a parted table on d
 ```clj
 (set-parted "/tmp/db/" t)
 ```
+
+!!! warning "Important: Shared Symfiles for Parted Tables"
+    When creating parted tables, always use a shared symfile across all partitions. This ensures consistent symbol-to-index mapping, which is required for cross-partition queries. See the [:material-alphabetical-variant: Symbols, Enums, and Symfiles Guide](../symbols-and-enums.md) for details.
 
 ### :material-file-document-outline: Read CSV
 

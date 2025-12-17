@@ -15,3 +15,5 @@ Enums are created using the `enum` function, which takes a symbol key and a vect
 ↪ (enum 'a [a b c a c c c c a])
 'a#[a b c a c c c c a]
 ```
+
+### :material-book-open-page-variant: For a comprehensive guide on why enums are essential for storage, how they work internally, and their role in parted tables with symfiles, see the [:material-alphabetical-variant: Symbols, Enums, and Symfiles Guide](../symbols-and-enums.md).
