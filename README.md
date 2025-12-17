@@ -1,6 +1,10 @@
 # RayforceDB
 
-![RayforceDB Cover](docs/assets/images/cover.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/docs/images/logo_light_full.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/docs/images/logo_dark_full.svg">
+  <img alt="RayforceDB Cover" src="docs/docs/images/logo_dark_full.svg">
+</picture>
 
 [![Tests](https://img.shields.io/badge/Tests-passing-success?logo=github&style=flat)](https://singaraiona.github.io/rayforce/tests_report/) [![Coverage](https://img.shields.io/badge/Coverage-passing-brightgreen?style=flat&logo=github)](https://singaraiona.github.io/rayforce/coverage_report/) [![Release](https://img.shields.io/badge/Release-latest-blue?logo=github&style=flat)](https://github.com/singaraiona/rayforce/releases) [![Documentation](https://img.shields.io/badge/Documentation-latest-blue?logo=github&style=flat)](https://singaraiona.github.io/rayforce/)
 
