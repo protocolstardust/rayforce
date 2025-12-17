@@ -4,7 +4,7 @@
   <img alt="RayforceDB Cover" src="docs/docs/images/logo_dark_full.svg">
 </picture>
 
-<br>
+<p>&nbsp;</p>
 
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat)](LICENSE)
 [![Language](https://img.shields.io/badge/Language-C-blue?logo=c&style=flat)](https://en.wikipedia.org/wiki/C_(programming_language))
