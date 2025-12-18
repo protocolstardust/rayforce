@@ -2646,7 +2646,8 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take 5 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['a 'b 'c 'd 'a] [1 2 3 4 1])");
     TEST_ASSERT_EQ("(take -5 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['d 'a 'b 'c 'd] [4 1 2 3 4])");
 
-    TEST_ASSERT_EQ("(take 0h (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))", "(table [a b] (list [] []))");
+    TEST_ASSERT_EQ("(take 0h (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))",
+                   "(table [a b] (list (as 'I64 []) (as 'Symbol [])))");
     TEST_ASSERT_EQ("(type (take 0i (table [a b] (list [1 2 3 4] ['a 'b 'c 'd]))))", "'Table");
     TEST_ASSERT_EQ("(take 3 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))", "(table [a b] (list [1 2 3] ['a 'b 'c]))");
     TEST_ASSERT_EQ("(take -3 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))", "(table [a b] (list [2 3 4] ['b 'c 'd]))");
@@ -2748,7 +2749,7 @@ test_result_t test_lang_query() {
                    "(list [ibmd] (at gds 3) [3.00] [1] (list \"3\") [2000.01.01D00:00:00.000000003]))");
     TEST_ASSERT_EQ("(select {from: t by: Symbol where: (== Price 99)})",
                    "(table [Symbol OrderId Price Size Tape Timestamp]"
-                   "(list [] [] [] [] (list) []))");
+                   "(list (as 'Symbol []) (as 'Guid []) (as 'F64 []) (as 'I64 []) (list) (as 'Timestamp [])))");
     TEST_ASSERT_EQ("(select {s: (sum Price) from: t by: Symbol})",
                    "(table [Symbol s]"
                    "(list [apll good msfk ibmd amznt fbad baba]"
