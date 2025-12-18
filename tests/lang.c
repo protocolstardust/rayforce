@@ -2659,6 +2659,22 @@ test_result_t test_lang_take() {
     TEST_ASSERT_ER("(take 1.0 2.0)", "take: unsupported types: 'f64, 'f64");
     TEST_ASSERT_ER("(take take 2)", "take: unsupported types: 'BINARY, 'i64");
 
+    // Range take tests [start amount]
+    TEST_ASSERT_EQ("(take [1 2 3 4 5] [1 2])", "[2 3]");
+    TEST_ASSERT_EQ("(take [1 2 3 4 5] [0 3])", "[1 2 3]");
+    TEST_ASSERT_EQ("(take [1 2 3 4 5] [2 10])", "[3 4 5]");  // amount exceeds length
+    TEST_ASSERT_EQ("(take [1 2 3 4 5] [-2 2])", "[4 5]");    // negative start
+    TEST_ASSERT_EQ("(take [1 2 3 4 5] [-3 2])", "[3 4]");    // negative start
+    TEST_ASSERT_EQ("(take [1 2 3 4 5] [10 2])", "[]");       // start beyond length
+    TEST_ASSERT_EQ("(take \"hello\" [1 3])", "\"ell\"");
+    TEST_ASSERT_EQ("(take \"hello\" [-2 2])", "\"lo\"");
+    TEST_ASSERT_EQ("(take ['a 'b 'c 'd] [1 2])", "['b 'c]");
+    TEST_ASSERT_EQ("(take [1.0 2.0 3.0 4.0] [1 2])", "[2.0 3.0]");
+    TEST_ASSERT_EQ("(take (list 1 \"a\" 'b) [1 2])", "(list \"a\" 'b)");
+    TEST_ASSERT_EQ("(take (dict ['a 'b 'c 'd] [1 2 3 4]) [1 2])", "(dict ['b 'c] [2 3])");
+    TEST_ASSERT_EQ("(take (table [a b] (list [1 2 3 4] ['x 'y 'z 'w])) [1 2])", "(table [a b] (list [2 3] ['y 'z]))");
+    TEST_ASSERT_ER("(take [1 2 3] [1 -2])", "take: range amount cannot be negative");
+
     PASS();
 }
 

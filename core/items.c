@@ -395,25 +395,37 @@ obj_p ray_filter(obj_p x, obj_p y) {
 }
 
 obj_p ray_take(obj_p from, obj_p count) {
-    i64_t i, j, f, l, m, n, size;
+    i64_t i, j, f, l, m, n, size, start;
     obj_p k, s, v, res;
     u8_t *buf;
+    int is_range = 0;
 
-    switch (count->type) {
-        case -TYPE_I64:
-            f = 0 > count->i64;
-            m = ABSI64(count->i64);
-            break;
-        case -TYPE_I16:
-            f = 0 > count->i16;
-            m = ABSI64((i64_t)count->i16);
-            break;
-        case -TYPE_I32:
-            f = 0 > count->i32;
-            m = ABSI64((i64_t)count->i32);
-            break;
-        default:
-            THROW_TYPE2("take", from->type, count->type);
+    // Check if count is a 2-element vector [start amount] for range take
+    if (count->type == TYPE_I64 && count->len == 2) {
+        is_range = 1;
+        start = AS_I64(count)[0];
+        m = AS_I64(count)[1];
+        if (m < 0)
+            THROW(ERR_LENGTH, "take: range amount cannot be negative");
+        f = 0;  // not used for range
+    } else {
+        start = 0;
+        switch (count->type) {
+            case -TYPE_I64:
+                f = 0 > count->i64;
+                m = ABSI64(count->i64);
+                break;
+            case -TYPE_I16:
+                f = 0 > count->i16;
+                m = ABSI64((i64_t)count->i16);
+                break;
+            case -TYPE_I32:
+                f = 0 > count->i32;
+                m = ABSI64((i64_t)count->i32);
+                break;
+            default:
+                THROW_TYPE2("take", from->type, count->type);
+        }
     }
 
     switch (from->type) {
@@ -421,9 +433,23 @@ obj_p ray_take(obj_p from, obj_p count) {
         case TYPE_U8:
         case TYPE_C8:
             l = from->len;
-            res = vector(from->type, m);
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
-                AS_U8(res)[i] = AS_U8(from)[j % l];
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+                res = vector(from->type, m);
+                for (i = 0; i < m; i++)
+                    AS_U8(res)[i] = AS_U8(from)[start + i];
+            } else {
+                res = vector(from->type, m);
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
+                    AS_U8(res)[i] = AS_U8(from)[j % l];
+            }
             return res;
 
         case -TYPE_B8:
@@ -436,9 +462,23 @@ obj_p ray_take(obj_p from, obj_p count) {
 
         case TYPE_I16:
             l = from->len;
-            res = I16(m);
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
-                AS_I16(res)[i] = AS_I16(from)[j % l];
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+                res = I16(m);
+                for (i = 0; i < m; i++)
+                    AS_I16(res)[i] = AS_I16(from)[start + i];
+            } else {
+                res = I16(m);
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
+                    AS_I16(res)[i] = AS_I16(from)[j % l];
+            }
             return res;
 
         case -TYPE_I16:
@@ -451,9 +491,23 @@ obj_p ray_take(obj_p from, obj_p count) {
         case TYPE_DATE:
         case TYPE_TIME:
             l = from->len;
-            res = vector(from->type, m);
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
-                AS_I32(res)[i] = AS_I32(from)[j % l];
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+                res = vector(from->type, m);
+                for (i = 0; i < m; i++)
+                    AS_I32(res)[i] = AS_I32(from)[start + i];
+            } else {
+                res = vector(from->type, m);
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
+                    AS_I32(res)[i] = AS_I32(from)[j % l];
+            }
             return res;
 
         case -TYPE_I32:
@@ -469,9 +523,23 @@ obj_p ray_take(obj_p from, obj_p count) {
         case TYPE_TIMESTAMP:
         case TYPE_F64:
             l = from->len;
-            res = vector(from->type, m);
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
-                AS_I64(res)[i] = AS_I64(from)[j % l];
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+                res = vector(from->type, m);
+                for (i = 0; i < m; i++)
+                    AS_I64(res)[i] = AS_I64(from)[start + i];
+            } else {
+                res = vector(from->type, m);
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
+                    AS_I64(res)[i] = AS_I64(from)[j % l];
+            }
             return res;
 
         case -TYPE_I64:
@@ -485,9 +553,23 @@ obj_p ray_take(obj_p from, obj_p count) {
 
         case TYPE_GUID:
             l = from->len;
-            res = GUID(m);
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
-                memcpy(AS_GUID(res)[i], AS_GUID(from)[j % l], sizeof(guid_t));
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+                res = GUID(m);
+                for (i = 0; i < m; i++)
+                    memcpy(AS_GUID(res)[i], AS_GUID(from)[start + i], sizeof(guid_t));
+            } else {
+                res = GUID(m);
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
+                    memcpy(AS_GUID(res)[i], AS_GUID(from)[j % l], sizeof(guid_t));
+            }
             return res;
 
         case -TYPE_GUID:
@@ -500,9 +582,24 @@ obj_p ray_take(obj_p from, obj_p count) {
             l = AS_LIST(from)[0]->len;
             obj_p keys_res = vector(AS_LIST(from)[0]->type, 0);
             obj_p vals_res = vector(AS_LIST(from)[1]->type, 0);
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++) {
-                push_obj(&keys_res, clone_obj(at_idx(AS_LIST(from)[0], j % l)));
-                push_obj(&vals_res, clone_obj(at_idx(AS_LIST(from)[1], j % l)));
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+                for (i = 0; i < m; i++) {
+                    push_obj(&keys_res, clone_obj(at_idx(AS_LIST(from)[0], start + i)));
+                    push_obj(&vals_res, clone_obj(at_idx(AS_LIST(from)[1], start + i)));
+                }
+            } else {
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++) {
+                    push_obj(&keys_res, clone_obj(at_idx(AS_LIST(from)[0], j % l)));
+                    push_obj(&vals_res, clone_obj(at_idx(AS_LIST(from)[1], j % l)));
+                }
             }
             return dict(keys_res, vals_res);
 
@@ -511,9 +608,24 @@ obj_p ray_take(obj_p from, obj_p count) {
             s = ray_get(k);
             v = ENUM_VAL(from);
             l = v->len;
-            res = I64(m);
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++) {
-                AS_I64(res)[i] = AS_I64(v)[j % l];
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+                res = I64(m);
+                for (i = 0; i < m; i++) {
+                    AS_I64(res)[i] = AS_I64(v)[start + i];
+                }
+            } else {
+                res = I64(m);
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++) {
+                    AS_I64(res)[i] = AS_I64(v)[j % l];
+                }
             }
             drop_obj(s);
             if (s->type != TYPE_SYMBOL) {
@@ -527,32 +639,76 @@ obj_p ray_take(obj_p from, obj_p count) {
             s = MAPLIST_VAL(from);
             n = k->len;
             l = s->len;
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+            }
             res = vector(TYPE_LIST, m);
             size = m;
 
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++) {
-                if (AS_I64(s)[j % l] >= (i64_t)n) {
-                    buf = AS_U8(k) + AS_I64(s)[j % l];
-                    v = de_raw(buf, &size);
-                    if (IS_ERR(v)) {
+            if (is_range) {
+                for (i = 0; i < m; i++) {
+                    j = start + i;
+                    if (AS_I64(s)[j] >= (i64_t)n) {
+                        buf = AS_U8(k) + AS_I64(s)[j];
+                        v = de_raw(buf, &size);
+                        if (IS_ERR(v)) {
+                            res->len = i;
+                            drop_obj(res);
+                            return v;
+                        }
+                        AS_LIST(res)[i] = v;
+                    } else {
                         res->len = i;
                         drop_obj(res);
-                        return v;
+                        THROW(ERR_INDEX, "anymap value: index out of range: %d", AS_I64(s)[j]);
                     }
-                    AS_LIST(res)[i] = v;
-                } else {
-                    res->len = i;
-                    drop_obj(res);
-                    THROW(ERR_INDEX, "anymap value: index out of range: %d", AS_I64(s)[j % l]);
+                }
+            } else {
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++) {
+                    if (AS_I64(s)[j % l] >= (i64_t)n) {
+                        buf = AS_U8(k) + AS_I64(s)[j % l];
+                        v = de_raw(buf, &size);
+                        if (IS_ERR(v)) {
+                            res->len = i;
+                            drop_obj(res);
+                            return v;
+                        }
+                        AS_LIST(res)[i] = v;
+                    } else {
+                        res->len = i;
+                        drop_obj(res);
+                        THROW(ERR_INDEX, "anymap value: index out of range: %d", AS_I64(s)[j % l]);
+                    }
                 }
             }
             return res;
 
         case TYPE_LIST:
             l = from->len;
-            res = vector(TYPE_LIST, m);
-            for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
-                AS_LIST(res)[i] = clone_obj(AS_LIST(from)[j % l]);
+            if (is_range) {
+                if (start < 0)
+                    start = l + start;
+                if (start < 0)
+                    start = 0;
+                if (start > (i64_t)l)
+                    start = l;
+                if (start + m > (i64_t)l)
+                    m = l - start;
+                res = vector(TYPE_LIST, m);
+                for (i = 0; i < m; i++)
+                    AS_LIST(res)[i] = clone_obj(AS_LIST(from)[start + i]);
+            } else {
+                res = vector(TYPE_LIST, m);
+                for (i = 0, j = (l - m % l) * f; i < m; i++, j++)
+                    AS_LIST(res)[i] = clone_obj(AS_LIST(from)[j % l]);
+            }
             return res;
 
         case TYPE_TABLE:
