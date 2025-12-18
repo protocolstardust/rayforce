@@ -2508,156 +2508,156 @@ test_result_t test_lang_math() {
 }
 
 test_result_t test_lang_take() {
-    TEST_ASSERT_EQ("(take 0h false)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i false))", "'B8");
-    TEST_ASSERT_EQ("(take 2 true)", "[true true]");
-    TEST_ASSERT_EQ("(take 3 [false false true true])", "[false false true]");
-    TEST_ASSERT_EQ("(take -3 [false false true true])", "[false true true]");
-    TEST_ASSERT_EQ("(take 5 [false false true true])", "[false false true true false]");
-    TEST_ASSERT_EQ("(take -5 [false false true true])", "[true false false true true]");
+    TEST_ASSERT_EQ("(take false 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take false 0i))", "'B8");
+    TEST_ASSERT_EQ("(take true 2)", "[true true]");
+    TEST_ASSERT_EQ("(take [false false true true] 3)", "[false false true]");
+    TEST_ASSERT_EQ("(take [false false true true] -3)", "[false true true]");
+    TEST_ASSERT_EQ("(take [false false true true] 5)", "[false false true true false]");
+    TEST_ASSERT_EQ("(take [false false true true] -5)", "[true false false true true]");
 
-    TEST_ASSERT_EQ("(take 0h [0x00])", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 0x00))", "'U8");
-    TEST_ASSERT_EQ("(take 2 0x01)", "[0x01 0x01]");
-    TEST_ASSERT_EQ("(take 3 [0x00 0x01 0x02 0x03])", "[0x00 0x01 0x02]");
-    TEST_ASSERT_EQ("(take -3 [0x00 0x01 0x02 0x03])", "[0x01 0x02 0x03]");
-    TEST_ASSERT_EQ("(take 5 [0x00 0x01 0x02 0x03])", "[0x00 0x01 0x02 0x03 0x00]");
-    TEST_ASSERT_EQ("(take -5 [0x00 0x01 0x02 0x03])", "[0x03 0x00 0x01 0x02 0x03]");
+    TEST_ASSERT_EQ("(take [0x00] 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take 0x00 0i))", "'U8");
+    TEST_ASSERT_EQ("(take 0x01 2)", "[0x01 0x01]");
+    TEST_ASSERT_EQ("(take [0x00 0x01 0x02 0x03] 3)", "[0x00 0x01 0x02]");
+    TEST_ASSERT_EQ("(take [0x00 0x01 0x02 0x03] -3)", "[0x01 0x02 0x03]");
+    TEST_ASSERT_EQ("(take [0x00 0x01 0x02 0x03] 5)", "[0x00 0x01 0x02 0x03 0x00]");
+    TEST_ASSERT_EQ("(take [0x00 0x01 0x02 0x03] -5)", "[0x03 0x00 0x01 0x02 0x03]");
 
-    TEST_ASSERT_EQ("(take 0h \"abcd\")", "\"\"");
-    TEST_ASSERT_EQ("(type (take 0i \"abcd\"))", "'C8");
-    TEST_ASSERT_EQ("(take 2 'a')", "\"aa\"");
-    TEST_ASSERT_EQ("(take 3 \"abcd\")", "\"abc\"");
-    TEST_ASSERT_EQ("(take -3 \"abcd\")", "\"bcd\"");
-    TEST_ASSERT_EQ("(take 5 \"abcd\")", "\"abcda\"");
-    TEST_ASSERT_EQ("(take -5 \"abcd\")", "\"dabcd\"");
+    TEST_ASSERT_EQ("(take \"abcd\" 0h)", "\"\"");
+    TEST_ASSERT_EQ("(type (take \"abcd\" 0i))", "'C8");
+    TEST_ASSERT_EQ("(take 'a' 2)", "\"aa\"");
+    TEST_ASSERT_EQ("(take \"abcd\" 3)", "\"abc\"");
+    TEST_ASSERT_EQ("(take \"abcd\" -3)", "\"bcd\"");
+    TEST_ASSERT_EQ("(take \"abcd\" 5)", "\"abcda\"");
+    TEST_ASSERT_EQ("(take \"abcd\" -5)", "\"dabcd\"");
 
-    TEST_ASSERT_EQ("(take 0h 1h)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 1h))", "'I16");
-    TEST_ASSERT_EQ("(take 2 1h)", "[1h 1h]");
-    TEST_ASSERT_EQ("(take 3 [0h 1h 2h 3h])", "[0h 1h 2h]");
-    TEST_ASSERT_EQ("(take -3 [0h 1h 2h 3h])", "[1h 2h 3h]");
-    TEST_ASSERT_EQ("(take 5 [0h 1h 2h 3h])", "[0h 1h 2h 3h 0h]");
-    TEST_ASSERT_EQ("(take -5 [0h 1h 2h 3h])", "[3h 0h 1h 2h 3h]");
+    TEST_ASSERT_EQ("(take 1h 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take 1h 0i))", "'I16");
+    TEST_ASSERT_EQ("(take 1h 2)", "[1h 1h]");
+    TEST_ASSERT_EQ("(take [0h 1h 2h 3h] 3)", "[0h 1h 2h]");
+    TEST_ASSERT_EQ("(take [0h 1h 2h 3h] -3)", "[1h 2h 3h]");
+    TEST_ASSERT_EQ("(take [0h 1h 2h 3h] 5)", "[0h 1h 2h 3h 0h]");
+    TEST_ASSERT_EQ("(take [0h 1h 2h 3h] -5)", "[3h 0h 1h 2h 3h]");
 
-    TEST_ASSERT_EQ("(take 0h 1i)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 1i))", "'I32");
-    TEST_ASSERT_EQ("(take 2 1i)", "[1i 1i]");
-    TEST_ASSERT_EQ("(take 3 [0i 1i 2i 3i])", "[0i 1i 2i]");
-    TEST_ASSERT_EQ("(take -3 [0i 1i 2i 3i])", "[1i 2i 3i]");
-    TEST_ASSERT_EQ("(take 5 [0i 1i 2i 3i])", "[0i 1i 2i 3i 0i]");
-    TEST_ASSERT_EQ("(take -5 [0i 1i 2i 3i])", "[3i 0i 1i 2i 3i]");
+    TEST_ASSERT_EQ("(take 1i 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take 1i 0i))", "'I32");
+    TEST_ASSERT_EQ("(take 1i 2)", "[1i 1i]");
+    TEST_ASSERT_EQ("(take [0i 1i 2i 3i] 3)", "[0i 1i 2i]");
+    TEST_ASSERT_EQ("(take [0i 1i 2i 3i] -3)", "[1i 2i 3i]");
+    TEST_ASSERT_EQ("(take [0i 1i 2i 3i] 5)", "[0i 1i 2i 3i 0i]");
+    TEST_ASSERT_EQ("(take [0i 1i 2i 3i] -5)", "[3i 0i 1i 2i 3i]");
 
-    TEST_ASSERT_EQ("(take 0 2025.05.01)", "[]");
-    TEST_ASSERT_EQ("(type (take 0 2025.05.01))", "'DATE");
-    TEST_ASSERT_EQ("(take 2 2025.05.01)", "[2025.05.01 2025.05.01]");
-    TEST_ASSERT_EQ("(take 3 [2025.05.01 2025.05.02 2025.05.03 2025.05.04])", "[2025.05.01 2025.05.02 2025.05.03]");
-    TEST_ASSERT_EQ("(take -3 [2025.05.01 2025.05.02 2025.05.03 2025.05.04])", "[2025.05.02 2025.05.03 2025.05.04]");
-    TEST_ASSERT_EQ("(take 5 [2025.05.01 2025.05.02 2025.05.03 2025.05.04])",
+    TEST_ASSERT_EQ("(take 2025.05.01 0)", "[]");
+    TEST_ASSERT_EQ("(type (take 2025.05.01 0))", "'DATE");
+    TEST_ASSERT_EQ("(take 2025.05.01 2)", "[2025.05.01 2025.05.01]");
+    TEST_ASSERT_EQ("(take [2025.05.01 2025.05.02 2025.05.03 2025.05.04] 3)", "[2025.05.01 2025.05.02 2025.05.03]");
+    TEST_ASSERT_EQ("(take [2025.05.01 2025.05.02 2025.05.03 2025.05.04] -3)", "[2025.05.02 2025.05.03 2025.05.04]");
+    TEST_ASSERT_EQ("(take [2025.05.01 2025.05.02 2025.05.03 2025.05.04] 5)",
                    "[2025.05.01 2025.05.02 2025.05.03 2025.05.04 2025.05.01]");
-    TEST_ASSERT_EQ("(take -5 [2025.05.01 2025.05.02 2025.05.03 2025.05.04])",
+    TEST_ASSERT_EQ("(take [2025.05.01 2025.05.02 2025.05.03 2025.05.04] -5)",
                    "[2025.05.04 2025.05.01 2025.05.02 2025.05.03 2025.05.04]");
-    TEST_ASSERT_EQ("(take 0 00:00:01.000)", "[]");
-    TEST_ASSERT_EQ("(type (take 0 00:00:01.000))", "'TIME");
-    TEST_ASSERT_EQ("(take 2 00:00:01.000)", "[00:00:01.000 00:00:01.000]");
-    TEST_ASSERT_EQ("(take 3 [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000])",
+    TEST_ASSERT_EQ("(take 00:00:01.000 0)", "[]");
+    TEST_ASSERT_EQ("(type (take 00:00:01.000 0))", "'TIME");
+    TEST_ASSERT_EQ("(take 00:00:01.000 2)", "[00:00:01.000 00:00:01.000]");
+    TEST_ASSERT_EQ("(take [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000] 3)",
                    "[00:00:01.000 00:00:02.000 00:00:03.000]");
-    TEST_ASSERT_EQ("(take -3 [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000])",
+    TEST_ASSERT_EQ("(take [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000] -3)",
                    "[00:00:02.000 00:00:03.000 00:00:04.000]");
-    TEST_ASSERT_EQ("(take 5 [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000])",
+    TEST_ASSERT_EQ("(take [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000] 5)",
                    "[00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000 00:00:01.000]");
-    TEST_ASSERT_EQ("(take -5 [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000])",
+    TEST_ASSERT_EQ("(take [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000] -5)",
                    "[00:00:04.000 00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000]");
 
-    TEST_ASSERT_EQ("(take 0h 1)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 1))", "'I64");
-    TEST_ASSERT_EQ("(take 2 1)", "[1 1]");
-    TEST_ASSERT_EQ("(take 3 [0 1 2 3])", "[0 1 2]");
-    TEST_ASSERT_EQ("(take -3 [0 1 2 3])", "[1 2 3]");
-    TEST_ASSERT_EQ("(take 5 [0 1 2 3])", "[0 1 2 3 0]");
-    TEST_ASSERT_EQ("(take -5 [0 1 2 3])", "[3 0 1 2 3]");
+    TEST_ASSERT_EQ("(take 1 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take 1 0i))", "'I64");
+    TEST_ASSERT_EQ("(take 1 2)", "[1 1]");
+    TEST_ASSERT_EQ("(take [0 1 2 3] 3)", "[0 1 2]");
+    TEST_ASSERT_EQ("(take [0 1 2 3] -3)", "[1 2 3]");
+    TEST_ASSERT_EQ("(take [0 1 2 3] 5)", "[0 1 2 3 0]");
+    TEST_ASSERT_EQ("(take [0 1 2 3] -5)", "[3 0 1 2 3]");
 
-    TEST_ASSERT_EQ("(take 0h 'a)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 'a))", "'SYMBOL");
-    TEST_ASSERT_EQ("(take 2 'a)", "['a 'a]");
-    TEST_ASSERT_EQ("(take 3 ['a 'b 'c 'd])", "['a 'b 'c]");
-    TEST_ASSERT_EQ("(take -3 ['a 'b 'c 'd])", "['b 'c 'd]");
-    TEST_ASSERT_EQ("(take 5 ['a 'b 'c 'd])", "['a 'b 'c 'd 'a]");
-    TEST_ASSERT_EQ("(take -5 ['a 'b 'c 'd])", "['d 'a 'b 'c 'd]");
+    TEST_ASSERT_EQ("(take 'a 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take 'a 0i))", "'SYMBOL");
+    TEST_ASSERT_EQ("(take 'a 2)", "['a 'a]");
+    TEST_ASSERT_EQ("(take ['a 'b 'c 'd] 3)", "['a 'b 'c]");
+    TEST_ASSERT_EQ("(take ['a 'b 'c 'd] -3)", "['b 'c 'd]");
+    TEST_ASSERT_EQ("(take ['a 'b 'c 'd] 5)", "['a 'b 'c 'd 'a]");
+    TEST_ASSERT_EQ("(take ['a 'b 'c 'd] -5)", "['d 'a 'b 'c 'd]");
 
-    TEST_ASSERT_EQ("(take 0h 2025.05.01D00:00:01.000000000)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 2025.05.01D00:00:01.000000000))", "'TIMESTAMP");
-    TEST_ASSERT_EQ("(take 2 2025.05.01D00:00:01.000000000)",
+    TEST_ASSERT_EQ("(take 2025.05.01D00:00:01.000000000 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take 2025.05.01D00:00:01.000000000 0i))", "'TIMESTAMP");
+    TEST_ASSERT_EQ("(take 2025.05.01D00:00:01.000000000 2)",
                    "[2025.05.01D00:00:01.000000000 2025.05.01D00:00:01.000000000]");
     TEST_ASSERT_EQ(
-        "(take 3 [2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
-        "2025.05.04D01:02:03.040000000])",
+        "(take [2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
+        "2025.05.04D01:02:03.040000000] 3)",
         "[2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000]");
     TEST_ASSERT_EQ(
-        "(take -3 [2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
-        "2025.05.04D01:02:03.040000000])",
+        "(take [2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
+        "2025.05.04D01:02:03.040000000] -3)",
         "[2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 2025.05.04D01:02:03.040000000]");
     TEST_ASSERT_EQ(
-        "(take 5 [2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
-        "2025.05.04D01:02:03.040000000])",
+        "(take [2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
+        "2025.05.04D01:02:03.040000000] 5)",
         "[2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
         "2025.05.04D01:02:03.040000000 2025.05.01D01:02:03.040000000]");
     TEST_ASSERT_EQ(
-        "(take -5 [2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
-        "2025.05.04D01:02:03.040000000])",
+        "(take [2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 2025.05.03D01:02:03.040000000 "
+        "2025.05.04D01:02:03.040000000] -5)",
         "[2025.05.04D01:02:03.040000000 2025.05.01D01:02:03.040000000 2025.05.02D01:02:03.040000000 "
         "2025.05.03D01:02:03.040000000 2025.05.04D01:02:03.040000000]");
 
-    TEST_ASSERT_EQ("(take 0h 1.0)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 1.0))", "'F64");
-    TEST_ASSERT_EQ("(take 2 1.0)", "[1.0 1.0]");
-    TEST_ASSERT_EQ("(take 3 [0.0 1.0 2.0 3.0])", "[0.0 1.0 2.0]");
-    TEST_ASSERT_EQ("(take -3 [0.0 1.0 2.0 3.0])", "[1.0 2.0 3.0]");
-    TEST_ASSERT_EQ("(take 5 [0.0 1.0 2.0 3.0])", "[0.0 1.0 2.0 3.0 0.0]");
-    TEST_ASSERT_EQ("(take -5 [0.0 1.0 2.0 3.0])", "[3.0 0.0 1.0 2.0 3.0]");
+    TEST_ASSERT_EQ("(take 1.0 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take 1.0 0i))", "'F64");
+    TEST_ASSERT_EQ("(take 1.0 2)", "[1.0 1.0]");
+    TEST_ASSERT_EQ("(take [0.0 1.0 2.0 3.0] 3)", "[0.0 1.0 2.0]");
+    TEST_ASSERT_EQ("(take [0.0 1.0 2.0 3.0] -3)", "[1.0 2.0 3.0]");
+    TEST_ASSERT_EQ("(take [0.0 1.0 2.0 3.0] 5)", "[0.0 1.0 2.0 3.0 0.0]");
+    TEST_ASSERT_EQ("(take [0.0 1.0 2.0 3.0] -5)", "[3.0 0.0 1.0 2.0 3.0]");
 
-    TEST_ASSERT_EQ("(take 0h (guid 1))", "[]");
-    TEST_ASSERT_EQ("(type (take 0i (guid 1)))", "'GUID");
-    TEST_ASSERT_EQ("(take 2 (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\"))",
+    TEST_ASSERT_EQ("(take (guid 1) 0h)", "[]");
+    TEST_ASSERT_EQ("(type (take (guid 1) 0i))", "'GUID");
+    TEST_ASSERT_EQ("(take (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\") 2)",
                    "[d49f18a4-1969-49e8-9b8a-6bb9a4832eea d49f18a4-1969-49e8-9b8a-6bb9a4832eea]");
-    TEST_ASSERT_EQ("(set l (guid 4)) (take 4 l)", "l");
-    TEST_ASSERT_EQ("(set l (guid 4)) (take -4 l)", "l");
-    TEST_ASSERT_EQ("(set l (guid 4)) (first (take 5 l))", "(first l)");
-    TEST_ASSERT_EQ("(set l (guid 4)) (first (take -5 l))", "(last l)");
+    TEST_ASSERT_EQ("(set l (guid 4)) (take l 4)", "l");
+    TEST_ASSERT_EQ("(set l (guid 4)) (take l -4)", "l");
+    TEST_ASSERT_EQ("(set l (guid 4)) (first (take l 5))", "(first l)");
+    TEST_ASSERT_EQ("(set l (guid 4)) (first (take l -5))", "(last l)");
 
-    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take 0h (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym (take 0 'a))");
-    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (type (take 0i (enum 'sym ['a 'b 'c 'd])))", "'ENUM");
-    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take 3 (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym ['a 'b 'c])");
-    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take -3 (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym ['b 'c 'd])");
-    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take 5 (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym ['a 'b 'c 'd 'a])");
-    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take -5 (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym ['d 'a 'b 'c 'd])");
+    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take (enum 'sym ['a 'b 'c 'd]) 0h)", "(enum 'sym (take 'a 0))");
+    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (type (take (enum 'sym ['a 'b 'c 'd]) 0i))", "'ENUM");
+    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take (enum 'sym ['a 'b 'c 'd]) 3)", "(enum 'sym ['a 'b 'c])");
+    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take (enum 'sym ['a 'b 'c 'd]) -3)", "(enum 'sym ['b 'c 'd])");
+    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take (enum 'sym ['a 'b 'c 'd]) 5)", "(enum 'sym ['a 'b 'c 'd 'a])");
+    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take (enum 'sym ['a 'b 'c 'd]) -5)", "(enum 'sym ['d 'a 'b 'c 'd])");
 
-    TEST_ASSERT_EQ("(take 0h (list 1h 2i 3 \"4\"))", "(list )");
-    TEST_ASSERT_EQ("(type (take 0i (list 1h 2i 3 \"4\")))", "'LIST");
-    TEST_ASSERT_EQ("(take 3 (list 1h 2i 3 \"4\"))", "(list 1h 2i 3)");
-    TEST_ASSERT_EQ("(take -3 (list 1h 2i 3 \"4\"))", "(list 2i 3 \"4\")");
-    TEST_ASSERT_EQ("(take 5 (list 1h 2i 3 \"4\"))", "(list 1h 2i 3 \"4\" 1h)");
-    TEST_ASSERT_EQ("(take -5 (list 1h 2i 3 \"4\"))", "(list \"4\" 1h 2i 3 \"4\")");
+    TEST_ASSERT_EQ("(take (list 1h 2i 3 \"4\") 0h)", "(list )");
+    TEST_ASSERT_EQ("(type (take (list 1h 2i 3 \"4\") 0i))", "'LIST");
+    TEST_ASSERT_EQ("(take (list 1h 2i 3 \"4\") 3)", "(list 1h 2i 3)");
+    TEST_ASSERT_EQ("(take (list 1h 2i 3 \"4\") -3)", "(list 2i 3 \"4\")");
+    TEST_ASSERT_EQ("(take (list 1h 2i 3 \"4\") 5)", "(list 1h 2i 3 \"4\" 1h)");
+    TEST_ASSERT_EQ("(take (list 1h 2i 3 \"4\") -5)", "(list \"4\" 1h 2i 3 \"4\")");
 
-    TEST_ASSERT_EQ("(take 0h (dict ['a 'b 'c 'd] [1 2 3 4]))", "{}");
-    TEST_ASSERT_EQ("(type (take 0i (dict ['a 'b 'c 'd] [1 2 3 4])))", "'DICT");
-    TEST_ASSERT_EQ("(take 3 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['a 'b 'c] [1 2 3])");
-    TEST_ASSERT_EQ("(take -3 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['b 'c 'd] [2 3 4])");
-    TEST_ASSERT_EQ("(take 5 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['a 'b 'c 'd 'a] [1 2 3 4 1])");
-    TEST_ASSERT_EQ("(take -5 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['d 'a 'b 'c 'd] [4 1 2 3 4])");
+    TEST_ASSERT_EQ("(take (dict ['a 'b 'c 'd] [1 2 3 4]) 0h)", "{}");
+    TEST_ASSERT_EQ("(type (take (dict ['a 'b 'c 'd] [1 2 3 4]) 0i))", "'DICT");
+    TEST_ASSERT_EQ("(take (dict ['a 'b 'c 'd] [1 2 3 4]) 3)", "(dict ['a 'b 'c] [1 2 3])");
+    TEST_ASSERT_EQ("(take (dict ['a 'b 'c 'd] [1 2 3 4]) -3)", "(dict ['b 'c 'd] [2 3 4])");
+    TEST_ASSERT_EQ("(take (dict ['a 'b 'c 'd] [1 2 3 4]) 5)", "(dict ['a 'b 'c 'd 'a] [1 2 3 4 1])");
+    TEST_ASSERT_EQ("(take (dict ['a 'b 'c 'd] [1 2 3 4]) -5)", "(dict ['d 'a 'b 'c 'd] [4 1 2 3 4])");
 
-    TEST_ASSERT_EQ("(take 0h (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))",
+    TEST_ASSERT_EQ("(take (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])) 0h)",
                    "(table [a b] (list (as 'I64 []) (as 'SYMBOL [])))");
-    TEST_ASSERT_EQ("(type (take 0i (table [a b] (list [1 2 3 4] ['a 'b 'c 'd]))))", "'TABLE");
-    TEST_ASSERT_EQ("(take 3 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))", "(table [a b] (list [1 2 3] ['a 'b 'c]))");
-    TEST_ASSERT_EQ("(take -3 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))", "(table [a b] (list [2 3 4] ['b 'c 'd]))");
-    TEST_ASSERT_EQ("(take 5 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))",
+    TEST_ASSERT_EQ("(type (take (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])) 0i))", "'TABLE");
+    TEST_ASSERT_EQ("(take (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])) 3)", "(table [a b] (list [1 2 3] ['a 'b 'c]))");
+    TEST_ASSERT_EQ("(take (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])) -3)", "(table [a b] (list [2 3 4] ['b 'c 'd]))");
+    TEST_ASSERT_EQ("(take (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])) 5)",
                    "(table [a b] (list [1 2 3 4 1] ['a 'b 'c 'd 'a]))");
-    TEST_ASSERT_EQ("(take -5 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))",
+    TEST_ASSERT_EQ("(take (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])) -5)",
                    "(table [a b] (list [4 1 2 3 4] ['d 'a 'b 'c 'd]))");
 
-    TEST_ASSERT_ER("(take 2.0 1.0)", "take: unsupported types: 'f64, 'f64");
-    TEST_ASSERT_ER("(take 2 take)", "take: unsupported types: 'i64, 'BINARY");
+    TEST_ASSERT_ER("(take 1.0 2.0)", "take: unsupported types: 'f64, 'f64");
+    TEST_ASSERT_ER("(take take 2)", "take: unsupported types: 'BINARY, 'i64");
 
     PASS();
 }
@@ -2728,13 +2728,13 @@ test_result_t test_lang_query() {
     TEST_ASSERT_EQ("(at t 'tape)", "(list \"A\"\"B\"\"C\")");
     TEST_ASSERT_EQ(
         "(set n 10)"
-        "(set gds (take n (guid 3)))"
+        "(set gds (take (guid 3) n))"
         "(set t (table [OrderId Symbol Price Size Tape Timestamp]"
         "(list gds"
-        "(take n [apll good msfk ibmd amznt fbad baba])"
+        "(take [apll good msfk ibmd amznt fbad baba] n)"
         "(as 'F64 (til n))"
-        "(take n (+ 1 (til 3)))"
-        "(map (fn [x] (as 'C8 x)) (take n (til 10)))"
+        "(take (+ 1 (til 3)) n)"
+        "(map (fn [x] (as 'C8 x)) (take (til 10) n))"
         "(as 'TIMESTAMP (til n)))))"
         "null",
         "null");
@@ -2757,7 +2757,7 @@ test_result_t test_lang_query() {
 
     // Test and with select - this exposes the parallel processing bug
     TEST_ASSERT_EQ(
-        "(set t (table ['a 'b 'c] (list (take 25001 [false true]) (take 25001 [true false]) (take 25001 1)))) (count "
+        "(set t (table ['a 'b 'c] (list (take [false true] 25001) (take [true false] 25001) (take 1 25001)))) (count "
         "(select {c: c from: t where: (and a b)}))",
         "0");
 
@@ -3664,7 +3664,7 @@ test_result_t test_lang_filter() {
     TEST_ASSERT_EQ("(filter [2024.01.01D10:00:00.000000000] [true])", "[2024.01.01D10:00:00.000000000]");
     TEST_ASSERT_EQ("(filter [1.0 2.0 3.0] [true false true])", "[1.0 3.0]");
     TEST_ASSERT_EQ("(filter (guid 2) [false false])", "[]");
-    TEST_ASSERT_EQ("(filter (take 2 (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\")) [false true])",
+    TEST_ASSERT_EQ("(filter (take (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\") 2) [false true])",
                    "[d49f18a4-1969-49e8-9b8a-6bb9a4832eea]");
     TEST_ASSERT_EQ("(filter (list [3i 0Ni] 2i [3i 3i] 2i) [true true false false])", "(list [3i 0Ni] 2i)");
     TEST_ASSERT_EQ("(first (filter (table [a b] (list [1 2 3] (list 'a 'b 'c))) [false true true]))", "{a:2 b:'b}");
@@ -4144,7 +4144,7 @@ test_result_t test_lang_joins() {
 
     // empty left table
     TEST_ASSERT_EQ(
-        "(set t1 (table [id val1] (list (take 0 [1]) (take 0 [1]))))"
+        "(set t1 (table [id val1] (list (take [1] 0) (take [1] 0))))"
         "(set t2 (table [id val2] (list [1 2 3] [100 200 300])))"
         "(count (left-join [id] t1 t2))",
         "0");
@@ -4152,13 +4152,13 @@ test_result_t test_lang_joins() {
     // empty right table
     TEST_ASSERT_EQ(
         "(set t1 (table [id val1] (list [1 2 3] [100 200 300])))"
-        "(set t2 (table [id val2] (list (take 0 [1]) (take 0 [1]))))"
+        "(set t2 (table [id val2] (list (take [1] 0) (take [1] 0))))"
         "(count (left-join [id] t1 t2))",
         "3");
 
     // empty tables for inner-join
     TEST_ASSERT_EQ(
-        "(set t1 (table [id val1] (list (take 0 [1]) (take 0 [1]))))"
+        "(set t1 (table [id val1] (list (take [1] 0) (take [1] 0))))"
         "(set t2 (table [id val2] (list [1 2 3] [100 200 300])))"
         "(count (inner-join [id] t1 t2))",
         "0");
@@ -4329,10 +4329,10 @@ test_result_t test_lang_list() {
     TEST_ASSERT_EQ("(til 1)", "[0]");
 
     // ========== TAKE ==========
-    TEST_ASSERT_EQ("(take 3 [1 2 3 4 5])", "[1 2 3]");
-    TEST_ASSERT_EQ("(take -3 [1 2 3 4 5])", "[3 4 5]");
-    TEST_ASSERT_EQ("(take 7 [1 2 3])", "[1 2 3 1 2 3 1]");  // cyclic
-    TEST_ASSERT_EQ("(take 3 \"hello\")", "\"hel\"");
+    TEST_ASSERT_EQ("(take [1 2 3 4 5] 3)", "[1 2 3]");
+    TEST_ASSERT_EQ("(take [1 2 3 4 5] -3)", "[3 4 5]");
+    TEST_ASSERT_EQ("(take [1 2 3] 7)", "[1 2 3 1 2 3 1]");  // cyclic
+    TEST_ASSERT_EQ("(take \"hello\" 3)", "\"hel\"");
 
     PASS();
 }
@@ -4966,8 +4966,8 @@ test_result_t test_lang_string_ops() {
     TEST_ASSERT_EQ("(at \"hello\" 4)", "'o'");
 
     // ========== STRING TAKE ==========
-    TEST_ASSERT_EQ("(take 3 \"hello\")", "\"hel\"");
-    TEST_ASSERT_EQ("(take -2 \"hello\")", "\"lo\"");
+    TEST_ASSERT_EQ("(take \"hello\" 3)", "\"hel\"");
+    TEST_ASSERT_EQ("(take \"hello\" -2)", "\"lo\"");
 
     // ========== STRING FIRST/LAST ==========
     TEST_ASSERT_EQ("(first \"hello\")", "'h'");

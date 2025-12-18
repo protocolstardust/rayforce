@@ -62,16 +62,16 @@ Returns the last element of a collection.
 Returns the first `n` elements of a collection. If `n` is negative, returns the last `n` elements.
 
 ```clj
-(take 3 [1 2 3 4 5])
+(take [1 2 3 4 5] 3)
 [1 2 3]
 
-(take -3 [1 2 3 4 5])
+(take [1 2 3 4 5] -3)
 [3 4 5]
 
-(take 2 [150.25 300.50 125.75 200.00])
+(take [150.25 300.50 125.75 200.00] 2)
 [150.25 300.50]
 
-(take 2 'a')
+(take 'a' 2)
 "aa"
 ```
 

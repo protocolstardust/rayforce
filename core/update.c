@@ -645,8 +645,8 @@ obj_p ray_upsert(obj_p *x, i64_t n) {
                     k1 = at_idx(AS_LIST(obj)[1], 0);
                     k2 = clone_obj(AS_LIST(lst)[0]);
                 } else {
-                    k1 = ray_take(x[1], AS_LIST(obj)[1]);
-                    k2 = ray_take(x[1], lst);
+                    k1 = ray_take(AS_LIST(obj)[1], x[1]);
+                    k2 = ray_take(lst, x[1]);
                 }
 
                 idx = index_upsert_obj(k2, k1, x[1]->i64);
@@ -701,8 +701,8 @@ obj_p ray_upsert(obj_p *x, i64_t n) {
                 k2 = at_idx(lst, 0);
                 m = ops_count(k2);
             } else {
-                k1 = ray_take(x[1], AS_LIST(obj)[1]);
-                k2 = ray_take(x[1], lst);
+                k1 = ray_take(AS_LIST(obj)[1], x[1]);
+                k2 = ray_take(lst, x[1]);
                 m = ops_count(AS_LIST(k2)[0]);
             }
 

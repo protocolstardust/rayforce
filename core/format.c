@@ -818,7 +818,7 @@ i64_t enum_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj) {
     if (ENUM_VAL(obj)->len >= TABLE_MAX_HEIGHT) {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
-        e = ray_take(idx, obj);
+        e = ray_take(obj, idx);
         drop_obj(idx);
     } else
         e = ray_value(obj);
@@ -846,7 +846,7 @@ i64_t anymap_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p ob
     if (MAPLIST_VAL(obj)->len >= TABLE_MAX_HEIGHT) {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
-        a = ray_take(idx, obj);
+        a = ray_take(obj, idx);
         drop_obj(idx);
     } else
         a = ray_value(obj);
