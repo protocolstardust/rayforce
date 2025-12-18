@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
 ### Rayforce Queries
 
 ```lisp
-(set t (csv [Symbol Symbol Symbol I64 I64 I64 I64 I64 F64] "./db-benchmark/G1_1e7_1e2_0_0.csv"))
+(set t (csv [SYMBOL SYMBOL SYMBOL I64 I64 I64 I64 I64 F64] "./db-benchmark/G1_1e7_1e2_0_0.csv"))
 (timeit (select {v1: (sum v1) from: t by: id1}))  ;; Q1
 (timeit (select {v1: (sum v1) from: t by: {id1: id1 id2: id2}}))  ;; Q2
 (timeit (select {v1: (sum v1) v3: (avg v3) from: t by: id3}))  ;; Q3

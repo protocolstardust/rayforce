@@ -15,10 +15,10 @@ Converts a value to a specified type. Takes a type symbol and a value to convert
 (as 'F64 5)
 5.0
 
-(as 'String 42)
+(as 'C8 42)
 "42"
 
-(as 'Symbol "hello")
+(as 'SYMBOL "hello")
 'hello
 
 ;; Convert price to integer

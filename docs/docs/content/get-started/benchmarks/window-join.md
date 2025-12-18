@@ -49,13 +49,13 @@ document.addEventListener('DOMContentLoaded', function() {
 ### RayforceDB Queries
 
 ```lisp
-(set winj (read-csv [Symbol Time I64 I64 I64] "wj1.csv"))
+(set winj (read-csv [SYMBOL TIME I64 I64 I64] "wj1.csv"))
 (set n (count winj))
 (set tsym (take n (concat (take 99 'AAPL) (take 1 'MSFT))))
-(set ttime (+ 09:00:00 (as 'Time (/ (* (til n) 3) 10))))
+(set ttime (+ 09:00:00 (as 'TIME (/ (* (til n) 3) 10))))
 (set price (+ 10 (til n)))
 (set bsym (take (* 2 n) (concat (concat (take 3 'AAPL) (take 2 'MSFT)) (take 1 'GOOG))))
-(set btime (+ 09:00:00 (as 'Time (/ (* (til (* 2 n)) 2) 10))))
+(set btime (+ 09:00:00 (as 'TIME (/ (* (til (* 2 n)) 2) 10))))
 (set bid (+ 8 (/ (til (* 2 n))2)))
 (set ask (+ 12 (/ (til (* 2 n))2)))
 (set trades (table [Sym Ts Price] (list tsym ttime price)))

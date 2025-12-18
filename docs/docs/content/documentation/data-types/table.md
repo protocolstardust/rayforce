@@ -1,7 +1,7 @@
 # :material-table: Table
 
 !!! note ""
-    Type Code: `98`. Internal Name: `Table`
+    Type Code: `98`. Internal Name: `TABLE`
 
 A Table is an object that consists of columns, forming the core structure for relational operations in RayforceDB.
 
@@ -84,8 +84,8 @@ Stores a [:material-table: Table](../data-types/table.md) as a parted table on d
 Reads a CSV file and converts it into a [:material-table: Table](../data-types/table.md).
 
 ```clj
-(read-csv [I64 Symbol F64] "/path/to/file.csv")
-(read-csv [I64 Symbol F64] "/path/to/file.csv" ';')
+(read-csv [I64 SYMBOL F64] "/path/to/file.csv")
+(read-csv [I64 SYMBOL F64] "/path/to/file.csv" ';')
 ```
 
 Takes a vector of type symbols specifying the column types, a file path, and optionally a separator character (defaults to comma).

@@ -51,8 +51,8 @@ document.addEventListener('DOMContentLoaded', function() {
 ### RayforceDB Queries
 
 ```lisp
-(set x (csv [I64 I64 I64 Symbol Symbol Symbol F64] "./db-benchmark/J1_1e7_NA_0_0.csv"))
-(set y (csv [I64 I64 I64 Symbol Symbol Symbol F64] "./db-benchmark/J1_1e7_1e7_0_0.csv"))
+(set x (csv [I64 I64 I64 SYMBOL SYMBOL SYMBOL F64] "./db-benchmark/J1_1e7_NA_0_0.csv"))
+(set y (csv [I64 I64 I64 SYMBOL SYMBOL SYMBOL F64] "./db-benchmark/J1_1e7_1e7_0_0.csv"))
 (timeit (lj [id1 id2] x y))  ;; Q1
 ```
 

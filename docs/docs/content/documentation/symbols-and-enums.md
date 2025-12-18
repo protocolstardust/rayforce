@@ -137,9 +137,9 @@ But the real benefit is **portability**: indices are just numbers that can be sa
 ↪ (at data 2)
 AAPL
 
-;; Type is Enum
+;; Type is ENUM
 ↪ (type data)
-Enum
+ENUM
 ```
 
 ---

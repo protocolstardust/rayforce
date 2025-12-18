@@ -57,8 +57,8 @@ test_result_t test_lang_basic() {
     TEST_ASSERT_EQ("\"\"", "\"\"");
     TEST_ASSERT_EQ("'asd", "'asd");
     TEST_ASSERT_EQ("'", "0Ns");
-    TEST_ASSERT_EQ("(as 'String ')", "\"\"");
-    TEST_ASSERT_EQ("(as 'String ' )", "\"\"");
+    TEST_ASSERT_EQ("(as 'C8 ')", "\"\"");
+    TEST_ASSERT_EQ("(as 'C8 ' )", "\"\"");
     TEST_ASSERT_EQ("\"asd\"", "\"asd\"");
     TEST_ASSERT_EQ("{a: \"asd\" b: 1 c: [1 2 3]}", "{a: \"asd\" b: 1 c: [1 2 3]}");
     TEST_ASSERT_EQ("{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2}}", "{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2}}");
@@ -2394,7 +2394,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(sum [1 2 3 0Nl 4])", "10");
     TEST_ASSERT_EQ("(sum [1i 2i -3i])", "0i");
     TEST_ASSERT_EQ("(sum [02:01:03.000 00:00:02.500])", "02:01:05.500");
-    TEST_ASSERT_ER("(sum [2020.02.03 2025.02.03])", "sum: unsupported type: 'Date");
+    TEST_ASSERT_ER("(sum [2020.02.03 2025.02.03])", "sum: unsupported type: 'DATE");
 
     TEST_ASSERT_EQ("(avg 5i)", "5.0");
     TEST_ASSERT_EQ("(avg -1.7)", "-1.7");
@@ -2525,7 +2525,7 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take -5 [0x00 0x01 0x02 0x03])", "[0x03 0x00 0x01 0x02 0x03]");
 
     TEST_ASSERT_EQ("(take 0h \"abcd\")", "\"\"");
-    TEST_ASSERT_EQ("(type (take 0i \"abcd\"))", "'String");
+    TEST_ASSERT_EQ("(type (take 0i \"abcd\"))", "'C8");
     TEST_ASSERT_EQ("(take 2 'a')", "\"aa\"");
     TEST_ASSERT_EQ("(take 3 \"abcd\")", "\"abc\"");
     TEST_ASSERT_EQ("(take -3 \"abcd\")", "\"bcd\"");
@@ -2549,7 +2549,7 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take -5 [0i 1i 2i 3i])", "[3i 0i 1i 2i 3i]");
 
     TEST_ASSERT_EQ("(take 0 2025.05.01)", "[]");
-    TEST_ASSERT_EQ("(type (take 0 2025.05.01))", "'Date");
+    TEST_ASSERT_EQ("(type (take 0 2025.05.01))", "'DATE");
     TEST_ASSERT_EQ("(take 2 2025.05.01)", "[2025.05.01 2025.05.01]");
     TEST_ASSERT_EQ("(take 3 [2025.05.01 2025.05.02 2025.05.03 2025.05.04])", "[2025.05.01 2025.05.02 2025.05.03]");
     TEST_ASSERT_EQ("(take -3 [2025.05.01 2025.05.02 2025.05.03 2025.05.04])", "[2025.05.02 2025.05.03 2025.05.04]");
@@ -2558,7 +2558,7 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take -5 [2025.05.01 2025.05.02 2025.05.03 2025.05.04])",
                    "[2025.05.04 2025.05.01 2025.05.02 2025.05.03 2025.05.04]");
     TEST_ASSERT_EQ("(take 0 00:00:01.000)", "[]");
-    TEST_ASSERT_EQ("(type (take 0 00:00:01.000))", "'Time");
+    TEST_ASSERT_EQ("(type (take 0 00:00:01.000))", "'TIME");
     TEST_ASSERT_EQ("(take 2 00:00:01.000)", "[00:00:01.000 00:00:01.000]");
     TEST_ASSERT_EQ("(take 3 [00:00:01.000 00:00:02.000 00:00:03.000 00:00:04.000])",
                    "[00:00:01.000 00:00:02.000 00:00:03.000]");
@@ -2578,7 +2578,7 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take -5 [0 1 2 3])", "[3 0 1 2 3]");
 
     TEST_ASSERT_EQ("(take 0h 'a)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 'a))", "'Symbol");
+    TEST_ASSERT_EQ("(type (take 0i 'a))", "'SYMBOL");
     TEST_ASSERT_EQ("(take 2 'a)", "['a 'a]");
     TEST_ASSERT_EQ("(take 3 ['a 'b 'c 'd])", "['a 'b 'c]");
     TEST_ASSERT_EQ("(take -3 ['a 'b 'c 'd])", "['b 'c 'd]");
@@ -2586,7 +2586,7 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take -5 ['a 'b 'c 'd])", "['d 'a 'b 'c 'd]");
 
     TEST_ASSERT_EQ("(take 0h 2025.05.01D00:00:01.000000000)", "[]");
-    TEST_ASSERT_EQ("(type (take 0i 2025.05.01D00:00:01.000000000))", "'Timestamp");
+    TEST_ASSERT_EQ("(type (take 0i 2025.05.01D00:00:01.000000000))", "'TIMESTAMP");
     TEST_ASSERT_EQ("(take 2 2025.05.01D00:00:01.000000000)",
                    "[2025.05.01D00:00:01.000000000 2025.05.01D00:00:01.000000000]");
     TEST_ASSERT_EQ(
@@ -2617,7 +2617,7 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take -5 [0.0 1.0 2.0 3.0])", "[3.0 0.0 1.0 2.0 3.0]");
 
     TEST_ASSERT_EQ("(take 0h (guid 1))", "[]");
-    TEST_ASSERT_EQ("(type (take 0i (guid 1)))", "'Guid");
+    TEST_ASSERT_EQ("(type (take 0i (guid 1)))", "'GUID");
     TEST_ASSERT_EQ("(take 2 (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\"))",
                    "[d49f18a4-1969-49e8-9b8a-6bb9a4832eea d49f18a4-1969-49e8-9b8a-6bb9a4832eea]");
     TEST_ASSERT_EQ("(set l (guid 4)) (take 4 l)", "l");
@@ -2626,29 +2626,29 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(set l (guid 4)) (first (take -5 l))", "(last l)");
 
     TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take 0h (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym (take 0 'a))");
-    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (type (take 0i (enum 'sym ['a 'b 'c 'd])))", "'Enum");
+    TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (type (take 0i (enum 'sym ['a 'b 'c 'd])))", "'ENUM");
     TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take 3 (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym ['a 'b 'c])");
     TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take -3 (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym ['b 'c 'd])");
     TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take 5 (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym ['a 'b 'c 'd 'a])");
     TEST_ASSERT_EQ("(set sym ['a 'b 'c 'd 'e]) (take -5 (enum 'sym ['a 'b 'c 'd]))", "(enum 'sym ['d 'a 'b 'c 'd])");
 
     TEST_ASSERT_EQ("(take 0h (list 1h 2i 3 \"4\"))", "(list )");
-    TEST_ASSERT_EQ("(type (take 0i (list 1h 2i 3 \"4\")))", "'List");
+    TEST_ASSERT_EQ("(type (take 0i (list 1h 2i 3 \"4\")))", "'LIST");
     TEST_ASSERT_EQ("(take 3 (list 1h 2i 3 \"4\"))", "(list 1h 2i 3)");
     TEST_ASSERT_EQ("(take -3 (list 1h 2i 3 \"4\"))", "(list 2i 3 \"4\")");
     TEST_ASSERT_EQ("(take 5 (list 1h 2i 3 \"4\"))", "(list 1h 2i 3 \"4\" 1h)");
     TEST_ASSERT_EQ("(take -5 (list 1h 2i 3 \"4\"))", "(list \"4\" 1h 2i 3 \"4\")");
 
     TEST_ASSERT_EQ("(take 0h (dict ['a 'b 'c 'd] [1 2 3 4]))", "{}");
-    TEST_ASSERT_EQ("(type (take 0i (dict ['a 'b 'c 'd] [1 2 3 4])))", "'Dict");
+    TEST_ASSERT_EQ("(type (take 0i (dict ['a 'b 'c 'd] [1 2 3 4])))", "'DICT");
     TEST_ASSERT_EQ("(take 3 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['a 'b 'c] [1 2 3])");
     TEST_ASSERT_EQ("(take -3 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['b 'c 'd] [2 3 4])");
     TEST_ASSERT_EQ("(take 5 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['a 'b 'c 'd 'a] [1 2 3 4 1])");
     TEST_ASSERT_EQ("(take -5 (dict ['a 'b 'c 'd] [1 2 3 4]))", "(dict ['d 'a 'b 'c 'd] [4 1 2 3 4])");
 
     TEST_ASSERT_EQ("(take 0h (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))",
-                   "(table [a b] (list (as 'I64 []) (as 'Symbol [])))");
-    TEST_ASSERT_EQ("(type (take 0i (table [a b] (list [1 2 3 4] ['a 'b 'c 'd]))))", "'Table");
+                   "(table [a b] (list (as 'I64 []) (as 'SYMBOL [])))");
+    TEST_ASSERT_EQ("(type (take 0i (table [a b] (list [1 2 3 4] ['a 'b 'c 'd]))))", "'TABLE");
     TEST_ASSERT_EQ("(take 3 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))", "(table [a b] (list [1 2 3] ['a 'b 'c]))");
     TEST_ASSERT_EQ("(take -3 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))", "(table [a b] (list [2 3 4] ['b 'c 'd]))");
     TEST_ASSERT_EQ("(take 5 (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])))",
@@ -2657,7 +2657,7 @@ test_result_t test_lang_take() {
                    "(table [a b] (list [4 1 2 3 4] ['d 'a 'b 'c 'd]))");
 
     TEST_ASSERT_ER("(take 2.0 1.0)", "take: unsupported types: 'f64, 'f64");
-    TEST_ASSERT_ER("(take 2 take)", "take: unsupported types: 'i64, 'Binary");
+    TEST_ASSERT_ER("(take 2 take)", "take: unsupported types: 'i64, 'BINARY");
 
     PASS();
 }
@@ -2703,9 +2703,9 @@ test_result_t test_lang_split() {
 
     // Empty vectors and indices
     TEST_ASSERT_EQ(
-        "(split (as 'Guid (list \"7e42b82b-51c7-4468-a477-375bd5006e60\" \"7e42b82b-51c7-4468-a477-375bd5006e60\")) [0 "
+        "(split (as 'GUID (list \"7e42b82b-51c7-4468-a477-375bd5006e60\" \"7e42b82b-51c7-4468-a477-375bd5006e60\")) [0 "
         "1])",
-        "(list (as 'Guid (list \"7e42b82b-51c7-4468-a477-375bd5006e60\")) (as 'Guid (list "
+        "(list (as 'GUID (list \"7e42b82b-51c7-4468-a477-375bd5006e60\")) (as 'GUID (list "
         "\"7e42b82b-51c7-4468-a477-375bd5006e60\")))");
 
     TEST_ASSERT_EQ("(split (list 1 2 3 4 5 6 \"asdf\" 9.33) [0 2 4])", "(list [1 2] [3 4] (list 5 6 \"asdf\" 9.33))");
@@ -2734,8 +2734,8 @@ test_result_t test_lang_query() {
         "(take n [apll good msfk ibmd amznt fbad baba])"
         "(as 'F64 (til n))"
         "(take n (+ 1 (til 3)))"
-        "(map (fn [x] (as 'String x)) (take n (til 10)))"
-        "(as 'Timestamp (til n)))))"
+        "(map (fn [x] (as 'C8 x)) (take n (til 10)))"
+        "(as 'TIMESTAMP (til n)))))"
         "null",
         "null");
     TEST_ASSERT_EQ("(select {from: t by: Symbol})",
@@ -2749,7 +2749,7 @@ test_result_t test_lang_query() {
                    "(list [ibmd] (at gds 3) [3.00] [1] (list \"3\") [2000.01.01D00:00:00.000000003]))");
     TEST_ASSERT_EQ("(select {from: t by: Symbol where: (== Price 99)})",
                    "(table [Symbol OrderId Price Size Tape Timestamp]"
-                   "(list (as 'Symbol []) (as 'Guid []) (as 'F64 []) (as 'I64 []) (list) (as 'Timestamp [])))");
+                   "(list (as 'SYMBOL []) (as 'GUID []) (as 'F64 []) (as 'I64 []) (list) (as 'TIMESTAMP [])))");
     TEST_ASSERT_EQ("(select {s: (sum Price) from: t by: Symbol})",
                    "(table [Symbol s]"
                    "(list [apll good msfk ibmd amznt fbad baba]"
@@ -4623,10 +4623,10 @@ test_result_t test_lang_cast() {
     TEST_ASSERT_EQ("(as 'date \"2024.03.20\")", "2024.03.20");
 
     // ========== DATE VECTOR CASTS ==========
-    TEST_ASSERT_EQ("(type (as 'Date [0 1 2]))", "'Date");
-    TEST_ASSERT_EQ("(type (as 'Date [0i 1i 2i]))", "'Date");
-    TEST_ASSERT_EQ("(type (as 'Date [0h 1h 2h]))", "'Date");
-    TEST_ASSERT_EQ("(type (as 'Date [0.0 1.0 2.0]))", "'Date");
+    TEST_ASSERT_EQ("(type (as 'DATE [0 1 2]))", "'DATE");
+    TEST_ASSERT_EQ("(type (as 'DATE [0i 1i 2i]))", "'DATE");
+    TEST_ASSERT_EQ("(type (as 'DATE [0h 1h 2h]))", "'DATE");
+    TEST_ASSERT_EQ("(type (as 'DATE [0.0 1.0 2.0]))", "'DATE");
 
     // ========== TIME ATOM CASTS ==========
     // time <- b8
@@ -4652,10 +4652,10 @@ test_result_t test_lang_cast() {
     TEST_ASSERT_EQ("(as 'time \"12:30:45.123\")", "12:30:45.123");
 
     // ========== TIME VECTOR CASTS ==========
-    TEST_ASSERT_EQ("(type (as 'Time [0 1000 2000]))", "'Time");
-    TEST_ASSERT_EQ("(type (as 'Time [0i 1000i 2000i]))", "'Time");
-    TEST_ASSERT_EQ("(type (as 'Time [0h 1h 2h]))", "'Time");
-    TEST_ASSERT_EQ("(type (as 'Time [0.0 1000.0 2000.0]))", "'Time");
+    TEST_ASSERT_EQ("(type (as 'TIME [0 1000 2000]))", "'TIME");
+    TEST_ASSERT_EQ("(type (as 'TIME [0i 1000i 2000i]))", "'TIME");
+    TEST_ASSERT_EQ("(type (as 'TIME [0h 1h 2h]))", "'TIME");
+    TEST_ASSERT_EQ("(type (as 'TIME [0.0 1000.0 2000.0]))", "'TIME");
 
     // ========== TIMESTAMP ATOM CASTS ==========
     // timestamp <- b8
@@ -4680,10 +4680,10 @@ test_result_t test_lang_cast() {
     TEST_ASSERT_EQ("(as 'timestamp \"2024.03.20D12:30:45.123456789\")", "2024.03.20D12:30:45.123456789");
 
     // ========== TIMESTAMP VECTOR CASTS ==========
-    TEST_ASSERT_EQ("(type (as 'Timestamp [0 1 2]))", "'Timestamp");
-    TEST_ASSERT_EQ("(type (as 'Timestamp [0i 1i 2i]))", "'Timestamp");
-    TEST_ASSERT_EQ("(type (as 'Timestamp [0h 1h 2h]))", "'Timestamp");
-    TEST_ASSERT_EQ("(type (as 'Timestamp [0.0 1.0 2.0]))", "'Timestamp");
+    TEST_ASSERT_EQ("(type (as 'TIMESTAMP [0 1 2]))", "'TIMESTAMP");
+    TEST_ASSERT_EQ("(type (as 'TIMESTAMP [0i 1i 2i]))", "'TIMESTAMP");
+    TEST_ASSERT_EQ("(type (as 'TIMESTAMP [0h 1h 2h]))", "'TIMESTAMP");
+    TEST_ASSERT_EQ("(type (as 'TIMESTAMP [0.0 1.0 2.0]))", "'TIMESTAMP");
 
     // ========== SYMBOL ATOM CASTS ==========
     // symbol <- b8
@@ -4715,25 +4715,25 @@ test_result_t test_lang_cast() {
     TEST_ASSERT_EQ("(as 'symbol \"hello\")", "'hello");
 
     // ========== STRING/CHAR CASTS ==========
-    TEST_ASSERT_EQ("(as 'String 'hello)", "\"hello\"");
-    TEST_ASSERT_EQ("(as 'String 123)", "\"123\"");
-    TEST_ASSERT_EQ("(as 'String 123i)", "\"123\"");
-    TEST_ASSERT_EQ("(as 'String 123h)", "\"123\"");
-    TEST_ASSERT_EQ("(as 'String 123.45)", "\"123.45\"");
-    TEST_ASSERT_EQ("(as 'String true)", "\"true\"");
-    TEST_ASSERT_EQ("(as 'String false)", "\"false\"");
-    TEST_ASSERT_EQ("(as 'String 2024.03.20)", "\"2024.03.20\"");
-    TEST_ASSERT_EQ("(as 'String 12:30:45.123)", "\"12:30:45.123\"");
+    TEST_ASSERT_EQ("(as 'C8 'hello)", "\"hello\"");
+    TEST_ASSERT_EQ("(as 'C8 123)", "\"123\"");
+    TEST_ASSERT_EQ("(as 'C8 123i)", "\"123\"");
+    TEST_ASSERT_EQ("(as 'C8 123h)", "\"123\"");
+    TEST_ASSERT_EQ("(as 'C8 123.45)", "\"123.45\"");
+    TEST_ASSERT_EQ("(as 'C8 true)", "\"true\"");
+    TEST_ASSERT_EQ("(as 'C8 false)", "\"false\"");
+    TEST_ASSERT_EQ("(as 'C8 2024.03.20)", "\"2024.03.20\"");
+    TEST_ASSERT_EQ("(as 'C8 12:30:45.123)", "\"12:30:45.123\"");
 
     // ========== CHAR ATOM CASTS ==========
-    // char <- symbol (get first character)
-    TEST_ASSERT_EQ("(as 'char 'a)", "'a'");
-    TEST_ASSERT_EQ("(as 'char 'hello)", "'h'");
-    TEST_ASSERT_EQ("(as 'char 'XYZ)", "'X'");
-    // char <- String (get first character)
-    TEST_ASSERT_EQ("(as 'char \"a\")", "'a'");
-    TEST_ASSERT_EQ("(as 'char \"hello\")", "'h'");
-    TEST_ASSERT_EQ("(as 'char \"XYZ\")", "'X'");
+    // c8 <- symbol (get first character)
+    TEST_ASSERT_EQ("(as 'c8 'a)", "'a'");
+    TEST_ASSERT_EQ("(as 'c8 'hello)", "'h'");
+    TEST_ASSERT_EQ("(as 'c8 'XYZ)", "'X'");
+    // c8 <- C8 (get first character)
+    TEST_ASSERT_EQ("(as 'c8 \"a\")", "'a'");
+    TEST_ASSERT_EQ("(as 'c8 \"hello\")", "'h'");
+    TEST_ASSERT_EQ("(as 'c8 \"XYZ\")", "'X'");
 
     // ========== GUID CASTS ==========
     TEST_ASSERT_EQ("(type (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\"))", "'guid");
@@ -4756,13 +4756,13 @@ test_result_t test_lang_cast() {
     TEST_ASSERT_EQ("(type (as 'I32 []))", "'I32");
     TEST_ASSERT_EQ("(type (as 'I64 []))", "'I64");
     TEST_ASSERT_EQ("(type (as 'F64 []))", "'F64");
-    TEST_ASSERT_EQ("(type (as 'Date []))", "'Date");
-    TEST_ASSERT_EQ("(type (as 'Time []))", "'Time");
-    TEST_ASSERT_EQ("(type (as 'Timestamp []))", "'Timestamp");
+    TEST_ASSERT_EQ("(type (as 'DATE []))", "'DATE");
+    TEST_ASSERT_EQ("(type (as 'TIME []))", "'TIME");
+    TEST_ASSERT_EQ("(type (as 'TIMESTAMP []))", "'TIMESTAMP");
 
     // ========== TABLE/DICT CASTS ==========
-    TEST_ASSERT_EQ("(type (as 'Table {a: [1 2 3] b: [4 5 6]}))", "'Table");
-    TEST_ASSERT_EQ("(type (as 'Dict (as 'Table {a: [1 2 3] b: [4 5 6]})))", "'Dict");
+    TEST_ASSERT_EQ("(type (as 'TABLE {a: [1 2 3] b: [4 5 6]}))", "'TABLE");
+    TEST_ASSERT_EQ("(type (as 'DICT (as 'TABLE {a: [1 2 3] b: [4 5 6]})))", "'DICT");
 
     // ========== LIST TO VECTOR CASTS ==========
     TEST_ASSERT_EQ("(as 'I64 (list 1 2 3))", "[1 2 3]");

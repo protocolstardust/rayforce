@@ -1,7 +1,7 @@
 # :material-code-braces: Dictionary
 
 !!! note ""
-    Type Code: `99`. Internal Name: `Dict`
+    Type Code: `99`. Internal Name: `DICT`
 
 Dictionaries are objects that hold information about keys and their corresponding values.
 

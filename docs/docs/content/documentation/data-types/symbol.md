@@ -1,7 +1,7 @@
 # :material-text: Symbol
 
 !!! note ""
-    Scalar Type Code: `-6`. Scalar Internal Name: `symbol`. Vector Type Code: `6`. Vector Internal Name: `Symbol`.
+    Scalar Type Code: `-6`. Scalar Internal Name: `symbol`. Vector Type Code: `6`. Vector Internal Name: `SYMBOL`.
 
 Represents an interned string.
 
@@ -9,7 +9,7 @@ Represents an interned string.
 ↪ (type 'thisissymbol) ;; Scalar
 symbol
 ↪ (type ['first 'second]) ;; Vector
-Symbol
+SYMBOL
 ```
 
 Symbol can be used to associate a certain value with the variable, using function [`set`](../environment.md#set)

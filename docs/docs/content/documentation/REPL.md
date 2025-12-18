@@ -165,7 +165,7 @@ Returns the type of an object as a symbol.
 
 ```clj
 (type [1 2 3])
-Symbol
+SYMBOL
 
 (type "hello")
 C8
@@ -252,7 +252,7 @@ Returns metadata about a [:material-table: Table](../data-types/table.md), inclu
 ┌──────┬──────┬──────┬─────────────────┐
 │ name │ type │ mmod │ attrs           │
 ├──────┼──────┼──────┼─────────────────┤
-│ name │ List │ 255  │ 0               │
+│ name │ LIST │ 255  │ 0               │
 │ age  │ I64  │ 255  │ 0               │
 ├──────┴──────┴──────┴─────────────────┤
 │ 2 rows (2 shown) 4 columns (4 shown) │
