@@ -840,12 +840,17 @@ obj_p at_idx(obj_p obj, i64_t idx) {
                 idx = obj->len + idx;
             if (idx >= 0 && idx < (i64_t)ENUM_VAL(obj)->len) {
                 k = ray_key(obj);
-                if (IS_ERR(k))
-                    return k;
+                if (IS_ERR(k)) {
+                    // If key lookup fails, return raw index value
+                    return i64(AS_I64(ENUM_VAL(obj))[idx]);
+                }
                 v = ray_get(k);
                 drop_obj(k);
-                if (IS_ERR(v))
-                    return v;
+                if (IS_ERR(v) || v->type != TYPE_SYMBOL) {
+                    // If symbol file not found, return raw index value
+                    drop_obj(v);
+                    return i64(AS_I64(ENUM_VAL(obj))[idx]);
+                }
                 idx = AS_I64(ENUM_VAL(obj))[idx];
                 res = at_idx(v, idx);
                 drop_obj(v);
@@ -936,15 +941,20 @@ obj_p at_idx(obj_p obj, i64_t idx) {
                 m = AS_LIST(obj)[i]->len;
                 n += m;
                 if (idx < n) {
+                    i64_t raw_idx = AS_I64(ENUM_VAL(AS_LIST(obj)[i]))[m - (n - idx)];
                     k = ray_key(AS_LIST(obj)[i]);
-                    if (IS_ERR(k))
-                        return k;
+                    if (IS_ERR(k)) {
+                        // If key lookup fails, return raw index value
+                        return i64(raw_idx);
+                    }
                     v = ray_get(k);
                     drop_obj(k);
-                    if (IS_ERR(v))
-                        return v;
-                    idx = AS_I64(ENUM_VAL(AS_LIST(obj)[i]))[m - (n - idx)];
-                    res = at_idx(v, idx);
+                    if (IS_ERR(v) || v->type != TYPE_SYMBOL) {
+                        // If symbol file not found, return raw index value
+                        drop_obj(v);
+                        return i64(raw_idx);
+                    }
+                    res = at_idx(v, raw_idx);
                     drop_obj(v);
                     return res;
                 }
