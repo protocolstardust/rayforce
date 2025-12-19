@@ -936,7 +936,7 @@ obj_p parse_list(parser_t *parser) {
 
         if (args->type != TYPE_SYMBOL) {
             if (args->type != TYPE_I64 || args->len != 0) {
-                err = parse_error(parser, (i64_t)args, str_fmt(-1, "fn: expected type 'Symbol as arguments."));
+                err = parse_error(parser, (i64_t)args, str_fmt(-1, "fn: expected type 'SYMBOL as arguments."));
                 drop_obj(args);
                 return err;
             }

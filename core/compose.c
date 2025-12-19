@@ -303,7 +303,7 @@ obj_p ray_table(obj_p x, obj_p y) {
             case -TYPE_F64:
             case -TYPE_GUID:
                 c = i64(cl);
-                AS_LIST(lst)[i] = ray_take(c, AS_LIST(y)[i]);
+                AS_LIST(lst)[i] = ray_take(AS_LIST(y)[i], c);
                 drop_obj(c);
                 break;
             case TYPE_ENUM:

@@ -737,6 +737,191 @@ obj_p ray_read_csv(obj_p *x, i64_t n) {
     }
 }
 
+static i64_t csv_field_to_str(obj_p col, i64_t row, obj_p *dst) {
+    i64_t n;
+    str_p s;
+    obj_p str_obj;
+
+    switch (col->type) {
+        case TYPE_B8:
+            return AS_B8(col)[row] ? str_fmt_into(dst, -1, "true") : str_fmt_into(dst, -1, "false");
+        case TYPE_U8:
+            return str_fmt_into(dst, -1, "%u", AS_U8(col)[row]);
+        case TYPE_I32:
+            if (AS_I32(col)[row] == NULL_I32)
+                return 0;
+            return str_fmt_into(dst, -1, "%d", AS_I32(col)[row]);
+        case TYPE_DATE:
+            if (AS_DATE(col)[row] == NULL_I32)
+                return 0;
+            {
+                datestruct_t dt = date_from_i32(AS_DATE(col)[row]);
+                return str_fmt_into(dst, -1, "%.4d.%.2d.%.2d", dt.year, dt.month, dt.day);
+            }
+        case TYPE_TIME:
+            if (AS_TIME(col)[row] == NULL_I32)
+                return 0;
+            {
+                timestruct_t tm = time_from_i32(AS_TIME(col)[row]);
+                if (tm.sign == -1)
+                    return str_fmt_into(dst, -1, "-%.2d:%.2d:%.2d.%.3d", tm.hours, tm.mins, tm.secs, tm.msecs);
+                return str_fmt_into(dst, -1, "%.2d:%.2d:%.2d.%.3d", tm.hours, tm.mins, tm.secs, tm.msecs);
+            }
+        case TYPE_I64:
+            if (AS_I64(col)[row] == NULL_I64)
+                return 0;
+            return str_fmt_into(dst, -1, "%lld", AS_I64(col)[row]);
+        case TYPE_TIMESTAMP:
+            if (AS_TIMESTAMP(col)[row] == NULL_I64)
+                return 0;
+            {
+                timestamp_t ts = timestamp_from_i64(AS_TIMESTAMP(col)[row]);
+                return str_fmt_into(dst, -1, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d", ts.year, ts.month, ts.day, ts.hours,
+                                    ts.mins, ts.secs, ts.nanos);
+            }
+        case TYPE_F64:
+            if (ISNANF64(AS_F64(col)[row]))
+                return 0;
+            return str_fmt_into(dst, -1, "%g", AS_F64(col)[row]);
+        case TYPE_SYMBOL:
+            if (AS_SYMBOL(col)[row] == NULL_I64)
+                return 0;
+            s = str_from_symbol(AS_SYMBOL(col)[row]);
+            return str_fmt_into(dst, -1, "%s", s);
+        case TYPE_C8:
+            // String type - output with quotes if it contains separator or quotes
+            s = AS_C8(col);
+            n = col->len;
+            return str_fmt_into(dst, -1, "%.*s", (i32_t)n, s);
+        case TYPE_LIST:
+            // List of strings
+            str_obj = AS_LIST(col)[row];
+            if (str_obj == NULL_OBJ || str_obj->type == TYPE_NULL)
+                return 0;
+            s = AS_C8(str_obj);
+            n = str_obj->len;
+            // Check if we need to quote (contains separator, newline, or quote)
+            {
+                i64_t i;
+                b8_t need_quote = B8_FALSE;
+                for (i = 0; i < n; i++) {
+                    if (s[i] == ',' || s[i] == '"' || s[i] == '\n' || s[i] == '\r') {
+                        need_quote = B8_TRUE;
+                        break;
+                    }
+                }
+                if (need_quote) {
+                    i64_t m = str_fmt_into(dst, -1, "\"");
+                    for (i = 0; i < n; i++) {
+                        if (s[i] == '"')
+                            m += str_fmt_into(dst, -1, "\"\"");
+                        else
+                            m += str_fmt_into(dst, -1, "%c", s[i]);
+                    }
+                    m += str_fmt_into(dst, -1, "\"");
+                    return m;
+                }
+            }
+            return str_fmt_into(dst, -1, "%.*s", (i32_t)n, s);
+        case TYPE_GUID:
+            if (memcmp(AS_GUID(col)[row], NULL_GUID, sizeof(guid_t)) == 0)
+                return 0;
+            {
+                guid_t *g = &AS_GUID(col)[row];
+                return str_fmt_into(dst, -1, "%02hhx%02hhx%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                                    (*g)[0], (*g)[1], (*g)[2], (*g)[3], (*g)[4], (*g)[5], (*g)[6], (*g)[7], (*g)[8],
+                                    (*g)[9], (*g)[10], (*g)[11], (*g)[12], (*g)[13], (*g)[14], (*g)[15]);
+            }
+        default:
+            return 0;
+    }
+}
+
+obj_p ray_write_csv(obj_p *x, i64_t n) {
+    i64_t fd, c;
+    i64_t i, j, l, rows;
+    obj_p table, path, names, cols, col, buf, res;
+    c8_t sep = ',';
+
+    switch (n) {
+        case 2:
+        case 3:
+            if (n == 3) {
+                if (x[2]->type != -TYPE_C8)
+                    THROW(ERR_TYPE, "write-csv: expected 'char' as 3rd argument, got: '%s", type_name(x[2]->type));
+
+                sep = x[2]->c8;
+            }
+
+            // expect string as 1st arg:
+            if (x[0]->type != TYPE_C8)
+                THROW(ERR_TYPE, "write-csv: expected string as 1st argument, got: '%s", type_name(x[0]->type));
+
+            // expect table as 2nd arg:
+            if (x[1]->type != TYPE_TABLE)
+                THROW(ERR_TYPE, "write-csv: expected table as 2nd argument, got: '%s", type_name(x[1]->type));
+
+            table = x[1];
+            names = AS_LIST(table)[0];
+            cols = AS_LIST(table)[1];
+            l = names->len;
+
+            if (l == 0)
+                THROW_S(ERR_LENGTH, "write-csv: table has no columns");
+
+            rows = ops_count(table);
+
+            // Open file for writing
+            path = cstring_from_obj(x[0]);
+            fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
+
+            if (fd == -1) {
+                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                drop_obj(path);
+                return res;
+            }
+
+            buf = NULL_OBJ;
+
+            // Write header row
+            for (i = 0; i < l; i++) {
+                str_fmt_into(&buf, -1, "%s", str_from_symbol(AS_SYMBOL(names)[i]));
+                if (i < l - 1)
+                    str_fmt_into(&buf, -1, "%c", sep);
+            }
+            str_fmt_into(&buf, -1, "\n");
+
+            // Write data rows
+            for (j = 0; j < rows; j++) {
+                for (i = 0; i < l; i++) {
+                    col = AS_LIST(cols)[i];
+                    csv_field_to_str(col, j, &buf);
+                    if (i < l - 1)
+                        str_fmt_into(&buf, -1, "%c", sep);
+                }
+                str_fmt_into(&buf, -1, "\n");
+            }
+
+            // Write buffer to file
+            c = fs_fwrite(fd, AS_C8(buf), buf->len);
+            if (c == -1) {
+                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                drop_obj(buf);
+                drop_obj(path);
+                fs_fclose(fd);
+                return res;
+            }
+
+            drop_obj(buf);
+            drop_obj(path);
+            fs_fclose(fd);
+
+            return NULL_OBJ;
+        default:
+            THROW(ERR_LENGTH, "write-csv: expected 2..3 arguments, got %d", n);
+    }
+}
+
 obj_p ray_parse(obj_p x) {
     obj_p s, res;
 
@@ -1064,15 +1249,9 @@ obj_p io_get_table_splayed(obj_p path, obj_p symfile) {
     }
 
     // read symbol data (if any) if sym is not present in current env
-    if (syms_present && resolve(SYMBOL_SYM) == NULL) {
-        v = (symfile->type != TYPE_NULL) ? io_get_symfile(symfile) : io_get_symfile(path);
-
-        if (IS_ERR(v)) {
-            drop_obj(keys);
-            drop_obj(vals);
-            return v;
-        }
-    }
+    // symfile is optional - ignore error if it doesn't exist
+    if (syms_present && resolve(SYMBOL_SYM) == NULL)
+        drop_obj((symfile->type != TYPE_NULL) ? io_get_symfile(symfile) : io_get_symfile(path));
 
     return table(keys, vals);
 }

@@ -1,4 +1,44 @@
 /* custom.css */
+
+/* ==================== */
+/* STICKY FOOTER LAYOUT */
+/* ==================== */
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.md-container {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.md-main {
+    flex: 1 0 auto;
+}
+
+.md-footer {
+    flex-shrink: 0;
+}
+
+/* Ensure hero section fills viewport exactly */
+body:has(.hero-section) .md-content,
+body:has(.hero-section) .md-content__inner,
+body:has(.hero-section) .md-main__inner,
+body:has(.hero-section) .md-main,
+body:has(.hero-section) .md-container {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+
 .flex-container {
     display: flex;
     justify-content: flex-start;
@@ -36,7 +76,7 @@
     --md-primary-fg-color--light: #0a3a5c;
     --md-primary-fg-color--dark: #021828;
     --md-accent-fg-color: #e9a033;
-    
+
     /* Custom variables for graphs and UI elements */
     --accent-primary: #e9a033;
     --accent-hover: #f0b85a;
@@ -193,7 +233,7 @@ body:has(.hero-section) [data-md-color-scheme="default"] .md-tabs__link:hover {
     --md-primary-fg-color--light: #f0b85a;
     --md-primary-fg-color--dark: #c98a2a;
     --md-accent-fg-color: #f0b85a;
-    
+
     /* Custom variables for graphs and UI elements - Dark mode */
     --accent-primary: #e9a033;
     --accent-hover: #f0b85a;
@@ -270,7 +310,7 @@ a.md-button:not(.md-button--primary):hover {
     margin: 0;
 }
 
-.md-typeset .admonition > .admonition-title::before {
+.md-typeset .admonition>.admonition-title::before {
     margin-right: 0.5rem;
 }
 
@@ -281,8 +321,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(33, 150, 243, 0.1);
 }
 
-.md-typeset .admonition.note > .admonition-title,
-.md-typeset details.note > summary {
+.md-typeset .admonition.note>.admonition-title,
+.md-typeset details.note>summary {
     background-color: rgba(33, 150, 243, 0.15);
     color: #1565C0;
 }
@@ -294,8 +334,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(255, 152, 0, 0.1);
 }
 
-.md-typeset .admonition.warning > .admonition-title,
-.md-typeset details.warning > summary {
+.md-typeset .admonition.warning>.admonition-title,
+.md-typeset details.warning>summary {
     background-color: rgba(255, 152, 0, 0.15);
     color: #E65100;
 }
@@ -309,10 +349,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(244, 67, 54, 0.1);
 }
 
-.md-typeset .admonition.danger > .admonition-title,
-.md-typeset .admonition.error > .admonition-title,
-.md-typeset details.danger > summary,
-.md-typeset details.error > summary {
+.md-typeset .admonition.danger>.admonition-title,
+.md-typeset .admonition.error>.admonition-title,
+.md-typeset details.danger>summary,
+.md-typeset details.error>summary {
     background-color: rgba(244, 67, 54, 0.15);
     color: #C62828;
 }
@@ -326,10 +366,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(76, 175, 80, 0.1);
 }
 
-.md-typeset .admonition.tip > .admonition-title,
-.md-typeset .admonition.hint > .admonition-title,
-.md-typeset details.tip > summary,
-.md-typeset details.hint > summary {
+.md-typeset .admonition.tip>.admonition-title,
+.md-typeset .admonition.hint>.admonition-title,
+.md-typeset details.tip>summary,
+.md-typeset details.hint>summary {
     background-color: rgba(76, 175, 80, 0.15);
     color: #2E7D32;
 }
@@ -343,10 +383,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(76, 175, 80, 0.1);
 }
 
-.md-typeset .admonition.success > .admonition-title,
-.md-typeset .admonition.check > .admonition-title,
-.md-typeset details.success > summary,
-.md-typeset details.check > summary {
+.md-typeset .admonition.success>.admonition-title,
+.md-typeset .admonition.check>.admonition-title,
+.md-typeset details.success>summary,
+.md-typeset details.check>summary {
     background-color: rgba(76, 175, 80, 0.15);
     color: #2E7D32;
 }
@@ -358,8 +398,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(0, 188, 212, 0.1);
 }
 
-.md-typeset .admonition.info > .admonition-title,
-.md-typeset details.info > summary {
+.md-typeset .admonition.info>.admonition-title,
+.md-typeset details.info>summary {
     background-color: rgba(0, 188, 212, 0.15);
     color: #00838F;
 }
@@ -373,10 +413,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(156, 39, 176, 0.1);
 }
 
-.md-typeset .admonition.abstract > .admonition-title,
-.md-typeset .admonition.summary > .admonition-title,
-.md-typeset details.abstract > summary,
-.md-typeset details.summary > summary {
+.md-typeset .admonition.abstract>.admonition-title,
+.md-typeset .admonition.summary>.admonition-title,
+.md-typeset details.abstract>summary,
+.md-typeset details.summary>summary {
     background-color: rgba(156, 39, 176, 0.15);
     color: #6A1B9A;
 }
@@ -388,8 +428,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(117, 117, 117, 0.1);
 }
 
-.md-typeset .admonition.quote > .admonition-title,
-.md-typeset details.quote > summary {
+.md-typeset .admonition.quote>.admonition-title,
+.md-typeset details.quote>summary {
     background-color: rgba(117, 117, 117, 0.15);
     color: #424242;
 }
@@ -401,8 +441,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(233, 30, 99, 0.1);
 }
 
-.md-typeset .admonition.bug > .admonition-title,
-.md-typeset details.bug > summary {
+.md-typeset .admonition.bug>.admonition-title,
+.md-typeset details.bug>summary {
     background-color: rgba(233, 30, 99, 0.15);
     color: #AD1457;
 }
@@ -414,8 +454,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(33, 150, 243, 0.1);
 }
 
-.md-typeset .admonition.question > .admonition-title,
-.md-typeset details.question > summary {
+.md-typeset .admonition.question>.admonition-title,
+.md-typeset details.question>summary {
     background-color: rgba(33, 150, 243, 0.15);
     color: #1565C0;
 }
@@ -427,8 +467,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(0, 150, 136, 0.1);
 }
 
-.md-typeset .admonition.example > .admonition-title,
-.md-typeset details.example > summary {
+.md-typeset .admonition.example>.admonition-title,
+.md-typeset details.example>summary {
     background-color: rgba(0, 150, 136, 0.15);
     color: #00695C;
 }
@@ -440,8 +480,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(255, 152, 0, 0.1);
 }
 
-.md-typeset .admonition.important > .admonition-title,
-.md-typeset details.important > summary {
+.md-typeset .admonition.important>.admonition-title,
+.md-typeset details.important>summary {
     background-color: rgba(255, 152, 0, 0.15);
     color: #E65100;
 }
@@ -453,8 +493,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(255, 152, 0, 0.1);
 }
 
-.md-typeset .admonition.caution > .admonition-title,
-.md-typeset details.caution > summary {
+.md-typeset .admonition.caution>.admonition-title,
+.md-typeset details.caution>summary {
     background-color: rgba(255, 152, 0, 0.15);
     color: #E65100;
 }
@@ -468,10 +508,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(244, 67, 54, 0.1);
 }
 
-.md-typeset .admonition.failure > .admonition-title,
-.md-typeset .admonition.fail > .admonition-title,
-.md-typeset details.failure > summary,
-.md-typeset details.fail > summary {
+.md-typeset .admonition.failure>.admonition-title,
+.md-typeset .admonition.fail>.admonition-title,
+.md-typeset details.failure>summary,
+.md-typeset details.fail>summary {
     background-color: rgba(244, 67, 54, 0.15);
     color: #C62828;
 }
@@ -483,8 +523,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(10, 58, 92, 0.1);
 }
 
-.md-typeset .admonition.seealso > .admonition-title,
-.md-typeset details.seealso > summary {
+.md-typeset .admonition.seealso>.admonition-title,
+.md-typeset details.seealso>summary {
     background-color: rgba(10, 58, 92, 0.15);
     color: #04233b;
 }
@@ -505,8 +545,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(33, 150, 243, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.note > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.note > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.note>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.note>summary {
     background-color: rgba(33, 150, 243, 0.25);
     color: #90CAF9;
 }
@@ -518,8 +558,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(233, 160, 51, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.warning > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.warning > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.warning>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.warning>summary {
     background-color: rgba(233, 160, 51, 0.25);
     color: #f0b85a;
 }
@@ -533,10 +573,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(244, 67, 54, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.danger > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset .admonition.error > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.danger > summary,
-[data-md-color-scheme="slate"] .md-typeset details.error > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.danger>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .admonition.error>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.danger>summary,
+[data-md-color-scheme="slate"] .md-typeset details.error>summary {
     background-color: rgba(244, 67, 54, 0.25);
     color: #FFCDD2;
 }
@@ -550,10 +590,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(76, 175, 80, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.tip > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset .admonition.hint > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.tip > summary,
-[data-md-color-scheme="slate"] .md-typeset details.hint > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.tip>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .admonition.hint>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.tip>summary,
+[data-md-color-scheme="slate"] .md-typeset details.hint>summary {
     background-color: rgba(76, 175, 80, 0.25);
     color: #A5D6A7;
 }
@@ -567,10 +607,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(76, 175, 80, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.success > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset .admonition.check > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.success > summary,
-[data-md-color-scheme="slate"] .md-typeset details.check > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.success>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .admonition.check>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.success>summary,
+[data-md-color-scheme="slate"] .md-typeset details.check>summary {
     background-color: rgba(76, 175, 80, 0.25);
     color: #A5D6A7;
 }
@@ -582,8 +622,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(0, 188, 212, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.info > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.info > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.info>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.info>summary {
     background-color: rgba(0, 188, 212, 0.25);
     color: #80DEEA;
 }
@@ -597,10 +637,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(156, 39, 176, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.abstract > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset .admonition.summary > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.abstract > summary,
-[data-md-color-scheme="slate"] .md-typeset details.summary > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.abstract>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .admonition.summary>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.abstract>summary,
+[data-md-color-scheme="slate"] .md-typeset details.summary>summary {
     background-color: rgba(156, 39, 176, 0.25);
     color: #CE93D8;
 }
@@ -612,8 +652,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(117, 117, 117, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.quote > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.quote > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.quote>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.quote>summary {
     background-color: rgba(117, 117, 117, 0.25);
     color: #BDBDBD;
 }
@@ -625,8 +665,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(233, 30, 99, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.bug > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.bug > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.bug>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.bug>summary {
     background-color: rgba(233, 30, 99, 0.25);
     color: #F8BBD0;
 }
@@ -638,8 +678,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(33, 150, 243, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.question > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.question > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.question>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.question>summary {
     background-color: rgba(33, 150, 243, 0.25);
     color: #90CAF9;
 }
@@ -651,8 +691,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(0, 150, 136, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.example > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.example > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.example>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.example>summary {
     background-color: rgba(0, 150, 136, 0.25);
     color: #80CBC4;
 }
@@ -664,8 +704,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(255, 152, 0, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.important > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.important > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.important>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.important>summary {
     background-color: rgba(255, 152, 0, 0.25);
     color: #f0b85a;
 }
@@ -677,8 +717,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(255, 152, 0, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.caution > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.caution > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.caution>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.caution>summary {
     background-color: rgba(255, 152, 0, 0.25);
     color: #f0b85a;
 }
@@ -692,10 +732,10 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(244, 67, 54, 0.2);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.failure > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset .admonition.fail > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.failure > summary,
-[data-md-color-scheme="slate"] .md-typeset details.fail > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.failure>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .admonition.fail>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.failure>summary,
+[data-md-color-scheme="slate"] .md-typeset details.fail>summary {
     background-color: rgba(244, 67, 54, 0.25);
     color: #FFCDD2;
 }
@@ -707,8 +747,8 @@ a.md-button:not(.md-button--primary):hover {
     background-color: rgba(10, 58, 92, 0.3);
 }
 
-[data-md-color-scheme="slate"] .md-typeset .admonition.seealso > .admonition-title,
-[data-md-color-scheme="slate"] .md-typeset details.seealso > summary {
+[data-md-color-scheme="slate"] .md-typeset .admonition.seealso>.admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.seealso>summary {
     background-color: rgba(10, 58, 92, 0.4);
     color: #f0b85a;
 }
@@ -778,12 +818,17 @@ a.md-button:not(.md-button--primary):hover {
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
     margin: 0;
     margin-top: -1.5rem;
-    padding: 3rem 2rem 0 2rem;
+    padding: 2rem 2rem 0 2rem;
     text-align: center;
     position: relative;
     overflow: visible;
     width: 100vw;
     margin-left: calc(-50vw + 50%);
+    min-height: calc(100vh - var(--md-header-height, 48px) + 1.1rem);
+    min-height: calc(100dvh - var(--md-header-height, 48px) + 1.1rem);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
 }
 
 /* Remove content padding on home page */
@@ -830,7 +875,8 @@ a.md-button:not(.md-button--primary):hover {
     position: relative;
     z-index: 1;
     max-width: 900px;
-    margin: 0 auto;
+    margin: auto;
+    padding-bottom: 3rem;
 }
 
 .hero-logo {
@@ -847,6 +893,14 @@ a.md-button:not(.md-button--primary):hover {
     margin: 0 0 1.5rem 0;
     line-height: 1.2;
     border: none;
+}
+
+/* Hide permalink anchor in hero section */
+.hero-section .headerlink,
+.hero-section a.headerlink,
+.hero-section h1 .headerlink,
+.hero-section h1 a.headerlink {
+    display: none !important;
 }
 
 .hero-section h1 strong {
@@ -1372,20 +1426,20 @@ a.md-button:not(.md-button--primary):hover {
     .code-demo-section {
         padding: 2rem 1rem;
     }
-    
+
     .code-demo-header h2 {
         font-size: 1.8rem;
     }
-    
+
     .code-tab-list {
         flex-wrap: wrap;
     }
-    
+
     .code-tab {
         padding: 0.75rem 1rem;
         font-size: 0.85rem;
     }
-    
+
     .code-block pre {
         font-size: 0.8rem;
         padding: 1rem;
@@ -1501,11 +1555,11 @@ a.md-button:not(.md-button--primary):hover {
 /* Hero ticker / marquee */
 .hero-ticker {
     position: relative;
-    margin-top: 2rem;
-    margin-bottom: -2rem;
+    margin-top: auto;
+    margin-bottom: 0;
     margin-left: calc(-50vw + 50%);
     width: 100vw;
-    background: #04233b;
+    background: linear-gradient(90deg, #04233b 0%, #0a3a5c 50%, #04233b 100%);
     overflow: hidden;
     padding: 0.5rem 0;
 }

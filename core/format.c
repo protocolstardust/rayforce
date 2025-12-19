@@ -56,7 +56,7 @@ static u32_t MAX_ROW_WIDTH = DEFAULT_MAX_ROW_WIDTH;
 static u32_t F64_PRECISION = DEFAULT_F64_PRECISION;
 
 const lit_p unicode_glyphs[] = {"│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼",
-                                "↪", "∶", "‾", "•", "╭", "╰", "╮", "╯", "┆", "…", "█"};
+                                "❯", "∶", "‾", "•", "╭", "╰", "╮", "╯", "┆", "…", "█"};
 const lit_p ascii_glyphs[] = {"|", "-", "+", "+", "+", "+", "+", "+", "+", "+", "+",
                               ">", ":", "~", "*", "|", "|", "|", "|", ":", ".", "|"};
 
@@ -73,7 +73,6 @@ obj_p ray_set_fpr(obj_p x) {
 
     return NULL_OBJ;
 }
-
 typedef enum {
     GLYPH_VLINE,
     GLYPH_HLINE,
@@ -819,7 +818,7 @@ i64_t enum_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj) {
     if (ENUM_VAL(obj)->len >= TABLE_MAX_HEIGHT) {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
-        e = ray_take(idx, obj);
+        e = ray_take(obj, idx);
         drop_obj(idx);
     } else
         e = ray_value(obj);
@@ -847,7 +846,7 @@ i64_t anymap_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p ob
     if (MAPLIST_VAL(obj)->len >= TABLE_MAX_HEIGHT) {
         limit = TABLE_MAX_HEIGHT;
         idx = i64(TABLE_MAX_HEIGHT);
-        a = ray_take(idx, obj);
+        a = ray_take(obj, idx);
         drop_obj(idx);
     } else
         a = ray_value(obj);
@@ -920,9 +919,10 @@ i64_t dict_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj)
 i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
     i64_t *header, i, j, n, m, l, table_width, table_height, total_width, rows, cols;
     obj_p s, column, columns = AS_LIST(obj)[1], column_widths, footer;
-    obj_p **formatted_columns;
+    obj_p formatted_cols, type_names_list;
     str_p p;
     b8_t unicode = __USE_UNICODE;
+    b8_t has_hidden_cols;
 
     header = AS_SYMBOL(AS_LIST(obj)[0]);
     total_width = 0;
@@ -941,24 +941,41 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
     if (table_width == 0)
         return str_fmt_into(dst, 7, "@table");
 
+    // Check if this is a partitioned table (has columns with TYPE_PARTEDLIST types)
+    // Partitioned tables cannot be shown in full, only individual partitions can
+    if (full) {
+        for (i = 0; i < cols; i++) {
+            column = AS_LIST(columns)[i];
+            if (column->type >= TYPE_PARTEDLIST && column->type < TYPE_TABLE) {
+                return str_fmt_into(dst, NO_LIMIT,
+                                    "@parted-table (%lld partitions, %lld columns)\n"
+                                    "Use (first t) or (last t) to access individual partitions",
+                                    ops_count(column), cols);
+            }
+        }
+    }
+
     rows = ops_count(obj);
     table_height = rows;
 
-    // Apply limits for full == 1 (REPL output)
+    // Apply limits only for REPL mode (full == 1), not for show (full == 2)
     if (full == 1) {
         if (table_width > TABLE_MAX_WIDTH)
             table_width = TABLE_MAX_WIDTH;
+
         if (table_height > TABLE_MAX_HEIGHT)
             table_height = TABLE_MAX_HEIGHT;
     }
 
-    // Allocate formatted_columns dynamically
-    formatted_columns = heap_alloc(table_width * sizeof(obj_p *));
-    for (i = 0; i < table_width; i++) {
-        formatted_columns[i] = heap_alloc(table_height * sizeof(obj_p));
-        for (j = 0; j < table_height; j++)
-            formatted_columns[i][j] = NULL_OBJ;
-    }
+    // Only show ellipsis for hidden columns/rows in REPL mode (full == 1)
+    has_hidden_cols = (full == 1 && table_width < cols);
+
+    // Allocate formatted columns dynamically using LIST
+    formatted_cols = LIST(table_width);
+    for (i = 0; i < table_width; i++)
+        AS_LIST(formatted_cols)[i] = LIST(table_height);
+
+    type_names_list = LIST(table_width);
 
     column_widths = I64(table_width);
 
@@ -967,24 +984,44 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
         // First check the column name
         l = SYMBOL_STRLEN(header[i]);
 
-        // Get the actual column and its length
+        // Get the actual column and its type name length
         column = AS_LIST(columns)[i];
+        p = type_name(column->type);
+        AS_LIST(type_names_list)[i] = string_from_str(p, strlen(p));
+        MAXN(l, (i64_t)strlen(p));
+
         i64_t col_len = ops_count(column);
 
-        // Traverse first half and last half when limited, all when unlimited
-        for (j = 0; j < table_height; j++) {
+        // Then traverse first n elements of column
+        for (j = 0; j < table_height / 2; j++) {
             s = NULL_OBJ;
-            i64_t idx = j;
-            // When limited and not showing all rows, show first half and last half
-            if (full == 1 && table_height < rows && j >= table_height / 2) {
-                idx = rows - table_height + j;
-            }
-            if (idx < col_len) {
-                m = raw_fmt_into(&s, 0, 38, column, idx);
+            if (j < col_len) {
+                m = raw_fmt_into(&s, 0, 38, column, j);
             } else {
                 m = str_fmt_into(&s, 3, "NA");
             }
-            formatted_columns[i][j] = s;
+            AS_LIST(AS_LIST(formatted_cols)[i])[j] = s;
+            MAXN(l, m);
+        }
+
+        // Traverse the rest of the column
+        for (; j < table_height; j++) {
+            s = NULL_OBJ;
+            if (table_height == col_len) {
+                if (j < col_len) {
+                    m = raw_fmt_into(&s, 0, 38, column, j);
+                } else {
+                    m = str_fmt_into(&s, 3, "NA");
+                }
+            } else {
+                i64_t idx = col_len - table_height + j;
+                if (idx >= 0 && idx < col_len) {
+                    m = raw_fmt_into(&s, 0, 38, column, idx);
+                } else {
+                    m = str_fmt_into(&s, 3, "NA");
+                }
+            }
+            AS_LIST(AS_LIST(formatted_cols)[i])[j] = s;
             MAXN(l, m);
         }
 
@@ -995,10 +1032,8 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
     total_width += table_width - 1;
 
     // calculate width of the footer
-    if (full == 1 && (table_height < rows || table_width < cols))
-        footer = str_fmt(NO_LIMIT, " %lld rows (%lld shown) %lld columns (%lld shown)", rows, table_height, cols, table_width);
-    else
-        footer = str_fmt(NO_LIMIT, " %lld rows %lld columns", rows, cols);
+    footer =
+        str_fmt(NO_LIMIT, " %lld rows (%lld shown) %lld columns (%lld shown)", rows, table_height, cols, table_width);
 
     if (total_width < (i64_t)footer->len) {
         AS_I64(column_widths)[table_width - 1] += (i64_t)footer->len - total_width;
@@ -1012,9 +1047,6 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
             }
         }
     }
-
-    // Check if we have hidden columns
-    b8_t has_hidden_cols = (full == 1 && table_width < cols);
 
     // Add extra width for hidden columns indicator
     if (has_hidden_cols)
@@ -1039,15 +1071,41 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
         n += glyph_fmt_into(dst, GLYPH_TR_CORNER, unicode);
     }
 
-    // Print table header
+    // Print table header (column names) - centered
     n += str_fmt_into(dst, 2, "\n");
     n += str_fmt_into_n(dst, NO_LIMIT, indent, " ");
     n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
     for (i = 0; i < table_width; i++) {
         p = str_from_symbol(header[i]);
-        m = AS_I64(column_widths)[i] - SYMBOL_STRLEN(header[i]) - 2;
-        n += str_fmt_into(dst, NO_LIMIT, " %s ", p);
-        n += str_fmt_into_n(dst, NO_LIMIT, m, " ");
+        i64_t name_len = SYMBOL_STRLEN(header[i]);
+        i64_t col_width = AS_I64(column_widths)[i];
+        i64_t left_pad = (col_width - name_len) / 2;
+        i64_t right_pad = col_width - name_len - left_pad;
+        n += str_fmt_into_n(dst, NO_LIMIT, left_pad, " ");
+        n += str_fmt_into(dst, NO_LIMIT, "%s", p);
+        n += str_fmt_into_n(dst, NO_LIMIT, right_pad, " ");
+        n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+    }
+    if (has_hidden_cols) {
+        n += str_fmt_into(dst, 2, " ");
+        n += glyph_fmt_into(dst, GLYPH_HDOTS, unicode);
+        n += str_fmt_into(dst, 2, " ");
+        n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+    }
+
+    // Print table header (column types) - centered
+    n += str_fmt_into(dst, 2, "\n");
+    n += str_fmt_into_n(dst, NO_LIMIT, indent, " ");
+    n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+    for (i = 0; i < table_width; i++) {
+        i64_t col_width = AS_I64(column_widths)[i];
+        obj_p type_str = AS_LIST(type_names_list)[i];
+        i64_t type_len = type_str->len;
+        i64_t left_pad = (col_width - type_len) / 2;
+        i64_t right_pad = col_width - type_len - left_pad;
+        n += str_fmt_into_n(dst, NO_LIMIT, left_pad, " ");
+        n += str_fmt_into(dst, NO_LIMIT, "%.*s", (i32_t)type_len, AS_C8(type_str));
+        n += str_fmt_into_n(dst, NO_LIMIT, right_pad, " ");
         n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
     }
     if (has_hidden_cols) {
@@ -1083,8 +1141,8 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
         n += str_fmt_into(dst, 2, "\n");
         n += str_fmt_into_n(dst, NO_LIMIT, indent, " ");
 
-        // Indicate missing rows (only in limited mode)
-        if (full == 1 && j == table_height / 2 && table_height < rows) {
+        // Indicate missing rows (only in REPL mode with limited output)
+        if (full == 1 && j == table_height / 2 && table_height != rows) {
             n += glyph_fmt_into(dst, GLYPH_VDOTS, unicode);
             for (i = 0; i < table_width; i++) {
                 n += str_fmt_into(dst, 2, " ");
@@ -1111,14 +1169,12 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
         n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
 
         for (i = 0; i < table_width; i++) {
-            s = formatted_columns[i][j];
+            s = AS_LIST(AS_LIST(formatted_cols)[i])[j];
             p = AS_C8(s);
             m = AS_I64(column_widths)[i] - s->len - 2;
             n += str_fmt_into(dst, s->len + 3, " %.*s ", (i32_t)s->len, p);
             n += str_fmt_into_n(dst, NO_LIMIT, m, " ");
             n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
-            // Free formatted column
-            drop_obj(s);
         }
         if (has_hidden_cols) {
             n += str_fmt_into(dst, 2, " ");
@@ -1173,10 +1229,8 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
 
     n += glyph_fmt_into(dst, GLYPH_BR_CORNER, unicode);
 
-    // Free formatted_columns
-    for (i = 0; i < table_width; i++)
-        heap_free(formatted_columns[i]);
-    heap_free(formatted_columns);
+    drop_obj(formatted_cols);
+    drop_obj(type_names_list);
 
     return n;
 }

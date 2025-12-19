@@ -249,6 +249,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "insert",              TYPE_VARY,     FN_NONE,                   ray_insert);
     REGISTER_FN(functions,  "upsert",              TYPE_VARY,     FN_NONE,                   ray_upsert);
     REGISTER_FN(functions,  "read-csv",            TYPE_VARY,     FN_NONE,                   ray_read_csv);
+    REGISTER_FN(functions,  "write-csv",           TYPE_VARY,     FN_NONE,                   ray_write_csv);
     REGISTER_FN(functions,  "left-join",           TYPE_VARY,     FN_NONE,                   ray_left_join);
     REGISTER_FN(functions,  "inner-join",          TYPE_VARY,     FN_NONE,                   ray_inner_join);
     REGISTER_FN(functions,  "asof-join",           TYPE_VARY,     FN_NONE,                   ray_asof_join);
@@ -270,14 +271,14 @@ nil_t init_functions(obj_p functions)
     
 nil_t init_typenames(obj_p typenames)    
 {
-    REGISTER_TYPE(typenames,   -TYPE_ERR,             "Null");
+    REGISTER_TYPE(typenames,   -TYPE_ERR,             "ERROR");
     REGISTER_TYPE(typenames,   -TYPE_B8,              "b8");
     REGISTER_TYPE(typenames,   -TYPE_U8,              "u8");
     REGISTER_TYPE(typenames,   -TYPE_I16,             "i16");
     REGISTER_TYPE(typenames,   -TYPE_I32,             "i32");
     REGISTER_TYPE(typenames,   -TYPE_I64,             "i64");
     REGISTER_TYPE(typenames,   -TYPE_F64,             "f64");
-    REGISTER_TYPE(typenames,   -TYPE_C8,              "char");
+    REGISTER_TYPE(typenames,   -TYPE_C8,              "c8");
     REGISTER_TYPE(typenames,   -TYPE_SYMBOL,          "symbol");
     REGISTER_TYPE(typenames,   -TYPE_DATE,            "date");
     REGISTER_TYPE(typenames,   -TYPE_TIME,            "time");
@@ -289,35 +290,35 @@ nil_t init_typenames(obj_p typenames)
     REGISTER_TYPE(typenames,    TYPE_I32,             "I32");
     REGISTER_TYPE(typenames,    TYPE_I64,             "I64");
     REGISTER_TYPE(typenames,    TYPE_F64,             "F64");
-    REGISTER_TYPE(typenames,    TYPE_C8,              "String");
-    REGISTER_TYPE(typenames,    TYPE_ENUM,            "Enum");
-    REGISTER_TYPE(typenames,    TYPE_PARTEDLIST,      "Partedlist");
-    REGISTER_TYPE(typenames,    TYPE_PARTEDB8,        "Partedb8");
-    REGISTER_TYPE(typenames,    TYPE_PARTEDU8,        "Partedu8");
-    REGISTER_TYPE(typenames,    TYPE_PARTEDI64,       "Partedi64");
-    REGISTER_TYPE(typenames,    TYPE_PARTEDF64,       "Partedf64");
-    REGISTER_TYPE(typenames,    TYPE_PARTEDTIMESTAMP, "Partedtimestamp");
-    REGISTER_TYPE(typenames,    TYPE_PARTEDGUID,      "Partedguid");
-    REGISTER_TYPE(typenames,    TYPE_PARTEDENUM,      "Partedenum");
-    REGISTER_TYPE(typenames,    TYPE_MAPLIST,         "Maplist");
-    REGISTER_TYPE(typenames,    TYPE_MAPFILTER,       "Mapfilter");
-    REGISTER_TYPE(typenames,    TYPE_MAPGROUP,        "Mapgroup");
-    REGISTER_TYPE(typenames,    TYPE_MAPFD,           "Mapfd");
-    REGISTER_TYPE(typenames,    TYPE_MAPCOMMON,       "Mapcommon");
-    REGISTER_TYPE(typenames,    TYPE_SYMBOL,          "Symbol");
-    REGISTER_TYPE(typenames,    TYPE_DATE,            "Date");
-    REGISTER_TYPE(typenames,    TYPE_TIME,            "Time");
-    REGISTER_TYPE(typenames,    TYPE_TIMESTAMP,       "Timestamp");
-    REGISTER_TYPE(typenames,    TYPE_GUID,            "Guid");
-    REGISTER_TYPE(typenames,    TYPE_LIST,            "List");
-    REGISTER_TYPE(typenames,    TYPE_TABLE,           "Table");
-    REGISTER_TYPE(typenames,    TYPE_DICT,            "Dict");
-    REGISTER_TYPE(typenames,    TYPE_UNARY,           "Unary");
-    REGISTER_TYPE(typenames,    TYPE_BINARY,          "Binary");
-    REGISTER_TYPE(typenames,    TYPE_VARY,            "Vary");
-    REGISTER_TYPE(typenames,    TYPE_LAMBDA,          "Lambda");
-    REGISTER_TYPE(typenames,    TYPE_NULL,            "Null");
-    REGISTER_TYPE(typenames,    TYPE_ERR,             "Error");
+    REGISTER_TYPE(typenames,    TYPE_C8,              "C8");
+    REGISTER_TYPE(typenames,    TYPE_ENUM,            "ENUM");
+    REGISTER_TYPE(typenames,    TYPE_PARTEDLIST,      "PARTEDLIST");
+    REGISTER_TYPE(typenames,    TYPE_PARTEDB8,        "PARTEDB8");
+    REGISTER_TYPE(typenames,    TYPE_PARTEDU8,        "PARTEDU8");
+    REGISTER_TYPE(typenames,    TYPE_PARTEDI64,       "PARTEDI64");
+    REGISTER_TYPE(typenames,    TYPE_PARTEDF64,       "PARTEDF64");
+    REGISTER_TYPE(typenames,    TYPE_PARTEDTIMESTAMP, "PARTEDTIMESTAMP");
+    REGISTER_TYPE(typenames,    TYPE_PARTEDGUID,      "PARTEDGUID");
+    REGISTER_TYPE(typenames,    TYPE_PARTEDENUM,      "PARTEDENUM");
+    REGISTER_TYPE(typenames,    TYPE_MAPLIST,         "MAPLIST");
+    REGISTER_TYPE(typenames,    TYPE_MAPFILTER,       "MAPFILTER");
+    REGISTER_TYPE(typenames,    TYPE_MAPGROUP,        "MAPGROUP");
+    REGISTER_TYPE(typenames,    TYPE_MAPFD,           "MAPFD");
+    REGISTER_TYPE(typenames,    TYPE_MAPCOMMON,       "MAPCOMMON");
+    REGISTER_TYPE(typenames,    TYPE_SYMBOL,          "SYMBOL");
+    REGISTER_TYPE(typenames,    TYPE_DATE,            "DATE");
+    REGISTER_TYPE(typenames,    TYPE_TIME,            "TIME");
+    REGISTER_TYPE(typenames,    TYPE_TIMESTAMP,       "TIMESTAMP");
+    REGISTER_TYPE(typenames,    TYPE_GUID,            "GUID");
+    REGISTER_TYPE(typenames,    TYPE_LIST,            "LIST");
+    REGISTER_TYPE(typenames,    TYPE_TABLE,           "TABLE");
+    REGISTER_TYPE(typenames,    TYPE_DICT,            "DICT");
+    REGISTER_TYPE(typenames,    TYPE_UNARY,           "UNARY");
+    REGISTER_TYPE(typenames,    TYPE_BINARY,          "BINARY");
+    REGISTER_TYPE(typenames,    TYPE_VARY,            "VARY");
+    REGISTER_TYPE(typenames,    TYPE_LAMBDA,          "LAMBDA");
+    REGISTER_TYPE(typenames,    TYPE_NULL,            "NULL");
+    REGISTER_TYPE(typenames,    TYPE_ERR,             "ERROR");
 }
 // clang-format on
 

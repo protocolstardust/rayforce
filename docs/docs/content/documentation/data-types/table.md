@@ -1,7 +1,7 @@
 # :material-table: Table
 
 !!! note ""
-    Type Code: `98`. Internal Name: `Table`
+    Type Code: `98`. Internal Name: `TABLE`
 
 A Table is an object that consists of columns, forming the core structure for relational operations in RayforceDB.
 
@@ -52,6 +52,9 @@ Stores a [:material-table: Table](../data-types/table.md) as a splayed table on 
 
 Optionally accepts a string path to a symfile. If provided, symbol columns will use this shared symfile.
 
+!!! tip "Understanding Symfiles"
+    The symfile is crucial for persisting symbol columns. See the [:material-alphabetical-variant: Symbols, Enums, and Symfiles Guide](../symbols-and-enums.md) for a detailed explanation of why symfiles are needed and how they enable data to be loaded across different processes.
+
 !!! note ""
     The table path must end with a trailing slash to indicate it's a directory.
 
@@ -73,15 +76,29 @@ Stores a [:material-table: Table](../data-types/table.md) as a parted table on d
 (set-parted "/tmp/db/" t)
 ```
 
+!!! warning "Important: Shared Symfiles for Parted Tables"
+    When creating parted tables, always use a shared symfile across all partitions. This ensures consistent symbol-to-index mapping, which is required for cross-partition queries. See the [:material-alphabetical-variant: Symbols, Enums, and Symfiles Guide](../symbols-and-enums.md) for details.
+
 ### :material-file-document-outline: Read CSV
 
 Reads a CSV file and converts it into a [:material-table: Table](../data-types/table.md).
 
 ```clj
-(read-csv [I64 Symbol F64] "/path/to/file.csv")
-(read-csv [I64 Symbol F64] "/path/to/file.csv" ';')
+(read-csv [I64 SYMBOL F64] "/path/to/file.csv")
+(read-csv [I64 SYMBOL F64] "/path/to/file.csv" ';')
 ```
 
 Takes a vector of type symbols specifying the column types, a file path, and optionally a separator character (defaults to comma).
+
+### :material-file-export-outline: Write CSV
+
+Writes a [:material-table: Table](../data-types/table.md) to a CSV file.
+
+```clj
+(write-csv "/path/to/file.csv" t)
+(write-csv "/path/to/file.csv" t ';')
+```
+
+Takes a file path, a table, and optionally a separator character (defaults to comma). The first row of the output file contains column names.
 
 ### :material-arrow-right: Next: Table [:simple-googlebigquery: Queries](../queries/overview.md)

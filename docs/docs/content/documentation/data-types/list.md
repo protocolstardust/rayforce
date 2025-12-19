@@ -1,7 +1,7 @@
 # :material-code-array: List
 
 !!! note ""
-    Type Code: `0`. Internal Name: `List`
+    Type Code: `0`. Internal Name: `LIST`
 
 A List is a series of objects that contain elements that are not necessarily of the same type.
 

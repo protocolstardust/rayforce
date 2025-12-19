@@ -1421,13 +1421,8 @@ obj_p unop_fold(raw_p op, obj_p x) {
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
 
-    if (n == 1) {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)l;
-        argv[2] = (raw_p)0;
-        v = pool_call_task_fn(op, 3, argv);
-        return v;
-    }
+    if (n == 1)
+        return ((obj_p(*)(obj_p, i64_t, i64_t))op)(x, l, 0);
 
     // --- PAGE-ALIGNED CHUNKING ---
     i64_t elem_size = size_of_type(x->type);
@@ -1474,7 +1469,6 @@ obj_p unop_map(raw_p op, obj_p x) {
     i64_t i, l, n, chunk;
     obj_p v, out;
     obj_p (*unop)(obj_p);
-    raw_p argv[4];
 
     if (IS_ATOM(x)) {
         unop = (obj_p(*)(obj_p))op;
@@ -1488,13 +1482,8 @@ obj_p unop_map(raw_p op, obj_p x) {
     out = (rc_obj(x) == 1) ? clone_obj(x) : vector(x->type, l);
 
     if (n == 1) {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)l;
-        argv[2] = (raw_p)0;
-        argv[3] = (raw_p)out;
-        v = pool_call_task_fn(op, 4, argv);
+        v = ((obj_p(*)(obj_p, i64_t, i64_t, obj_p))op)(x, l, 0, out);
         if (IS_ERR(v)) {
-            out->len = 0;
             drop_obj(out);
             return v;
         }
@@ -1522,7 +1511,6 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
     pool_p pool;
     i64_t i, l, n;
     obj_p v, out;
-    raw_p argv[5];
     i8_t t;
 
     if (IS_VECTOR(x) && IS_VECTOR(y)) {
@@ -1535,9 +1523,8 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
     else if (IS_VECTOR(y))
         l = y->len;
     else {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)y;
-        return pool_call_task_fn(op, 2, argv);
+        // Both x and y are scalars - partial function handles this directly
+        return ((obj_p(*)(obj_p, obj_p, i64_t, i64_t, obj_p))op)(x, y, 0, 0, NULL);
     }
 
     t = (op == ray_fdiv_partial)                            ? TYPE_F64
@@ -1548,19 +1535,15 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
 
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
-    out = (rc_obj(x) == 1 && IS_VECTOR(x))   ? clone_obj(x)
-          : (rc_obj(y) == 1 && IS_VECTOR(y)) ? clone_obj(y)
-                                             : vector(t, l);
+    // Only reuse input buffer if its type matches the output type
+    // to avoid type mismatch (e.g., writing f64 into i64 buffer)
+    out = (rc_obj(x) == 1 && IS_VECTOR(x) && x->type == t)   ? clone_obj(x)
+          : (rc_obj(y) == 1 && IS_VECTOR(y) && y->type == t) ? clone_obj(y)
+                                                             : vector(t, l);
 
     if (n == 1) {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)y;
-        argv[2] = (raw_p)l;
-        argv[3] = (raw_p)0;
-        argv[4] = (raw_p)out;
-        v = pool_call_task_fn(op, 5, argv);
+        v = ((obj_p(*)(obj_p, obj_p, i64_t, i64_t, obj_p))op)(x, y, l, 0, out);
         if (IS_ERR(v)) {
-            out->len = 0;
             drop_obj(out);
             return v;
         }
@@ -1612,14 +1595,8 @@ obj_p binop_fold(raw_p op, obj_p x, obj_p y) {
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
 
-    if (n == 1) {
-        argv[0] = (raw_p)x;
-        argv[1] = (raw_p)y;
-        argv[2] = (raw_p)l;
-        argv[3] = (raw_p)0;
-        v = pool_call_task_fn(op, 4, argv);
-        return v;
-    }
+    if (n == 1)
+        return ((obj_p(*)(obj_p, obj_p, i64_t, i64_t))op)(x, y, l, 0);
 
     // --- PAGE-ALIGNED CHUNKING ---
     i64_t elem_size = size_of_type(x->type);

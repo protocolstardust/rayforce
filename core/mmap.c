@@ -197,4 +197,63 @@ raw_p mmap_reserve(raw_p addr, i64_t size) {
 
 i64_t mmap_commit(raw_p addr, i64_t size) { return mprotect(addr, size, PROT_READ | PROT_WRITE); }
 
+#elif defined(OS_WASM)
+
+// WASM uses simple malloc/free since there's no traditional mmap
+// Memory management is handled by Emscripten's memory allocator
+
+raw_p mmap_stack(i64_t size) { 
+    return malloc(size); 
+}
+
+raw_p mmap_alloc(i64_t size) { 
+    return malloc(size); 
+}
+
+raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
+    (void)fd;
+    (void)addr;
+    (void)offset;
+    // In WASM, we can't memory-map files directly
+    // Return allocated memory and let the caller read into it
+    return malloc(size);
+}
+
+raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
+    (void)fd;
+    (void)addr;
+    (void)offset;
+    return malloc(size);
+}
+
+i64_t mmap_free(raw_p addr, i64_t size) { 
+    (void)size;
+    free(addr); 
+    return 0; 
+}
+
+i64_t mmap_sync(raw_p addr, i64_t size) { 
+    (void)addr;
+    (void)size;
+    // No-op in WASM
+    return 0; 
+}
+
+raw_p mmap_reserve(raw_p addr, i64_t size) {
+    (void)addr;
+    // WASM can't reserve 64GB like native platforms
+    // Allocate a smaller fixed pool for string interning
+    if (size >= (RAY_PAGE_SIZE * 1024ull * 1024ull)) {
+        return malloc(4 * 1024 * 1024);  // 4MB for string pool
+    }
+    return malloc(size);
+}
+
+i64_t mmap_commit(raw_p addr, i64_t size) { 
+    (void)addr;
+    (void)size;
+    // No-op in WASM - memory is already committed
+    return 0; 
+}
+
 #endif

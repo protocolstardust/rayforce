@@ -537,7 +537,7 @@ obj_p select_build_table(query_ctx_p ctx) {
     drop_obj(vals);
 
     if (ctx->take != NULL_OBJ) {
-        take = ray_take(ctx->take, res);
+        take = ray_take(res, ctx->take);
         drop_obj(res);
         res = take;
     }

@@ -59,20 +59,38 @@ Returns the last element of a collection.
 
 ### :material-format-list-numbered: Take
 
-Returns the first `n` elements of a collection. If `n` is negative, returns the last `n` elements.
+Returns elements from a collection. Accepts either a count or a range specification.
+
+**With count:** Returns the first `n` elements. If `n` is negative, returns the last `n` elements.
 
 ```clj
-(take 3 [1 2 3 4 5])
+(take [1 2 3 4 5] 3)
 [1 2 3]
 
-(take -3 [1 2 3 4 5])
+(take [1 2 3 4 5] -3)
 [3 4 5]
 
-(take 2 [150.25 300.50 125.75 200.00])
+(take [150.25 300.50 125.75 200.00] 2)
 [150.25 300.50]
 
-(take 2 'a')
+(take 'a' 2)
 "aa"
+```
+
+**With range `[start amount]`:** Returns `amount` elements starting from index `start`. Negative `start` counts from the end.
+
+```clj
+(take [1 2 3 4 5] [1 2])
+[2 3]
+
+(take [1 2 3 4 5] [0 3])
+[1 2 3]
+
+(take [1 2 3 4 5] [-2 2])
+[4 5]
+
+(take "hello" [1 3])
+"ell"
 ```
 
 ## Set Operations

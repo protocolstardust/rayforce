@@ -1,8 +1,21 @@
-# RayforceDB
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/docs/images/logo_light_full.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/docs/images/logo_dark_full.svg">
+  <img alt="RayforceDB Cover" src="docs/docs/images/logo_dark_full.svg">
+</picture>
 
-![RayforceDB Cover](docs/assets/images/cover.png)
+<p>&nbsp;</p>
 
-[![Tests](https://img.shields.io/badge/Tests-passing-success?logo=github&style=flat)](https://singaraiona.github.io/rayforce/tests_report/) [![Coverage](https://img.shields.io/badge/Coverage-passing-brightgreen?style=flat&logo=github)](https://singaraiona.github.io/rayforce/coverage_report/) [![Release](https://img.shields.io/badge/Release-latest-blue?logo=github&style=flat)](https://github.com/singaraiona/rayforce/releases) [![Documentation](https://img.shields.io/badge/Documentation-latest-blue?logo=github&style=flat)](https://singaraiona.github.io/rayforce/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat)](LICENSE)
+[![Language](https://img.shields.io/badge/Language-C-blue?logo=c&style=flat)](https://en.wikipedia.org/wiki/C_(programming_language))
+[![Tests](https://img.shields.io/badge/Tests-passing-success?logo=github&style=flat)](https://singaraiona.github.io/rayforce/tests_report/)
+[![Coverage](https://img.shields.io/badge/Coverage-passing-brightgreen?logo=github&style=flat)](https://singaraiona.github.io/rayforce/coverage_report/)
+[![Release](https://img.shields.io/badge/Release-latest-blue?logo=github&style=flat)](https://github.com/singaraiona/rayforce/releases)
+[![Documentation](https://img.shields.io/badge/Documentation-latest-blue?logo=github&style=flat)](https://singaraiona.github.io/rayforce/)
+[![Linux](https://img.shields.io/badge/Linux-supported-green?logo=linux&logoColor=white&style=flat)]()
+[![macOS](https://img.shields.io/badge/macOS-supported-green?logo=apple&style=flat)]()
+[![Windows](https://img.shields.io/badge/Windows-supported-green?logo=microsoft&style=flat)]()
+[![WASM](https://img.shields.io/badge/WASM-supported-green?logo=webassembly&style=flat)]()
 
 A high-performance columnar vector database written in pure C. RayforceDB combines the power of columnar storage with SIMD vectorization to deliver fast analytics on time-series and big data workloads.
 

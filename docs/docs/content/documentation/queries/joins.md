@@ -111,11 +111,11 @@ Matches rows based on equality for all join columns **except the last one**, and
 
 ```clj
 (set n 10)
-(set tsym (take n (concat (take 99 'AAPL) (take 1 'MSFT))))
-(set ttime (+ 09:00:00 (as 'Time (/ (* (til n) 3) 10))))
+(set tsym (take (concat (take 'AAPL 99) (take 'MSFT 1)) n))
+(set ttime (+ 09:00:00 (as 'TIME (/ (* (til n) 3) 10))))
 (set price (+ 10 (til n)))
-(set bsym (take (* 2 n) (concat (concat (take 3 'AAPL) (take 2 'MSFT)) (take 1 'GOOG))))
-(set btime (+ 09:00:00 (as 'Time (/ (* (til (* 2 n)) 2) 10))))
+(set bsym (take (concat (concat (take 'AAPL 3) (take 'MSFT 2)) (take 'GOOG 1)) (* 2 n)))
+(set btime (+ 09:00:00 (as 'TIME (/ (* (til (* 2 n)) 2) 10))))
 (set bid (+ 8 (/ (til (* 2 n)) 2)))
 (set ask (+ 12 (/ (til (* 2 n)) 2)))
 (set trades (table [Sym Ts Price] (list tsym ttime price)))
@@ -157,11 +157,11 @@ The `window-join` and `window-join1` functions are designed for **time-series da
 
 ```clj
 (set n 100000)
-(set tsym (take n (concat (take 99 'AAPL) (take 1 'MSFT))))
-(set ttime (+ 09:00:00 (as 'Time (/ (* (til n) 3) 10))))
+(set tsym (take (concat (take 'AAPL 99) (take 'MSFT 1)) n))
+(set ttime (+ 09:00:00 (as 'TIME (/ (* (til n) 3) 10))))
 (set price (+ 10 (til n)))
-(set bsym (take (* 2 n) (concat (concat (take 3 'AAPL) (take 2 'MSFT)) (take 1 'GOOG))))
-(set btime (+ 09:00:00 (as 'Time (/ (* (til (* 2 n)) 2) 10))))
+(set bsym (take (concat (concat (take 'AAPL 3) (take 'MSFT 2)) (take 'GOOG 1)) (* 2 n)))
+(set btime (+ 09:00:00 (as 'TIME (/ (* (til (* 2 n)) 2) 10))))
 (set bid (+ 8 (/ (til (* 2 n)) 2)))
 (set ask (+ 12 (/ (til (* 2 n)) 2)))
 (set trades (table [Sym Ts Price] (list tsym ttime price)))
