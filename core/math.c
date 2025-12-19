@@ -1164,6 +1164,10 @@ obj_p ray_xbar_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
 // count non-null values
 obj_p ray_cnt_partial(obj_p x, i64_t len, i64_t offset) {
     switch (x->type) {
+        case -TYPE_U8:
+            return i64(1);  // u8 has no NULL
+        case -TYPE_I16:
+            return i64(CNTI16(0, x->i16));
         case -TYPE_I32:
             return i64(CNTI32(0, x->i32));
         case -TYPE_I64:
@@ -1176,6 +1180,10 @@ obj_p ray_cnt_partial(obj_p x, i64_t len, i64_t offset) {
             return i64(CNTI32(0, x->i32));
         case -TYPE_TIMESTAMP:
             return i64(CNTI64(0, x->i64));
+        case TYPE_U8:
+            return i64(len);  // u8 has no NULL, all elements count
+        case TYPE_I16:
+            return __UNOP_FOLD(x, i16, i64, CNTI16, len, offset, 0);
         case TYPE_I32:
             return __UNOP_FOLD(x, i32, i64, CNTI32, len, offset, 0);
         case TYPE_I64:
@@ -1195,6 +1203,10 @@ obj_p ray_cnt_partial(obj_p x, i64_t len, i64_t offset) {
 
 obj_p ray_sum_partial(obj_p x, i64_t len, i64_t offset) {
     switch (x->type) {
+        case -TYPE_U8:
+            return i64((i64_t)x->u8);
+        case -TYPE_I16:
+            return (x->i16 == NULL_I16) ? i64(NULL_I64) : i64((i64_t)x->i16);
         case -TYPE_I32:
         case -TYPE_I64:
         case -TYPE_F64:
@@ -1202,6 +1214,20 @@ obj_p ray_sum_partial(obj_p x, i64_t len, i64_t offset) {
         case -TYPE_TIME:
         case -TYPE_TIMESTAMP:
             return clone_obj(x);
+        case TYPE_U8: {
+            u8_t *lhs = AS_U8(x) + offset;
+            i64_t out = 0;
+            for (i64_t i = 0; i < len; i++)
+                out += lhs[i];
+            return i64(out);
+        }
+        case TYPE_I16: {
+            i16_t *lhs = AS_I16(x) + offset;
+            i64_t out = 0;
+            for (i64_t i = 0; i < len; i++)
+                out = FOLD_ADDI64(out, i16_to_i64(lhs[i]));
+            return i64(out);
+        }
         case TYPE_I32:
             return __UNOP_FOLD(x, i32, i32, FOLD_ADDI32, len, offset, 0);
         case TYPE_I64:
@@ -1240,6 +1266,10 @@ obj_p ray_sum_partial(obj_p x, i64_t len, i64_t offset) {
 
 obj_p ray_min_partial(obj_p x, i64_t len, i64_t offset) {
     switch (x->type) {
+        case -TYPE_U8:
+            return u8(x->u8);
+        case -TYPE_I16:
+            return i16(x->i16);
         case -TYPE_I32:
         case -TYPE_I64:
         case -TYPE_F64:
@@ -1247,6 +1277,15 @@ obj_p ray_min_partial(obj_p x, i64_t len, i64_t offset) {
         case -TYPE_TIME:
         case -TYPE_TIMESTAMP:
             return clone_obj(x);
+        case TYPE_U8: {
+            u8_t *lhs = AS_U8(x) + offset;
+            u8_t out = (len > 0) ? lhs[0] : 0;
+            for (i64_t i = 1; i < len; i++)
+                out = MINU8(out, lhs[i]);
+            return u8(out);
+        }
+        case TYPE_I16:
+            return __UNOP_FOLD(x, i16, i16, MINI16, len, offset, NULL_I16);
         case TYPE_I32:
             return __UNOP_FOLD(x, i32, i32, MINI32, len, offset, NULL_I32);
         case TYPE_I64:
@@ -1268,6 +1307,10 @@ obj_p ray_min_partial(obj_p x, i64_t len, i64_t offset) {
 
 obj_p ray_max_partial(obj_p x, i64_t len, i64_t offset) {
     switch (x->type) {
+        case -TYPE_U8:
+            return u8(x->u8);
+        case -TYPE_I16:
+            return i16(x->i16);
         case -TYPE_I32:
         case -TYPE_I64:
         case -TYPE_F64:
@@ -1275,6 +1318,15 @@ obj_p ray_max_partial(obj_p x, i64_t len, i64_t offset) {
         case -TYPE_TIME:
         case -TYPE_TIMESTAMP:
             return clone_obj(x);
+        case TYPE_U8: {
+            u8_t *lhs = AS_U8(x) + offset;
+            u8_t out = (len > 0) ? lhs[0] : 0;
+            for (i64_t i = 1; i < len; i++)
+                out = MAXU8(out, lhs[i]);
+            return u8(out);
+        }
+        case TYPE_I16:
+            return __UNOP_FOLD(x, i16, i16, MAXI16, len, offset, NULL_I16);
         case TYPE_I32:
             return __UNOP_FOLD(x, i32, i32, MAXI32, len, offset, NULL_I32);
         case TYPE_I64:

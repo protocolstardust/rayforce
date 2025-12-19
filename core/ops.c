@@ -172,6 +172,7 @@ i64_t ops_count(obj_p x) {
         case TYPE_B8:
         case TYPE_U8:
         case TYPE_C8:
+        case TYPE_I16:
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:

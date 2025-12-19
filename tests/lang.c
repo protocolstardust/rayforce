@@ -2395,6 +2395,15 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(sum [1i 2i -3i])", "0i");
     TEST_ASSERT_EQ("(sum [02:01:03.000 00:00:02.500])", "02:01:05.500");
     TEST_ASSERT_ER("(sum [2020.02.03 2025.02.03])", "sum: unsupported type: 'DATE");
+    // u8 sum
+    TEST_ASSERT_EQ("(sum 0x05)", "5");
+    TEST_ASSERT_EQ("(sum [0x01 0x02 0x03 0x04 0x05])", "15");
+    TEST_ASSERT_EQ("(sum (take 0x01 100000))", "100000");  // large u8 vector for parallel test
+    // i16 sum
+    TEST_ASSERT_EQ("(sum 5h)", "5");
+    TEST_ASSERT_EQ("(sum [1h 2h 3h])", "6");
+    TEST_ASSERT_EQ("(sum [1h 0Nh 3h])", "4");
+    TEST_ASSERT_EQ("(sum (take 10h 100000))", "1000000");  // large i16 vector for parallel test
 
     TEST_ASSERT_EQ("(avg 5i)", "5.0");
     TEST_ASSERT_EQ("(avg -1.7)", "-1.7");
@@ -2422,6 +2431,15 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(min [-00:00:05.000])", "-00:00:05.000");
     TEST_ASSERT_EQ("(min [1999.03.13D11:45:43.848458167])", "1999.03.13D11:45:43.848458167");
     TEST_ASSERT_EQ("(min [])", "0Nl");
+    // u8 min
+    TEST_ASSERT_EQ("(min 0x05)", "0x05");
+    TEST_ASSERT_EQ("(min [0x05 0x01 0x03])", "0x01");
+    TEST_ASSERT_EQ("(min (take 0x05 100000))", "0x05");  // large u8 vector
+    // i16 min
+    TEST_ASSERT_EQ("(min 5h)", "5h");
+    TEST_ASSERT_EQ("(min [5h 1h 3h])", "1h");
+    TEST_ASSERT_EQ("(min [0Nh 5h 1h])", "1h");
+    TEST_ASSERT_EQ("(min (take 10h 100000))", "10h");  // large i16 vector
 
     TEST_ASSERT_EQ("(max 0Nt)", "0Nt");
     TEST_ASSERT_EQ("(max 5i)", "5i");
@@ -2440,6 +2458,15 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(max [-00:00:05.000])", "-00:00:05.000");
     TEST_ASSERT_EQ("(max [1999.03.13D11:45:43.848458167])", "1999.03.13D11:45:43.848458167");
     TEST_ASSERT_EQ("(max [])", "0Nl");
+    // u8 max
+    TEST_ASSERT_EQ("(max 0x05)", "0x05");
+    TEST_ASSERT_EQ("(max [0x05 0x01 0x03])", "0x05");
+    TEST_ASSERT_EQ("(max (take 0x05 100000))", "0x05");  // large u8 vector
+    // i16 max
+    TEST_ASSERT_EQ("(max 5h)", "5h");
+    TEST_ASSERT_EQ("(max [5h 1h 3h])", "5h");
+    TEST_ASSERT_EQ("(max [0Nh 5h 1h])", "5h");
+    TEST_ASSERT_EQ("(max (take 10h 100000))", "10h");  // large i16 vector
 
     TEST_ASSERT_EQ("(round [])", "[]");
     TEST_ASSERT_EQ("(round -0.5)", "-1.0");
