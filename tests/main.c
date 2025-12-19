@@ -358,6 +358,10 @@ test_entry_t tests[] = {
     {"test_parted_large_data", test_parted_large_data},
     {"test_parted_large_aggregate", test_parted_large_aggregate},
     {"test_parted_large_filter", test_parted_large_filter},
+    // Multi aggregation with filter tests
+    {"test_parted_multi_aggr_filter", test_parted_multi_aggr_filter},
+    {"test_parted_multi_aggr_filter_count", test_parted_multi_aggr_filter_count},
+    {"test_parted_multi_aggr_filter_min", test_parted_multi_aggr_filter_min},
 };
 // ---
 

@@ -1150,10 +1150,26 @@ obj_p aggr_count(obj_p val, obj_p index) {
             res = I64(n);
 
             if (n == 1 && filter == NULL_OBJ) {
-                // Aggregate all partitions into single result
+                // Aggregate all partitions into single result, no filter
                 i64_t total = 0;
                 for (i = 0; i < l; i++) {
                     total += ops_count(AS_LIST(val)[i]);
+                }
+                AS_I64(res)[0] = total;
+            } else if (n == 1 && filter != NULL_OBJ && filter->type == TYPE_PARTEDI64) {
+                // Aggregate all partitions into single result with parted filter
+                i64_t total = 0;
+                for (i = 0; i < l; i++) {
+                    obj_p fentry = AS_LIST(filter)[i];
+                    if (fentry == NULL_OBJ)
+                        continue;
+                    if (fentry->type == -TYPE_I64 && fentry->i64 == -1) {
+                        // All rows match
+                        total += ops_count(AS_LIST(val)[i]);
+                    } else if (fentry->type > 0 && fentry->len > 0) {
+                        // Specific rows match
+                        total += fentry->len;
+                    }
                 }
                 AS_I64(res)[0] = total;
             } else {
