@@ -1242,7 +1242,9 @@ obj_p ray_sum_partial(obj_p x, i64_t len, i64_t offset) {
         }
         case TYPE_PARTEDI64:
         case TYPE_PARTEDF64:
-        case TYPE_PARTEDTIMESTAMP: {
+        case TYPE_PARTEDTIMESTAMP:
+        case TYPE_PARTEDDATE:
+        case TYPE_PARTEDTIME: {
             obj_p index =
                 vn_list(7, i64(INDEX_TYPE_PARTEDCOMMON), i64(1), NULL_OBJ, i64(NULL_I64), NULL_OBJ, NULL_OBJ, NULL_OBJ);
             obj_p res = aggr_sum(x, index);
@@ -1294,7 +1296,9 @@ obj_p ray_min_partial(obj_p x, i64_t len, i64_t offset) {
         }
         case TYPE_PARTEDI64:
         case TYPE_PARTEDF64:
-        case TYPE_PARTEDTIMESTAMP: {
+        case TYPE_PARTEDTIMESTAMP:
+        case TYPE_PARTEDDATE:
+        case TYPE_PARTEDTIME: {
             obj_p index =
                 vn_list(7, i64(INDEX_TYPE_PARTEDCOMMON), i64(1), NULL_OBJ, i64(NULL_I64), NULL_OBJ, NULL_OBJ, NULL_OBJ);
             obj_p res = aggr_min(x, index);
@@ -1346,7 +1350,9 @@ obj_p ray_max_partial(obj_p x, i64_t len, i64_t offset) {
         }
         case TYPE_PARTEDI64:
         case TYPE_PARTEDF64:
-        case TYPE_PARTEDTIMESTAMP: {
+        case TYPE_PARTEDTIMESTAMP:
+        case TYPE_PARTEDDATE:
+        case TYPE_PARTEDTIME: {
             obj_p index =
                 vn_list(7, i64(INDEX_TYPE_PARTEDCOMMON), i64(1), NULL_OBJ, i64(NULL_I64), NULL_OBJ, NULL_OBJ, NULL_OBJ);
             obj_p res = aggr_max(x, index);
