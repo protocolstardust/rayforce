@@ -201,6 +201,7 @@ nil_t dump_stack(nil_t);
 #define __NULL_i8() 0
 #define __NULL_u8 0
 #define __NULL_c8 ""
+#define __NULL_i16 NULL_I16
 #define __NULL_i32 NULL_I32
 #define __NULL_date NULL_I32
 #define __NULL_time NULL_I32

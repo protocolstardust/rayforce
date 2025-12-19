@@ -180,39 +180,83 @@ i64_t indexl_bin_i32_(i32_t val, i32_t vals[], i64_t offset, i64_t len) {
         $res;                                                  \
     })
 
-#define PARTED_MAP(groups, val, index, preaggr, incoerse, outcoerse, postaggr)                            \
-    ({                                                                                                    \
-        i64_t $$i, $$j, $$l;                                                                              \
-        obj_p $$parts, $$res, $$filter, $$v;                                                              \
-        $$l = val->len;                                                                                   \
-        $$filter = index_group_filter(index);                                                             \
-        $$res = __v_##outcoerse(groups);                                                                  \
-        if (groups == 1 && $$filter == NULL_OBJ) {                                                        \
-            /* Aggregate all partitions into single result */                                             \
-            for ($$i = 0; $$i < $$l; $$i++) {                                                             \
-                $$parts = aggr_map(preaggr, AS_LIST(val)[$$i], AS_LIST(val)[$$i]->type, index);           \
-                $$v = AGGR_COLLECT($$parts, 1, incoerse, outcoerse, postaggr);                            \
-                drop_obj($$parts);                                                                        \
-                {                                                                                         \
-                    outcoerse##_t *$out = __AS_##outcoerse($$res);                                        \
-                    incoerse##_t *$in = __AS_##incoerse($$v);                                             \
-                    i64_t $x = 0, $y = 0;                                                                 \
-                    postaggr;                                                                             \
-                }                                                                                         \
-                drop_obj($$v);                                                                            \
-            }                                                                                             \
-        } else {                                                                                          \
-            for ($$i = 0, $$j = 0; $$i < $$l; $$i++) {                                                    \
-                if ($$filter == NULL_OBJ || AS_LIST($$filter)[$$i] != NULL_OBJ) {                         \
-                    $$parts = aggr_map(preaggr, AS_LIST(val)[$$i], AS_LIST(val)[$$i]->type, index);       \
-                    $$v = AGGR_COLLECT($$parts, 1, incoerse, outcoerse, postaggr);                        \
-                    drop_obj($$parts);                                                                    \
-                    memcpy(__AS_##outcoerse($$res) + $$j++, __AS_##incoerse($$v), __SIZE_OF_##outcoerse); \
-                    drop_obj($$v);                                                                        \
-                }                                                                                         \
-            }                                                                                             \
-        }                                                                                                 \
-        $$res;                                                                                            \
+#define PARTED_MAP(groups, val, index, preaggr, incoerse, outcoerse, postaggr)                                       \
+    ({                                                                                                               \
+        i64_t $$i, $$j, $$l;                                                                                         \
+        b8_t $$first;                                                                                                \
+        obj_p $$parts, $$res, $$filter, $$v, $$pfilter, $$pdata, $$pindex;                                           \
+        $$l = val->len;                                                                                              \
+        $$filter = index_group_filter(index);                                                                        \
+        $$res = __v_##outcoerse(groups);                                                                             \
+        $$first = B8_TRUE;                                                                                           \
+        if (groups == 1 && $$filter == NULL_OBJ) {                                                                   \
+            /* Aggregate all partitions into single result, no filter */                                             \
+            for ($$i = 0; $$i < $$l; $$i++) {                                                                        \
+                $$parts = aggr_map(preaggr, AS_LIST(val)[$$i], AS_LIST(val)[$$i]->type, index);                      \
+                $$v = AGGR_COLLECT($$parts, 1, incoerse, outcoerse, postaggr);                                       \
+                drop_obj($$parts);                                                                                   \
+                if ($$first) {                                                                                       \
+                    memcpy(__AS_##outcoerse($$res), __AS_##incoerse($$v), __SIZE_OF_##outcoerse);                    \
+                    $$first = B8_FALSE;                                                                              \
+                } else {                                                                                             \
+                    outcoerse##_t *$out = __AS_##outcoerse($$res);                                                   \
+                    incoerse##_t *$in = __AS_##incoerse($$v);                                                        \
+                    i64_t $x = 0, $y = 0;                                                                            \
+                    postaggr;                                                                                        \
+                }                                                                                                    \
+                drop_obj($$v);                                                                                       \
+            }                                                                                                        \
+        } else if ($$filter != NULL_OBJ && $$filter->type == TYPE_PARTEDI64) {                                       \
+            /* Parted filter - handle per-partition indices */                                                       \
+            $$pindex = vn_list(7, i64(INDEX_TYPE_PARTEDCOMMON), i64(1), NULL_OBJ, i64(NULL_I64), NULL_OBJ, NULL_OBJ, \
+                               NULL_OBJ);                                                                            \
+            for ($$i = 0, $$j = 0; $$i < $$l; $$i++) {                                                               \
+                $$pfilter = AS_LIST($$filter)[$$i];                                                                  \
+                if ($$pfilter == NULL_OBJ)                                                                           \
+                    continue;                                                                                        \
+                if ($$pfilter->type > 0 && $$pfilter->len == 0)                                                      \
+                    continue;                                                                                        \
+                $$pdata = AS_LIST(val)[$$i];                                                                         \
+                if ($$pfilter->type == -TYPE_I64 && $$pfilter->i64 == -1) {                                          \
+                    /* All rows match - use partition data as-is */                                                  \
+                    $$parts = aggr_map(preaggr, $$pdata, $$pdata->type, $$pindex);                                   \
+                } else {                                                                                             \
+                    /* Specific indices - filter data first */                                                       \
+                    $$pdata = at_ids($$pdata, AS_I64($$pfilter), $$pfilter->len);                                    \
+                    $$parts = aggr_map(preaggr, $$pdata, $$pdata->type, $$pindex);                                   \
+                    drop_obj($$pdata);                                                                               \
+                }                                                                                                    \
+                $$v = AGGR_COLLECT($$parts, 1, incoerse, outcoerse, postaggr);                                       \
+                drop_obj($$parts);                                                                                   \
+                if (groups == 1) {                                                                                   \
+                    if ($$first) {                                                                                   \
+                        memcpy(__AS_##outcoerse($$res), __AS_##incoerse($$v), __SIZE_OF_##outcoerse);                \
+                        $$first = B8_FALSE;                                                                          \
+                    } else {                                                                                         \
+                        outcoerse##_t *$out = __AS_##outcoerse($$res);                                               \
+                        incoerse##_t *$in = __AS_##incoerse($$v);                                                    \
+                        i64_t $x = 0, $y = 0;                                                                        \
+                        postaggr;                                                                                    \
+                    }                                                                                                \
+                } else {                                                                                             \
+                    memcpy(__AS_##outcoerse($$res) + $$j++, __AS_##incoerse($$v), __SIZE_OF_##outcoerse);            \
+                }                                                                                                    \
+                drop_obj($$v);                                                                                       \
+            }                                                                                                        \
+            drop_obj($$pindex);                                                                                      \
+        } else {                                                                                                     \
+            /* No filter or simple filter - one result per partition */                                              \
+            for ($$i = 0, $$j = 0; $$i < $$l; $$i++) {                                                               \
+                if ($$filter == NULL_OBJ || AS_LIST($$filter)[$$i] != NULL_OBJ) {                                    \
+                    $$parts = aggr_map(preaggr, AS_LIST(val)[$$i], AS_LIST(val)[$$i]->type, index);                  \
+                    $$v = AGGR_COLLECT($$parts, 1, incoerse, outcoerse, postaggr);                                   \
+                    drop_obj($$parts);                                                                               \
+                    memcpy(__AS_##outcoerse($$res) + $$j++, __AS_##incoerse($$v), __SIZE_OF_##outcoerse);            \
+                    drop_obj($$v);                                                                                   \
+                }                                                                                                    \
+            }                                                                                                        \
+        }                                                                                                            \
+        $$res;                                                                                                       \
     })
 
 static obj_p aggr_map_other(raw_p aggr, obj_p val, i8_t outype, obj_p index) {

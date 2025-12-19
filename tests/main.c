@@ -256,6 +256,46 @@ test_entry_t tests[] = {
     // Extended parted tests with i16 type
     {"test_parted_aggregate_i16", test_parted_aggregate_i16},
     {"test_parted_aggregate_i16_sum", test_parted_aggregate_i16_sum},
+    // Global aggregation tests (no by/where)
+    {"test_parted_global_count", test_parted_global_count},
+    {"test_parted_global_sum", test_parted_global_sum},
+    {"test_parted_global_avg", test_parted_global_avg},
+    {"test_parted_global_minmax", test_parted_global_minmax},
+    {"test_parted_global_first_last", test_parted_global_first_last},
+    {"test_parted_global_multiple", test_parted_global_multiple},
+    // Timestamp type tests
+    {"test_parted_timestamp_aggregate", test_parted_timestamp_aggregate},
+    // Complex filter tests
+    {"test_parted_filter_range", test_parted_filter_range},
+    {"test_parted_filter_not_in", test_parted_filter_not_in},
+    {"test_parted_filter_all_match", test_parted_filter_all_match},
+    {"test_parted_filter_none_match", test_parted_filter_none_match},
+    // Combined where + by tests
+    {"test_parted_where_by_combined", test_parted_where_by_combined},
+    // Materialization tests
+    {"test_parted_materialize_column", test_parted_materialize_column},
+    {"test_parted_materialize_filtered", test_parted_materialize_filtered},
+    {"test_parted_materialize_sorted", test_parted_materialize_sorted},
+    // Average aggregation tests
+    {"test_parted_avg_by_date", test_parted_avg_by_date},
+    {"test_parted_avg_f64", test_parted_avg_f64},
+    // Edge cases
+    {"test_parted_single_partition", test_parted_single_partition},
+    {"test_parted_first_partition", test_parted_first_partition},
+    {"test_parted_last_partition", test_parted_last_partition},
+    // Multi-type mixed operations
+    {"test_parted_mixed_types", test_parted_mixed_types},
+    {"test_parted_all_aggregates", test_parted_all_aggregates},
+    // Date column operations
+    {"test_parted_date_column", test_parted_date_column},
+    // Large/small partition tests
+    {"test_parted_many_partitions", test_parted_many_partitions},
+    {"test_parted_small_data", test_parted_small_data},
+    // Filter on data column tests
+    {"test_parted_filter_data_column", test_parted_filter_data_column},
+    {"test_parted_filter_data_with_aggr", test_parted_filter_data_with_aggr},
+    {"test_parted_filter_data_min", test_parted_filter_data_min},
+    {"test_parted_filter_data_sum", test_parted_filter_data_sum},
 };
 // ---
 
