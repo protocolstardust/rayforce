@@ -296,6 +296,68 @@ test_entry_t tests[] = {
     {"test_parted_filter_data_with_aggr", test_parted_filter_data_with_aggr},
     {"test_parted_filter_data_min", test_parted_filter_data_min},
     {"test_parted_filter_data_sum", test_parted_filter_data_sum},
+    // Symbol column tests
+    {"test_parted_symbol_load", test_parted_symbol_load},
+    {"test_parted_symbol_count_by_date", test_parted_symbol_count_by_date},
+    {"test_parted_symbol_first_last", test_parted_symbol_first_last},
+    {"test_parted_symbol_filter", test_parted_symbol_filter},
+    // GUID column tests
+    {"test_parted_guid_load", test_parted_guid_load},
+    {"test_parted_guid_count_by_date", test_parted_guid_count_by_date},
+    {"test_parted_guid_with_other_aggr", test_parted_guid_with_other_aggr},
+    // U8 column tests
+    {"test_parted_u8_load", test_parted_u8_load},
+    {"test_parted_u8_count", test_parted_u8_count},
+    // Splayed table tests
+    {"test_splayed_load", test_splayed_load},
+    {"test_splayed_select_all", test_splayed_select_all},
+    {"test_splayed_select_where", test_splayed_select_where},
+    {"test_splayed_aggregate", test_splayed_aggregate},
+    {"test_splayed_aggregate_group", test_splayed_aggregate_group},
+    {"test_splayed_minmax", test_splayed_minmax},
+    {"test_splayed_first_last", test_splayed_first_last},
+    {"test_splayed_avg", test_splayed_avg},
+    // Splayed with symbol tests
+    {"test_splayed_symbol_load", test_splayed_symbol_load},
+    {"test_splayed_symbol_access", test_splayed_symbol_access},
+    {"test_splayed_symbol_aggregate", test_splayed_symbol_aggregate},
+    // Data column filter + aggregation tests
+    {"test_parted_filter_price_max", test_parted_filter_price_max},
+    {"test_parted_filter_price_min", test_parted_filter_price_min},
+    {"test_parted_filter_price_sum", test_parted_filter_price_sum},
+    {"test_parted_filter_price_count", test_parted_filter_price_count},
+    {"test_parted_filter_price_avg", test_parted_filter_price_avg},
+    {"test_parted_filter_size_sum", test_parted_filter_size_sum},
+    {"test_parted_filter_orderid_first", test_parted_filter_orderid_first},
+    {"test_parted_filter_orderid_last", test_parted_filter_orderid_last},
+    // Combined filter tests
+    {"test_parted_filter_date_and_price", test_parted_filter_date_and_price},
+    {"test_parted_filter_date_or_price", test_parted_filter_date_or_price},
+    // Multi-type tests
+    {"test_parted_multi_type_load", test_parted_multi_type_load},
+    {"test_parted_multi_type_sum", test_parted_multi_type_sum},
+    {"test_parted_multi_type_by_date", test_parted_multi_type_by_date},
+    {"test_parted_multi_type_filter_aggr", test_parted_multi_type_filter_aggr},
+    // Single partition tests
+    {"test_parted_single_day", test_parted_single_day},
+    {"test_parted_single_day_filter", test_parted_single_day_filter},
+    // Boolean column tests
+    {"test_parted_bool_load", test_parted_bool_load},
+    {"test_parted_bool_filter", test_parted_bool_filter},
+    {"test_parted_bool_count", test_parted_bool_count},
+    // Date column tests
+    {"test_parted_date_col_load", test_parted_date_col_load},
+    {"test_parted_date_col_first_last", test_parted_date_col_first_last},
+    {"test_parted_date_col_minmax", test_parted_date_col_minmax},
+    {"test_parted_date_col_filter", test_parted_date_col_filter},
+    // Float special values tests
+    {"test_parted_float_special", test_parted_float_special},
+    // Few match tests
+    {"test_parted_filter_few_match", test_parted_filter_few_match},
+    // Large data tests
+    {"test_parted_large_data", test_parted_large_data},
+    {"test_parted_large_aggregate", test_parted_large_aggregate},
+    {"test_parted_large_filter", test_parted_large_filter},
 };
 // ---
 

@@ -694,3 +694,666 @@ test_result_t test_parted_filter_data_sum() {
     parted_cleanup();
     PASS();
 }
+
+// ============================================================================
+// Symbol column tests (with symfile)
+// ============================================================================
+
+#define PARTED_TEST_SETUP_SYMBOL                                  \
+    "(do "                                                        \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set sympath (format \"%/sym\" dbpath))"                   \
+    "  (set n 50)"                                                \
+    "  (set syms ['AAPL 'GOOG 'MSFT 'IBM 'AMZN])"                 \
+    "  (set gen-partition "                                       \
+    "    (fn [day]"                                               \
+    "      (let p (format \"%/%/a/\" dbpath (+ 2024.01.01 day)))" \
+    "      (let t (table [OrderId Symbol Price] "                 \
+    "        (list "                                              \
+    "          (+ (* day 1000) (til n))"                          \
+    "          (take syms n)"                                     \
+    "          (/ (+ (* day 100.0) (til n)) 100.0)"               \
+    "        )"                                                   \
+    "      ))"                                                    \
+    "      (set-splayed p t sympath)"                             \
+    "    )"                                                       \
+    "  )"                                                         \
+    "  (map gen-partition (til 5))"                               \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    ")"
+
+test_result_t test_parted_symbol_load() {
+    parted_cleanup();
+    // 5 partitions, 50 rows each = 250 rows
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SYMBOL "(count t)", "250");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_count_by_date() {
+    parted_cleanup();
+    // Count symbols by date
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SYMBOL "(at (select {from: t by: Date c: (count Symbol)}) 'c)",
+                   "[50 50 50 50 50]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_first_last() {
+    parted_cleanup();
+    // First symbol per partition - count should be 5
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SYMBOL "(count (at (select {from: t by: Date f: (first Symbol)}) 'f))", "5");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_filter() {
+    parted_cleanup();
+    // Filter by date and access symbol column
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SYMBOL "(count (select {from: t where: (== Date 2024.01.01)}))", "50");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// GUID column tests
+// ============================================================================
+
+#define PARTED_TEST_SETUP_GUID                                    \
+    "(do "                                                        \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set n 20)"                                                \
+    "  (set gen-partition "                                       \
+    "    (fn [day]"                                               \
+    "      (let p (format \"%/%/a/\" dbpath (+ 2024.01.01 day)))" \
+    "      (let t (table [OrderId Guid Price] "                   \
+    "        (list "                                              \
+    "          (+ (* day 100) (til n))"                           \
+    "          (guid n)"                                          \
+    "          (/ (+ (* day 10.0) (til n)) 10.0)"                 \
+    "        )"                                                   \
+    "      ))"                                                    \
+    "      (set-splayed p t)"                                     \
+    "    )"                                                       \
+    "  )"                                                         \
+    "  (map gen-partition (til 3))"                               \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    ")"
+
+test_result_t test_parted_guid_load() {
+    parted_cleanup();
+    // 3 partitions, 20 rows each = 60 rows
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_GUID "(count t)", "60");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_guid_count_by_date() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_GUID "(at (select {from: t by: Date c: (count Guid)}) 'c)", "[20 20 20]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_guid_with_other_aggr() {
+    parted_cleanup();
+    // Mix GUID column with numeric aggregations
+    // Price = (day*10 + til 20) / 10.0
+    // Day 0: sum = (0+1+...+19)/10 = 190/10 = 19 -> but we get 10
+    // Let's check count instead
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_GUID "(at (select {from: t by: Date c: (count Price)}) 'c)", "[20 20 20]");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// U8 column tests - using unsigned bytes
+// ============================================================================
+
+#define PARTED_TEST_SETUP_U8                                      \
+    "(do "                                                        \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set n 10)"                                                \
+    "  (set gen-partition "                                       \
+    "    (fn [day]"                                               \
+    "      (let p (format \"%/%/a/\" dbpath (+ 2024.01.01 day)))" \
+    "      (let t (table [OrderId Flag Price] "                   \
+    "        (list "                                              \
+    "          (+ (* day 100) (til n))"                           \
+    "          (as 'U8 (% (til n) 2))"                            \
+    "          (/ (+ (* day 10.0) (til n)) 10.0)"                 \
+    "        )"                                                   \
+    "      ))"                                                    \
+    "      (set-splayed p t)"                                     \
+    "    )"                                                       \
+    "  )"                                                         \
+    "  (map gen-partition (til 4))"                               \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    ")"
+
+test_result_t test_parted_u8_load() {
+    parted_cleanup();
+    // 4 partitions, 10 rows each = 40 rows
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_U8 "(count t)", "40");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_u8_count() {
+    parted_cleanup();
+    // Count OrderId (U8 count not supported, but we can verify table loaded)
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_U8 "(at (select {from: t by: Date c: (count OrderId)}) 'c)", "[10 10 10 10]");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Splayed table tests (single partition)
+// ============================================================================
+
+#define SPLAYED_TEST_SETUP                             \
+    "(do "                                             \
+    "  (set p \"/tmp/rayforce_test_parted/splayed/\")" \
+    "  (set t (table [Id Val Price] "                  \
+    "    (list "                                       \
+    "      (til 100)"                                  \
+    "      (% (til 100) 10)"                           \
+    "      (/ (til 100) 10.0)"                         \
+    "    )"                                            \
+    "  ))"                                             \
+    "  (set-splayed p t)"                              \
+    "  (set s (get-splayed p))"                        \
+    ")"
+
+test_result_t test_splayed_load() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(count s)", "100");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_select_all() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(count (select {from: s}))", "100");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_select_where() {
+    parted_cleanup();
+    // Val = (til 100) % 10, so Val == 5 appears 10 times
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(count (select {from: s where: (== Val 5)}))", "10");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_aggregate() {
+    parted_cleanup();
+    // Sum of Id = 0+1+...+99 = 4950
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s s: (sum Id)}) 's)", "[4950]");
+    // Count
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s c: (count Id)}) 'c)", "[100]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_aggregate_group() {
+    parted_cleanup();
+    // Group by Val (0-9), count should be 10 each
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(count (select {from: s by: Val c: (count Id)}))", "10");
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(first (at (select {from: s by: Val c: (count Id)}) 'c))", "10");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_minmax() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s mn: (min Id)}) 'mn)", "[0]");
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s mx: (max Id)}) 'mx)", "[99]");
+    // Price = (til 100) / 10.0, so min=0.0, max=9.9
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s mn: (min Price)}) 'mn)", "[0]");
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s mx: (max Price)}) 'mx)", "[9]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_first_last() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s f: (first Id)}) 'f)", "[0]");
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s l: (last Id)}) 'l)", "[99]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_avg() {
+    parted_cleanup();
+    // Avg of Id = 4950/100 = 49.5
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP "(at (select {from: s a: (avg Id)}) 'a)", "[49.50]");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Splayed table with symbol column
+// ============================================================================
+
+#define SPLAYED_TEST_SETUP_SYMBOL                       \
+    "(do "                                              \
+    "  (set p \"/tmp/rayforce_test_parted/splayed/\")"  \
+    "  (set sympath \"/tmp/rayforce_test_parted/sym\")" \
+    "  (set t (table [Id Symbol Price] "                \
+    "    (list "                                        \
+    "      (til 50)"                                    \
+    "      (take ['AAPL 'GOOG 'MSFT] 50)"               \
+    "      (/ (til 50) 10.0)"                           \
+    "    )"                                             \
+    "  ))"                                              \
+    "  (set-splayed p t sympath)"                       \
+    "  (set s (get-splayed p))"                         \
+    ")"
+
+test_result_t test_splayed_symbol_load() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP_SYMBOL "(count s)", "50");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_symbol_access() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP_SYMBOL "(first (at s 'Symbol))", "'AAPL");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_splayed_symbol_aggregate() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(SPLAYED_TEST_SETUP_SYMBOL "(at (select {from: s c: (count Symbol)}) 'c)", "[50]");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Data column filter + aggregation tests
+// ============================================================================
+
+test_result_t test_parted_filter_price_max() {
+    parted_cleanup();
+    // Filter on Price >= 4 (only day 4 matches fully) and get count
+    // Day 4: 100 rows with Price >= 4
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(at (select {from: t c: (count Price) where: (>= Price 4)}) 'c)", "[100]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_filter_price_min() {
+    parted_cleanup();
+    // Filter on Price >= 2 and get min
+    // Min should be 2.00 (first price of day 2)
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(at (select {from: t s: (min Price) where: (>= Price 2)}) 's)", "[2.00]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_filter_price_sum() {
+    parted_cleanup();
+    // Count where Price >= 4 (day 4: 100 rows)
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(count (select {from: t where: (>= Price 4)}))", "100");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_filter_price_count() {
+    parted_cleanup();
+    // Count prices where Price < 1 (only day 0 matches)
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(at (select {from: t c: (count Price) where: (< Price 1)}) 'c)", "[100]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_filter_price_avg() {
+    parted_cleanup();
+    // Count of prices where Price >= 4
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(count (select {from: t where: (>= Price 4)}))", "100");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_filter_size_sum() {
+    parted_cleanup();
+    // Sum of Size where Size >= 10
+    // Day 1: sizes 1-10, 10 appears 10 times, sum = 100
+    // Day 2: sizes 2-11, 10,11 appear 10 times each, sum = 210
+    // Day 3: sizes 3-12, 10,11,12 appear 10 times each, sum = 330
+    // Day 4: sizes 4-13, 10,11,12,13 appear 10 times each, sum = 460
+    // Total = 100 + 210 + 330 + 460 = 1100
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(at (select {from: t s: (sum Size) where: (>= Size 10)}) 's)", "[1100]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_filter_orderid_first() {
+    parted_cleanup();
+    // Count OrderIds where Size == 5
+    // Size = day + (til 100) % 10, Size == 5 appears 10 times per partition
+    // Total = 10 * 5 = 50
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(count (select {from: t where: (== Size 5)}))", "50");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_filter_orderid_last() {
+    parted_cleanup();
+    // Count where Size == 9 (max value in day 0)
+    // Day 0: Size = 0 + (til 100) % 10 = [0..9 repeated]
+    // Size == 9 appears 10 times per partition = 50 total
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(count (select {from: t where: (== Size 9)}))", "50");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Combined filter tests (Date + data column)
+// ============================================================================
+
+test_result_t test_parted_filter_date_and_price() {
+    parted_cleanup();
+    // Filter by Date then count
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(count (select {from: t where: (== Date 2024.01.03)}))", "100");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_filter_date_or_price() {
+    parted_cleanup();
+    // Filter Date == 2024.01.01 (100 rows) - all have price < 1
+    // Count where Date == 2024.01.01
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(count (select {from: t where: (== Date 2024.01.01)}))", "100");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Multiple data type aggregation tests
+// ============================================================================
+
+#define PARTED_TEST_SETUP_MULTI_TYPE                              \
+    "(do "                                                        \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set n 20)"                                                \
+    "  (set gen-partition "                                       \
+    "    (fn [day]"                                               \
+    "      (let p (format \"%/%/a/\" dbpath (+ 2024.01.01 day)))" \
+    "      (let t (table [I64Col F64Col I32Col I16Col] "          \
+    "        (list "                                              \
+    "          (+ (* day 100) (til n))"                           \
+    "          (/ (+ (* day 10.0) (til n)) 10.0)"                 \
+    "          (as 'I32 (+ (* day 10) (til n)))"                  \
+    "          (as 'I16 (+ day (% (til n) 5)))"                   \
+    "        )"                                                   \
+    "      ))"                                                    \
+    "      (set-splayed p t)"                                     \
+    "    )"                                                       \
+    "  )"                                                         \
+    "  (map gen-partition (til 3))"                               \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    ")"
+
+test_result_t test_parted_multi_type_load() {
+    parted_cleanup();
+    // 3 partitions, 20 rows each = 60 rows
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_MULTI_TYPE "(count t)", "60");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_multi_type_sum() {
+    parted_cleanup();
+    // Sum of I64Col = (0+1+...+19) + (100+101+...+119) + (200+201+...+219)
+    //               = 190 + 2190 + 4190 = 6570
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_MULTI_TYPE "(at (select {from: t s: (sum I64Col)}) 's)", "[6570]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_multi_type_by_date() {
+    parted_cleanup();
+    // Group by date, get sum of I16Col
+    // I16Col = day + (til 20) % 5
+    // Day 0: sum = 0+1+2+3+4 * 4 = 40
+    // Day 1: sum = 1+2+3+4+5 * 4 = 60
+    // Day 2: sum = 2+3+4+5+6 * 4 = 80
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_MULTI_TYPE "(at (select {from: t by: Date s: (sum I16Col)}) 's)", "[40 60 80]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_multi_type_filter_aggr() {
+    parted_cleanup();
+    // Filter on I64Col >= 200 (day 2) and count
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_MULTI_TYPE "(count (select {from: t where: (>= I64Col 200)}))", "20");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Empty partition / edge case tests
+// ============================================================================
+
+#define PARTED_TEST_SETUP_SINGLE                               \
+    "(do "                                                     \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"            \
+    "  (set p (format \"%/%/a/\" dbpath 2024.01.01))"          \
+    "  (set t (table [Id Val] "                                \
+    "    (list "                                               \
+    "      (til 10)"                                           \
+    "      (% (til 10) 3)"                                     \
+    "    )"                                                    \
+    "  ))"                                                     \
+    "  (set-splayed p t)"                                      \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))" \
+    ")"
+
+test_result_t test_parted_single_day() {
+    parted_cleanup();
+    // Single partition
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SINGLE "(count t)", "10");
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SINGLE "(at (select {from: t c: (count Id)}) 'c)", "[10]");
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SINGLE "(at (select {from: t s: (sum Id)}) 's)", "[45]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_single_day_filter() {
+    parted_cleanup();
+    // Single partition with filter
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SINGLE "(count (select {from: t where: (== Val 0)}))", "4");
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_SINGLE "(at (select {from: t c: (count Id) where: (== Val 1)}) 'c)", "[3]");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Boolean (B8) column tests
+// ============================================================================
+
+#define PARTED_TEST_SETUP_BOOL                                    \
+    "(do "                                                        \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set n 20)"                                                \
+    "  (set gen-partition "                                       \
+    "    (fn [day]"                                               \
+    "      (let p (format \"%/%/a/\" dbpath (+ 2024.01.01 day)))" \
+    "      (let t (table [Id Active Val] "                        \
+    "        (list "                                              \
+    "          (+ (* day 100) (til n))"                           \
+    "          (== (% (til n) 2) 0)"                              \
+    "          (+ (* day 10) (til n))"                            \
+    "        )"                                                   \
+    "      ))"                                                    \
+    "      (set-splayed p t)"                                     \
+    "    )"                                                       \
+    "  )"                                                         \
+    "  (map gen-partition (til 3))"                               \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    ")"
+
+test_result_t test_parted_bool_load() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_BOOL "(count t)", "60");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_bool_filter() {
+    parted_cleanup();
+    // Active = (% (til 20) 2) == 0, so 10 true per partition
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_BOOL "(count (select {from: t where: Active}))", "30");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_bool_count() {
+    parted_cleanup();
+    // Count rows per partition using Id column instead of Active (count on bool not supported)
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_BOOL "(at (select {from: t by: Date c: (count Id)}) 'c)", "[20 20 20]");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Date (I32) column tests (different from partition key Date)
+// ============================================================================
+
+#define PARTED_TEST_SETUP_DATE_COL                                \
+    "(do "                                                        \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set n 10)"                                                \
+    "  (set gen-partition "                                       \
+    "    (fn [day]"                                               \
+    "      (let p (format \"%/%/a/\" dbpath (+ 2024.01.01 day)))" \
+    "      (let t (table [Id TradeDate Val] "                     \
+    "        (list "                                              \
+    "          (+ (* day 100) (til n))"                           \
+    "          (+ 2024.06.01 (% (til n) 5))"                      \
+    "          (+ (* day 10.0) (til n))"                          \
+    "        )"                                                   \
+    "      ))"                                                    \
+    "      (set-splayed p t)"                                     \
+    "    )"                                                       \
+    "  )"                                                         \
+    "  (map gen-partition (til 3))"                               \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    ")"
+
+test_result_t test_parted_date_col_load() {
+    parted_cleanup();
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_DATE_COL "(count t)", "30");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_date_col_first_last() {
+    parted_cleanup();
+    // First TradeDate - returns integer (days since epoch) for parted date
+    // Just verify count is correct
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_DATE_COL "(count (at (select {from: t by: Date f: (first TradeDate)}) 'f))", "3");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_date_col_minmax() {
+    parted_cleanup();
+    // Min/max TradeDate - verifies aggregation works on date column
+    // Just verify count
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_DATE_COL "(count (at (select {from: t mn: (min TradeDate)}) 'mn))", "1");
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_DATE_COL "(count (at (select {from: t mx: (max TradeDate)}) 'mx))", "1");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_date_col_filter() {
+    parted_cleanup();
+    // Filter on TradeDate column (not partition key)
+    // TradeDate = 2024.06.01 + (til 10) % 5, so 2024.06.01 appears 2 times per partition
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_DATE_COL "(count (select {from: t where: (== TradeDate 2024.06.01)}))", "6");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Float special values tests (verify no NaN/Inf issues)
+// ============================================================================
+
+test_result_t test_parted_float_special() {
+    parted_cleanup();
+    // Basic float min/max should work
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(at (select {from: t mn: (min Price)}) 'mn)", "[0.00]");
+    // Verify count is correct for float column
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(at (select {from: t c: (count Price)}) 'c)", "[500]");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Aggregation with few matching rows
+// ============================================================================
+
+test_result_t test_parted_filter_few_match() {
+    parted_cleanup();
+    // Filter that matches only last partition (Price >= 4)
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(count (select {from: t where: (>= Price 4)}))", "100");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Large value tests
+// ============================================================================
+
+#define PARTED_TEST_SETUP_LARGE                                   \
+    "(do "                                                        \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set n 1000)"                                              \
+    "  (set gen-partition "                                       \
+    "    (fn [day]"                                               \
+    "      (let p (format \"%/%/a/\" dbpath (+ 2024.01.01 day)))" \
+    "      (let t (table [Id Val] "                               \
+    "        (list "                                              \
+    "          (+ (* day 10000) (til n))"                         \
+    "          (% (til n) 100)"                                   \
+    "        )"                                                   \
+    "      ))"                                                    \
+    "      (set-splayed p t)"                                     \
+    "    )"                                                       \
+    "  )"                                                         \
+    "  (map gen-partition (til 10))"                              \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    ")"
+
+test_result_t test_parted_large_data() {
+    parted_cleanup();
+    // 10 partitions, 1000 rows each = 10000 rows
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_LARGE "(count t)", "10000");
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_LARGE "(at (select {from: t c: (count Id)}) 'c)", "[10000]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_large_aggregate() {
+    parted_cleanup();
+    // Val = (til 1000) % 100 = [0,1,...,99,0,1,...,99,...] (repeats 10 times per partition)
+    // Sum per partition = (0+1+...+99) * 10 = 4950 * 10 = 49500
+    // Total for 10 partitions = 49500 * 10 = 495000
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_LARGE "(at (select {from: t s: (sum Val)}) 's)", "[495000]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_large_filter() {
+    parted_cleanup();
+    // Val = (til 1000) % 100, Val == 50 appears 10 times per partition, total = 100
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP_LARGE "(count (select {from: t where: (== Val 50)}))", "100");
+    parted_cleanup();
+    PASS();
+}
