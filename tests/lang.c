@@ -4731,11 +4731,11 @@ test_result_t test_lang_cast() {
     TEST_ASSERT_EQ("(as 'symbol \"hello\")", "'hello");
 
     // ========== SYMBOL VECTOR CASTS ==========
-    // Symbol <- I64
-    TEST_ASSERT_EQ("(type (as 'Symbol (til 5)))", "'Symbol");
-    TEST_ASSERT_EQ("(as 'Symbol [0 1 2])", "[0 1 2]");
-    TEST_ASSERT_EQ("(as 'Symbol [42 -100 999])", "[42 -100 999]");
-    TEST_ASSERT_EQ("(count (as 'Symbol (til 1000)))", "1000");
+    // SYMBOL <- I64
+    TEST_ASSERT_EQ("(type (as 'SYMBOL (til 5)))", "'SYMBOL");
+    TEST_ASSERT_EQ("(as 'SYMBOL [0 1 2])", "[0 1 2]");
+    TEST_ASSERT_EQ("(as 'SYMBOL [42 -100 999])", "[42 -100 999]");
+    TEST_ASSERT_EQ("(count (as 'SYMBOL (til 1000)))", "1000");
 
     // ========== STRING/CHAR CASTS ==========
     TEST_ASSERT_EQ("(as 'C8 'hello)", "\"hello\"");
