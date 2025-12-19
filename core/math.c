@@ -2498,7 +2498,7 @@ obj_p ray_avg(obj_p x) {
         case -TYPE_F64:
             return clone_obj(x);
         case TYPE_U8:
-            // u8 has no NULL, so count = length (use ops_count to avoid parallel fold bug in ray_cnt)
+            // u8 has no NULL, so count = length
             l = ray_sum(x);
             res = f64(FDIVI64(l->i64, (i64_t)ops_count(x)));
             drop_obj(l);
@@ -2668,30 +2668,41 @@ obj_p ray_med(obj_p x) {
 }
 
 obj_p ray_dev(obj_p x) {
-    i64_t l = ray_cnt(x)->i64;
+    obj_p cnt_obj = ray_cnt(x);
+    i64_t l = cnt_obj->i64;
+    drop_obj(cnt_obj);
 
     if (l == 0)
         return f64(NULL_F64);
     else if (l == 1)
         return f64(0.0);
     f64_t favg = 0.0;
+    obj_p sum_obj;
 
     switch (x->type) {
         case TYPE_U8:
         case TYPE_I16:
-            favg = ((f64_t)ray_sum(x)->i64) / (f64_t)l;
+            sum_obj = ray_sum(x);
+            favg = ((f64_t)sum_obj->i64) / (f64_t)l;
+            drop_obj(sum_obj);
             break;
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:
-            favg = ((f64_t)ray_sum(x)->i32) / (f64_t)l;
+            sum_obj = ray_sum(x);
+            favg = ((f64_t)sum_obj->i32) / (f64_t)l;
+            drop_obj(sum_obj);
             break;
         case TYPE_I64:
         case TYPE_TIMESTAMP:
-            favg = ((f64_t)ray_sum(x)->i64) / (f64_t)l;
+            sum_obj = ray_sum(x);
+            favg = ((f64_t)sum_obj->i64) / (f64_t)l;
+            drop_obj(sum_obj);
             break;
         case TYPE_F64:
-            favg = (ray_sum(x)->f64) / (f64_t)l;
+            sum_obj = ray_sum(x);
+            favg = (sum_obj->f64) / (f64_t)l;
+            drop_obj(sum_obj);
             break;
         case TYPE_MAPGROUP:
             return aggr_dev(AS_LIST(x)[0], AS_LIST(x)[1]);
