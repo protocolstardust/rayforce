@@ -840,12 +840,17 @@ obj_p at_idx(obj_p obj, i64_t idx) {
                 idx = obj->len + idx;
             if (idx >= 0 && idx < (i64_t)ENUM_VAL(obj)->len) {
                 k = ray_key(obj);
-                if (IS_ERR(k))
-                    return k;
+                if (IS_ERR(k)) {
+                    // If key lookup fails, return raw index value
+                    return i64(AS_I64(ENUM_VAL(obj))[idx]);
+                }
                 v = ray_get(k);
                 drop_obj(k);
-                if (IS_ERR(v))
-                    return v;
+                if (IS_ERR(v) || v->type != TYPE_SYMBOL) {
+                    // If symbol file not found, return raw index value
+                    drop_obj(v);
+                    return i64(AS_I64(ENUM_VAL(obj))[idx]);
+                }
                 idx = AS_I64(ENUM_VAL(obj))[idx];
                 res = at_idx(v, idx);
                 drop_obj(v);
@@ -915,6 +920,36 @@ obj_p at_idx(obj_p obj, i64_t idx) {
 
             return b8(B8_FALSE);
 
+        case TYPE_PARTEDI16:
+            l = obj->len;
+            for (i = 0, n = 0; i < l; i++) {
+                m = AS_LIST(obj)[i]->len;
+                n += m;
+                if (idx < n) {
+                    res = atom(TYPE_I16);
+                    res->i16 = AS_I16(AS_LIST(obj)[i])[m - (n - idx)];
+                    return res;
+                }
+            }
+
+            return null(TYPE_I16);
+
+        case TYPE_PARTEDI32:
+        case TYPE_PARTEDDATE:
+        case TYPE_PARTEDTIME:
+            l = obj->len;
+            for (i = 0, n = 0; i < l; i++) {
+                m = AS_LIST(obj)[i]->len;
+                n += m;
+                if (idx < n) {
+                    res = atom(obj->type - TYPE_PARTEDLIST);
+                    res->i32 = AS_I32(AS_LIST(obj)[i])[m - (n - idx)];
+                    return res;
+                }
+            }
+
+            return null(obj->type - TYPE_PARTEDLIST);
+
         case TYPE_PARTEDI64:
         case TYPE_PARTEDTIMESTAMP:
             l = obj->len;
@@ -936,15 +971,20 @@ obj_p at_idx(obj_p obj, i64_t idx) {
                 m = AS_LIST(obj)[i]->len;
                 n += m;
                 if (idx < n) {
+                    i64_t raw_idx = AS_I64(ENUM_VAL(AS_LIST(obj)[i]))[m - (n - idx)];
                     k = ray_key(AS_LIST(obj)[i]);
-                    if (IS_ERR(k))
-                        return k;
+                    if (IS_ERR(k)) {
+                        // If key lookup fails, return raw index value
+                        return i64(raw_idx);
+                    }
                     v = ray_get(k);
                     drop_obj(k);
-                    if (IS_ERR(v))
-                        return v;
-                    idx = AS_I64(ENUM_VAL(AS_LIST(obj)[i]))[m - (n - idx)];
-                    res = at_idx(v, idx);
+                    if (IS_ERR(v) || v->type != TYPE_SYMBOL) {
+                        // If symbol file not found, return raw index value
+                        drop_obj(v);
+                        return i64(raw_idx);
+                    }
+                    res = at_idx(v, raw_idx);
                     drop_obj(v);
                     return res;
                 }
@@ -1160,6 +1200,32 @@ obj_p at_ids(obj_p obj, i64_t ids[], i64_t len) {
                     n += ops_count(AS_LIST(obj)[++mapid]);
                 }
                 AS_U8(res)[i] = AS_U8(AS_LIST(obj)[mapid])[ids[i] - m];
+            }
+
+            return res;
+        case TYPE_PARTEDI16:
+            res = vector(TYPE_I16, len);
+            n = AS_LIST(obj)[0]->len;
+            for (i = 0, mapid = 0, m = 0; i < len; i++) {
+                while (ids[i] >= n) {
+                    m = n;
+                    n += AS_LIST(obj)[++mapid]->len;
+                }
+                AS_I16(res)[i] = AS_I16(AS_LIST(obj)[mapid])[ids[i] - m];
+            }
+
+            return res;
+        case TYPE_PARTEDI32:
+        case TYPE_PARTEDDATE:
+        case TYPE_PARTEDTIME:
+            res = vector(obj->type - TYPE_MAPLIST, len);
+            n = AS_LIST(obj)[0]->len;
+            for (i = 0, mapid = 0, m = 0; i < len; i++) {
+                while (ids[i] >= n) {
+                    m = n;
+                    n += AS_LIST(obj)[++mapid]->len;
+                }
+                AS_I32(res)[i] = AS_I32(AS_LIST(obj)[mapid])[ids[i] - m];
             }
 
             return res;
@@ -2769,10 +2835,14 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
         case TYPE_PARTEDLIST:
         case TYPE_PARTEDB8:
         case TYPE_PARTEDU8:
+        case TYPE_PARTEDI16:
+        case TYPE_PARTEDI32:
         case TYPE_PARTEDI64:
         case TYPE_PARTEDF64:
-        case TYPE_PARTEDGUID:
+        case TYPE_PARTEDDATE:
+        case TYPE_PARTEDTIME:
         case TYPE_PARTEDTIMESTAMP:
+        case TYPE_PARTEDGUID:
         case TYPE_PARTEDENUM:
             l = obj->len;
             for (i = 0; i < l; i++)

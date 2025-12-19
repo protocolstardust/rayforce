@@ -156,6 +156,8 @@ nil_t dump_stack(nil_t);
 #define __v_u8(x) U8(x)
 #define __v_b8(x) B8(x)
 #define __v_c8(x) C8(x)
+#define __v_i16(x) I16(x)
+#define __v_i32(x) I32(x)
 #define __v_symbol(x) SYMBOL(x)
 #define __v_i64(x) I64(x)
 #define __v_time(x) TIME(x)
@@ -199,6 +201,7 @@ nil_t dump_stack(nil_t);
 #define __NULL_i8() 0
 #define __NULL_u8 0
 #define __NULL_c8 ""
+#define __NULL_i16 NULL_I16
 #define __NULL_i32 NULL_I32
 #define __NULL_date NULL_I32
 #define __NULL_time NULL_I32

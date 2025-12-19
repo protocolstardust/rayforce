@@ -700,8 +700,9 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i) {
             res = ray_at(obj, idx);
             drop_obj(idx);
             if (IS_ERR(res)) {
+                n = error_fmt_into(dst, limit, res);
                 drop_obj(res);
-                return error_fmt_into(dst, limit, res);
+                return n;
             }
             n = obj_fmt_into(dst, indent, limit, B8_FALSE, res);
             drop_obj(res);
@@ -709,9 +710,13 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i) {
         case TYPE_PARTEDLIST:
         case TYPE_PARTEDB8:
         case TYPE_PARTEDU8:
+        case TYPE_PARTEDI16:
+        case TYPE_PARTEDI32:
         case TYPE_PARTEDI64:
-        case TYPE_PARTEDTIMESTAMP:
         case TYPE_PARTEDF64:
+        case TYPE_PARTEDDATE:
+        case TYPE_PARTEDTIME:
+        case TYPE_PARTEDTIMESTAMP:
         case TYPE_PARTEDGUID:
         case TYPE_PARTEDENUM:
         case TYPE_MAPCOMMON:
