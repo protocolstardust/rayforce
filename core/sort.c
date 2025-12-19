@@ -230,8 +230,13 @@ obj_p ray_sort_asc_i32(obj_p vec) {
     i32_t* iv = AS_I32(vec);
     i64_t* ti = AS_I64(temp);
 
-    u64_t pos1[65537] = {0};
-    u64_t pos2[65537] = {0};
+    // Allocate on heap to avoid stack overflow on Windows
+    obj_p pos1_obj = I64(65537);
+    obj_p pos2_obj = I64(65537);
+    u64_t* pos1 = (u64_t*)AS_I64(pos1_obj);
+    u64_t* pos2 = (u64_t*)AS_I64(pos2_obj);
+    memset(pos1, 0, 65537 * sizeof(u64_t));
+    memset(pos2, 0, 65537 * sizeof(u64_t));
 
     for (i = 0; i < len; i++) {
         t = (u32_t)iv[i] ^ 0x80000000;
@@ -251,6 +256,8 @@ obj_p ray_sort_asc_i32(obj_p vec) {
         ov[pos2[t >> 16]++] = ti[i];
     }
 
+    drop_obj(pos1_obj);
+    drop_obj(pos2_obj);
     drop_obj(temp);
     return indices;
 }
@@ -285,10 +292,19 @@ obj_p ray_sort_asc_i64(obj_p vec) {
     i64_t* iv = AS_I64(vec);
     i64_t* t = AS_I64(temp);
 
-    u64_t pos1[65537] = {0};
-    u64_t pos2[65537] = {0};
-    u64_t pos3[65537] = {0};
-    u64_t pos4[65537] = {0};
+    // Allocate on heap to avoid stack overflow on Windows
+    obj_p pos1_obj = I64(65537);
+    obj_p pos2_obj = I64(65537);
+    obj_p pos3_obj = I64(65537);
+    obj_p pos4_obj = I64(65537);
+    u64_t* pos1 = (u64_t*)AS_I64(pos1_obj);
+    u64_t* pos2 = (u64_t*)AS_I64(pos2_obj);
+    u64_t* pos3 = (u64_t*)AS_I64(pos3_obj);
+    u64_t* pos4 = (u64_t*)AS_I64(pos4_obj);
+    memset(pos1, 0, 65537 * sizeof(u64_t));
+    memset(pos2, 0, 65537 * sizeof(u64_t));
+    memset(pos3, 0, 65537 * sizeof(u64_t));
+    memset(pos4, 0, 65537 * sizeof(u64_t));
 
     // Count occurrences of each 16-bit chunk
     for (i = 0; i < len; i++) {
@@ -331,6 +347,10 @@ obj_p ray_sort_asc_i64(obj_p vec) {
         ov[pos4[u >> 48]++] = t[i];
     }
 
+    drop_obj(pos1_obj);
+    drop_obj(pos2_obj);
+    drop_obj(pos3_obj);
+    drop_obj(pos4_obj);
     drop_obj(temp);
     return indices;
 }
@@ -343,10 +363,19 @@ obj_p ray_sort_asc_f64(obj_p vec) {
     f64_t* fv = AS_F64(vec);
     i64_t* t = AS_I64(temp);
 
-    u64_t pos1[65537] = {0};
-    u64_t pos2[65537] = {0};
-    u64_t pos3[65537] = {0};
-    u64_t pos4[65537] = {0};
+    // Allocate on heap to avoid stack overflow on Windows
+    obj_p pos1_obj = I64(65537);
+    obj_p pos2_obj = I64(65537);
+    obj_p pos3_obj = I64(65537);
+    obj_p pos4_obj = I64(65537);
+    u64_t* pos1 = (u64_t*)AS_I64(pos1_obj);
+    u64_t* pos2 = (u64_t*)AS_I64(pos2_obj);
+    u64_t* pos3 = (u64_t*)AS_I64(pos3_obj);
+    u64_t* pos4 = (u64_t*)AS_I64(pos4_obj);
+    memset(pos1, 0, 65537 * sizeof(u64_t));
+    memset(pos2, 0, 65537 * sizeof(u64_t));
+    memset(pos3, 0, 65537 * sizeof(u64_t));
+    memset(pos4, 0, 65537 * sizeof(u64_t));
 
     // Count occurrences of each 16-bit chunk
     for (i = 0; i < len; i++) {
@@ -390,6 +419,10 @@ obj_p ray_sort_asc_f64(obj_p vec) {
         ov[pos4[u >> 48]++] = t[i];
     }
 
+    drop_obj(pos1_obj);
+    drop_obj(pos2_obj);
+    drop_obj(pos3_obj);
+    drop_obj(pos4_obj);
     drop_obj(temp);
     return indices;
 }
@@ -493,8 +526,13 @@ obj_p ray_sort_desc_i32(obj_p vec) {
     i32_t* iv = AS_I32(vec);
     i64_t* ti = AS_I64(temp);
 
-    u64_t pos1[65537] = {0};
-    u64_t pos2[65537] = {0};
+    // Allocate on heap to avoid stack overflow on Windows
+    obj_p pos1_obj = I64(65537);
+    obj_p pos2_obj = I64(65537);
+    u64_t* pos1 = (u64_t*)AS_I64(pos1_obj);
+    u64_t* pos2 = (u64_t*)AS_I64(pos2_obj);
+    memset(pos1, 0, 65537 * sizeof(u64_t));
+    memset(pos2, 0, 65537 * sizeof(u64_t));
 
     for (i = 0; i < len; i++) {
         t = (u32_t)iv[i] ^ 0x80000000;
@@ -514,6 +552,8 @@ obj_p ray_sort_desc_i32(obj_p vec) {
         ov[pos2[(t >> 16) + 1]++] = ti[i];
     }
 
+    drop_obj(pos1_obj);
+    drop_obj(pos2_obj);
     drop_obj(temp);
     return indices;
 }
@@ -526,10 +566,19 @@ obj_p ray_sort_desc_i64(obj_p vec) {
     i64_t* iv = AS_I64(vec);
     i64_t* t = AS_I64(temp);
 
-    u64_t pos1[65537] = {0};
-    u64_t pos2[65537] = {0};
-    u64_t pos3[65537] = {0};
-    u64_t pos4[65537] = {0};
+    // Allocate on heap to avoid stack overflow on Windows
+    obj_p pos1_obj = I64(65537);
+    obj_p pos2_obj = I64(65537);
+    obj_p pos3_obj = I64(65537);
+    obj_p pos4_obj = I64(65537);
+    u64_t* pos1 = (u64_t*)AS_I64(pos1_obj);
+    u64_t* pos2 = (u64_t*)AS_I64(pos2_obj);
+    u64_t* pos3 = (u64_t*)AS_I64(pos3_obj);
+    u64_t* pos4 = (u64_t*)AS_I64(pos4_obj);
+    memset(pos1, 0, 65537 * sizeof(u64_t));
+    memset(pos2, 0, 65537 * sizeof(u64_t));
+    memset(pos3, 0, 65537 * sizeof(u64_t));
+    memset(pos4, 0, 65537 * sizeof(u64_t));
 
     // Count occurrences of each 16-bit chunk
     for (i = 0; i < len; i++) {
@@ -566,6 +615,10 @@ obj_p ray_sort_desc_i64(obj_p vec) {
         ov[pos4[(u >> 48) + 1]++] = t[i];
     }
 
+    drop_obj(pos1_obj);
+    drop_obj(pos2_obj);
+    drop_obj(pos3_obj);
+    drop_obj(pos4_obj);
     drop_obj(temp);
     return indices;
 }
@@ -578,10 +631,19 @@ obj_p ray_sort_desc_f64(obj_p vec) {
     f64_t* fv = AS_F64(vec);
     i64_t* t = AS_I64(temp);
 
-    u64_t pos1[65537] = {0};
-    u64_t pos2[65537] = {0};
-    u64_t pos3[65537] = {0};
-    u64_t pos4[65537] = {0};
+    // Allocate on heap to avoid stack overflow on Windows
+    obj_p pos1_obj = I64(65537);
+    obj_p pos2_obj = I64(65537);
+    obj_p pos3_obj = I64(65537);
+    obj_p pos4_obj = I64(65537);
+    u64_t* pos1 = (u64_t*)AS_I64(pos1_obj);
+    u64_t* pos2 = (u64_t*)AS_I64(pos2_obj);
+    u64_t* pos3 = (u64_t*)AS_I64(pos3_obj);
+    u64_t* pos4 = (u64_t*)AS_I64(pos4_obj);
+    memset(pos1, 0, 65537 * sizeof(u64_t));
+    memset(pos2, 0, 65537 * sizeof(u64_t));
+    memset(pos3, 0, 65537 * sizeof(u64_t));
+    memset(pos4, 0, 65537 * sizeof(u64_t));
 
     // Count occurrences for each 16-bit chunk (descending)
     for (i = 0; i < len; i++) {
@@ -618,6 +680,10 @@ obj_p ray_sort_desc_f64(obj_p vec) {
         ov[pos4[(u >> 48) + 1]++] = t[i];
     }
 
+    drop_obj(pos1_obj);
+    drop_obj(pos2_obj);
+    drop_obj(pos3_obj);
+    drop_obj(pos4_obj);
     drop_obj(temp);
     return indices;
 }
