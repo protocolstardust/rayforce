@@ -51,11 +51,61 @@
 #include "sys.h"
 #include "chrono.h"
 #include "binary.h"
+#include "ipc.h"
+#include "repl.h"
 
 // Link with Ws2_32.lib
 #pragma comment(lib, "Ws2_32.lib")
 // Link with Mswsock.lib
 #pragma comment(lib, "Mswsock.lib")
+
+// ============================================================================
+// Simple circular queue implementation for async message handling
+// ============================================================================
+
+queue_p queue_create(i64_t capacity) {
+    queue_p q = (queue_p)heap_alloc(sizeof(struct queue_t));
+    if (q == NULL)
+        return NULL;
+    q->capacity = capacity;
+    q->head = 0;
+    q->tail = 0;
+    q->count = 0;
+    q->data = (raw_p *)heap_alloc(capacity * sizeof(raw_p));
+    if (q->data == NULL) {
+        heap_free(q);
+        return NULL;
+    }
+    return q;
+}
+
+nil_t queue_free(queue_p queue) {
+    if (queue == NULL)
+        return;
+    if (queue->data != NULL)
+        heap_free(queue->data);
+    heap_free(queue);
+}
+
+nil_t queue_push(queue_p queue, raw_p item) {
+    if (queue == NULL || queue->count >= queue->capacity)
+        return;
+    queue->data[queue->tail] = item;
+    queue->tail = (queue->tail + 1) % queue->capacity;
+    queue->count++;
+}
+
+raw_p queue_pop(queue_p queue) {
+    raw_p item;
+    if (queue == NULL || queue->count == 0)
+        return NULL;
+    item = queue->data[queue->head];
+    queue->head = (queue->head + 1) % queue->capacity;
+    queue->count--;
+    return item;
+}
+
+// ============================================================================
 
 // Global IOCP handle
 HANDLE g_iocp = INVALID_HANDLE_VALUE;
@@ -74,10 +124,12 @@ typedef struct listener_t {
 typedef struct stdin_thread_ctx_t {
     HANDLE h_cp;
     term_p term;
+    volatile LONG stop;
 } *stdin_thread_ctx_p;
 
 listener_p __LISTENER = NULL;
 stdin_thread_ctx_p __STDIN_THREAD_CTX = NULL;
+HANDLE __STDIN_THREAD_HANDLE = NULL;
 
 #define _RECV_OP(poll, selector)                                                                               \
     {                                                                                                          \
@@ -116,7 +168,16 @@ DWORD WINAPI StdinThread(LPVOID prm) {
     DWORD bytes;
 
     for (;;) {
+        // Check if we should stop before blocking on stdin
+        if (InterlockedCompareExchange(&ctx->stop, 0, 0) != 0)
+            break;
+
         bytes = (DWORD)term_getc(term);
+
+        // Check if we should stop after returning from blocking call
+        if (InterlockedCompareExchange(&ctx->stop, 0, 0) != 0)
+            break;
+
         if (bytes == 0)
             break;
 
@@ -145,11 +206,16 @@ i64_t poll_accept(poll_p poll) {
     LPFN_ACCEPTEX lpfnAcceptEx = NULL;
     GUID GuidAcceptEx = WSAID_ACCEPTEX;
     DWORD dwBytes;
-    SOCKET sock_fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    SOCKET sock_fd = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
     b8_t success;
 
-    if (sock_fd == INVALID_SOCKET)
+    LOG_DEBUG("poll_accept: Creating accept socket...");
+
+    if (sock_fd == INVALID_SOCKET) {
+        LOG_ERROR("poll_accept: WSASocket failed: %d", WSAGetLastError());
         return -1;
+    }
+    LOG_DEBUG("poll_accept: Accept socket created: %lld", (i64_t)sock_fd);
 
     // Ensure the accept socket is associated with the IOCP.
     // CreateIoCompletionPort((HANDLE)sock_fd, (HANDLE)poll->poll_fd, 0, 0);
@@ -163,20 +229,27 @@ i64_t poll_accept(poll_p poll) {
         return -1;
     }
 
+    LOG_DEBUG("poll_accept: Calling AcceptEx on listen_fd=%lld accept_fd=%lld", 
+            (i64_t)poll->ipc_fd, (i64_t)sock_fd);
+    
     success = lpfnAcceptEx(poll->ipc_fd, sock_fd, __LISTENER->buf, 0, sizeof(SOCKADDR_IN) + 16,
                            sizeof(SOCKADDR_IN) + 16, &__LISTENER->dwBytes, &__LISTENER->overlapped);
     if (!success) {
         code = WSAGetLastError();
+        LOG_DEBUG("poll_accept: AcceptEx returned FALSE, error=%d", code);
         if (code != ERROR_IO_PENDING) {
-            code = WSAGetLastError();
             closesocket(sock_fd);
             WSASetLastError(code);
             return -1;
         }
+        LOG_DEBUG("poll_accept: AcceptEx pending (ERROR_IO_PENDING)");
+    } else {
+        LOG_DEBUG("poll_accept: AcceptEx returned TRUE (immediate completion)");
     }
 
     __LISTENER->hAccepted = sock_fd;
 
+    LOG_DEBUG("poll_accept: Done, hAccepted=%lld", (i64_t)sock_fd);
     return (i64_t)sock_fd;
 }
 
@@ -194,14 +267,14 @@ poll_p poll_init(i64_t port) {
     // Initialize Winsock
     result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (result != 0) {
-        fprintf(stderr, "WSAStartup failed: %d\n", result);
+        LOG_ERROR("WSAStartup failed: %d", result);
         return NULL;
     }
 
     // Create IOCP
     g_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
     if (g_iocp == NULL) {
-        fprintf(stderr, "CreateIoCompletionPort failed: %d\n", GetLastError());
+        LOG_ERROR("CreateIoCompletionPort failed: %lu", GetLastError());
         WSACleanup();
         return NULL;
     }
@@ -219,6 +292,7 @@ poll_p poll_init(i64_t port) {
     poll->replfile = string_from_str("repl", 4);
     poll->ipcfile = string_from_str("ipc", 3);
     poll->term = term_create();
+    poll->repl = NULL;  // Will be set by repl_create
     poll->selectors = freelist_create(128);
     poll->timers = timers_create(16);
 
@@ -226,26 +300,29 @@ poll_p poll_init(i64_t port) {
     if (port) {
         listen_fd = poll_listen(poll, port);
         if (listen_fd == -1) {
-            fprintf(stderr, "Failed to listen on port %lld\n", port);
+            LOG_ERROR("Failed to listen on port %lld", port);
             poll_destroy(poll);
             return NULL;
         }
+
+        __LISTENER = (listener_p)heap_alloc(sizeof(struct listener_t));
+        memset(__LISTENER, 0, sizeof(struct listener_t));
+
+        // Start accepting connections
+        if (poll_accept(poll) == -1) {
+            heap_free(poll);
+            exit_werror();
+        }
     }
 
-    __LISTENER = (listener_p)heap_alloc(sizeof(struct listener_t));
-    memset(__LISTENER, 0, sizeof(struct listener_t));
-
-    if (poll_accept(poll) == -1) {
-        heap_free(poll);
-        exit_werror();
-    }
-
+    // Create stdin thread for REPL input
     __STDIN_THREAD_CTX = (stdin_thread_ctx_p)heap_alloc(sizeof(struct stdin_thread_ctx_t));
     __STDIN_THREAD_CTX->h_cp = (HANDLE)poll->poll_fd;
     __STDIN_THREAD_CTX->term = poll->term;
+    __STDIN_THREAD_CTX->stop = 0;
 
     // Create a thread to read from stdin
-    CreateThread(NULL, 0, StdinThread, (LPVOID)__STDIN_THREAD_CTX, 0, NULL);
+    __STDIN_THREAD_HANDLE = CreateThread(NULL, 0, StdinThread, (LPVOID)__STDIN_THREAD_CTX, 0, NULL);
 
     return poll;
 }
@@ -268,7 +345,7 @@ i64_t poll_listen(poll_p poll, i64_t port) {
         return -2;
 
     // Create socket
-    listen_fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    listen_fd = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
     if (listen_fd == INVALID_SOCKET)
         return -1;
 
@@ -296,13 +373,34 @@ i64_t poll_listen(poll_p poll, i64_t port) {
         return -1;
     }
 
-    // Associate the listen socket with the IOCP
-    if (CreateIoCompletionPort((HANDLE)listen_fd, (HANDLE)poll->poll_fd, 0, 0) == NULL) {
+    poll->ipc_fd = listen_fd;
+    LOG_DEBUG("poll_listen: Listen socket created: %lld", (i64_t)listen_fd);
+
+    // Associate the listen socket with the IOCP using ipc_fd as the key
+    LOG_DEBUG("poll_listen: Associating listen socket with IOCP, key=%lld", (i64_t)poll->ipc_fd);
+    if (CreateIoCompletionPort((HANDLE)listen_fd, (HANDLE)poll->poll_fd, (ULONG_PTR)poll->ipc_fd, 0) == NULL) {
+        LOG_ERROR("poll_listen: CreateIoCompletionPort failed: %lu", GetLastError());
         closesocket(listen_fd);
+        poll->ipc_fd = -1;
+        return -1;
+    }
+    LOG_DEBUG("poll_listen: IOCP association successful");
+
+    // Initialize listener structure if not already done and start accepting
+    if (__LISTENER == NULL) {
+        __LISTENER = (listener_p)heap_alloc(sizeof(struct listener_t));
+        memset(__LISTENER, 0, sizeof(struct listener_t));
+    }
+
+    // Start accepting connections
+    LOG_DEBUG("poll_listen: Starting poll_accept");
+    if (poll_accept(poll) == -1) {
+        LOG_ERROR("poll_listen: poll_accept failed");
+        closesocket(listen_fd);
+        poll->ipc_fd = -1;
         return -1;
     }
 
-    poll->ipc_fd = listen_fd;
     return listen_fd;
 }
 
@@ -316,6 +414,30 @@ nil_t poll_destroy(poll_p poll) {
     if (poll == NULL)
         return;
 
+    // Signal stdin thread to stop and wait for it to terminate
+    if (__STDIN_THREAD_HANDLE != NULL && __STDIN_THREAD_CTX != NULL) {
+        DWORD wait_result;
+
+        // Set stop flag
+        InterlockedExchange(&__STDIN_THREAD_CTX->stop, 1);
+
+        // Cancel any pending synchronous I/O on the stdin thread
+        CancelSynchronousIo(__STDIN_THREAD_HANDLE);
+
+        // Wait for the thread to terminate (with timeout)
+        wait_result = WaitForSingleObject(__STDIN_THREAD_HANDLE, 100);
+
+        // If thread didn't exit, forcefully terminate it
+        // (This is necessary because ReadFile on console handles can't be cancelled)
+        if (wait_result == WAIT_TIMEOUT) {
+            TerminateThread(__STDIN_THREAD_HANDLE, 0);
+        }
+
+        // Close thread handle
+        CloseHandle(__STDIN_THREAD_HANDLE);
+        __STDIN_THREAD_HANDLE = NULL;
+    }
+
     if (poll->ipc_fd != -1)
         closesocket((SOCKET)poll->ipc_fd);
 
@@ -328,6 +450,10 @@ nil_t poll_destroy(poll_p poll) {
 
     drop_obj(poll->replfile);
     drop_obj(poll->ipcfile);
+
+    // Destroy REPL before term (repl uses poll->term on Windows)
+    if (poll->repl)
+        repl_destroy(poll->repl);
 
     term_destroy(poll->term);
 
@@ -343,7 +469,9 @@ nil_t poll_destroy(poll_p poll) {
     heap_free(poll);
 
     heap_free(__LISTENER);
+    __LISTENER = NULL;
     heap_free(__STDIN_THREAD_CTX);
+    __STDIN_THREAD_CTX = NULL;
 }
 
 nil_t poll_deregister(poll_p poll, i64_t id) {
@@ -408,15 +536,25 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
     u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
     ipc_header_t *header;
 
+    LOG_TRACE("_recv: version=%d rx.size=%lu wsa_buf.len=%lu rx.header=%d", 
+            selector->version, (unsigned long)selector->rx.size, (unsigned long)selector->rx.wsa_buf.len,
+            selector->rx.header);
+
     // wait for handshake
     while (selector->version == 0) {
+        LOG_TRACE("_recv: handshake loop: rx.size=%lu", (unsigned long)selector->rx.size);
+        
         // malformed handshake
         if ((selector->rx.size == 0) ||
-            (selector->rx.wsa_buf.len == sizeof(struct ipc_header_t) && selector->rx.size == 1))
+            (selector->rx.wsa_buf.len == sizeof(struct ipc_header_t) && selector->rx.size == 1)) {
+            LOG_DEBUG("_recv: malformed handshake");
             return POLL_ERROR;
+        }
 
         // incomplete handshake
         if (selector->rx.wsa_buf.buf[selector->rx.size - 1] != '\0') {
+            LOG_TRACE("_recv: incomplete handshake, last byte=0x%02x", 
+                    (unsigned char)selector->rx.wsa_buf.buf[selector->rx.size - 1]);
             selector->rx.wsa_buf.len = selector->rx.wsa_buf.len - selector->rx.size;
             if (selector->rx.wsa_buf.len == 0) {
                 size = selector->rx.size;
@@ -433,12 +571,16 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
             continue;
         }
 
+        LOG_TRACE("_recv: handshake complete, extracting version");
         selector->version = selector->rx.wsa_buf.buf[selector->rx.size - 2];
 
         // malformed version
-        if (selector->version == 0)
+        if (selector->version == 0) {
+            LOG_DEBUG("_recv: malformed version (0)");
             return POLL_ERROR;
+        }
 
+        LOG_TRACE("_recv: version=%d, sending response", selector->version);
         selector->rx.wsa_buf.buf = (str_p)selector->rx.buf;
         selector->rx.wsa_buf.len = sizeof(struct ipc_header_t);
         selector->rx.size = 0;
@@ -447,57 +589,90 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
         size = 0;
         while (size < (i64_t)sizeof(handshake)) {
             sz = sock_send(selector->fd, &handshake[size], sizeof(handshake) - size);
+            LOG_TRACE("_recv: sock_send returned %lld", sz);
 
             if (sz == -1)
                 return POLL_ERROR;
 
             size += sz;
         }
+        LOG_TRACE("_recv: handshake response sent");
     }
 
     if (selector->rx.buf == NULL) {
         selector->rx.buf = heap_alloc(sizeof(struct ipc_header_t));
-        selector->rx.size = sizeof(struct ipc_header_t);
+        selector->rx.size = 0;  // No bytes received yet
         selector->rx.wsa_buf.buf = (str_p)selector->rx.buf;
-        selector->rx.wsa_buf.len = selector->rx.size;
+        selector->rx.wsa_buf.len = sizeof(struct ipc_header_t);
     }
 
     // read header
+    LOG_TRACE("_recv: entering header loop");
     while (!selector->rx.header) {
         selector->rx.wsa_buf.buf += selector->rx.size;
         selector->rx.wsa_buf.len -= selector->rx.size;
+        LOG_TRACE("_recv: header loop: rx.size=%lu wsa_buf.len=%lu", 
+                (unsigned long)selector->rx.size, (unsigned long)selector->rx.wsa_buf.len);
 
         if (selector->rx.wsa_buf.len != 0) {
+            LOG_TRACE("_recv: calling _RECV_OP for header");
             _RECV_OP(poll, selector);
+            LOG_TRACE("_recv: _RECV_OP returned (immediate), continuing");
             continue;
         }
 
+        LOG_TRACE("_recv: header complete, reading header data");
         header = (ipc_header_t *)selector->rx.buf;
+        LOG_TRACE("_recv: header: prefix=0x%x version=%d flags=%d endian=%d msgtype=%d size=%lld",
+                header->prefix, header->version, header->flags, header->endian, header->msgtype, header->size);
 
         // malformed header
-        if (header->size == 0)
+        if (header->size == 0) {
+            LOG_DEBUG("_recv: malformed header (size=0)");
             return POLL_ERROR;
+        }
 
         selector->rx.header = B8_TRUE;
         selector->rx.size = header->size + sizeof(struct ipc_header_t);
         selector->rx.msgtype = header->msgtype;
+        LOG_TRACE("_recv: reallocating buffer to %lu bytes", (unsigned long)selector->rx.size);
         selector->rx.buf = heap_realloc(selector->rx.buf, selector->rx.size);
+        if (selector->rx.buf == NULL) {
+            LOG_ERROR("_recv: heap_realloc failed");
+            return POLL_ERROR;
+        }
         selector->rx.wsa_buf.buf = (str_p)selector->rx.buf + sizeof(struct ipc_header_t);
         selector->rx.wsa_buf.len = selector->rx.size - sizeof(struct ipc_header_t);
         selector->rx.size = 0;
+        LOG_TRACE("_recv: setup for body: wsa_buf.len=%lu total_size=%lu", 
+                (unsigned long)selector->rx.wsa_buf.len, 
+                (unsigned long)(selector->rx.wsa_buf.len + sizeof(struct ipc_header_t)));
     }
 
+    // Save total message size before body loop modifies rx.size
+    i64_t total_msg_size = selector->rx.wsa_buf.len + sizeof(struct ipc_header_t);
+
     // read body
+    LOG_TRACE("_recv: entering body loop, wsa_buf.len=%lu", (unsigned long)selector->rx.wsa_buf.len);
     while (selector->rx.wsa_buf.len > 0) {
+        LOG_TRACE("_recv: body loop: rx.size=%lu wsa_buf.len=%lu wsa_buf.buf=%p", 
+                (unsigned long)selector->rx.size, (unsigned long)selector->rx.wsa_buf.len,
+                (void*)selector->rx.wsa_buf.buf);
         selector->rx.wsa_buf.buf += selector->rx.size;
         selector->rx.wsa_buf.len -= selector->rx.size;
+        LOG_TRACE("_recv: body loop after adjust: wsa_buf.len=%lu", (unsigned long)selector->rx.wsa_buf.len);
 
         if (selector->rx.wsa_buf.len == 0)
             break;
 
+        LOG_TRACE("_recv: calling _RECV_OP for body");
         _RECV_OP(poll, selector);
+        LOG_TRACE("_recv: _RECV_OP returned (immediate) in body loop");
     }
+    LOG_TRACE("_recv: body loop done, restoring rx.size to %lu", (unsigned long)total_msg_size);
 
+    // Restore rx.size to total message size for read_obj
+    selector->rx.size = total_msg_size;
     selector->rx.header = B8_FALSE;
 
     return POLL_DONE;
@@ -505,9 +680,9 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
 
 poll_result_t _recv_initiate(poll_p poll, selector_p selector) {
     selector->rx.buf = heap_alloc(sizeof(struct ipc_header_t));
-    selector->rx.size = sizeof(struct ipc_header_t);
+    selector->rx.size = 0;  // No bytes received yet
     selector->rx.wsa_buf.buf = (str_p)selector->rx.buf;
-    selector->rx.wsa_buf.len = selector->rx.size;
+    selector->rx.wsa_buf.len = sizeof(struct ipc_header_t);
 
     _RECV_OP(poll, selector);
 
@@ -540,17 +715,39 @@ send:
     v = queue_pop(selector->tx.queue);
 
     if (v != NULL) {
+        ipc_header_t *header;
         obj = (obj_p)((i64_t)v & ~(3ll << 61));
         msg_type = (((i64_t)v & (3ll << 61)) >> 61);
-        size = ser_raw(&selector->tx.buf, obj);
-        drop_obj(obj);
-        if (size == -1)
+
+        // Calculate serialization size and allocate buffer
+        size = size_obj(obj);
+        if (size <= 0) {
+            drop_obj(obj);
             return POLL_ERROR;
-        selector->tx.size = size;
+        }
+        selector->tx.buf = heap_alloc(ISIZEOF(struct ipc_header_t) + size);
+        if (selector->tx.buf == NULL) {
+            drop_obj(obj);
+            return POLL_ERROR;
+        }
+
+        // Write header
+        header = (ipc_header_t *)selector->tx.buf;
+        header->prefix = SERDE_PREFIX;
+        header->version = RAYFORCE_VERSION;
+        header->flags = 0x00;
+        header->endian = 0x00;
+        header->msgtype = msg_type;
+        header->size = size;
+
+        // Serialize object after header
+        ser_raw(selector->tx.buf + ISIZEOF(struct ipc_header_t), obj);
+        drop_obj(obj);
+
+        selector->tx.size = ISIZEOF(struct ipc_header_t) + size;
         selector->tx.wsa_buf.buf = (str_p)selector->tx.buf;
         selector->tx.wsa_buf.len = selector->tx.size;
         selector->tx.size = 0;
-        ((ipc_header_t *)selector->tx.buf)->msgtype = msg_type;
         goto send;
     }
 
@@ -559,15 +756,26 @@ send:
 
 obj_p read_obj(selector_p selector) {
     obj_p res;
+    i64_t len;
 
-    res = de_raw(selector->rx.buf, selector->rx.size);
+    LOG_TRACE("read_obj: rx.size=%lu rx.buf=%p", 
+            (unsigned long)selector->rx.size, (void*)selector->rx.buf);
+
+    // Skip the header and deserialize the payload
+    len = (i64_t)selector->rx.size - ISIZEOF(struct ipc_header_t);
+    LOG_TRACE("read_obj: deserializing %lld bytes from %p", len, 
+            (void*)(selector->rx.buf + ISIZEOF(struct ipc_header_t)));
+    
+    res = de_raw(selector->rx.buf + ISIZEOF(struct ipc_header_t), &len);
+    LOG_TRACE("read_obj: deserialized, res=%p", (void*)res);
+
     heap_free(selector->rx.buf);
     selector->rx.buf = NULL;
     selector->rx.size = 0;
     selector->rx.wsa_buf.buf = NULL;
     selector->rx.wsa_buf.len = 0;
-    selector->rx.size = 0;
 
+    LOG_TRACE("read_obj: done");
     return res;
 }
 
@@ -576,14 +784,25 @@ nil_t process_request(poll_p poll, selector_p selector) {
     poll_result_t poll_result;
 
     res = read_obj(selector);
+    LOG_TRACE("process_request: read_obj returned res=%p type=%d", (void*)res, res ? res->type : -1);
 
-    if (IS_ERR(res) || is_null(res))
+    if (IS_ERR(res) || is_null(res)) {
         v = res;
-    if (res->type == TYPE_C8) {
-        v = ray_eval_str(poll->ipcfile, res);
+    } else if (res->type == TYPE_C8) {
+        LOG_TRACE("process_request: evaluating string: len=%lld content='%.*s'", 
+                res->len, (int)(res->len < 100 ? res->len : 100), (char*)AS_C8(res));
+        v = ray_eval_str(res, poll->ipcfile);  // Fixed: str first, then file
+        if (v && v->type == TYPE_ERR) {
+            obj_p errfmt = obj_fmt(v, B8_FALSE);
+            LOG_DEBUG("process_request: eval ERROR: %.*s", (int)errfmt->len, (char*)AS_C8(errfmt));
+            drop_obj(errfmt);
+        } else {
+            LOG_TRACE("process_request: eval result: %p type=%d", (void*)v, v ? v->type : -1);
+        }
         drop_obj(res);
-    } else
+    } else {
         v = eval_obj(res);
+    }
 
     // sync request
     if (selector->rx.msgtype == MSG_TYPE_SYNC) {
@@ -607,16 +826,29 @@ i64_t poll_run(poll_p poll) {
     obj_p str, fmt, res;
     selector_p selector;
 
-    term_prompt(poll->term);
+    LOG_DEBUG("Entering poll loop, ipc_fd=%lld", poll->ipc_fd);
 
     while (poll->code == NULL_I64) {
         success = GetQueuedCompletionStatusEx(hPollFd, events, MAX_IOCP_RESULTS, &num, INFINITE,
                                               B8_TRUE  // set this to B8_TRUE if you want to return on alertable wait
         );
+        
+        if (!success) {
+            DWORD err = GetLastError();
+            LOG_DEBUG("GetQueuedCompletionStatusEx failed: %lu", err);
+            if (err == WAIT_IO_COMPLETION) {
+                continue;  // alertable wait interrupted, just continue
+            }
+        }
+        
+        LOG_TRACE("Got %lu IOCP events, success=%d", (unsigned long)num, success);
+        
         // Handle IOCP events
         if (success) {
             for (i = 0; i < num; ++i) {
                 key = events[i].lpCompletionKey;
+                LOG_TRACE("Event %lu: key=%lld (ipc_fd=%lld, STDIN=%llu)", 
+                        (unsigned long)i, key, poll->ipc_fd, (unsigned long long)STDIN_WAKER_ID);
                 size = events[i].dwNumberOfBytesTransferred;
                 overlapped = events[i].lpOverlapped;
 
@@ -647,14 +879,19 @@ i64_t poll_run(poll_p poll) {
                         break;
 
                     default:
+                        LOG_TRACE("IOCP event: key=%lld ipc_fd=%lld size=%lu", 
+                                key, poll->ipc_fd, (unsigned long)size);
                         // Accept new connection
                         if (key == poll->ipc_fd) {
+                            LOG_DEBUG("Accept event! hAccepted=%lld", (i64_t)__LISTENER->hAccepted);
                             hAccepted = __LISTENER->hAccepted;
 
                             if (hAccepted != INVALID_SOCKET) {
                                 idx = poll_register(poll, hAccepted, 0);
+                                LOG_DEBUG("Registered, idx=%lld", idx);
                                 selector = (selector_p)freelist_get(poll->selectors, idx - SELECTOR_ID_OFFSET);
                                 poll_result = _recv_initiate(poll, selector);
+                                LOG_DEBUG("_recv_initiate returned %lld", poll_result);
 
                                 if (poll_result == POLL_ERROR)
                                     poll_deregister(poll, selector->id);
@@ -729,20 +966,25 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
     obj_p res;
     DWORD dwResult;
 
+    LOG_TRACE("ipc_send_sync: starting, id=%lld", id);
+
     idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
     if (idx == NULL_I64)
         THROW(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
 
     selector = (selector_p)idx;
+    LOG_TRACE("ipc_send_sync: selector=%p fd=%lld", (void*)selector, selector->fd);
 
     queue_push(selector->tx.queue, (nil_t *)((i64_t)msg | ((i64_t)MSG_TYPE_SYNC << 61)));
 
     // set ignore flag to tx
     selector->tx.ignore = B8_TRUE;
 
+    LOG_TRACE("ipc_send_sync: starting send loop");
     while (poll_result == POLL_OK) {
         poll_result = _send(poll, selector);
+        LOG_TRACE("ipc_send_sync: _send returned %d", poll_result);
 
         if (poll_result != POLL_OK)
             break;
@@ -768,9 +1010,9 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
 
     if (selector->rx.buf == NULL) {
         selector->rx.buf = heap_alloc(sizeof(struct ipc_header_t));
-        selector->rx.size = sizeof(struct ipc_header_t);
+        selector->rx.size = 0;  // No bytes received yet
         selector->rx.wsa_buf.buf = (str_p)selector->rx.buf;
-        selector->rx.wsa_buf.len = selector->rx.size;
+        selector->rx.wsa_buf.len = sizeof(struct ipc_header_t);
         poll_result = _recv(poll, selector);
     }
 
@@ -793,9 +1035,12 @@ recv:
     }
 
     // recv until we get response
+    LOG_TRACE("ipc_send_sync: checking msgtype=%d", selector->rx.msgtype);
     switch (selector->rx.msgtype) {
         case MSG_TYPE_RESP:
+            LOG_TRACE("ipc_send_sync: calling read_obj");
             res = read_obj(selector);
+            LOG_TRACE("ipc_send_sync: read_obj returned, res=%p", (void*)res);
             break;
         default:
             poll_result = POLL_OK;
@@ -803,6 +1048,7 @@ recv:
             goto recv;
     }
 
+    LOG_TRACE("ipc_send_sync: returning res=%p type=%d", (void*)res, res ? res->type : -1);
     return res;
 }
 

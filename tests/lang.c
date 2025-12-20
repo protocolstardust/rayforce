@@ -213,6 +213,24 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(+ (list -10i -10 -10.0) 5)", "(list -5 -5 -5.0)");
     TEST_ASSERT_EQ("(+ (list -10i -10i -10.0) 5)", "(list -5 -5 -5.0)");
     TEST_ASSERT_EQ("(+ (list -10 -10i -10.0) 5i)", "(list -5i -5i -5.0)");
+    // u8 add
+    TEST_ASSERT_EQ("(+ 0x02 0x03)", "0x05");
+    TEST_ASSERT_EQ("(+ 0x02 [0x01 0x03])", "[0x03 0x05]");
+    TEST_ASSERT_EQ("(+ [0x01 0x02] 0x03)", "[0x04 0x05]");
+    TEST_ASSERT_EQ("(+ [0x01 0x02] [0x03 0x04])", "[0x04 0x06]");
+    TEST_ASSERT_EQ("(+ 0x02 5i)", "7i");
+    TEST_ASSERT_EQ("(+ 0x02 5)", "7");
+    TEST_ASSERT_EQ("(+ 0x02 5.0)", "7.0");
+    // i16 add
+    TEST_ASSERT_EQ("(+ 2h 3h)", "5h");
+    TEST_ASSERT_EQ("(+ 2h [1h 3h])", "[3h 5h]");
+    TEST_ASSERT_EQ("(+ [1h 2h] 3h)", "[4h 5h]");
+    TEST_ASSERT_EQ("(+ [1h 2h] [3h 4h])", "[4h 6h]");
+    TEST_ASSERT_EQ("(+ 2h 5i)", "7i");
+    TEST_ASSERT_EQ("(+ 2h 5)", "7");
+    TEST_ASSERT_EQ("(+ 2h 5.0)", "7.0");
+    TEST_ASSERT_EQ("(+ 0Nh 5h)", "0Nh");
+    TEST_ASSERT_EQ("(+ [1h 0Nh 3h] 1h)", "[2h 0Nh 4h]");
 
     TEST_ASSERT_EQ("(- 3i 5i)", "-2i");
     TEST_ASSERT_EQ("(- 3i 5)", "-2");
@@ -317,6 +335,17 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [01:01:00.000])", "[2025.03.04D14:40:47.087221025]");
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [2025.03.04D15:41:47.087221025])", "[0]");
     TEST_ASSERT_ER("(- 2025.03.04D15:41:47.087221025 2025.12.13)", "sub: unsupported types: 'timestamp, 'date");
+    // u8 sub
+    TEST_ASSERT_EQ("(- 0x05 0x03)", "0x02");
+    TEST_ASSERT_EQ("(- 0x05 [0x01 0x03])", "[0x04 0x02]");
+    TEST_ASSERT_EQ("(- [0x05 0x06] 0x03)", "[0x02 0x03]");
+    TEST_ASSERT_EQ("(- [0x05 0x06] [0x01 0x02])", "[0x04 0x04]");
+    // i16 sub
+    TEST_ASSERT_EQ("(- 5h 3h)", "2h");
+    TEST_ASSERT_EQ("(- 5h [1h 3h])", "[4h 2h]");
+    TEST_ASSERT_EQ("(- [5h 6h] 3h)", "[2h 3h]");
+    TEST_ASSERT_EQ("(- [5h 6h] [1h 2h])", "[4h 4h]");
+    TEST_ASSERT_EQ("(- 0Nh 5h)", "0Nh");
 
     TEST_ASSERT_EQ("(* 3i 5i)", "15i");
     TEST_ASSERT_EQ("(* 3i 5)", "15");
@@ -382,6 +411,17 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(* [02:15:07.000] [5i])", "[11:15:35.000]");
     TEST_ASSERT_EQ("(* [02:15:07.000] [5])", "[11:15:35.000]");
     TEST_ASSERT_ER("(* 02:15:07.000 02:15:07.000)", "mul: unsupported types: 'time, 'time");
+    // u8 mul
+    TEST_ASSERT_EQ("(* 0x02 0x03)", "0x06");
+    TEST_ASSERT_EQ("(* 0x02 [0x03 0x05])", "[0x06 0x0a]");
+    TEST_ASSERT_EQ("(* [0x02 0x03] 0x05)", "[0x0a 0x0f]");
+    TEST_ASSERT_EQ("(* [0x02 0x03] [0x05 0x04])", "[0x0a 0x0c]");
+    // i16 mul
+    TEST_ASSERT_EQ("(* 2h 3h)", "6h");
+    TEST_ASSERT_EQ("(* 2h [3h 5h])", "[6h 10h]");
+    TEST_ASSERT_EQ("(* [2h 3h] 5h)", "[10h 15h]");
+    TEST_ASSERT_EQ("(* [2h 3h] [5h 4h])", "[10h 12h]");
+    TEST_ASSERT_EQ("(* 0Nh 5h)", "0Nh");
 
     TEST_ASSERT_EQ("(/ -5 -5)", "1");
     TEST_ASSERT_EQ("(/ -5 -2)", "2");
@@ -1685,6 +1725,19 @@ test_result_t test_lang_math() {
 
     TEST_ASSERT_EQ("(/ 10 [])", "[]");
     TEST_ASSERT_ER("(/ 02:15:07.000 02:15:07.000)", "div: unsupported types: 'time, 'time");
+    // u8 div
+    TEST_ASSERT_EQ("(/ 0x0a 0x02)", "0x05");
+    TEST_ASSERT_EQ("(/ 0x0a [0x02 0x05])", "[0x05 0x02]");
+    TEST_ASSERT_EQ("(/ [0x0a 0x0f] 0x05)", "[0x02 0x03]");
+    TEST_ASSERT_EQ("(/ [0x0a 0x0f] [0x02 0x05])", "[0x05 0x03]");
+    TEST_ASSERT_EQ("(/ 0x0a 0x00)", "0x00");  // div by 0 -> 0 for u8
+    // i16 div
+    TEST_ASSERT_EQ("(/ 10h 2h)", "5h");
+    TEST_ASSERT_EQ("(/ 10h [2h 5h])", "[5h 2h]");
+    TEST_ASSERT_EQ("(/ [10h 15h] 5h)", "[2h 3h]");
+    TEST_ASSERT_EQ("(/ [10h 15h] [2h 5h])", "[5h 3h]");
+    TEST_ASSERT_EQ("(/ 0Nh 5h)", "0Nh");
+    TEST_ASSERT_EQ("(/ 10h 0h)", "0Nh");
 
     TEST_ASSERT_EQ("(% 10i 0i)", "0Ni");
     TEST_ASSERT_EQ("(% 10i 0)", "0Nl");
@@ -2011,6 +2064,19 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(% [10:20:15.000] 100000i)", "[00:00:15.000]");
     TEST_ASSERT_EQ("(% [10:20:15.000] [100000])", "[00:00:15.000]");
     TEST_ASSERT_EQ("(% [10:20:15.000] [100000i])", "[00:00:15.000]");
+    // u8 mod
+    TEST_ASSERT_EQ("(% 0x0b 0x05)", "0x01");
+    TEST_ASSERT_EQ("(% 0x0b [0x05 0x03])", "[0x01 0x02]");
+    TEST_ASSERT_EQ("(% [0x0b 0x0d] 0x05)", "[0x01 0x03]");
+    TEST_ASSERT_EQ("(% [0x0b 0x0d] [0x05 0x03])", "[0x01 0x01]");
+    TEST_ASSERT_EQ("(% 0x0a 0x00)", "0x00");  // mod by 0 -> 0 for u8
+    // i16 mod
+    TEST_ASSERT_EQ("(% 11h 5h)", "1h");
+    TEST_ASSERT_EQ("(% 11h [5h 3h])", "[1h 2h]");
+    TEST_ASSERT_EQ("(% [11h 13h] 5h)", "[1h 3h]");
+    TEST_ASSERT_EQ("(% [11h 13h] [5h 3h])", "[1h 1h]");
+    TEST_ASSERT_EQ("(% 0Nh 5h)", "0Nh");
+    TEST_ASSERT_EQ("(% 10h 0h)", "0Nh");
 
     TEST_ASSERT_EQ("(div 0i -5i)", "0.00");
     TEST_ASSERT_EQ("(div -10i 5i)", "-2.0");
@@ -2395,6 +2461,15 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(sum [1i 2i -3i])", "0i");
     TEST_ASSERT_EQ("(sum [02:01:03.000 00:00:02.500])", "02:01:05.500");
     TEST_ASSERT_ER("(sum [2020.02.03 2025.02.03])", "sum: unsupported type: 'DATE");
+    // u8 sum
+    TEST_ASSERT_EQ("(sum 0x05)", "5");
+    TEST_ASSERT_EQ("(sum [0x01 0x02 0x03 0x04 0x05])", "15");
+    TEST_ASSERT_EQ("(sum (take 0x01 100000))", "100000");  // large u8 vector for parallel test
+    // i16 sum
+    TEST_ASSERT_EQ("(sum 5h)", "5");
+    TEST_ASSERT_EQ("(sum [1h 2h 3h])", "6");
+    TEST_ASSERT_EQ("(sum [1h 0Nh 3h])", "4");
+    TEST_ASSERT_EQ("(sum (take 10h 100000))", "1000000");  // large i16 vector for parallel test
 
     TEST_ASSERT_EQ("(avg 5i)", "5.0");
     TEST_ASSERT_EQ("(avg -1.7)", "-1.7");
@@ -2405,6 +2480,15 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(avg [-24 12 6 0Nl])", "-2.0");
     TEST_ASSERT_EQ("(avg [0Ni])", "0Nf");
     TEST_ASSERT_EQ("(avg 0Nf)", "0Nf");
+    // u8 avg
+    TEST_ASSERT_EQ("(avg 0x05)", "5.0");
+    TEST_ASSERT_EQ("(avg [0x02 0x04 0x06])", "4.0");
+    TEST_ASSERT_EQ("(avg (take 0x0a 100000))", "10.0");  // large u8 vector
+    // i16 avg
+    TEST_ASSERT_EQ("(avg 5h)", "5.0");
+    TEST_ASSERT_EQ("(avg [2h 4h 6h])", "4.0");
+    TEST_ASSERT_EQ("(avg [1h 0Nh 5h])", "3.0");  // NULL skipped in cnt
+    TEST_ASSERT_EQ("(avg (take 10h 100000))", "10.0");  // large i16 vector
 
     TEST_ASSERT_EQ("(min 0Nf)", "0Nf");
     TEST_ASSERT_EQ("(min 5i)", "5i");
@@ -2422,6 +2506,15 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(min [-00:00:05.000])", "-00:00:05.000");
     TEST_ASSERT_EQ("(min [1999.03.13D11:45:43.848458167])", "1999.03.13D11:45:43.848458167");
     TEST_ASSERT_EQ("(min [])", "0Nl");
+    // u8 min
+    TEST_ASSERT_EQ("(min 0x05)", "0x05");
+    TEST_ASSERT_EQ("(min [0x05 0x01 0x03])", "0x01");
+    TEST_ASSERT_EQ("(min (take 0x05 100000))", "0x05");  // large u8 vector
+    // i16 min
+    TEST_ASSERT_EQ("(min 5h)", "5h");
+    TEST_ASSERT_EQ("(min [5h 1h 3h])", "1h");
+    TEST_ASSERT_EQ("(min [0Nh 5h 1h])", "1h");
+    TEST_ASSERT_EQ("(min (take 10h 100000))", "10h");  // large i16 vector
 
     TEST_ASSERT_EQ("(max 0Nt)", "0Nt");
     TEST_ASSERT_EQ("(max 5i)", "5i");
@@ -2440,6 +2533,15 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(max [-00:00:05.000])", "-00:00:05.000");
     TEST_ASSERT_EQ("(max [1999.03.13D11:45:43.848458167])", "1999.03.13D11:45:43.848458167");
     TEST_ASSERT_EQ("(max [])", "0Nl");
+    // u8 max
+    TEST_ASSERT_EQ("(max 0x05)", "0x05");
+    TEST_ASSERT_EQ("(max [0x05 0x01 0x03])", "0x05");
+    TEST_ASSERT_EQ("(max (take 0x05 100000))", "0x05");  // large u8 vector
+    // i16 max
+    TEST_ASSERT_EQ("(max 5h)", "5h");
+    TEST_ASSERT_EQ("(max [5h 1h 3h])", "5h");
+    TEST_ASSERT_EQ("(max [0Nh 5h 1h])", "5h");
+    TEST_ASSERT_EQ("(max (take 10h 100000))", "10h");  // large i16 vector
 
     TEST_ASSERT_EQ("(round [])", "[]");
     TEST_ASSERT_EQ("(round -0.5)", "-1.0");
@@ -2481,6 +2583,14 @@ test_result_t test_lang_math() {
     // TEST_ASSERT_EQ("(med [0Nl 1 0Nl 2 3])", "2.0");
     // TEST_ASSERT_EQ("(med [0Ni 0Ni])", "0Nf");
     // TEST_ASSERT_EQ("(med [1.0 2.0 3.0 4.0 0Nf 0Nf])", "2.5");
+    // u8 med
+    TEST_ASSERT_EQ("(med 0x05)", "5.0");
+    TEST_ASSERT_EQ("(med [0x03 0x01 0x02])", "2.0");
+    TEST_ASSERT_EQ("(med [0x04 0x03 0x01 0x02])", "2.5");
+    // i16 med
+    TEST_ASSERT_EQ("(med 5h)", "5.0");
+    TEST_ASSERT_EQ("(med [3h 1h 2h])", "2.0");
+    TEST_ASSERT_EQ("(med [4h 3h 1h 2h])", "2.5");
 
     TEST_ASSERT_EQ("(dev 1)", "0.0");
     TEST_ASSERT_EQ("(dev [0Ni])", "0Nf");
@@ -2489,6 +2599,15 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(dev [1 2 3 4 50])", "19.0263");
     TEST_ASSERT_EQ("(dev [0Nl 1 2 3 4 50 0Nl])", "19.0263");
     TEST_ASSERT_EQ("(dev [0Nf -2.0 10.0 11.0 5.0 0Nf])", "5.147815");
+    // u8 dev
+    TEST_ASSERT_EQ("(dev 0x05)", "0.0");
+    TEST_ASSERT_EQ("(dev [0x01 0x01 0x01])", "0.0");
+    TEST_ASSERT_EQ("(dev [0x01 0x02])", "0.5");
+    // i16 dev
+    TEST_ASSERT_EQ("(dev 5h)", "0.0");
+    TEST_ASSERT_EQ("(dev [1h 1h 1h])", "0.0");
+    TEST_ASSERT_EQ("(dev [1h 2h])", "0.5");
+    TEST_ASSERT_EQ("(dev [1h 0Nh 2h])", "0.5");  // NULL skipped
 
     TEST_ASSERT_EQ("((fn [x y] (+ x y)) 1 [2.3 4])", "[3.3 5.0]");
 
@@ -4730,6 +4849,13 @@ test_result_t test_lang_cast() {
     // symbol <- String
     TEST_ASSERT_EQ("(as 'symbol \"hello\")", "'hello");
 
+    // ========== SYMBOL VECTOR CASTS ==========
+    // SYMBOL <- I64
+    TEST_ASSERT_EQ("(type (as 'SYMBOL (til 5)))", "'SYMBOL");
+    TEST_ASSERT_EQ("(as 'SYMBOL [0 1 2])", "[0 1 2]");
+    TEST_ASSERT_EQ("(as 'SYMBOL [42 -100 999])", "[42 -100 999]");
+    TEST_ASSERT_EQ("(count (as 'SYMBOL (til 1000)))", "1000");
+
     // ========== STRING/CHAR CASTS ==========
     TEST_ASSERT_EQ("(as 'C8 'hello)", "\"hello\"");
     TEST_ASSERT_EQ("(as 'C8 123)", "\"123\"");
@@ -4785,6 +4911,20 @@ test_result_t test_lang_cast() {
     TEST_ASSERT_EQ("(as 'I32 (list 1i 2i 3i))", "[1i 2i 3i]");
     TEST_ASSERT_EQ("(as 'F64 (list 1.0 2.0 3.0))", "[1.0 2.0 3.0]");
     TEST_ASSERT_EQ("(as 'B8 (list true false true))", "[true false true]");
+
+    // ========== PARALLEL CAST (large vectors) ==========
+    // i64 -> i32 (large vector triggers parallel processing)
+    TEST_ASSERT_EQ("(sum (as 'I32 (til 100000)))", "704982704i");  // sum of 0..99999 as i32
+    // i64 -> f64
+    TEST_ASSERT_EQ("(sum (as 'F64 (til 100000)))", "4999950000.0");
+    // i32 -> i64
+    TEST_ASSERT_EQ("(sum (as 'I64 (as 'I32 (til 100000))))", "4999950000");
+    // i64 -> i16
+    TEST_ASSERT_EQ("(count (as 'I16 (til 100000)))", "100000");
+    // i64 -> u8
+    TEST_ASSERT_EQ("(count (as 'U8 (til 100000)))", "100000");
+    // f64 -> i64
+    TEST_ASSERT_EQ("(sum (as 'I64 (as 'F64 (til 100000))))", "4999950000");
 
     PASS();
 }

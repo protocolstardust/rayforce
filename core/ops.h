@@ -117,17 +117,37 @@ extern struct obj_t __NULL_OBJECT;
 #define GEGUID(x, y) (!LTGUID((x), (y)))
 #define GESTR(x, xl, y, yl) (str_cmp((x), (xl), (y), (yl)) >= 0)
 #define ABSI8(x) ((x) < 0 ? -(x) : (x))
+// U8 operations (no NULL - unsigned byte)
+#define ADDU8(x, y) ((u8_t)((x) + (y)))
+#define SUBU8(x, y) ((u8_t)((x) - (y)))
+#define MULU8(x, y) ((u8_t)((x) * (y)))
+#define DIVU8(x, y) ((y) == 0 ? 0 : (u8_t)((x) / (y)))
+#define MODU8(x, y) ((y) == 0 ? 0 : (u8_t)((x) % (y)))
+#define FOLD_ADDU8(x, y) ((x) + (y))
+#define MAXU8(x, y) ((x) > (y) ? (x) : (y))
+#define MINU8(x, y) ((x) < (y) ? (x) : (y))
+
+// I16 operations (with NULL_I16 checks)
+#define ADDI16(x, y) (((x) == NULL_I16 || (y) == NULL_I16) ? NULL_I16 : (i16_t)((x) + (y)))
+#define SUBI16(x, y) (((x) == NULL_I16 || (y) == NULL_I16) ? NULL_I16 : (i16_t)((x) - (y)))
+#define MULI16(x, y) (((x) == NULL_I16 || (y) == NULL_I16) ? NULL_I16 : (i16_t)((x) * (y)))
+#define DIVI16(x, y) (((y) == 0 || (x) == NULL_I16 || (y) == NULL_I16) ? NULL_I16 : (i16_t)(EUCL_DIV((x), (y))))
+#define MODI16(x, y) (((y) == 0 || (x) == NULL_I16 || (y) == NULL_I16) ? NULL_I16 : (i16_t)(EUCL_MOD((x), (y))))
+#define FOLD_ADDI16(x, y) ((y) == NULL_I16 ? (x) : ((x) + (y)))
+#define MAXI16(x, y) (((x) == NULL_I16) ? (y) : ((y) == NULL_I16) ? (x) : ((x) > (y) ? (x) : (y)))
+#define MINI16(x, y) (((x) == NULL_I16) ? (y) : ((y) == NULL_I16) ? (x) : ((x) < (y) ? (x) : (y)))
+
 #define ABSI32(x) ((x) == NULL_I32 ? NULL_I32 : (((x) < 0 ? -(x) : (x))))
 #define ABSI64(x) ((x) == NULL_I64 ? NULL_I64 : (((x) < 0 ? -(x) : (x))))
 #define ABSF64(x) (ISNANF64(x) ? NULL_F64 : (((x) < 0.0 ? -(x) : (x))))
+#define CNTU8(x, y) ((x) + 1)
+#define CNTI16(x, y) ((y) == NULL_I16 ? (x) : ((x) + 1))
 #define CNTI32(x, y) ((y) == NULL_I32 ? (x) : ((x) + 1))
 #define CNTI64(x, y) ((y) == NULL_I64 ? (x) : ((x) + 1))
 #define CNTF64(x, y) (ISNANF64(y) ? (x) : ((x) + 1))
-#define ADDI16(x, y) (((x) == NULL_I16 || (y) == NULL_I16) ? NULL_I16 : ((x) + (y)))
 #define ADDI32(x, y) (((x) == NULL_I32 || (y) == NULL_I32) ? NULL_I32 : ((x) + (y)))
 #define ADDI64(x, y) (((x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : ((x) + (y)))
 #define ADDF64(x, y) (ISNANF64(x) || ISNANF64(y) ? NULL_F64 : ((x) + (y)))
-#define FOLD_ADDI16(x, y) ((y) == NULL_I16 ? (x) : ((x) + (y)))
 #define FOLD_ADDI32(x, y) ((y) == NULL_I32 ? (x) : ((x) + (y)))
 #define FOLD_ADDI64(x, y) ((y) == NULL_I64 ? (x) : ((x) + (y)))
 #define FOLD_ADDF64(x, y) (ISNANF64(y) ? (x) : ((x) + (y)))
@@ -196,6 +216,13 @@ obj_p sys_error(os_ray_error_type_t, lit_p msg);
 static inline u8_t b8_to_b8(b8_t x) { return x; }
 static inline i64_t b8_to_i64(i64_t x) { return x != 0 && x != NULL_I64; }
 static inline b8_t i64_to_b8(i64_t x) { return x != 0 && x != NULL_I64; }
+
+// U8 conversions (no NULL - unsigned byte)
+static inline u8_t u8_to_u8(u8_t x) { return x; }
+static inline i16_t u8_to_i16(u8_t x) { return (i16_t)x; }
+static inline i32_t u8_to_i32(u8_t x) { return (i32_t)x; }
+static inline i64_t u8_to_i64(u8_t x) { return (i64_t)x; }
+static inline f64_t u8_to_f64(u8_t x) { return (f64_t)x; }
 
 static inline i16_t i16_to_i16(i16_t x) { return x; }
 static inline i32_t i16_to_i32(i16_t x) { return (x == NULL_I16) ? NULL_I32 : (i32_t)x; }

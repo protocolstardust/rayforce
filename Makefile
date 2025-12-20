@@ -10,31 +10,41 @@ endif
 $(info OS="$(OS)")
 
 ifeq ($(OS),Windows_NT)
-DEBUG_CFLAGS = -fPIC -Wall -Wextra -std=$(STD) -g -O0 -DDEBUG
-LIBS = -lm -lws2_32 -lkernel32
+AR = llvm-ar
+DEBUG_CFLAGS = -Wall -Wextra -std=$(STD) -g -O0 -DDEBUG -D_CRT_SECURE_NO_WARNINGS
+RELEASE_CFLAGS = -Wall -Wextra -std=$(STD) -O3 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS \
+ -fassociative-math -ftree-vectorize -funsafe-math-optimizations -funroll-loops -fno-math-errno
+LIBS = -lws2_32 -lmswsock -lkernel32
+DEBUG_LDFLAGS = -fuse-ld=lld
+RELEASE_LDFLAGS = -fuse-ld=lld
 LIBNAME = rayforce.dll
+TARGET = rayforce.exe
 endif
 
 ifeq ($(OS),linux)
 DEBUG_CFLAGS = -fPIC -Wall -Wextra -std=$(STD) -g -O0 -march=native -fsigned-char -DDEBUG -m64
+RELEASE_CFLAGS = -fPIC -Wall -Wextra -std=$(STD) -O3 -fsigned-char -march=native\
+ -fassociative-math -ftree-vectorize -funsafe-math-optimizations -funroll-loops -m64\
+ -flax-vector-conversions -fno-math-errno
 LIBS = -lm -ldl -lpthread
 RELEASE_LDFLAGS = -Wl,--strip-all -Wl,--gc-sections -Wl,--as-needed\
  -Wl,--build-id=none -Wl,--no-eh-frame-hdr -Wl,--no-ld-generated-unwind-info\
  -rdynamic
 DEBUG_LDFLAGS = -rdynamic
 LIBNAME = rayforce.so
+TARGET = rayforce
 endif
 
 ifeq ($(OS),darwin)
 DEBUG_CFLAGS = -fPIC -Wall -Wextra -Wunused-function -std=$(STD) -g -O0 -march=native -fsigned-char -DDEBUG -m64 -fsanitize=undefined -fsanitize=address
-LIBS = -lm -ldl -lpthread
-LIBNAME = librayforce.dylib
-endif
-
 RELEASE_CFLAGS = -fPIC -Wall -Wextra -std=$(STD) -O3 -fsigned-char -march=native\
  -fassociative-math -ftree-vectorize -funsafe-math-optimizations -funroll-loops -m64\
- -flax-vector-conversions -fno-math-errno\
- -ffunction-sections -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables
+ -flax-vector-conversions -fno-math-errno
+LIBS = -lm -ldl -lpthread
+LIBNAME = librayforce.dylib
+TARGET = rayforce
+endif
+
 CORE_OBJECTS = core/poll.o core/ipc.o core/repl.o core/runtime.o core/sys.o core/os.o core/proc.o core/fs.o core/mmap.o core/serde.o\
  core/temporal.o core/date.o core/time.o core/timestamp.o core/guid.o core/sort.o core/ops.o core/util.o\
  core/string.o core/hash.o core/symbols.o core/format.o core/rayforce.o core/heap.o core/parse.o\
@@ -46,7 +56,6 @@ CORE_OBJECTS = core/poll.o core/ipc.o core/repl.o core/runtime.o core/sys.o core
 APP_OBJECTS = app/main.o
 TESTS_OBJECTS = tests/main.o
 BENCH_OBJECTS = bench/main.o
-TARGET = rayforce
 CFLAGS = $(RELEASE_CFLAGS)
 GIT_HASH := $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
 
@@ -60,14 +69,14 @@ app: $(APP_OBJECTS) obj
 	$(CC) $(CFLAGS) -o $(TARGET) $(CORE_OBJECTS) $(APP_OBJECTS) $(LIBS) $(LDFLAGS)
 
 tests: -DSTOP_ON_FAIL=$(STOP_ON_FAIL) -DDEBUG
-tests: $(TESTS_OBJECTS) lib
-	$(CC) -include core/def.h $(CFLAGS) -o $(TARGET).test $(CORE_OBJECTS) $(TESTS_OBJECTS) -L. -l$(TARGET) $(LIBS) $(LDFLAGS)
+tests: $(TESTS_OBJECTS) obj
+	$(CC) -include core/def.h $(CFLAGS) -o $(TARGET).test $(CORE_OBJECTS) $(TESTS_OBJECTS) $(LIBS) $(LDFLAGS)
 	./$(TARGET).test
 
 bench: CC = gcc
 bench: CFLAGS = $(RELEASE_CFLAGS)
-bench: $(BENCH_OBJECTS) lib
-	$(CC) -include core/def.h $(CFLAGS) -o $(TARGET).bench $(BENCH_OBJECTS) -L. -l$(TARGET) $(LIBS) $(LDFLAGS)
+bench: $(BENCH_OBJECTS) obj
+	$(CC) -include core/def.h $(CFLAGS) -o $(TARGET).bench $(CORE_OBJECTS) $(BENCH_OBJECTS) $(LIBS) $(LDFLAGS)
 	BENCH=$(BENCH) ./$(TARGET).bench
 
 %.o: %.c
@@ -150,6 +159,7 @@ clean:
 	-rm -f $(TARGET).js
 	-rm -f $(TARGET).wasm
 	-rm -f $(TARGET)
+	-rm -f $(TARGET).exe
 	-rm -f tests/*.gcno tests/*.gcda tests/*.gcov
 	-rm -f core/*.gcno core/*.gcda core/*.gcov
 	-rm -f coverage.info

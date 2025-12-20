@@ -23,8 +23,13 @@
 
 #include <stdio.h>
 #include <sys/stat.h>
+#include "log.h"
+#if defined(OS_WINDOWS)
+#include <io.h>  // for _get_osfhandle
+#endif
 #include "fs.h"
 #include "string.h"
+#include "ops.h"  // for NULL_OBJ
 
 #if defined(OS_WINDOWS)
 
@@ -133,14 +138,17 @@ obj_p fs_read_dir(lit_p path) {
     obj_p lst = LIST(0);
     char searchPath[MAX_PATH];
 
-    // Append \* to the path for Windows API
-    snprintf(searchPath, MAX_PATH, "%s\\*", path);
+    // Append /* to the path (Windows accepts forward slashes)
+    snprintf(searchPath, MAX_PATH, "%s/*", path);
 
     hFind = FindFirstFile(searchPath, &findFileData);
     if (hFind == INVALID_HANDLE_VALUE)
-        return NULL_OBJ;
+        return sys_error(ERROR_TYPE_SYS, path);
 
     do {
+        // Skip . and .. entries
+        if (strcmp(findFileData.cFileName, ".") == 0 || strcmp(findFileData.cFileName, "..") == 0)
+            continue;
         push_obj(&lst, string_from_str(findFileData.cFileName, strlen(findFileData.cFileName)));
     } while (FindNextFile(hFind, &findFileData) != 0);
 
@@ -152,13 +160,13 @@ obj_p fs_read_dir(lit_p path) {
 i64_t fs_get_fname_by_fd(i64_t fd, c8_t buf[], i64_t len) {
     HANDLE hFile = (HANDLE)_get_osfhandle(fd);  // Convert fd to Windows HANDLE
     if (hFile == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "Invalid file descriptor.\n");
+        LOG_ERROR("Invalid file descriptor");
         return -1;
     }
 
     DWORD result = GetFinalPathNameByHandleA(hFile, buf, (DWORD)len, FILE_NAME_NORMALIZED);
     if (result == 0 || result >= len) {
-        fprintf(stderr, "Failed to get file name or buffer too small: %lu\n", GetLastError());
+        LOG_ERROR("Failed to get file name or buffer too small: %lu", GetLastError());
         return -1;
     }
 
