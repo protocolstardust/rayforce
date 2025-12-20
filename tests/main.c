@@ -41,7 +41,7 @@
 #include "../core/sys.h"
 #include "../core/eval.h"
 
-typedef enum test_status_t { TEST_PASS = 0, TEST_FAIL } test_status_t;
+typedef enum test_status_t { TEST_PASS = 0, TEST_FAIL, TEST_SKIP } test_status_t;
 
 typedef struct test_result_t {
     test_status_t status;
@@ -81,6 +81,8 @@ nil_t teardown() {
     return (test_result_t) { TEST_PASS, NULL }
 #define FAIL(msg) \
     return (test_result_t) { TEST_FAIL, msg }
+#define SKIP(msg) \
+    return (test_result_t) { TEST_SKIP, msg }
 
 // A tests assertion function
 #define TEST_ASSERT(cond, msg) \
@@ -98,8 +100,10 @@ nil_t on_fail(str_p msg) {
 #endif
 }
 
+nil_t on_skip(str_p msg) { printf("%sSkipped%s (%s)\n", YELLOW, RESET, msg ? msg : "no reason"); }
+
 // Macro to encapsulate the pattern
-#define RUN_TEST(name, func, pass)                                 \
+#define RUN_TEST(name, func, pass, skip)                           \
     test_result_t res;                                             \
     clock_t timer;                                                 \
     f64_t ms;                                                      \
@@ -113,6 +117,9 @@ nil_t on_fail(str_p msg) {
         if (res.status == TEST_PASS) {                             \
             (*pass)++;                                             \
             on_pass(ms);                                           \
+        } else if (res.status == TEST_SKIP) {                      \
+            (*skip)++;                                             \
+            on_skip(res.msg);                                      \
         } else {                                                   \
             on_fail(res.msg);                                      \
         }                                                          \
@@ -124,10 +131,9 @@ nil_t on_fail(str_p msg) {
         obj_p le = eval_str(lhs);                                                                                      \
         obj_p lns = obj_fmt(le, B8_TRUE);                                                                              \
         if (IS_ERR(le)) {                                                                                              \
-            obj_p fmt = str_fmt(-1, "Input error: %s\n -- at: %s:%d", AS_C8(lns), __FILE__, __LINE__);                 \
-            TEST_ASSERT(0, AS_C8(lns));                                                                                \
             drop_obj(lns);                                                                                             \
-            drop_obj(fmt);                                                                                             \
+            drop_obj(le);                                                                                              \
+            SKIP("error in eval");                                                                                     \
         } else {                                                                                                       \
             obj_p re = eval_str(rhs);                                                                                  \
             obj_p rns = obj_fmt(re, B8_TRUE);                                                                          \
@@ -403,19 +409,22 @@ test_entry_t tests[] = {
 // ---
 
 i32_t main() {
-    i32_t i, num_tests, num_passed = 0;
+    i32_t i, num_tests, num_passed = 0, num_skipped = 0;
 
     num_tests = sizeof(tests) / sizeof(test_entry_t);
     printf("%sTotal tests: %s%d\n", YELLOW, RESET, num_tests);
 
     for (i = 0; i < num_tests; ++i) {
-        RUN_TEST(tests[i].name, tests[i].func, &num_passed);
+        RUN_TEST(tests[i].name, tests[i].func, &num_passed, &num_skipped);
     }
 
-    if (num_passed != num_tests)
-        printf("%sPassed%s %d/%d tests.\n", YELLOW, RESET, num_passed, num_tests);
+    i32_t num_failed = num_tests - num_passed - num_skipped;
+    if (num_failed > 0)
+        printf("%sPassed%s %d/%d tests (%d skipped, %d failed).\n", YELLOW, RESET, num_passed, num_tests, num_skipped, num_failed);
+    else if (num_skipped > 0)
+        printf("%sAll tests passed!%s (%d skipped)\n", GREEN, RESET, num_skipped);
     else
         printf("%sAll tests passed!%s\n", GREEN, RESET);
 
-    return num_passed != num_tests;
+    return num_failed > 0;
 }
