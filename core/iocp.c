@@ -52,6 +52,7 @@
 #include "chrono.h"
 #include "binary.h"
 #include "ipc.h"
+#include "repl.h"
 
 // Link with Ws2_32.lib
 #pragma comment(lib, "Ws2_32.lib")
@@ -291,6 +292,7 @@ poll_p poll_init(i64_t port) {
     poll->replfile = string_from_str("repl", 4);
     poll->ipcfile = string_from_str("ipc", 3);
     poll->term = term_create();
+    poll->repl = NULL;  // Will be set by repl_create
     poll->selectors = freelist_create(128);
     poll->timers = timers_create(16);
 
@@ -448,6 +450,10 @@ nil_t poll_destroy(poll_p poll) {
 
     drop_obj(poll->replfile);
     drop_obj(poll->ipcfile);
+
+    // Destroy REPL before term (repl uses poll->term on Windows)
+    if (poll->repl)
+        repl_destroy(poll->repl);
 
     term_destroy(poll->term);
 

@@ -132,19 +132,20 @@ repl_p repl_create(poll_p poll, b8_t silent) {
     repl->name = string_from_str("repl", 4);
     repl->silent = silent;
 
+#if defined(OS_WINDOWS)
+    // On Windows, STDIN is handled by iocp.c's StdinThread
+    // The poll_init() function sets up STDIN handling internally
+    // Use poll->term instead of creating a separate one
+    repl->term = poll->term;
+    repl->id = 0;  // Placeholder ID for Windows
+    poll->repl = repl;  // Store repl pointer for cleanup
+#else
     // Only create term if not in silent mode
     if (!silent) {
         repl->term = term_create();
     } else {
         repl->term = NULL;
     }
-
-#if defined(OS_WINDOWS)
-    // On Windows, STDIN is handled by iocp.c's StdinThread
-    // The poll_init() function sets up STDIN handling internally
-    repl->id = 0;  // Placeholder ID for Windows
-    UNUSED(poll);
-#else
     {
         struct poll_registry_t registry = ZERO_INIT_STRUCT;
         registry.fd = STDIN_FILENO;
@@ -174,8 +175,11 @@ repl_p repl_create(poll_p poll, b8_t silent) {
 
 nil_t repl_destroy(repl_p repl) {
     drop_obj(repl->name);
+#if !defined(OS_WINDOWS)
+    // On Windows, term is shared with poll->term, so don't destroy here
     if (repl->term)
         term_destroy(repl->term);
+#endif
     heap_free(repl);
 }
 

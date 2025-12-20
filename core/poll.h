@@ -130,6 +130,9 @@ typedef struct selector_t {
 // Forward declare term_p (defined in term.h)
 struct term_t;
 
+// Forward declare repl_t
+struct repl_t;
+
 typedef struct poll_t {
     i64_t poll_fd;         // IOCP handle
     i64_t ipc_fd;          // IPC socket fd
@@ -137,6 +140,7 @@ typedef struct poll_t {
     obj_p replfile;        // REPL file name
     obj_p ipcfile;         // IPC file name
     struct term_t *term;   // terminal
+    struct repl_t *repl;   // REPL (for cleanup)
     freelist_p selectors;  // freelist of selectors
     timers_p timers;       // timers heap
 } *poll_p;
