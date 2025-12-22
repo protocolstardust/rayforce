@@ -180,17 +180,19 @@ static obj_p meta_lambda(obj_p x) {
     obj_p keys, vals;
     lambda_p lam = AS_LAMBDA(x);
 
-    keys = SYMBOL(4);
+    keys = SYMBOL(5);
     ins_sym(&keys, 0, "type");
     ins_sym(&keys, 1, "name");
     ins_sym(&keys, 2, "arity");
     ins_sym(&keys, 3, "args");
+    ins_sym(&keys, 4, "body");
 
-    vals = LIST(4);
+    vals = LIST(5);
     AS_LIST(vals)[0] = symboli64(env_get_typename_by_type(&runtime_get()->env, x->type));
     AS_LIST(vals)[1] = clone_obj(lam->name);
     AS_LIST(vals)[2] = i64(lam->args->len);
     AS_LIST(vals)[3] = clone_obj(lam->args);
+    AS_LIST(vals)[4] = clone_obj(lam->body);
 
     return dict(keys, vals);
 }
