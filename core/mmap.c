@@ -109,7 +109,7 @@ raw_p mmap_alloc(i64_t size) {
 }
 
 raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
-    raw_p ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NONBLOCK | MAP_POPULATE, fd, offset);
+    raw_p ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NONBLOCK, fd, offset);
 
     if (ptr == MAP_FAILED)
         return NULL;
@@ -118,7 +118,7 @@ raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
 }
 
 raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
-    raw_p ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NONBLOCK | MAP_POPULATE, fd, offset);
+    raw_p ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NONBLOCK, fd, offset);
 
     if (ptr == MAP_FAILED)
         return NULL;
@@ -207,13 +207,9 @@ i64_t mmap_commit(raw_p addr, i64_t size) { return mprotect(addr, size, PROT_REA
 // WASM uses simple malloc/free since there's no traditional mmap
 // Memory management is handled by Emscripten's memory allocator
 
-raw_p mmap_stack(i64_t size) { 
-    return malloc(size); 
-}
+raw_p mmap_stack(i64_t size) { return malloc(size); }
 
-raw_p mmap_alloc(i64_t size) { 
-    return malloc(size); 
-}
+raw_p mmap_alloc(i64_t size) { return malloc(size); }
 
 raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
     (void)fd;
@@ -231,17 +227,17 @@ raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
     return malloc(size);
 }
 
-i64_t mmap_free(raw_p addr, i64_t size) { 
+i64_t mmap_free(raw_p addr, i64_t size) {
     (void)size;
-    free(addr); 
-    return 0; 
+    free(addr);
+    return 0;
 }
 
-i64_t mmap_sync(raw_p addr, i64_t size) { 
+i64_t mmap_sync(raw_p addr, i64_t size) {
     (void)addr;
     (void)size;
     // No-op in WASM
-    return 0; 
+    return 0;
 }
 
 raw_p mmap_reserve(raw_p addr, i64_t size) {
@@ -254,11 +250,11 @@ raw_p mmap_reserve(raw_p addr, i64_t size) {
     return malloc(size);
 }
 
-i64_t mmap_commit(raw_p addr, i64_t size) { 
+i64_t mmap_commit(raw_p addr, i64_t size) {
     (void)addr;
     (void)size;
     // No-op in WASM - memory is already committed
-    return 0; 
+    return 0;
 }
 
 #endif

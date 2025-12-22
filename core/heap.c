@@ -46,7 +46,7 @@ __thread c8_t HEAP_SWAP[64] = {0};
 #define ORDEROF(s) (64ll - __builtin_clzll((s) - 1))
 #define BLOCK2RAW(b) ((raw_p)((i64_t)(b) + sizeof(struct obj_t)))
 #define RAW2BLOCK(r) ((block_p)((i64_t)(r) - sizeof(struct obj_t)))
-#define DEFAULT_HEAP_SWAP "/tmp/"
+#define DEFAULT_HEAP_SWAP "./"
 
 heap_p heap_create(i64_t id) {
     LOG_INFO("Creating heap with id %lld", id);
@@ -168,7 +168,7 @@ block_p heap_add_pool(i64_t size) {
             return NULL;
         }
 
-        block = (block_p)mmap_file(fd, NULL, size, 0);
+        block = (block_p)mmap_file_shared(fd, NULL, size, 0);
 
         if (block == NULL) {
             fs_fclose(fd);
