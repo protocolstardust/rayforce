@@ -456,6 +456,22 @@ i64_t pool_get_executors_count(pool_p pool) {
         return pool->executors_count + 1;
 }
 
+// Calculate page-aligned chunk size for parallel operations
+// This ensures each worker operates on contiguous pages for cache efficiency
+i64_t pool_chunk_aligned(i64_t total_len, i64_t num_workers, i64_t elem_size) {
+    if (num_workers <= 1 || elem_size <= 0)
+        return total_len;
+
+    i64_t elems_per_page = RAY_PAGE_SIZE / elem_size;
+    if (elems_per_page == 0)
+        elems_per_page = 1;
+
+    i64_t total_pages = (total_len + elems_per_page - 1) / elems_per_page;
+    i64_t pages_per_chunk = (total_pages + num_workers - 1) / num_workers;
+
+    return pages_per_chunk * elems_per_page;
+}
+
 nil_t pool_map(i64_t total_len, pool_map_fn fn, void* ctx) {
     pool_p pool;
     i64_t i, n, chunk;

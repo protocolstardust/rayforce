@@ -61,12 +61,12 @@ obj_p ray_cast_obj(obj_p x, obj_p y) {
     if (IS_VECTOR(y) && type < 0) {
         i8_t abs_src = y->type;
         i8_t abs_dst = -type;
-        if ((abs_src == TYPE_I16 || abs_src == TYPE_I32 || abs_src == TYPE_I64 ||
-             abs_src == TYPE_F64 || abs_src == TYPE_U8 || abs_src == TYPE_B8 ||
-             abs_src == TYPE_DATE || abs_src == TYPE_TIME || abs_src == TYPE_TIMESTAMP) &&
-            (abs_dst == TYPE_I16 || abs_dst == TYPE_I32 || abs_dst == TYPE_I64 ||
-             abs_dst == TYPE_F64 || abs_dst == TYPE_U8 || abs_dst == TYPE_B8 ||
-             abs_dst == TYPE_DATE || abs_dst == TYPE_TIME || abs_dst == TYPE_TIMESTAMP)) {
+        if ((abs_src == TYPE_I16 || abs_src == TYPE_I32 || abs_src == TYPE_I64 || abs_src == TYPE_F64 ||
+             abs_src == TYPE_U8 || abs_src == TYPE_B8 || abs_src == TYPE_DATE || abs_src == TYPE_TIME ||
+             abs_src == TYPE_TIMESTAMP) &&
+            (abs_dst == TYPE_I16 || abs_dst == TYPE_I32 || abs_dst == TYPE_I64 || abs_dst == TYPE_F64 ||
+             abs_dst == TYPE_U8 || abs_dst == TYPE_B8 || abs_dst == TYPE_DATE || abs_dst == TYPE_TIME ||
+             abs_dst == TYPE_TIMESTAMP)) {
             type = -type;
         }
     }
@@ -89,7 +89,7 @@ obj_p ray_til_partial(i64_t len, i64_t offset, i64_t filter[], i64_t out[]) {
 }
 
 obj_p __til(obj_p x, obj_p filter) {
-    i64_t i, l, n, chunk;
+    i64_t i, l, n, chunk, offset;
     i64_t *ids = NULL;
     obj_p v, vec;
     pool_p pool;
@@ -116,13 +116,21 @@ obj_p __til(obj_p x, obj_p filter) {
         return vec;
     }
 
-    chunk = l / n;
+    // Page-aligned chunk size for cache efficiency
+    chunk = pool_chunk_aligned(l, n, sizeof(i64_t));
+
     pool_prepare(pool);
 
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, (raw_p)ray_til_partial, 4, chunk, i * chunk, ids, AS_I64(vec) + i * chunk);
+    offset = 0;
+    for (i = 0; i < n - 1 && offset < l; i++) {
+        i64_t this_chunk = (offset + chunk <= l) ? chunk : (l - offset);
+        pool_add_task(pool, (raw_p)ray_til_partial, 4, this_chunk, offset, ids, AS_I64(vec) + offset);
+        offset += chunk;
+    }
 
-    pool_add_task(pool, (raw_p)ray_til_partial, 4, l - i * chunk, i * chunk, ids, AS_I64(vec) + i * chunk);
+    // Last chunk handles remaining elements
+    if (offset < l)
+        pool_add_task(pool, (raw_p)ray_til_partial, 4, l - offset, offset, ids, AS_I64(vec) + offset);
 
     v = pool_run(pool);
     drop_obj(v);
@@ -450,7 +458,7 @@ obj_p ray_rand(obj_p x, obj_p y) {
 
             vec = I64(count);
 
-            rand_ctx_t ctx = { AS_I64(vec), y->i64, ops_rand_u64() };
+            rand_ctx_t ctx = {AS_I64(vec), y->i64, ops_rand_u64()};
             pool_map(count, rand_worker, &ctx);
 
             return vec;

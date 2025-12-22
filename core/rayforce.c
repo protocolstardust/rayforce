@@ -1134,13 +1134,17 @@ obj_p at_ids(obj_p obj, i64_t ids[], i64_t len) {
                 return out;
             }
 
+            chunk = pool_chunk_aligned(len, n, size_of_type(obj->type));
+
             pool_prepare(pool);
-            chunk = len / n;
-
-            for (i = 0; i < n - 1; i++)
-                pool_add_task(pool, at_ids_partial, 5, obj, ids, chunk, i * chunk, out);
-
-            pool_add_task(pool, at_ids_partial, 5, obj, ids, len - i * chunk, i * chunk, out);
+            i64_t offset = 0;
+            for (i = 0; i < n - 1 && offset < len; i++) {
+                i64_t this_chunk = (offset + chunk <= len) ? chunk : (len - offset);
+                pool_add_task(pool, at_ids_partial, 5, obj, ids, this_chunk, offset, out);
+                offset += chunk;
+            }
+            if (offset < len)
+                pool_add_task(pool, at_ids_partial, 5, obj, ids, len - offset, offset, out);
 
             v = pool_run(pool);
             if (IS_ERR(v))

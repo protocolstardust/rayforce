@@ -154,13 +154,18 @@ obj_p pmap_unary_fn(unary_f fn, i64_t attrs, obj_p x) {
         num_chunks = l;
 
     v = AS_LIST(x);
-    chunk_size = l / num_chunks;
+    chunk_size = pool_chunk_aligned(l, num_chunks, sizeof(obj_p));
     pool_prepare(pool);
 
-    for (i = 0; i < num_chunks - 1; i++)
-        pool_add_task(pool, (raw_p)map_unary_range, 5, fn, attrs, v, i * chunk_size, (i + 1) * chunk_size);
+    i64_t offset = 0;
+    for (i = 0; i < num_chunks - 1 && offset < l; i++) {
+        i64_t end = (offset + chunk_size <= l) ? (offset + chunk_size) : l;
+        pool_add_task(pool, (raw_p)map_unary_range, 5, fn, attrs, v, offset, end);
+        offset += chunk_size;
+    }
     // Last chunk handles remainder
-    pool_add_task(pool, (raw_p)map_unary_range, 5, fn, attrs, v, i * chunk_size, l);
+    if (offset < l)
+        pool_add_task(pool, (raw_p)map_unary_range, 5, fn, attrs, v, offset, l);
 
     parts = pool_run(pool);
     return concat_parts(parts);
@@ -543,7 +548,7 @@ obj_p map_lambda(obj_p f, obj_p *x, i64_t n) {
 }
 
 obj_p pmap_lambda(obj_p f, obj_p *x, i64_t n) {
-    i64_t i, l, num_chunks, chunk_size, start, end;
+    i64_t i, l, num_chunks, chunk_size, end;
     obj_p parts;
     pool_p pool;
 
@@ -560,16 +565,18 @@ obj_p pmap_lambda(obj_p f, obj_p *x, i64_t n) {
     if (num_chunks > l)
         num_chunks = l;
 
-    chunk_size = l / num_chunks;
+    chunk_size = pool_chunk_aligned(l, num_chunks, sizeof(obj_p));
     pool_prepare(pool);
 
-    for (i = 0; i < num_chunks - 1; i++) {
-        start = i * chunk_size;
-        end = start + chunk_size;
-        pool_add_task(pool, (raw_p)map_lambda_range, 5, f, x, n, start, end);
+    i64_t offset = 0;
+    for (i = 0; i < num_chunks - 1 && offset < l; i++) {
+        end = (offset + chunk_size <= l) ? (offset + chunk_size) : l;
+        pool_add_task(pool, (raw_p)map_lambda_range, 5, f, x, n, offset, end);
+        offset += chunk_size;
     }
     // Last chunk handles remainder
-    pool_add_task(pool, (raw_p)map_lambda_range, 5, f, x, n, i * chunk_size, l);
+    if (offset < l)
+        pool_add_task(pool, (raw_p)map_lambda_range, 5, f, x, n, offset, l);
 
     parts = pool_run(pool);
     return concat_parts(parts);

@@ -123,6 +123,9 @@ raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
     if (ptr == MAP_FAILED)
         return NULL;
 
+    // Hint sequential access - kernel can flush pages after access and prefetch ahead
+    madvise(ptr, size, MADV_SEQUENTIAL);
+
     return ptr;
 }
 
@@ -181,6 +184,9 @@ raw_p mmap_file_shared(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
 
     if (ptr == MAP_FAILED)
         return NULL;
+
+    // Hint sequential access - kernel can flush pages after access and prefetch ahead
+    madvise(ptr, size, MADV_SEQUENTIAL);
 
     return ptr;
 }

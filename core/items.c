@@ -1528,13 +1528,17 @@ static obj_p bin_map(raw_p op, obj_p x, obj_p y) {
         return out;
     }
 
+    chunk = pool_chunk_aligned(l, n, sizeof(i64_t));
+
     pool_prepare(pool);
-    chunk = l / n;
-
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, op, 5, x, y, chunk, i * chunk, out);
-
-    pool_add_task(pool, op, 5, x, y, l - i * chunk, i * chunk, out);
+    i64_t offset = 0;
+    for (i = 0; i < n - 1 && offset < l; i++) {
+        i64_t this_chunk = (offset + chunk <= l) ? chunk : (l - offset);
+        pool_add_task(pool, op, 5, x, y, this_chunk, offset, out);
+        offset += chunk;
+    }
+    if (offset < l)
+        pool_add_task(pool, op, 5, x, y, l - offset, offset, out);
 
     v = pool_run(pool);
     if (IS_ERR(v))

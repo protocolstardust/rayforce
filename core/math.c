@@ -2203,28 +2203,15 @@ obj_p unop_fold(raw_p op, obj_p x) {
     if (n == 1)
         return ((obj_p(*)(obj_p, i64_t, i64_t))op)(x, l, 0);
 
-    // --- PAGE-ALIGNED CHUNKING ---
-    i64_t elem_size = size_of_type(x->type);
-    i64_t page_size = RAY_PAGE_SIZE;
-    i64_t elems_per_page = page_size / elem_size;
-    if (elems_per_page == 0)
-        elems_per_page = 1;
-    i64_t base_chunk = (l + n - 1) / n;
-    // round up to nearest multiple of elems_per_page
-    base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
+    i64_t chunk = pool_chunk_aligned(l, n, size_of_type(x->type));
 
     pool_prepare(pool);
     i64_t offset = 0;
-    for (i = 0; i < n - 1; i++) {
-        i64_t this_chunk = base_chunk;
-        if (offset + this_chunk > l)
-            this_chunk = l - offset;
+    for (i = 0; i < n - 1 && offset < l; i++) {
+        i64_t this_chunk = (offset + chunk <= l) ? chunk : (l - offset);
         pool_add_task(pool, op, 3, x, this_chunk, offset);
-        offset += this_chunk;
-        if (offset >= l)
-            break;
+        offset += chunk;
     }
-    // last chunk
     if (offset < l)
         pool_add_task(pool, op, 3, x, l - offset, offset);
 
@@ -2269,13 +2256,17 @@ obj_p unop_map(raw_p op, obj_p x) {
         return out;
     }
 
+    chunk = pool_chunk_aligned(l, n, size_of_type(x->type));
+
     pool_prepare(pool);
-    chunk = l / n;
-
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, op, 4, x, chunk, i * chunk, out);
-
-    pool_add_task(pool, op, 4, x, l - i * chunk, i * chunk, out);
+    i64_t offset = 0;
+    for (i = 0; i < n - 1 && offset < l; i++) {
+        i64_t this_chunk = (offset + chunk <= l) ? chunk : (l - offset);
+        pool_add_task(pool, op, 4, x, this_chunk, offset, out);
+        offset += chunk;
+    }
+    if (offset < l)
+        pool_add_task(pool, op, 4, x, l - offset, offset, out);
 
     v = pool_run(pool);
     if (IS_ERR(v))
@@ -2329,25 +2320,14 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
         return out;
     }
 
-    // --- PAGE-ALIGNED CHUNKING ---
-    i64_t elem_size = size_of_type(t);
-    i64_t page_size = RAY_PAGE_SIZE;
-    i64_t elems_per_page = page_size / elem_size;
-    if (elems_per_page == 0)
-        elems_per_page = 1;
-    i64_t base_chunk = (l + n - 1) / n;
-    base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
+    i64_t chunk = pool_chunk_aligned(l, n, size_of_type(t));
 
     pool_prepare(pool);
     i64_t offset = 0;
-    for (i = 0; i < n - 1; i++) {
-        i64_t this_chunk = base_chunk;
-        if (offset + this_chunk > l)
-            this_chunk = l - offset;
+    for (i = 0; i < n - 1 && offset < l; i++) {
+        i64_t this_chunk = (offset + chunk <= l) ? chunk : (l - offset);
         pool_add_task(pool, op, 5, x, y, this_chunk, offset, out);
-        offset += this_chunk;
-        if (offset >= l)
-            break;
+        offset += chunk;
     }
     if (offset < l)
         pool_add_task(pool, op, 5, x, y, l - offset, offset, out);
@@ -2377,25 +2357,14 @@ obj_p binop_fold(raw_p op, obj_p x, obj_p y) {
     if (n == 1)
         return ((obj_p(*)(obj_p, obj_p, i64_t, i64_t))op)(x, y, l, 0);
 
-    // --- PAGE-ALIGNED CHUNKING ---
-    i64_t elem_size = size_of_type(x->type);
-    i64_t page_size = RAY_PAGE_SIZE;
-    i64_t elems_per_page = page_size / elem_size;
-    if (elems_per_page == 0)
-        elems_per_page = 1;
-    i64_t base_chunk = (l + n - 1) / n;
-    base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
+    i64_t chunk = pool_chunk_aligned(l, n, size_of_type(x->type));
 
     pool_prepare(pool);
     i64_t offset = 0;
-    for (i = 0; i < n - 1; i++) {
-        i64_t this_chunk = base_chunk;
-        if (offset + this_chunk > l)
-            this_chunk = l - offset;
+    for (i = 0; i < n - 1 && offset < l; i++) {
+        i64_t this_chunk = (offset + chunk <= l) ? chunk : (l - offset);
         pool_add_task(pool, op, 4, x, y, this_chunk, offset);
-        offset += this_chunk;
-        if (offset >= l)
-            break;
+        offset += chunk;
     }
     if (offset < l)
         pool_add_task(pool, op, 4, x, y, l - offset, offset);
@@ -2433,25 +2402,14 @@ obj_p ray_cnt(obj_p x) {
     if (n == 1)
         return ray_cnt_partial(x, l, 0);
 
-    // Parallel processing
-    i64_t elem_size = size_of_type(x->type);
-    i64_t page_size = RAY_PAGE_SIZE;
-    i64_t elems_per_page = page_size / elem_size;
-    if (elems_per_page == 0)
-        elems_per_page = 1;
-    i64_t base_chunk = (l + n - 1) / n;
-    base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
+    i64_t chunk = pool_chunk_aligned(l, n, size_of_type(x->type));
 
     pool_prepare(pool);
     i64_t offset = 0;
-    for (i = 0; i < n - 1; i++) {
-        i64_t this_chunk = base_chunk;
-        if (offset + this_chunk > l)
-            this_chunk = l - offset;
+    for (i = 0; i < n - 1 && offset < l; i++) {
+        i64_t this_chunk = (offset + chunk <= l) ? chunk : (l - offset);
         pool_add_task(pool, ray_cnt_partial, 3, x, this_chunk, offset);
-        offset += this_chunk;
-        if (offset >= l)
-            break;
+        offset += chunk;
     }
     if (offset < l)
         pool_add_task(pool, ray_cnt_partial, 3, x, l - offset, offset);
