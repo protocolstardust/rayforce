@@ -109,7 +109,7 @@ raw_p mmap_alloc(i64_t size) {
 }
 
 raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
-    raw_p ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NONBLOCK, fd, offset);
+    raw_p ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE | MAP_NONBLOCK, fd, offset);
 
     if (ptr == MAP_FAILED)
         return NULL;
@@ -166,7 +166,7 @@ raw_p mmap_alloc(i64_t size) {
 raw_p mmap_file(i64_t fd, raw_p addr, i64_t size, i64_t offset) {
     raw_p ptr;
 
-    ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, offset);
+    ptr = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE, fd, offset);
 
     if (ptr == MAP_FAILED)
         return NULL;
