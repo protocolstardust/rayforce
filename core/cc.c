@@ -129,6 +129,9 @@ static i64_t cc_const(cc_ctx_t *cc, obj_p e) {
 // Check if a binary function is a special form (like set/let)
 static b8_t is_binary_special_form(obj_p fn) { return fn->type == TYPE_BINARY && (fn->attrs & FN_SPECIAL_FORM); }
 
+// Check if a unary function is a special form (like quote)
+static b8_t is_unary_special_form(obj_p fn) { return fn->type == TYPE_UNARY && (fn->attrs & FN_SPECIAL_FORM); }
+
 // Compile function call
 // expr is the original list expression (for debug info)
 static i64_t cc_call(cc_ctx_t *cc, obj_p expr, obj_p *lst, i64_t n) {
@@ -141,6 +144,18 @@ static i64_t cc_call(cc_ctx_t *cc, obj_p expr, obj_p *lst, i64_t n) {
     // Handle special form 'cond'/'if'
     if (is_cond_fn(car)) {
         return cc_cond(cc, lst, n);
+    }
+
+    // Handle unary special forms (quote)
+    // Argument is passed unevaluated
+    if (is_unary_special_form(car) && n == 1) {
+        // Push arg as constant (no dereference/evaluation)
+        CE(cc_const(cc, lst[0]));
+        // Record debug info and emit call
+        DBG(cc, expr);
+        CC(cc, clone_obj(car));
+        OP(cc, OP_CALF1);
+        return 0;
     }
 
     // Handle binary special forms (set, let, try)

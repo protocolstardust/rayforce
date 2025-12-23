@@ -261,9 +261,6 @@ obj_p vector(i8_t type, i64_t len) {
     vec->len = len;
     vec->attrs = 0;
 
-    // Zero out the data area to avoid uninitialized bytes being written to disk
-    memset(vec->raw, 0, data_size);
-
     return vec;
 }
 
