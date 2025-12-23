@@ -14,9 +14,6 @@ obj_p ray_err(lit_p msg);
 
 // Error access
 lit_p ray_err_msg(obj_p err);
-obj_p ray_get_err(nil_t);
-nil_t ray_set_err(obj_p err);
-nil_t ray_clear_err(nil_t);
 
 #define PANIC(...)                                            \
     do {                                                      \

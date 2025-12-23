@@ -50,7 +50,6 @@ vm_p vm_create(i64_t id, struct pool_t *pool) {
     vm->nfo = NULL_OBJ;
     vm->pool = pool;
     vm->timeit.active = B8_FALSE;
-    vm->last_err = NULL_OBJ;
     vm->last_locs = NULL_OBJ;
     memset(vm->ps, 0, sizeof(obj_p) * VM_STACK_SIZE);
     memset(vm->rs, 0, sizeof(ctx_t) * VM_STACK_SIZE);
@@ -287,7 +286,7 @@ nil_t eval_error_add_loc(obj_p expr) {
         return;
 
     nfo = vm->nfo;
-    
+
     // Check nfo has proper structure (list with at least 2 elements)
     if (nfo->type != TYPE_LIST || nfo->len < 2)
         return;

@@ -68,8 +68,7 @@ typedef struct vm_t {
     obj_p fn;                                              // current function pointer
     obj_p env;                                             // current environment frame
     obj_p nfo;                                             // current source nfo for error reporting
-    obj_p last_err;                                        // last error (glibc-like errno)
-    obj_p last_locs;                                       // last error locations
+    obj_p last_locs;                                       // last error locations (call stack)
     i64_t id;                                              // VM id
     i64_t fp;                                              // frame pointer
     i64_t sp;                                              // program stack pointer
