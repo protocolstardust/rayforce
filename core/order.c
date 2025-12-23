@@ -613,10 +613,10 @@ obj_p ray_xrank(obj_p y, obj_p x) {
             n_buckets = x->u8;
             break;
         default:
-            return ray_err("xrank: second arg must be integer");
+            return ray_err(ERR_TYPE);
     }
     if (n_buckets <= 0)
-        return ray_err("xrank: number of buckets must be positive");
+        return ray_err(ERR_RANGE);
 
     l = y->len;
     res = I64(l);

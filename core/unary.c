@@ -59,13 +59,13 @@ obj_p ray_get(obj_p x) {
             return clone_obj(*sym);
         case TYPE_C8:
             if (x->len == 0)
-                return ray_err("get: empty string path");
+                return ray_err(ERR_ARG);
 
             path = cstring_from_obj(x);
             fd = fs_fopen(AS_C8(path), ATTR_RDWR);
 
             if (fd == -1) {
-                res = sys_error(ERR_SYS, AS_C8(path));
+                res = sys_error(ERR_SYS);
                 drop_obj(path);
                 return res;
             }

@@ -111,10 +111,10 @@ typedef u8_t guid_t[16];
 #define ERR_EVAL "eval"
 #define ERR_TYPE "type"
 #define ERR_LEN "length"
+#define ERR_EMPTY "empty"
 #define ERR_ARITY "arity"
 #define ERR_INDEX "index"
 #define ERR_RANGE "range"
-#define ERR_HEAP "heap"
 #define ERR_IO "io"
 #define ERR_SYS "sys"
 #define ERR_NYI "nyi"
@@ -123,12 +123,14 @@ typedef u8_t guid_t[16];
 #define ERR_UFLOW "uflow"
 #define ERR_OFLOW "oflow"
 #define ERR_NFOUND "nfound"
-#define ERR_OOM "oom"
 #define ERR_BAD "bad"
 #define ERR_KEY "key"
+#define ERR_VAL "val"
 #define ERR_ARG "arg"
-#define ERR_JOIN "join"
+#define ERR_OOM "oom"
+#define ERR_HEAP "heap"
 #define ERR_FMT "fmt"
+#define ERR_JOIN "join"
 
 //=============================================================================
 // Special Values

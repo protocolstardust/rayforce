@@ -148,8 +148,7 @@ option_t ipc_listener_accept(poll_p poll, selector_p selector) {
         if (poll_register(poll, &registry) == -1) {
             LOG_ERROR("Failed to register new connection in poll registry");
             heap_free(ctx);
-            return option_error(
-                sys_error(ERR_IO, "ipc_listener_accept: failed to register new connection in poll registry"));
+            return option_error(sys_error(ERR_IO));
         }
 
         LOG_INFO("New connection registered successfully");
@@ -287,7 +286,7 @@ option_t ipc_read_handshake(poll_p poll, selector_p selector) {
     if (selector->rx.buf == NULL) {
         LOG_DEBUG("No handshake buffer received, closing connection");
         poll_deregister(poll, selector->id);
-        return option_error(sys_error(ERR_IO, "ipc_read_handshake: no handshake buffer received, closing connection"));
+        return option_error(sys_error(ERR_IO));
     }
 
     if (selector->rx.buf->offset > 0 && selector->rx.buf->data[selector->rx.buf->offset - 1] == '\0') {
@@ -490,7 +489,7 @@ obj_p ipc_send(poll_p poll, i64_t id, obj_p msg, u8_t msgtype) {
     selector = poll_get_selector(poll, id);
     if (selector == NULL) {
         LOG_ERROR("Invalid selector for fd %lld", id);
-        return sys_error(ERR_IO, "ipc_send: invalid selector for fd");
+        return sys_error(ERR_IO);
     }
 
     ctx = (ipc_ctx_p)selector->data;

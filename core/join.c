@@ -47,7 +47,7 @@ obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], i64_t len) {
     type = is_null(left_col) ? right_col->type : left_col->type;
 
     if (right_col->type != type)
-        return ray_err("select_column: incompatible types");
+        return ray_err(ERR_TYPE);
 
     res = vector(type, len);
 
@@ -74,7 +74,7 @@ obj_p get_column(obj_p left_col, obj_p right_col, obj_p lids, obj_p rids) {
     type = is_null(left_col) ? right_col->type : left_col->type;
 
     if (right_col->type != type)
-        return ray_err("get_column: incompatible types");
+        return ray_err(ERR_TYPE);
 
     return at_ids(right_col, AS_I64(rids), rids->len);
 }
@@ -158,7 +158,7 @@ obj_p ray_left_join(obj_p *x, i64_t n) {
     obj_p k1, k2, idx, res;
 
     if (n != 3)
-        return ray_err("left-join");
+        return ray_err(ERR_JOIN);
 
     if (x[0]->type != TYPE_SYMBOL)
         return ray_err(ERR_ARG);
@@ -201,7 +201,7 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
     obj_p k1, k2, c1, c2, un, col, cols, vals, idx;
 
     if (n != 3)
-        return ray_err("inner-join");
+        return ray_err(ERR_JOIN);
 
     if (x[0]->type != TYPE_SYMBOL)
         return ray_err(ERR_ARG);
@@ -355,7 +355,7 @@ static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
     obj_p agrvals, resyms, recols, jtab, rtab;
 
     if (n != 5)
-        return ray_err("window-join");
+        return ray_err(ERR_JOIN);
 
     if (x[0]->type != TYPE_SYMBOL)
         return ray_err(ERR_ARG);

@@ -73,7 +73,7 @@ obj_p ray_hopen(obj_p *x, i64_t n) {
 
         if (id == -1) {
             msg = cstring_from_str(AS_C8(x[0]), x[0]->len);
-            err = sys_error(ERR_SYS, AS_C8(msg));
+            err = sys_error(ERR_SYS);
             drop_obj(msg);
             return err;
         }
@@ -86,7 +86,7 @@ obj_p ray_hopen(obj_p *x, i64_t n) {
     fd = fs_fopen(AS_C8(path), ATTR_RDWR | ATTR_CREAT | ATTR_APPEND);
 
     if (fd == -1) {
-        err = sys_error(ERR_SYS, AS_C8(path));
+        err = sys_error(ERR_SYS);
         drop_obj(path);
         return err;
     }
@@ -134,7 +134,7 @@ obj_p ray_read(obj_p x) {
             map = (u8_t *)mmap_file(fd, NULL, size, 0);
 
             if (map == NULL)
-                return sys_error(ERR_SYS, "read");
+                return sys_error(ERR_SYS);
 
             // Validate minimum file size for header
             if (size < (i64_t)sizeof(struct ipc_header_t)) {
@@ -181,7 +181,7 @@ obj_p ray_read(obj_p x) {
 
             // error handling if file does not exist
             if (fd == -1) {
-                res = sys_error(ERR_SYS, AS_C8(s));
+                res = sys_error(ERR_SYS);
                 drop_obj(s);
                 return res;
             }
@@ -195,7 +195,7 @@ obj_p ray_read(obj_p x) {
 
             if (c != size) {
                 drop_obj(res);
-                res = sys_error(ERR_SYS, AS_C8(s));
+                res = sys_error(ERR_SYS);
                 drop_obj(s);
                 return res;
             }
@@ -613,7 +613,7 @@ obj_p ray_read_csv(obj_p *x, i64_t n) {
 
             if (fd == -1) {
                 drop_obj(types);
-                res = sys_error(ERR_SYS, AS_C8(path));
+                res = sys_error(ERR_SYS);
                 drop_obj(path);
                 return res;
             }
@@ -870,7 +870,7 @@ obj_p ray_write_csv(obj_p *x, i64_t n) {
             fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
 
             if (fd == -1) {
-                res = sys_error(ERR_SYS, AS_C8(path));
+                res = sys_error(ERR_SYS);
                 drop_obj(path);
                 return res;
             }
@@ -899,7 +899,7 @@ obj_p ray_write_csv(obj_p *x, i64_t n) {
             // Write buffer to file
             c = fs_fwrite(fd, AS_C8(buf), buf->len);
             if (c == -1) {
-                res = sys_error(ERR_SYS, AS_C8(path));
+                res = sys_error(ERR_SYS);
                 drop_obj(buf);
                 drop_obj(path);
                 fs_fclose(fd);
@@ -1051,7 +1051,7 @@ obj_p io_set_table(obj_p path, obj_p table) {
     fd = fs_fopen(AS_C8(s), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
 
     if (fd == -1) {
-        res = sys_error(ERR_SYS, AS_C8(s));
+        res = sys_error(ERR_SYS);
         drop_obj(s);
         return res;
     }
@@ -1065,7 +1065,7 @@ obj_p io_set_table(obj_p path, obj_p table) {
 
     c = fs_fwrite(fd, AS_C8(buf), buf->len);
     if (c == -1) {
-        res = sys_error(ERR_SYS, AS_C8(s));
+        res = sys_error(ERR_SYS);
         drop_obj(buf);
         drop_obj(s);
         fs_fclose(fd);

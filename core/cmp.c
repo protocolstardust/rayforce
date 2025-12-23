@@ -266,7 +266,7 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, i64_t, i64_t, obj_p);
                                                                                                \
                 if (is_null(sym) || sym->type != TYPE_SYMBOL) {                                \
                     drop_obj(sym);                                                             \
-                    return ray_err("eq: invalid enum");                                       \
+                    return ray_err(ERR_TYPE);                                       \
                 }                                                                              \
                                                                                                \
                 xi = AS_I64(sym);                                                              \
@@ -290,7 +290,7 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, i64_t, i64_t, obj_p);
                                                                                                \
                 if (is_null(sym) || sym->type != TYPE_SYMBOL) {                                \
                     drop_obj(sym);                                                             \
-                    return ray_err("eq: invalid enum");                                       \
+                    return ray_err(ERR_TYPE);                                       \
                 }                                                                              \
                                                                                                \
                 xi = AS_I64(x);                                                                \

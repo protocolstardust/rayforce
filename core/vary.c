@@ -148,13 +148,13 @@ obj_p ray_set_splayed(obj_p *x, i64_t n) {
             return ray_set(x[0], x[1]);
         case 3:
             if (x[0]->type != TYPE_C8)
-                return ray_err("set: table path must be a string");
+                return ray_err(ERR_TYPE);
 
             if (x[1]->type != TYPE_TABLE)
-                return ray_err("set: table must be a table");
+                return ray_err(ERR_TYPE);
 
             if (x[0]->len < 2 || AS_C8(x[0])[x[0]->len - 1] != '/')
-                return ray_err("set: table path must be a directory");
+                return ray_err(ERR_TYPE);
 
             return io_set_table_splayed(x[0], x[1], x[2]);
         default:
@@ -249,7 +249,7 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
             if (l == 0) {
                 drop_obj(gcol);
                 drop_obj(res);
-                return ray_err("get parted: empty directory");
+                return ray_err(ERR_ARG);
             }
 
             // Load schema of the first partition
@@ -272,7 +272,7 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
                 drop_obj(res);
                 drop_obj(t1);
                 drop_obj(path);
-                return ray_err("get parted: partition may not have zero columns");
+                return ray_err(ERR_LEN);
             }
 
             // Create maps over columns
@@ -310,7 +310,7 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
                     drop_obj(t2);
                     drop_obj(path);
                     drop_obj(fmaps);
-                    return ray_err("get parted: partitions have different wides");
+                    return ray_err(ERR_LEN);
                 }
 
                 // Partitions must have the same column names
@@ -323,7 +323,7 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
                     drop_obj(t2);
                     drop_obj(path);
                     drop_obj(fmaps);
-                    return ray_err("get parted: partitions have different column names");
+                    return ray_err(ERR_TYPE);
                 }
 
                 drop_obj(eq);
@@ -337,7 +337,7 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
                         drop_obj(t2);
                         drop_obj(path);
                         drop_obj(fmaps);
-                        return ray_err("get parted: partitions have different column types");
+                        return ray_err(ERR_TYPE);
                     }
                 }
 

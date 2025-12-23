@@ -293,7 +293,7 @@ obj_p map_binary_fn(binary_f fn, i64_t attrs, obj_p x, obj_p y) {
     i8_t xt, yt;
 
     if (!x || !y)
-        return ray_err("binary: null argument");
+        return ray_err(ERR_ARG);
 
     xt = x->type;
     yt = y->type;
@@ -426,7 +426,7 @@ obj_p map_vary_fn(vary_f fn, i64_t attrs, obj_p *x, i64_t n) {
 
     l = ops_rank(x, n);
     if (l == NULL_I64)
-        return ray_err("vary: arguments have different lengths");
+        return ray_err(ERR_LEN);
 
     for (j = 0; j < n; j++)
         stack_push(at_idx(x[j], 0));

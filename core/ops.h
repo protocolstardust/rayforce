@@ -198,9 +198,6 @@ typedef obj_p (*unary_f)(obj_p);
 typedef obj_p (*binary_f)(obj_p, obj_p);
 typedef obj_p (*vary_f)(obj_p *, i64_t);
 
-// Error type is now a string constant (e.g. ERR_IO, ERR_SYS)
-typedef lit_p os_ray_error_type_t;
-
 b8_t ops_as_b8(obj_p x);
 b8_t ops_is_prime(i64_t x);
 i64_t ops_next_prime(i64_t x);
@@ -211,7 +208,7 @@ i64_t ops_rank(obj_p *x, i64_t n);
 b8_t ops_eq_idx(obj_p a, i64_t ai, obj_p b, i64_t bi);
 obj_p index_find_i64(i64_t x[], i64_t xl, i64_t y[], i64_t yl);
 obj_p ops_where(b8_t *mask, i64_t n);
-obj_p sys_error(os_ray_error_type_t, lit_p msg);
+obj_p sys_error(lit_p code);
 
 // Binary ops/coersions
 static inline u8_t b8_to_b8(b8_t x) { return x; }
