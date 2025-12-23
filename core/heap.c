@@ -148,7 +148,7 @@ block_p heap_add_pool(i64_t size) {
     i64_t fd;
     block_p block;
     c8_t filename[128];
-    heap_p heap = HEAP;  // Cache heap pointer
+    heap_p heap = VM->heap;  // Cache heap pointer
 
     LOG_TRACE("Adding pool of size %lld", size);
 
@@ -196,7 +196,7 @@ block_p heap_add_pool(i64_t size) {
 }
 
 nil_t heap_remove_pool(block_p block, i64_t size) {
-    heap_p heap = HEAP;  // Cache heap pointer
+    heap_p heap = VM->heap;  // Cache heap pointer
     mmap_free(block, size);
 
     heap->memstat.system -= size;
@@ -257,7 +257,7 @@ raw_p heap_mmap(i64_t size) {
 
 raw_p heap_stack(i64_t size) {
     raw_p ptr = mmap_stack(size);
-    heap_p heap = HEAP;  // Cache heap pointer
+    heap_p heap = VM->heap;  // Cache heap pointer
 
     if (ptr == NULL)
         return NULL;
@@ -270,7 +270,7 @@ raw_p heap_stack(i64_t size) {
 raw_p __attribute__((hot)) heap_alloc(i64_t size) {
     i64_t i, order, block_size;
     block_p block;
-    heap_p heap = HEAP;  // Cache heap pointer to avoid repeated VM calls
+    heap_p heap = VM->heap;  // Cache heap pointer to avoid repeated VM calls
 
     if (size == 0 || size > BSIZEOF(MAX_POOL_ORDER))
         return NULL;
@@ -337,7 +337,7 @@ __attribute__((hot)) nil_t heap_free(raw_p ptr) {
     i64_t fd, res;
     i64_t order;
     c8_t filename[64];
-    heap_p heap = HEAP;  // Cache heap pointer
+    heap_p heap = VM->heap;  // Cache heap pointer
 
     if (ptr == NULL || ptr == NULL_OBJ)
         return;
@@ -398,7 +398,7 @@ __attribute__((hot)) raw_p heap_realloc(raw_p ptr, i64_t new_size) {
     block_p block;
     i64_t i, old_size, cap, order;
     raw_p new_ptr;
-    heap_p heap = HEAP;  // Cache heap pointer
+    heap_p heap = VM->heap;  // Cache heap pointer
 
     if (ptr == NULL)
         return heap_alloc(new_size);
@@ -435,7 +435,7 @@ __attribute__((hot)) raw_p heap_realloc(raw_p ptr, i64_t new_size) {
 }
 
 nil_t heap_unmap(raw_p ptr, i64_t size) {
-    heap_p heap = HEAP;  // Cache heap pointer
+    heap_p heap = VM->heap;  // Cache heap pointer
     mmap_free(ptr, size);
     heap->memstat.system -= size;
 }
@@ -443,7 +443,7 @@ nil_t heap_unmap(raw_p ptr, i64_t size) {
 i64_t heap_gc(nil_t) {
     i64_t i, size, total = 0;
     block_p block, next;
-    heap_p h = HEAP;  // Cache heap pointer
+    heap_p h = VM->heap;  // Cache heap pointer
 
     for (i = MAX_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++) {
         block = h->freelist[i];
@@ -467,7 +467,7 @@ i64_t heap_gc(nil_t) {
 
 nil_t heap_borrow(heap_p heap) {
     i64_t i;
-    heap_p h = HEAP;  // Cache heap pointer (source heap)
+    heap_p h = VM->heap;  // Cache heap pointer (source heap)
 
     for (i = MAX_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++) {
         // Only borrow if the source heap has a freelist[i] and it has more than one node and it is the pool (not a
@@ -488,7 +488,7 @@ nil_t heap_borrow(heap_p heap) {
 nil_t heap_merge(heap_p heap) {
     i64_t i;
     block_p block, last;
-    heap_p h = HEAP;  // Cache heap pointer (destination heap)
+    heap_p h = VM->heap;  // Cache heap pointer (destination heap)
 
     // First traverse foreign blocks and free them
     block = heap->foreign_blocks;
@@ -529,7 +529,7 @@ nil_t heap_merge(heap_p heap) {
 memstat_t heap_memstat(nil_t) {
     i64_t i;
     block_p block;
-    heap_p h = HEAP;  // Cache heap pointer
+    heap_p h = VM->heap;  // Cache heap pointer
 
     h->memstat.free = 0;
 
