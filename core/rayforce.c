@@ -2724,17 +2724,13 @@ obj_p cast_obj(i8_t type, obj_p obj) {
             res = guid(NULL);
 
             // Validate input length and format
-            if (obj->len != 36) {
-                memset(AS_GUID(res)[0], 0, sizeof(guid_t));
+            if (obj->len != 36)
                 return res;
-            }
 
             // Validate format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
             str = AS_C8(obj);
-            if (str[8] != '-' || str[13] != '-' || str[18] != '-' || str[23] != '-') {
-                memset(AS_GUID(res)[0], 0, sizeof(guid_t));
+            if (str[8] != '-' || str[13] != '-' || str[18] != '-' || str[23] != '-')
                 return res;
-            }
 
             // Parse hex values safely
             g = AS_GUID(res)[0];
