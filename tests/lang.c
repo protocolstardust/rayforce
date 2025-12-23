@@ -52,8 +52,8 @@ test_result_t test_lang_basic() {
     TEST_ASSERT_EQ("1.000000123555555555555555555555555e-00", "1.00");
     TEST_ASSERT_EQ("(as 'f64 \" 1.000000123555555555555555555555555e+01\")", "10.00");
     TEST_ASSERT_EQ("-1000123555555555555555555555555", "-1.000124e+30");
-    TEST_ASSERT_ER("33000h", "Number is out of range");
-    TEST_ASSERT_ER("-10001230000i", "Number is out of range");
+    TEST_ASSERT_ER("33000h", "range");
+    TEST_ASSERT_ER("-10001230000i", "range");
     TEST_ASSERT_EQ("\"\"", "\"\"");
     TEST_ASSERT_EQ("'asd", "'asd");
     TEST_ASSERT_EQ("'", "0Ns");
@@ -88,7 +88,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(+ 0Ni -0.00)", "0Nf");
     TEST_ASSERT_EQ("(+ -0.00 0Nl)", "0Nf");
     TEST_ASSERT_EQ("(+ 0Nf [-0.00])", "[0Nf]");
-    TEST_ASSERT_ER("(+ 0Nf 2024.03.20)", "add: unsupported types: 'f64, 'date");
+    TEST_ASSERT_ER("(+ 0Nf 2024.03.20)", "type");
 
     TEST_ASSERT_EQ("(+ 3i 5i)", "8i");
     TEST_ASSERT_EQ("(+ 3i 5)", "8");
@@ -208,7 +208,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(+ [2025.03.04D15:41:47.087221025] [1000000000i])", "[2025.03.04D15:41:48.087221025]");
     TEST_ASSERT_EQ("(+ [2025.03.04D15:41:47.087221025] [3000000000])", "[2025.03.04D15:41:50.087221025]");
     TEST_ASSERT_EQ("(+ [2025.03.04D15:41:47.087221025] [01:01:00.000])", "[2025.03.04D16:42:47.087221025]");
-    TEST_ASSERT_ER("(+ 2025.03.04D15:41:47.087221025 2025.12.13)", "add: unsupported types: 'timestamp, 'date");
+    TEST_ASSERT_ER("(+ 2025.03.04D15:41:47.087221025 2025.12.13)", "type");
 
     TEST_ASSERT_EQ("(+ (list -10i -10 -10.0) 5)", "(list -5 -5 -5.0)");
     TEST_ASSERT_EQ("(+ (list -10i -10i -10.0) 5)", "(list -5 -5 -5.0)");
@@ -334,7 +334,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [3000000000])", "[2025.03.04D15:41:44.087221025]");
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [01:01:00.000])", "[2025.03.04D14:40:47.087221025]");
     TEST_ASSERT_EQ("(- [2025.03.04D15:41:47.087221025] [2025.03.04D15:41:47.087221025])", "[0]");
-    TEST_ASSERT_ER("(- 2025.03.04D15:41:47.087221025 2025.12.13)", "sub: unsupported types: 'timestamp, 'date");
+    TEST_ASSERT_ER("(- 2025.03.04D15:41:47.087221025 2025.12.13)", "type");
     // u8 sub
     TEST_ASSERT_EQ("(- 0x05 0x03)", "0x02");
     TEST_ASSERT_EQ("(- 0x05 [0x01 0x03])", "[0x04 0x02]");
@@ -410,7 +410,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(* [02:15:07.000 05:41:47.087] 5)", "[11:15:35.000 28:28:55.435]");
     TEST_ASSERT_EQ("(* [02:15:07.000] [5i])", "[11:15:35.000]");
     TEST_ASSERT_EQ("(* [02:15:07.000] [5])", "[11:15:35.000]");
-    TEST_ASSERT_ER("(* 02:15:07.000 02:15:07.000)", "mul: unsupported types: 'time, 'time");
+    TEST_ASSERT_ER("(* 02:15:07.000 02:15:07.000)", "type");
     // u8 mul
     TEST_ASSERT_EQ("(* 0x02 0x03)", "0x06");
     TEST_ASSERT_EQ("(* 0x02 [0x03 0x05])", "[0x06 0x0a]");
@@ -1724,7 +1724,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(/ [3.00] [3.00])", "[1.00]");
 
     TEST_ASSERT_EQ("(/ 10 [])", "[]");
-    TEST_ASSERT_ER("(/ 02:15:07.000 02:15:07.000)", "div: unsupported types: 'time, 'time");
+    TEST_ASSERT_ER("(/ 02:15:07.000 02:15:07.000)", "type");
     // u8 div
     TEST_ASSERT_EQ("(/ 0x0a 0x02)", "0x05");
     TEST_ASSERT_EQ("(/ 0x0a [0x02 0x05])", "[0x05 0x02]");
@@ -2042,7 +2042,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(% [100000000001.0] 5i)", "[1.0]");
     TEST_ASSERT_EQ("(% [100000000001.0] [5i])", "[1.0]");
     TEST_ASSERT_EQ("(% [18.4] 5.1)", "[3.1]");
-    TEST_ASSERT_ER("(% 02:15:07.000 02:15:07.000)", "mod: unsupported types: 'time, 'time");
+    TEST_ASSERT_ER("(% 02:15:07.000 02:15:07.000)", "type");
 
     TEST_ASSERT_EQ("(/ 10:20:15.000 3)", "03:26:45.000");
     TEST_ASSERT_EQ("(/ 10:20:15.000 3i)", "03:26:45.000");
@@ -2406,7 +2406,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div [10.0] [0Ni])", "[0Nf]");
     TEST_ASSERT_EQ("(div [10.0] [5])", "[2.0]");
 
-    TEST_ASSERT_ER("(div 02:15:07.000 02:15:07.000)", "fdiv: unsupported types: 'time, 'time");
+    TEST_ASSERT_ER("(div 02:15:07.000 02:15:07.000)", "type");
 
     TEST_ASSERT_EQ("(xbar (- (til 10) 5) 3i)", "[-6 -6 -3 -3 -3 0 0 0 3 3]");
     TEST_ASSERT_EQ("(xbar (- (til 15) 5) 3)", "[-6 -6 -3 -3 -3 0 0 0 3 3 3 6 6 6 9]");
@@ -2450,7 +2450,7 @@ test_result_t test_lang_math() {
         "(xbar (list [2025.02.03D12:13:14.123456789] [2025.02.03D12:13:14.123456789]) (list [00:00:00.010] 10000))",
         "(list [2025.02.03D12:13:14.120000000] [2025.02.03D12:13:14.123450000])");
 
-    TEST_ASSERT_ER("(xbar 00:00:05.000 2.7)", "xbar: unsupported types: 'time, 'f64");
+    TEST_ASSERT_ER("(xbar 00:00:05.000 2.7)", "type");
 
     TEST_ASSERT_EQ("(sum 5i)", "5i");
     TEST_ASSERT_EQ("(sum -1.7)", "-1.7");
@@ -2460,7 +2460,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(sum [1 2 3 0Nl 4])", "10");
     TEST_ASSERT_EQ("(sum [1i 2i -3i])", "0i");
     TEST_ASSERT_EQ("(sum [02:01:03.000 00:00:02.500])", "02:01:05.500");
-    TEST_ASSERT_ER("(sum [2020.02.03 2025.02.03])", "sum: unsupported type: 'DATE");
+    TEST_ASSERT_ER("(sum [2020.02.03 2025.02.03])", "type");
     // u8 sum
     TEST_ASSERT_EQ("(sum 0x05)", "5");
     TEST_ASSERT_EQ("(sum [0x01 0x02 0x03 0x04 0x05])", "15");
@@ -2558,7 +2558,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(floor -1.5)", "-2.0");
     TEST_ASSERT_EQ("(floor 0Nf)", "0Nf");
     TEST_ASSERT_EQ("(floor -5i)", "-5i");
-    TEST_ASSERT_ER("(floor 'i64)", "floor: unsupported type: 'symbol");
+    TEST_ASSERT_ER("(floor 'i64)", "type");
 
     TEST_ASSERT_EQ("(ceil -5i)", "-5i");
     TEST_ASSERT_EQ("(ceil [1.1 2.5 -1.1])", "[2.0 3.0 -1.0]");
@@ -2570,7 +2570,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(ceil 1.5)", "2.0");
     TEST_ASSERT_EQ("(ceil -1.5)", "-1.0");
     TEST_ASSERT_EQ("(ceil 0Nf)", "0Nf");
-    TEST_ASSERT_ER("(ceil 'i64)", "ceil: unsupported type: 'symbol");
+    TEST_ASSERT_ER("(ceil 'i64)", "type");
 
     TEST_ASSERT_EQ("(med 2i)", "2.0");
     TEST_ASSERT_EQ("(med -5)", "-5.0");
@@ -2775,8 +2775,8 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take (table [a b] (list [1 2 3 4] ['a 'b 'c 'd])) -5)",
                    "(table [a b] (list [4 1 2 3 4] ['d 'a 'b 'c 'd]))");
 
-    TEST_ASSERT_ER("(take 1.0 2.0)", "take: unsupported types: 'f64, 'f64");
-    TEST_ASSERT_ER("(take take 2)", "take: unsupported types: 'BINARY, 'i64");
+    TEST_ASSERT_ER("(take 1.0 2.0)", "type");
+    TEST_ASSERT_ER("(take take 2)", "type");
 
     // Range take tests [start amount]
     TEST_ASSERT_EQ("(take [1 2 3 4 5] [1 2])", "[2 3]");
@@ -2792,7 +2792,7 @@ test_result_t test_lang_take() {
     TEST_ASSERT_EQ("(take (list 1 \"a\" 'b) [1 2])", "(list \"a\" 'b)");
     TEST_ASSERT_EQ("(take (dict ['a 'b 'c 'd] [1 2 3 4]) [1 2])", "(dict ['b 'c] [2 3])");
     TEST_ASSERT_EQ("(take (table [a b] (list [1 2 3 4] ['x 'y 'z 'w])) [1 2])", "(table [a b] (list [2 3] ['y 'z]))");
-    TEST_ASSERT_ER("(take [1 2 3] [1 -2])", "take: range amount cannot be negative");
+    TEST_ASSERT_ER("(take [1 2 3] [1 -2])", "length");
 
     PASS();
 }
@@ -3142,13 +3142,13 @@ test_result_t test_lang_update() {
     TEST_ASSERT_ER(
         "(set t (table [a b c] (list [1] [10] [x])))"
         "(insert t (dict [a b d] (list 2 20 'w)))",
-        "not found in table");
+        "nfound");
 
     // Test 37: Upsert error - column not found in table
     TEST_ASSERT_ER(
         "(set t (table [ID Name Value] (list [1] [alice] [10.0])))"
         "(upsert t 1 (dict [ID Unknown Value] (list 2 'x 20.0)))",
-        "not found in table");
+        "nfound");
 
     // ========== UPDATE WITH FLOAT MULTIPLICATION TESTS ==========
     // (regression tests for type mismatch bug when multiplying I64 by F64 in update)
@@ -3749,11 +3749,12 @@ test_result_t test_lang_concat() {
     TEST_ASSERT_ER(
         "(concat (table [D C] (list (+ (til 4) 10) (list \"a\" \"b\" \"c\" \"d\"))) (table [C B A] "
         "(list (list \"A\" \"B\" \"C\" \"D\" \"E\") [100 200 300 400 500] (til 5))))",
-        "concat: keys a not compatible");
+        "type");
     TEST_ASSERT_ER(
         "(concat (table [C A] (list (+ (til 4) 10) (list \"a\" \"b\" \"c\" \"d\"))) (table [C B A] "
         "(list (list \"A\" \"B\" \"C\" \"D\" \"E\") [100 200 300 400 500] (til 5))))",
-        "concat: values a not compatible");
+        "type");
+    TEST_ASSERT_ER("(concat (table [a] (list [1 2])) (table [a] (list [1f])))", "type");
 
     TEST_ASSERT_EQ(
         "(concat (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\") "
@@ -3804,8 +3805,8 @@ test_result_t test_lang_filter() {
     TEST_ASSERT_EQ("(filter (list [3i 0Ni] 2i [3i 3i] 2i) [true true false false])", "(list [3i 0Ni] 2i)");
     TEST_ASSERT_EQ("(first (filter (table [a b] (list [1 2 3] (list 'a 'b 'c))) [false true true]))", "{a:2 b:'b}");
 
-    TEST_ASSERT_ER("(filter [1i 0Ni 2i] [true true])", "filter: arguments must be the same length");
-    TEST_ASSERT_ER("(filter [true false] [1 2])", "filter: unsupported types: 'B8, 'I64");
+    TEST_ASSERT_ER("(filter [1i 0Ni 2i] [true true])", "length");
+    TEST_ASSERT_ER("(filter [true false] [1 2])", "type");
 
     PASS();
 }
@@ -4321,13 +4322,13 @@ test_result_t test_lang_joins() {
         "1");
 
     // error: left-join wrong type
-    TEST_ASSERT_ER("(left-join 123 (table [a] (list [1])) (table [a] (list [1])))", "symbol");
+    TEST_ASSERT_ER("(left-join 123 (table [a] (list [1])) (table [a] (list [1])))", "arg");
 
     // error: inner-join wrong type
-    TEST_ASSERT_ER("(inner-join [a] [1 2 3] (table [a] (list [1])))", "table");
+    TEST_ASSERT_ER("(inner-join [a] [1 2 3] (table [a] (list [1])))", "arg");
 
     // error: asof-join wrong arity
-    TEST_ASSERT_ER("(asof-join [a b])", "asof-join");
+    TEST_ASSERT_ER("(asof-join [a b])", "arity");
 
     PASS();
 }
@@ -5169,23 +5170,23 @@ test_result_t test_lang_error() {
 // These tests verify that invalid inputs return proper errors instead of segfaulting
 test_result_t test_lang_safety() {
     // ========== TIL NEGATIVE LENGTH ==========
-    TEST_ASSERT_ER("(til -1)", "non-negative length");
-    TEST_ASSERT_ER("(til -100)", "non-negative length");
+    TEST_ASSERT_ER("(til -1)", "index");
+    TEST_ASSERT_ER("(til -100)", "index");
 
     // ========== RAND NEGATIVE/ZERO ==========
-    TEST_ASSERT_ER("(rand -1 10)", "non-negative count");
-    TEST_ASSERT_ER("(rand 5 0)", "positive upper bound");
-    TEST_ASSERT_ER("(rand 5 -1)", "positive upper bound");
+    TEST_ASSERT_ER("(rand -1 10)", "index");
+    TEST_ASSERT_ER("(rand 5 0)", "index");
+    TEST_ASSERT_ER("(rand 5 -1)", "index");
 
     // ========== MODIFY WRONG ARITY ==========
-    TEST_ASSERT_ER("(do (set v [1 2]) (modify 'v * 2))", "expected at least 4 arguments");
+    TEST_ASSERT_ER("(do (set v [1 2]) (modify 'v * 2))", "length");
 
     // ========== OUT OF BOUNDS ACCESS ==========
-    TEST_ASSERT_ER("(do (set v [1 2 3]) (alter 'v set -10 0))", "out of range");
+    TEST_ASSERT_ER("(do (set v [1 2 3]) (alter 'v set -10 0))", "type");
 
     // ========== NULL OPERATIONS ==========
-    TEST_ASSERT_ER("(+ null 1)", "unsupported type");
-    TEST_ASSERT_ER("(sum null)", "unsupported type");
+    TEST_ASSERT_ER("(+ null 1)", "type");
+    TEST_ASSERT_ER("(sum null)", "type");
 
     // ========== VALID EDGE CASES (should not crash) ==========
     TEST_ASSERT_EQ("(til 0)", "[]");

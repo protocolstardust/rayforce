@@ -45,14 +45,14 @@ obj_p ray_cast_obj(obj_p x, obj_p y) {
     obj_p fmt, msg;
 
     if (x->type != -TYPE_SYMBOL)
-        THROW_S(ERR_TYPE, "as: first argument must be a symbol");
+        THROW_S(E_TYPE, "as: first argument must be a symbol");
 
     type = env_get_type_by_type_name(&runtime_get()->env, x->i64);
 
     if (type == TYPE_ERR) {
         fmt = obj_fmt(x, B8_TRUE);
         msg = str_fmt(-1, "as: not a type: '%s", fmt);
-        err = error_obj(ERR_TYPE, msg);
+        err = error_obj(E_TYPE, msg);
         heap_free(fmt);
         return err;
     }
@@ -140,10 +140,10 @@ obj_p __til(obj_p x, obj_p filter) {
 
 obj_p ray_til(obj_p x) {
     if (x->type != -TYPE_I64)
-        return error_str(ERR_TYPE, "til: expected i64");
+        return error_str(E_TYPE, E_TYPE);
 
     if (x->i64 < 0)
-        THROW(ERR_INDEX, "til: expected non-negative length, got %lld", x->i64);
+        THROW(E_INDEX, "til: expected non-negative length, got %lld", x->i64);
 
     return __til(x, NULL_OBJ);
 }
@@ -211,10 +211,10 @@ obj_p ray_reverse(obj_p x) {
 
 obj_p ray_dict(obj_p x, obj_p y) {
     if (!IS_VECTOR(x) || !IS_VECTOR(y))
-        return error_str(ERR_TYPE, "Keys and Values must be lists");
+        return error_str(E_TYPE, E_TYPE);
 
     if (ops_count(x) != ops_count(y))
-        return error_str(ERR_LENGTH, "Keys and Values must have the same length");
+        return error_str(E_LEN, E_LEN);
 
     return dict(clone_obj(x), clone_obj(y));
 }
@@ -225,11 +225,11 @@ obj_p ray_table(obj_p x, obj_p y) {
     obj_p lst, c, l = NULL_OBJ;
 
     if (x->type != TYPE_SYMBOL)
-        return error_str(ERR_TYPE, "table: keys must be a symbol vector");
+        return error_str(E_TYPE, E_TYPE);
 
     if (y->type != TYPE_LIST) {
         if (x->len != 1)
-            return error_str(ERR_LENGTH, ERR_MSG_TABLE_KV_LEN);
+            return error_str(E_LEN, E_LEN);
 
         l = LIST(1);
         AS_LIST(l)[0] = clone_obj(y);
@@ -238,7 +238,7 @@ obj_p ray_table(obj_p x, obj_p y) {
 
     if (x->len != y->len && y->len > 0) {
         drop_obj(l);
-        return error_str(ERR_LENGTH, ERR_MSG_TABLE_KV_LEN);
+        return error_str(E_LEN, E_LEN);
     }
 
     len = y->len;
@@ -277,7 +277,7 @@ obj_p ray_table(obj_p x, obj_p y) {
             case TYPE_GUID:
                 j = AS_LIST(y)[i]->len;
                 if (cl != 0 && j != cl)
-                    return ray_error(ERR_LENGTH, ERR_MSG_TABLE_VALUES_LEN);
+                    return ray_error(E_LEN, ERR_MSG_TABLE_VALUES_LEN);
 
                 cl = j;
                 break;
@@ -285,17 +285,17 @@ obj_p ray_table(obj_p x, obj_p y) {
                 synergy = B8_FALSE;
                 j = AS_LIST(AS_LIST(y)[i])[1]->len;
                 if (cl != 0 && j != cl)
-                    return ray_error(ERR_LENGTH, ERR_MSG_TABLE_VALUES_LEN);
+                    return ray_error(E_LEN, ERR_MSG_TABLE_VALUES_LEN);
 
                 cl = j;
                 break;
             case TYPE_MAPCOMMON:
                 j = AS_LIST(AS_LIST(y)[i])[0]->len;
                 if (cl != 0 && j != cl)
-                    return ray_error(ERR_LENGTH, ERR_MSG_TABLE_VALUES_LEN);
+                    return ray_error(E_LEN, ERR_MSG_TABLE_VALUES_LEN);
                 break;
             default:
-                return ray_error(ERR_TYPE, "table: unsupported type: '%s' in a values list",
+                return ray_error(E_TYPE, "table: unsupported type: '%s' in a values list",
                                  type_name(AS_LIST(y)[i]->type));
         }
     }
@@ -404,7 +404,7 @@ obj_p ray_enum(obj_p x, obj_p y) {
 
             if (!s || s->type != TYPE_SYMBOL) {
                 drop_obj(s);
-                THROW_S(ERR_TYPE, "enum: expected vector symbol");
+                THROW_S(E_TYPE, "enum: expected vector symbol");
             }
 
             v = index_find_i64(AS_I64(s), s->len, AS_I64(y), y->len);
@@ -412,7 +412,7 @@ obj_p ray_enum(obj_p x, obj_p y) {
 
             if (IS_ERR(v)) {
                 drop_obj(v);
-                THROW_S(ERR_TYPE, "enum: can not be fully indexed");
+                THROW_S(E_TYPE, "enum: can not be fully indexed");
             }
 
             return enumerate(clone_obj(x), v);
@@ -451,10 +451,10 @@ obj_p ray_rand(obj_p x, obj_p y) {
             count = x->i64;
 
             if (count < 0)
-                THROW(ERR_INDEX, "rand: expected non-negative count, got %lld", count);
+                THROW(E_INDEX, "rand: expected non-negative count, got %lld", count);
 
             if (y->i64 <= 0)
-                THROW(ERR_INDEX, "rand: expected positive upper bound, got %lld", y->i64);
+                THROW(E_INDEX, "rand: expected positive upper bound, got %lld", y->i64);
 
             vec = I64(count);
 
@@ -770,7 +770,7 @@ obj_p ray_concat(obj_p x, obj_p y) {
             if (kx->len != kxy->len || cmp_obj(kx, kxy) != 0) {
                 drop_obj(kx);
                 drop_obj(kxy);
-                THROW_S(ERR_TYPE, "concat: keys a not compatible");
+                THROW_S(E_TYPE, E_TYPE);
             }
             iy = ray_find(AS_LIST(y)[0], AS_LIST(x)[0]);
 
@@ -779,7 +779,7 @@ obj_p ray_concat(obj_p x, obj_p y) {
                     drop_obj(kx);
                     drop_obj(kxy);
                     drop_obj(iy);
-                    THROW_S(ERR_TYPE, "concat: values a not compatible");
+                    THROW_S(E_TYPE, E_TYPE);
                 }
             }
             vec = vector(TYPE_LIST, kx->len);
@@ -885,7 +885,7 @@ obj_p ray_distinct(obj_p x) {
             res = index_distinct_guid(AS_GUID(x), l);
             return res;
         default:
-            THROW(ERR_TYPE, "distinct: invalid type: '%s", type_name(x->type));
+            THROW(E_TYPE, "distinct: invalid type: '%s", type_name(x->type));
     }
 }
 
@@ -1034,13 +1034,13 @@ obj_p ray_row(obj_p x) {
         $xl = x->len;                                                                                  \
         $yl = y->len;                                                                                  \
         if ($yl > $xl)                                                                                 \
-            THROW(ERR_LENGTH, "cut: vector length mismatch: %d, %d", $xl, $yl);                        \
+            THROW(E_LEN, "cut: vector length mismatch: %d, %d", $xl, $yl);                        \
                                                                                                        \
         $res = LIST($yl);                                                                              \
         $last_id = __AS_##yt(y)[0];                                                                    \
         if ($last_id < 0 || $last_id >= $xl) {                                                         \
             drop_obj($res);                                                                            \
-            THROW(ERR_INDEX, "cut: invalid index or index vector is not sorted: %lld", $last_id);      \
+            THROW(E_INDEX, "cut: invalid index or index vector is not sorted: %lld", $last_id);      \
         }                                                                                              \
                                                                                                        \
         for ($i = 0; $i < $yl; $i++) {                                                                 \
@@ -1048,7 +1048,7 @@ obj_p ray_row(obj_p x) {
             if ($id < $last_id || $id > $xl) {                                                         \
                 $res->len = $i;                                                                        \
                 drop_obj($res);                                                                        \
-                THROW(ERR_INDEX, "cut: invalid index or index vector is not sorted: %lld", $id);       \
+                THROW(E_INDEX, "cut: invalid index or index vector is not sorted: %lld", $id);       \
             }                                                                                          \
                                                                                                        \
             if ($id == $last_id)                                                                       \
@@ -1159,7 +1159,7 @@ obj_p cut_vector(obj_p x, obj_p y) {
                     THROW_TYPE1("cut", y->type);
             }
         default:
-            THROW(ERR_TYPE, "cut: unsupported vector type: '%s", type_name(x->type));
+            THROW(E_TYPE, "cut: unsupported vector type: '%s", type_name(x->type));
     }
 }
 

@@ -140,7 +140,7 @@ obj_p ray_date(obj_p arg) {
     datestruct_t dt;
 
     if (arg->type != -TYPE_SYMBOL)
-        THROW(ERR_TYPE, "date: expected 'Symbol, got '%s'", type_name(arg->type));
+        THROW(E_TYPE);
 
     ts = timestamp_current(str_from_symbol(arg->i64));
     dt.null = 0;

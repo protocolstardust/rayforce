@@ -198,7 +198,8 @@ typedef obj_p (*unary_f)(obj_p);
 typedef obj_p (*binary_f)(obj_p, obj_p);
 typedef obj_p (*vary_f)(obj_p *, i64_t);
 
-typedef enum { ERROR_TYPE_OS, ERROR_TYPE_SYS, ERROR_TYPE_SOCK } os_ray_error_type_t;
+// Error type is now a string constant (e.g. E_IO, E_SYS)
+typedef lit_p os_ray_error_type_t;
 
 b8_t ops_as_b8(obj_p x);
 b8_t ops_is_prime(i64_t x);

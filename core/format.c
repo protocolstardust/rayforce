@@ -64,7 +64,7 @@ static b8_t __USE_UNICODE = B8_TRUE;
 
 obj_p ray_set_fpr(obj_p x) {
     if (x->type != -TYPE_I64)
-        return ray_error(ERR_TYPE, "ray_set_fpr: expected 'i64, got %s", type_name(x->type));
+        return ray_err(E_TYPE);
 
     if (x->i64 < 0)
         F64_PRECISION = DEFAULT_F64_PRECISION;
@@ -564,96 +564,56 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
     i64_t n;
     i32_t msg_len;
     u16_t i, l, m;
-    lit_p error_desc;
-    str_p msg;
-    ray_error_p error = AS_ERROR(obj);
+    lit_p err_type, err_msg;
+    obj_p locs;
+    vm_p vm;
 
-    switch (error->code) {
-        case ERR_INIT:
-            error_desc = "initialize error";
-            break;
-        case ERR_PARSE:
-            error_desc = "unable to parse input";
-            break;
-        case ERR_EVAL:
-            error_desc = "object evaluation failed";
-            break;
-        case ERR_FORMAT:
-            error_desc = "unable to format object";
-            break;
-        case ERR_TYPE:
-            error_desc = "type mismatch";
-            break;
-        case ERR_LENGTH:
-            error_desc = "length mismatch";
-            break;
-        case ERR_ARITY:
-            error_desc = "arity mismatch";
-            break;
-        case ERR_INDEX:
-            error_desc = "index out of bounds";
-            break;
-        case ERR_HEAP:
-            error_desc = "heap allocation failed";
-            break;
-        case ERR_IO:
-            error_desc = "io";
-            break;
-        case ERR_SYS:
-            error_desc = "system";
-            break;
-        case ERR_OS:
-            error_desc = "os";
-            break;
-        case ERR_NOT_FOUND:
-            error_desc = "object not found";
-            break;
-        case ERR_NOT_EXIST:
-            error_desc = "object does not exist";
-            break;
-        case ERR_NOT_IMPLEMENTED:
-            error_desc = "not implemented";
-            break;
-        case ERR_STACK_OVERFLOW:
-            error_desc = ERR_MSG_STACK_OVERFLOW;
-            break;
-        case ERR_RAISE:
-            error_desc = "raised error";
-            break;
-        default:
-            error_desc = "corrupted object/unknown error";
-    }
+    UNUSED(limit);
 
-    msg_len = (i32_t)error->msg->len;
-    msg = AS_C8(error->msg);
+    // Get error type from raw field (first 8 bytes, null-terminated)
+    err_type = ray_err_msg(obj);
 
-    // there is a locations
-    if (error->locs != NULL_OBJ) {
+    // Get error message from i64 field (pointer to string)
+    err_msg = ray_err_msg(obj);
+    msg_len = (i32_t)strlen(err_msg);
+
+    // Check for locations in VM's last_locs
+    vm = VM;
+    locs = (vm && vm->last_locs != NULL_OBJ) ? vm->last_locs : NULL_OBJ;
+
+    // Format with locations if available
+    if (locs != NULL_OBJ) {
         n = str_fmt_into(dst, MAX_ERROR_LEN, "%s", TOMATO);
         n += glyph_fmt_into(dst, GLYPH_ASTERISK, __USE_UNICODE);
         n += glyph_fmt_into(dst, GLYPH_ASTERISK, __USE_UNICODE);
-        n += str_fmt_into(dst, MAX_ERROR_LEN, " [E%.3lld] error%s: %s\n", error->code, RESET, error_desc);
+        n += str_fmt_into(dst, MAX_ERROR_LEN, " [%s] error%s: %s\n", err_type, RESET, err_msg);
 
-        l = error->locs->len;
+        l = locs->len;
         m = l > ERR_STACK_MAX_HEIGHT ? ERR_STACK_MAX_HEIGHT : l;
 
         for (i = 0; i < m; i++) {
-            n += error_frame_fmt_into(dst, AS_LIST(error->locs)[i], l - i - 1, msg, msg_len);
+            n += error_frame_fmt_into(dst, AS_LIST(locs)[i], l - i - 1, (str_p)err_msg, msg_len);
             msg_len = 0;
         }
 
         if (l > m) {
-            n += str_fmt_into(dst, limit, "  ..\n");
-            n += error_frame_fmt_into(dst, AS_LIST(error->locs)[l - 1], 0, msg, msg_len);
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "  ..\n");
+            n += error_frame_fmt_into(dst, AS_LIST(locs)[l - 1], 0, (str_p)err_msg, msg_len);
+        }
+
+        // Clear locations after formatting
+        if (vm) {
+            drop_obj(vm->last_locs);
+            vm->last_locs = NULL_OBJ;
         }
         return n;
     }
 
+    // Format without locations
     n = str_fmt_into(dst, MAX_ERROR_LEN, "%s", TOMATO);
     n += glyph_fmt_into(dst, GLYPH_ASTERISK, __USE_UNICODE);
     n += glyph_fmt_into(dst, GLYPH_ASTERISK, __USE_UNICODE);
-    n +=
-        str_fmt_into(dst, MAX_ERROR_LEN, " [E%.3lld] error%s: %s %.*s\n", error->code, RESET, error_desc, msg_len, msg);
+    n += str_fmt_into(dst, MAX_ERROR_LEN, " [%s] error%s: %s\n", err_type, RESET, err_msg);
 
     return n;
 }

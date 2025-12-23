@@ -266,7 +266,7 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, i64_t, i64_t, obj_p);
                                                                                                \
                 if (is_null(sym) || sym->type != TYPE_SYMBOL) {                                \
                     drop_obj(sym);                                                             \
-                    THROW_S(ERR_TYPE, "eq: invalid enum");                                       \
+                    THROW("eq: invalid enum");                                       \
                 }                                                                              \
                                                                                                \
                 xi = AS_I64(sym);                                                              \
@@ -290,7 +290,7 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, i64_t, i64_t, obj_p);
                                                                                                \
                 if (is_null(sym) || sym->type != TYPE_SYMBOL) {                                \
                     drop_obj(sym);                                                             \
-                    THROW_S(ERR_TYPE, "eq: invalid enum");                                       \
+                    THROW("eq: invalid enum");                                       \
                 }                                                                              \
                                                                                                \
                 xi = AS_I64(x);                                                                \
@@ -328,7 +328,7 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, i64_t, i64_t, obj_p);
             case MTYPE2(TYPE_NULL, TYPE_NULL):                                                 \
                 return b8(B8_TRUE);                                                            \
             default:                                                                           \
-                THROW_TYPE2("eq", x->type, y->type);                                           \
+                THROW(E_TYPE);                                           \
         }                                                                                      \
     }
 
@@ -632,7 +632,7 @@ obj_p cmp_map(raw_p op, obj_p x, obj_p y) {
 
     if (IS_VECTOR(x) && IS_VECTOR(y)) {
         if (x->len != y->len)
-            THROW_S(ERR_LENGTH, ERR_MSG_VEC_SAME_LEN);
+            THROW(E_LEN);
 
         l = x->len;
     } else if (IS_VECTOR(x))

@@ -586,7 +586,7 @@ obj_p ray_add_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, f64, i16, f64, f64, ADDF64, len, offset, out);
 
         default:
-            THROW_TYPE2("add", x->type, y->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -893,7 +893,7 @@ obj_p ray_sub_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, f64, i16, f64, f64, SUBF64, len, offset, out);
 
         default:
-            THROW_TYPE2("sub", x->type, y->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -1131,7 +1131,7 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, f64, i16, f64, f64, MULF64, len, offset, out);
 
         default:
-            THROW_TYPE2("mul", x->type, y->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -1358,7 +1358,7 @@ obj_p ray_div_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, f64, i16, f64, f64, DIVF64, len, offset, out);
 
         default:
-            THROW_TYPE2("div", x->type, y->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -1442,7 +1442,7 @@ obj_p ray_fdiv_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
         case MTYPE2(TYPE_F64, TYPE_F64):
             return __BINOP_V_V(x, y, f64, f64, f64, f64, FDIVF64, len, offset, out);
         default:
-            THROW_TYPE2("fdiv", x->type, y->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -1628,7 +1628,7 @@ obj_p ray_mod_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, i64, i16, i64, i64, MODI64, len, offset, out);
 
         default:
-            THROW_TYPE2("mod", x->type, y->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -1777,7 +1777,7 @@ obj_p ray_xbar_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, i64, time, timestamp, timestamp, XBARI64, len, offset, out);
 
         default:
-            THROW_TYPE2("xbar", x->type, y->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -1830,7 +1830,7 @@ obj_p ray_cnt_partial(obj_p x, i64_t len, i64_t offset) {
             return res;
         }
         default:
-            THROW_TYPE1("cnt non-null", x->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -1902,7 +1902,7 @@ obj_p ray_sum_partial(obj_p x, i64_t len, i64_t offset) {
             return res;
         }
         default:
-            THROW_TYPE1("sum", x->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -1971,7 +1971,7 @@ obj_p ray_min_partial(obj_p x, i64_t len, i64_t offset) {
             return res;
         }
         default:
-            THROW_TYPE1("min", x->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -2040,7 +2040,7 @@ obj_p ray_max_partial(obj_p x, i64_t len, i64_t offset) {
             return res;
         }
         default:
-            THROW_TYPE1("max", x->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -2064,7 +2064,7 @@ obj_p ray_round_partial(obj_p x, i64_t len, i64_t offset, obj_p out) {
         // case TYPE_MAPGROUP:
         //     return aggr_round(AS_LIST(x)[0], AS_LIST(x)[1]);
         default:
-            THROW_TYPE1("round", x->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -2088,7 +2088,7 @@ obj_p ray_floor_partial(obj_p x, i64_t len, i64_t offset, obj_p out) {
         // case TYPE_MAPGROUP:
         //     return aggr_floor(AS_LIST(x)[0], AS_LIST(x)[1]);
         default:
-            THROW_TYPE1("floor", x->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -2112,7 +2112,7 @@ obj_p ray_ceil_partial(obj_p x, i64_t len, i64_t offset, obj_p out) {
         // case TYPE_MAPGROUP:
         //     return aggr_ceil(AS_LIST(x)[0], AS_LIST(x)[1]);
         default:
-            THROW_TYPE1("ceil", x->type);
+            THROW(E_TYPE);
     }
 }
 // TODO: DRY
@@ -2285,7 +2285,7 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
 
     if (IS_VECTOR(x) && IS_VECTOR(y)) {
         if (x->len != y->len)
-            THROW_S(ERR_LENGTH, ERR_MSG_VEC_SAME_LEN);
+            THROW(E_LEN);
 
         l = x->len;
     } else if (IS_VECTOR(x))
@@ -2521,7 +2521,7 @@ obj_p ray_avg(obj_p x) {
             return res;
         }
         default:
-            THROW_TYPE1("avg", x->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -2621,7 +2621,7 @@ obj_p ray_med(obj_p x) {
             return res;
         }
         default:
-            THROW_TYPE1("med", x->type);
+            THROW(E_TYPE);
     }
 }
 
@@ -2693,7 +2693,7 @@ obj_p ray_dev(obj_p x) {
             return res;
         }
         default:
-            THROW_TYPE1("dev", x->type);
+            THROW(E_TYPE);
     }
 
     return f64(sqrt(ray_sq_sub(x, f64(favg))->f64 / (f64_t)l));

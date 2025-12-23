@@ -35,6 +35,7 @@
 #include "timestamp.h"
 #include "error.h"
 #include "symbols.h"
+#include "eval.h"
 #include "env.h"
 #include "lambda.h"
 
@@ -60,20 +61,25 @@ nil_t span_extend(parser_t *parser, span_t *span) {
     return;
 }
 
-obj_p parse_error(parser_t *parser, i64_t id, obj_p msg) {
+obj_p parse_error(parser_t *parser, i64_t id, lit_p msg) {
     span_t span;
-    obj_p err;
+    obj_p err, loc;
+    vm_p vm = VM;
 
-    err = error_obj(ERR_PARSE, msg);
+    err = ray_err(msg);
 
-    if (parser->nfo != NULL_OBJ) {
+    // Store location in VM's last_locs (glibc-like error handling)
+    if (parser->nfo != NULL_OBJ && vm) {
         span = nfo_get(parser->nfo, id);
-        AS_ERROR(err)->locs = vn_list(1, vn_list(4,
-                                                 i64(span.id),                        // span
-                                                 clone_obj(AS_LIST(parser->nfo)[0]),  // file
-                                                 NULL_OBJ,                            // function
-                                                 clone_obj(AS_LIST(parser->nfo)[1])   // source
-                                                 ));
+        loc = vn_list(4, i64(span.id),                        // span
+                         clone_obj(AS_LIST(parser->nfo)[0]),  // file
+                         NULL_OBJ,                            // function
+                         clone_obj(AS_LIST(parser->nfo)[1])   // source
+                     );
+        if (vm->last_locs == NULL_OBJ)
+            vm->last_locs = vn_list(1, loc);
+        else
+            push_raw(&vm->last_locs, &loc);
     }
 
     return err;
@@ -295,7 +301,7 @@ obj_p parse_timestamp(parser_t *parser) {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(-1, "Month is out of range"));
+            return parse_error(parser, parser->count++, E_RANGE);
         }
     } else
         return PARSE_ADVANCE;
@@ -316,7 +322,7 @@ obj_p parse_timestamp(parser_t *parser) {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(-1, "Day is out of range"));
+            return parse_error(parser, parser->count++, E_RANGE);
         }
     } else
         return NULL_OBJ;
@@ -347,7 +353,7 @@ obj_p parse_timestamp(parser_t *parser) {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(-1, "Hour is out of range"));
+            return parse_error(parser, parser->count++, E_RANGE);
         }
     } else
         return PARSE_ADVANCE;
@@ -368,7 +374,7 @@ obj_p parse_timestamp(parser_t *parser) {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(-1, "Minute is out of range"));
+            return parse_error(parser, parser->count++, E_RANGE);
         }
     } else
         return PARSE_ADVANCE;
@@ -389,7 +395,7 @@ obj_p parse_timestamp(parser_t *parser) {
             span.start_column = current - parser->current - 2;
             span.end_column += current - parser->current - 1;
             nfo_insert(parser->nfo, parser->count, span);
-            return parse_error(parser, parser->count++, str_fmt(-1, "Second is out of range"));
+            return parse_error(parser, parser->count++, E_RANGE);
         }
     } else
         return PARSE_ADVANCE;
@@ -435,8 +441,7 @@ obj_p specify_number(parser_t *parser, const char *current, span_t span, obj_p n
                 drop_obj(num);
                 span.end_column += (current - parser->current);
                 nfo_insert(parser->nfo, parser->count, span);
-                return parse_error(parser, parser->count++,
-                                   str_fmt(-1, "Invalid literal: integer can not be imaginary"));
+                return parse_error(parser, parser->count++, E_PARSE);
             }
             break;
         default:
@@ -449,7 +454,7 @@ obj_p specify_number(parser_t *parser, const char *current, span_t span, obj_p n
                 drop_obj(num);
                 span.end_column += (current - parser->current);
                 nfo_insert(parser->nfo, parser->count, span);
-                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+                return parse_error(parser, parser->count++, E_RANGE);
             }
             num->u8 = (u8_t)num->i64;
             num->type = -TYPE_U8;
@@ -459,7 +464,7 @@ obj_p specify_number(parser_t *parser, const char *current, span_t span, obj_p n
                 drop_obj(num);
                 span.end_column += (current - parser->current);
                 nfo_insert(parser->nfo, parser->count, span);
-                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+                return parse_error(parser, parser->count++, E_RANGE);
             }
             num->i16 = (i16_t)num->i64;
             num->type = -TYPE_I16;
@@ -469,7 +474,7 @@ obj_p specify_number(parser_t *parser, const char *current, span_t span, obj_p n
                 drop_obj(num);
                 span.end_column += (current - parser->current);
                 nfo_insert(parser->nfo, parser->count, span);
-                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+                return parse_error(parser, parser->count++, E_RANGE);
             }
             num->i32 = (i32_t)num->i64;
             num->type = -TYPE_I32;
@@ -531,7 +536,7 @@ obj_p parse_number(parser_t *parser) {
 
     span.end_column += (parser->current + remaining - parser->input);
     nfo_insert(parser->nfo, parser->count, span);
-    return parse_error(parser, parser->count++, str_fmt(-1, "Not a number"));
+    return parse_error(parser, parser->count++, E_RANGE);
 }
 
 obj_p parse_char(parser_t *parser) {
@@ -593,7 +598,7 @@ obj_p parse_char(parser_t *parser) {
                     if (at_eof(parser) || !is_digit(*pos) || *pos > '7' || *pos < '0') {
                         span.end_column += (pos - parser->current);
                         nfo_insert(parser->nfo, parser->count, span);
-                        return parse_error(parser, parser->count++, str_fmt(-1, "Invalid octal escape sequence"));
+                        return parse_error(parser, parser->count++, E_RANGE);
                     }
                     ch = (ch << 3) | (*pos - '0');
                     pos++;
@@ -602,7 +607,7 @@ obj_p parse_char(parser_t *parser) {
             default:
                 span.end_column += (pos - parser->current);
                 nfo_insert(parser->nfo, parser->count, span);
-                return parse_error(parser, parser->count++, str_fmt(-1, "Invalid escape sequence"));
+                return parse_error(parser, parser->count++, E_RANGE);
         }
     } else {
         ch = *pos;
@@ -626,7 +631,7 @@ obj_p parse_char(parser_t *parser) {
     if (*pos == '\'') {
         span.end_column += (pos - parser->current);
         nfo_insert(parser->nfo, parser->count, span);
-        return parse_error(parser, parser->count++, str_fmt(-1, "Char literal is too long"));
+        return parse_error(parser, parser->count++, E_RANGE);
     }
 
     id = symbols_intern(parser->current + 1, pos - (parser->current + 1));
@@ -685,7 +690,7 @@ obj_p parse_string(parser_t *parser) {
                             drop_obj(str);
                             span.end_column += (pos - parser->current);
                             nfo_insert(parser->nfo, parser->count, span);
-                            return parse_error(parser, parser->count++, str_fmt(-1, "Invalid octal escape sequence"));
+                            return parse_error(parser, parser->count++, E_RANGE);
                         }
 
                         octal_val = (octal_val << 3) | (*pos - '0');
@@ -697,7 +702,7 @@ obj_p parse_string(parser_t *parser) {
                     drop_obj(str);
                     span.end_column += (pos - parser->current);
                     nfo_insert(parser->nfo, parser->count, span);
-                    return parse_error(parser, parser->count++, str_fmt(-1, "Invalid escape sequence"));
+                    return parse_error(parser, parser->count++, E_RANGE);
             }
 
             continue;
@@ -712,7 +717,7 @@ obj_p parse_string(parser_t *parser) {
         drop_obj(str);
         span.end_column += (pos - parser->current);
         nfo_insert(parser->nfo, parser->count, span);
-        err = parse_error(parser, parser->count++, str_fmt(-1, "Expected '\"'"));
+        err = parse_error(parser, parser->count++, E_PARSE);
 
         return err;
     }
@@ -795,7 +800,7 @@ obj_p parse_vector(parser_t *parser) {
         }
 
         if (is_at(tok, '\0') || is_at_term(tok)) {
-            err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Expected ']'"));
+            err = parse_error(parser, (i64_t)tok, E_PARSE);
             drop_obj(vec);
             drop_obj(tok);
             return err;
@@ -803,7 +808,7 @@ obj_p parse_vector(parser_t *parser) {
 
         if (tok->type == -TYPE_B8) {
             if (vec->len > 0 && vec->type != TYPE_B8) {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -812,7 +817,7 @@ obj_p parse_vector(parser_t *parser) {
             push_raw(&vec, &tok->b8);
         } else if (tok->type == -TYPE_U8) {
             if (vec->len > 0 && vec->type != TYPE_U8) {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -827,7 +832,7 @@ obj_p parse_vector(parser_t *parser) {
                 v = (f64_t)tok->i16;
                 push_raw(&vec, &v);
             } else {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -837,7 +842,7 @@ obj_p parse_vector(parser_t *parser) {
                 push_raw(&vec, &tok->i32);
                 vec->type = TYPE_I32;
             } else {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -847,7 +852,7 @@ obj_p parse_vector(parser_t *parser) {
                 push_raw(&vec, &tok->i32);
                 vec->type = TYPE_DATE;
             } else {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -857,7 +862,7 @@ obj_p parse_vector(parser_t *parser) {
                 push_raw(&vec, &tok->i32);
                 vec->type = TYPE_TIME;
             } else {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -869,7 +874,7 @@ obj_p parse_vector(parser_t *parser) {
                 v = (f64_t)tok->i64;
                 push_raw(&vec, &v);
             } else {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -884,7 +889,7 @@ obj_p parse_vector(parser_t *parser) {
 
                 push_raw(&vec, &tok->f64);
             } else {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -894,7 +899,7 @@ obj_p parse_vector(parser_t *parser) {
                 vec->type = TYPE_SYMBOL;
                 push_raw(&vec, &tok->i64);
             } else {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
@@ -904,13 +909,13 @@ obj_p parse_vector(parser_t *parser) {
                 push_raw(&vec, &tok->i64);
                 vec->type = TYPE_TIMESTAMP;
             } else {
-                err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+                err = parse_error(parser, (i64_t)tok, E_BAD);
                 drop_obj(vec);
                 drop_obj(tok);
                 return err;
             }
         } else {
-            err = parse_error(parser, (i64_t)tok, str_fmt(-1, ERR_MSG_INVALID_TOKEN));
+            err = parse_error(parser, (i64_t)tok, E_BAD);
             drop_obj(vec);
             drop_obj(tok);
             return err;
@@ -947,7 +952,7 @@ obj_p parse_list(parser_t *parser) {
 
         if (args->type != TYPE_SYMBOL) {
             if (args->type != TYPE_I64 || args->len != 0) {
-                err = parse_error(parser, (i64_t)args, str_fmt(-1, "fn: expected type 'SYMBOL as arguments."));
+                err = parse_error(parser, (i64_t)args, E_PARSE);
                 drop_obj(args);
                 return err;
             }
@@ -967,7 +972,7 @@ obj_p parse_list(parser_t *parser) {
         if (!is_at(tok, ')')) {
             span_extend(parser, &span);
             nfo_insert(parser->nfo, parser->count, span);
-            err = parse_error(parser, parser->count++, str_fmt(-1, "fn: expected ')'"));
+            err = parse_error(parser, parser->count++, E_RANGE);
             drop_obj(args);
             drop_obj(body);
             drop_obj(tok);
@@ -993,7 +998,7 @@ obj_p parse_list(parser_t *parser) {
 
         if (at_eof(parser)) {
             nfo_insert(parser->nfo, parser->count, span);
-            err = parse_error(parser, parser->count++, str_fmt(-1, "Expected ')'"));
+            err = parse_error(parser, parser->count++, E_RANGE);
             drop_obj(lst);
             drop_obj(tok);
 
@@ -1001,7 +1006,7 @@ obj_p parse_list(parser_t *parser) {
         }
 
         if (is_at_term(tok)) {
-            err = parse_error(parser, (i64_t)tok, str_fmt(-1, "There is no opening found for: '%c'", tok->c8));
+            err = parse_error(parser, (i64_t)tok, E_PARSE);
             drop_obj(lst);
             drop_obj(tok);
 
@@ -1042,7 +1047,7 @@ obj_p parse_dict(parser_t *parser) {
 
         if (at_eof(parser) || is_at_term(tok)) {
             nfo_insert(parser->nfo, parser->count, span);
-            err = parse_error(parser, parser->count++, str_fmt(-1, "Expected '}'"));
+            err = parse_error(parser, parser->count++, E_RANGE);
             drop_obj(keys);
             drop_obj(vals);
             drop_obj(tok);
@@ -1066,7 +1071,7 @@ obj_p parse_dict(parser_t *parser) {
         }
 
         if (!is_at(tok, ':')) {
-            err = parse_error(parser, (i64_t)tok, str_fmt(-1, "Expected ':'"));
+            err = parse_error(parser, (i64_t)tok, E_PARSE);
             drop_obj(vals);
             drop_obj(keys);
             drop_obj(tok);
@@ -1087,7 +1092,7 @@ obj_p parse_dict(parser_t *parser) {
 
         if (is_at_term(tok)) {
             nfo_insert(parser->nfo, parser->count, span);
-            err = parse_error(parser, parser->count++, str_fmt(-1, "Expected value folowing ':'"));
+            err = parse_error(parser, parser->count++, E_RANGE);
             drop_obj(keys);
             drop_obj(vals);
             drop_obj(tok);
@@ -1190,8 +1195,7 @@ obj_p parser_advance(parser_t *parser) {
     }
 
     nfo_insert(parser->nfo, (i64_t)tok, span_start(parser));
-    err = parse_error(parser, (i64_t)tok,
-                      str_fmt(-1, "Unexpected token: '%c'", !at_eof(parser) ? *parser->current : '?'));
+    err = parse_error(parser, (i64_t)tok, E_PARSE);
     drop_obj(tok);
 
     return err;
@@ -1270,7 +1274,7 @@ obj_p parse(lit_p input, i64_t input_len, obj_p nfo) {
         span.start_column = span.end_column + 1;
         span.end_column = span.start_column;
         nfo_insert(parser.nfo, parser.count, span);
-        err = parse_error(&parser, parser.count++, str_fmt(-1, "Unparsed input remains"));
+        err = parse_error(&parser, parser.count++, E_PARSE);
         drop_obj(res);
         return err;
     }

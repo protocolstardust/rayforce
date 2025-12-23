@@ -107,25 +107,31 @@ typedef u8_t guid_t[16];
 //=============================================================================
 
 #define OK 0
-#define ERR_INIT 1
-#define ERR_PARSE 2
-#define ERR_EVAL 3
-#define ERR_FORMAT 4
-#define ERR_TYPE 5
-#define ERR_LENGTH 6
-#define ERR_ARITY 7
-#define ERR_INDEX 8
-#define ERR_HEAP 9
-#define ERR_IO 10
-#define ERR_SYS 11
-#define ERR_OS 12
-#define ERR_NOT_FOUND 13
-#define ERR_NOT_EXIST 14
-#define ERR_NOT_IMPLEMENTED 15
-#define ERR_NOT_SUPPORTED 16
-#define ERR_STACK_OVERFLOW 17
-#define ERR_RAISE 18
-#define ERR_UNKNOWN 127
+
+// Error messages (max 7 chars to fit in i64)
+#define E_INIT "init"
+#define E_PARSE "parse"
+#define E_EVAL "eval"
+#define E_TYPE "type"
+#define E_LEN "length"
+#define E_ARITY "arity"
+#define E_INDEX "index"
+#define E_RANGE "range"
+#define E_HEAP "heap"
+#define E_IO "io"
+#define E_SYS "sys"
+#define E_NYI "nyi"
+#define E_STACK "stack"
+#define E_RAISE "raise"
+#define E_UFLOW "uflow"
+#define E_OFLOW "oflow"
+#define E_NFOUND "nfound"
+#define E_OOM "oom"
+#define E_BAD "bad"
+#define E_KEY "key"
+#define E_ARG "arg"
+#define E_JOIN "join"
+#define E_FMT "fmt"
 
 //=============================================================================
 // Special Values
@@ -164,6 +170,7 @@ typedef struct obj_t {
         i32_t i32;
         i64_t i64;
         f64_t f64;
+        str_p str;
         struct obj_t *obj;
         struct {
             i64_t len;
@@ -228,8 +235,7 @@ extern obj_p copy_obj(obj_p obj);   // copy
 extern obj_p cow_obj(obj_p obj);    // copy-on-write
 extern u32_t rc_obj(obj_p obj);     // get refcount
 
-// Errors
-extern obj_p ray_error(i8_t code, lit_p fmt, ...);  // Creates an error object
+// Errors - see error.h for new API (ray_err, ray_errf, ray_errm)
 
 // Destructors
 extern nil_t drop_obj(obj_p obj);  // Free an object

@@ -97,7 +97,7 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p gkeys, obj_p gcols, query_ctx_
 
             return res;
         default:
-            return ray_error(ERR_TYPE, "grouping key mapping(s) must be a symbol(s)");
+            return ray_err(E_TYPE);
     }
 }
 
@@ -123,7 +123,7 @@ obj_p get_gkeys(obj_p cols, obj_p obj) {
         case TYPE_DICT:
             x = AS_LIST(obj)[0];
             if (x->type != TYPE_SYMBOL)
-                return ray_error(ERR_TYPE, "grouping key(s) must be a symbol(s)");
+                return ray_err(E_TYPE);
 
             if (x->len == 1)
                 return at_idx(AS_LIST(obj)[0], 0);
@@ -209,7 +209,7 @@ obj_p select_fetch_table(obj_p obj, query_ctx_p ctx) {
     prm = at_sym(obj, "from", 4);
 
     if (is_null(prm))
-        THROW_S(ERR_LENGTH, "'select' expects 'from' param");
+        THROW("'select' expects 'from' param");
 
     val = eval(prm);
     drop_obj(prm);
@@ -219,7 +219,7 @@ obj_p select_fetch_table(obj_p obj, query_ctx_p ctx) {
 
     if (val->type != TYPE_TABLE) {
         drop_obj(val);
-        THROW_S(ERR_TYPE, "'select' from: expects table");
+        THROW("'select' from: expects table");
     }
 
     ctx->tablen = AS_LIST(val)[0]->len;
@@ -554,10 +554,10 @@ obj_p ray_select(obj_p obj) {
     query_ctx_init(&ctx);
 
     if (obj->type != TYPE_DICT)
-        THROW_S(ERR_LENGTH, "'select' takes dict of params");
+        THROW("'select' takes dict of params");
 
     if (AS_LIST(obj)[0]->type != TYPE_SYMBOL)
-        THROW_S(ERR_LENGTH, "'select' takes dict with symbol keys");
+        THROW("'select' takes dict with symbol keys");
 
     timeit_span_start("select");
 

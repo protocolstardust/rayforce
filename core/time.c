@@ -128,7 +128,7 @@ obj_p ray_time(obj_p arg) {
     timestruct_t tm;
 
     if (arg->type != -TYPE_SYMBOL)
-        THROW(ERR_TYPE, "date: expected 'Symbol, got '%s'", type_name(arg->type));
+        THROW(E_TYPE);
 
     ts = timestamp_current(str_from_symbol(arg->i64));
     tm.sign = 1;

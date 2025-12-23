@@ -605,10 +605,10 @@ obj_p str_split(lit_p str, i64_t str_len, lit_p delim, i64_t delim_len) {
 
     // Input validation
     if (str == NULL || delim == NULL)
-        THROW_S(ERR_TYPE, "str_split: null pointer");
+        THROW("str_split: null pointer");
 
     if (delim_len == 0)
-        THROW_S(ERR_LENGTH, "str_split: empty delimiter");
+        THROW("str_split: empty delimiter");
 
     // Create empty list
     result = LIST(0);

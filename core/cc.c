@@ -250,7 +250,7 @@ static obj_p cc_fn(cc_ctx_t *cc, obj_p *lst, i64_t n) {
     }
 
     if (cc_body(cc, lst, n) == -1) {
-        return ray_error(ERR_EVAL, "bytecode compilation failed");
+        return ray_err(E_TYPE);
     }
 
 end:

@@ -120,7 +120,7 @@ static obj_p logic_map(obj_p *x, i64_t n, lit_p op_name, logic_op_f op_func) {
                 if (l != c) {
                     drop_obj(res);
                     drop_obj(next);
-                    THROW(ERR_TYPE, "%s: different lengths: '%ld, '%ld", op_name, l, c);
+                    THROW(E_TYPE, "%s: different lengths: '%ld, '%ld", op_name, l, c);
                 }
 
                 // Perform element-wise operation using the provided function
@@ -195,7 +195,7 @@ static obj_p logic_map(obj_p *x, i64_t n, lit_p op_name, logic_op_f op_func) {
                 if (l != (i64_t)next->len) {
                     drop_obj(res);
                     drop_obj(next);
-                    THROW(ERR_TYPE, "%s: different lengths: '%ld, '%ld", op_name, l, (i64_t)next->len);
+                    THROW(E_TYPE, "%s: different lengths: '%ld, '%ld", op_name, l, (i64_t)next->len);
                 }
 
                 for (j = 0; j < l; j++) {
@@ -251,7 +251,7 @@ static obj_p logic_map(obj_p *x, i64_t n, lit_p op_name, logic_op_f op_func) {
             default:
                 drop_obj(res);
                 drop_obj(next);
-                THROW(ERR_TYPE, "%s: unsupported types: '%s, '%s", op_name, type_name(res->type),
+                THROW(E_TYPE, "%s: unsupported types: '%s, '%s", op_name, type_name(res->type),
                       type_name(next->type));
         }
     }

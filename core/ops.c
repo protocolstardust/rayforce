@@ -272,39 +272,35 @@ obj_p ops_where(b8_t *mask, i64_t len) {
 #if defined(OS_WINDOWS)
 
 obj_p sys_error(os_ray_error_type_t tp, lit_p msg) {
-    obj_p err, emsg;
+    obj_p emsg;
     DWORD dw;
     LPVOID lpMsgBuf;
 
-    switch (tp) {
-        case ERROR_TYPE_OS:
-            emsg = str_fmt(-1, "%s: %s", msg, strerror(errno));
-            err = error_obj(ERR_IO, emsg);
-            return err;
+    // Check if it's an errno-based error
+    if (tp == ERR_OS) {
+        return ray_err(E_TYPE);
+    }
 
-        case ERROR_TYPE_SOCK:
-            dw = WSAGetLastError();
-            break;
-        default:
-            dw = GetLastError();
+    // Windows socket or system error
+    if (tp == E_IO) {
+        dw = WSAGetLastError();
+    } else {
+        dw = GetLastError();
     }
 
     FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
                    dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&lpMsgBuf, 0, NULL);
 
     emsg = str_fmt(-1, "%s: %s", msg, lpMsgBuf);
-    err = error_obj(ERR_IO, emsg);
-
     LocalFree(lpMsgBuf);
 
-    return err;
+    return ray_err(E_TYPE);
 }
 
 #else
 
 obj_p sys_error(os_ray_error_type_t tp, lit_p msg) {
-    UNUSED(tp);
-    return ray_error(ERR_SYS, "'%s': %s", msg, strerror(errno));
+    return ray_err(E_TYPE);
 }
 
 #endif

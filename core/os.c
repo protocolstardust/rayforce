@@ -89,14 +89,14 @@ obj_p ray_os_get_var(obj_p x) {
     obj_p s;
 
     if (x->type != TYPE_C8)
-        THROW_S(ERR_TYPE, "os-get-var: expected string");
+        THROW("os-get-var: expected string");
 
     s = cstring_from_str(AS_C8(x), x->len);
     res = os_get_var(AS_C8(s), buf, sizeof(buf));
     drop_obj(s);
 
     if (res == -1)
-        THROW_S(ERR_OS, "os-get-var: failed to get environment variable");
+        THROW("os-get-var: failed to get environment variable");
 
     return string_from_str(buf, strlen(buf));
 }
@@ -106,7 +106,7 @@ obj_p ray_os_set_var(obj_p x, obj_p y) {
     obj_p sx, sy;
 
     if (x->type != TYPE_C8 || y->type != TYPE_C8)
-        THROW_S(ERR_TYPE, "os-set-var: expected strings");
+        THROW("os-set-var: expected strings");
 
     sx = cstring_from_str(AS_C8(x), x->len);
     sy = cstring_from_str(AS_C8(y), y->len);
@@ -115,11 +115,11 @@ obj_p ray_os_set_var(obj_p x, obj_p y) {
     drop_obj(sy);
 
     if (res == -1)
-        THROW_S(ERR_OS, "os-set-var: invalid arguments");
+        THROW("os-set-var: invalid arguments");
     if (res == -2)
-        THROW_S(ERR_OS, "os-set-var: name or value too long");
+        THROW("os-set-var: name or value too long");
     if (res == -3)
-        THROW_S(ERR_OS, "os-set-var: failed to set environment variable");
+        THROW("os-set-var: failed to set environment variable");
 
     return NULL_OBJ;
 }

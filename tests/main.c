@@ -40,6 +40,7 @@
 #include "../core/pool.h"
 #include "../core/sys.h"
 #include "../core/eval.h"
+#include "../core/error.h"
 
 typedef enum test_status_t { TEST_PASS = 0, TEST_FAIL, TEST_SKIP } test_status_t;
 
