@@ -59,22 +59,16 @@ typedef struct test_entry_t {
 
 // Setup and Teardown functions
 nil_t setup() {
-    sys_info_t si;
 #ifdef STOP_ON_FAIL
     runtime_create(1, NULL);
 #else
     runtime_create(0, NULL);
 #endif
-    // Initialize thread pool for pmap tests
-    si = sys_info(0);
-    if (si.threads > 1)
-        __RUNTIME->pool = pool_create(si.threads - 1);
-    // heap_create(0);
+    // Pool is now created inside runtime_create with all threads
 }
 
 nil_t teardown() {
     runtime_destroy();
-    // heap_destroy();
 }
 
 #define PASS() \

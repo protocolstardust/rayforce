@@ -28,7 +28,6 @@
 #include "ipc.h"
 #include "dynlib.h"
 #include "heap.h"
-#include "eval.h"
 
 // Global runtime reference
 runtime_p __RUNTIME = NULL;
@@ -118,12 +117,33 @@ obj_p parse_cmdline(i32_t argc, str_p argv[]) {
 }
 
 runtime_p runtime_create(i32_t argc, str_p argv[]) {
-    i64_t n;
+    i64_t i, n;
     obj_p arg, fmt, res;
     symbols_p symbols;
+    sys_info_t si;
 
-    // Initialize VM for main thread (which also creates heap)
-    vm_create(0, NULL);
+    // Parse -c/--cores argument early (before pool creation)
+    // We need to know thread count before creating pool
+    n = 0;
+    for (i = 1; i < argc; i++) {
+        if (strncmp(argv[i], "-c", 2) == 0 && argv[i][2] == '\0' && i + 1 < argc) {
+            i64_from_str(argv[i + 1], strlen(argv[i + 1]), &n);
+            break;
+        } else if (strncmp(argv[i], "--cores=", 8) == 0) {
+            i64_from_str(argv[i] + 8, strlen(argv[i]) - 8, &n);
+            break;
+        } else if (strcmp(argv[i], "--cores") == 0 && i + 1 < argc) {
+            i64_from_str(argv[i + 1], strlen(argv[i + 1]), &n);
+            break;
+        }
+    }
+
+    // Get system info with user-specified or default thread count
+    si = sys_info(n);
+    n = si.threads > 0 ? si.threads : 1;
+
+    // Pool is always created; executor[0] is main thread with its VM/heap
+    pool_p pool = pool_create(n);
 
     symbols = symbols_create();
 
@@ -133,26 +153,12 @@ runtime_p runtime_create(i32_t argc, str_p argv[]) {
     __RUNTIME->fdmaps = dict(I64(0), LIST(0));
     __RUNTIME->args = NULL_OBJ;
     __RUNTIME->query_ctx = NULL;
-    __RUNTIME->pool = NULL;
+    __RUNTIME->pool = pool;
     __RUNTIME->dynlibs = I64(0);
+    __RUNTIME->sys_info = si;
 
     if (argc) {
         __RUNTIME->args = parse_cmdline(argc, argv);
-
-        // thread count
-        arg = runtime_get_arg("cores");
-        if (!is_null(arg)) {
-            i64_from_str(AS_C8(arg), arg->len, &n);
-            if (n > 1)
-                __RUNTIME->pool = pool_create(n - 1);  // -1 for the main thread
-
-            __RUNTIME->sys_info = sys_info(n);
-            drop_obj(arg);
-        } else {
-            __RUNTIME->sys_info = sys_info(0);
-            if (__RUNTIME->sys_info.threads > 1)
-                __RUNTIME->pool = pool_create(__RUNTIME->sys_info.threads - 1);
-        }
 
         __RUNTIME->poll = poll_create();
         if (__RUNTIME->poll == NULL) {
@@ -237,11 +243,12 @@ nil_t runtime_destroy(nil_t) {
         dynlib_close(dl);
     }
     drop_obj(__RUNTIME->dynlibs);
-    if (__RUNTIME->pool)
-        pool_destroy(__RUNTIME->pool);
-    heap_unmap(__RUNTIME, sizeof(struct runtime_t));
-    // Destroy main VM (which also destroys the heap)
-    vm_destroy(__VM);
+    // Pool always exists and contains main VM as executor[0]
+    // Save runtime pointer before destroying pool (which destroys heap)
+    runtime_p rt = __RUNTIME;
+    pool_destroy(__RUNTIME->pool);
+    // Use mmap_free directly since heap is destroyed by pool_destroy
+    mmap_free(rt, sizeof(struct runtime_t));
     __RUNTIME = NULL;
 }
 

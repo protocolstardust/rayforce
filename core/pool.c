@@ -174,7 +174,7 @@ raw_p executor_run(raw_p arg) {
     rc_sync_set(B8_TRUE);
 
     // Create VM (which also creates heap) with pool pointer
-    vm = vm_create(executor->id + 1, executor->pool);
+    vm = vm_create(executor->id, executor->pool);
 
     __atomic_store_n(&executor->heap, vm->heap, __ATOMIC_RELAXED);
     __atomic_store_n(&executor->vm, vm, __ATOMIC_RELAXED);
@@ -213,17 +213,19 @@ raw_p executor_run(raw_p arg) {
         }
     }
 
-    vm_destroy(__VM);
+    vm_destroy(vm_current());
 
     return NULL;
 }
 
-pool_p pool_create(i64_t executors_count) {
+pool_p pool_create(i64_t thread_count) {
     i64_t i, rounds = 0;
     pool_p pool;
+    vm_p vm;
 
-    pool = (pool_p)heap_mmap(sizeof(struct pool_t) + (sizeof(executor_t) * executors_count));
-    pool->executors_count = executors_count;
+    // thread_count includes main thread, so we allocate for all
+    pool = (pool_p)heap_mmap(sizeof(struct pool_t) + (sizeof(executor_t) * thread_count));
+    pool->executors_count = thread_count;
     pool->done_count = 0;
     pool->tasks_count = 0;
     pool->task_queue = mpmc_create(DEFAULT_MPMC_SIZE);
@@ -232,25 +234,33 @@ pool_p pool_create(i64_t executors_count) {
     pool->mutex = mutex_create();
     pool->run = cond_create();
     pool->done = cond_create();
-    mutex_lock(&pool->mutex);
 
-    for (i = 0; i < executors_count; i++) {
+    // Executor[0] is the main thread - create VM directly here
+    pool->executors[0].id = 0;
+    pool->executors[0].pool = pool;
+    vm = vm_create(0, pool);
+    pool->executors[0].vm = vm;
+    pool->executors[0].heap = vm->heap;
+    pool->executors[0].handle = thread_self();
+
+    if (thread_pin(thread_self(), 0) != 0)
+        printf("Pool create: failed to pin main thread\n");
+
+    // Create worker threads for executor[1..n-1]
+    mutex_lock(&pool->mutex);
+    for (i = 1; i < thread_count; i++) {
         pool->executors[i].id = i;
         pool->executors[i].pool = pool;
         pool->executors[i].heap = NULL;
         pool->executors[i].vm = NULL;
         pool->executors[i].handle = ray_thread_create(executor_run, &pool->executors[i]);
-        if (thread_pin(pool->executors[i].handle, i + 1) != 0)
-            printf("Pool create: failed to pin thread %lld\n", i + 1);
+        if (thread_pin(pool->executors[i].handle, i) != 0)
+            printf("Pool create: failed to pin thread %lld\n", i);
     }
-
-    if (thread_pin(thread_self(), 0) != 0)
-        printf("Pool create: failed to pin main thread\n");
-
     mutex_unlock(&pool->mutex);
 
-    // Now ensure that all threads are running
-    for (i = 0; i < executors_count; i++) {
+    // Wait for worker threads to initialize
+    for (i = 1; i < thread_count; i++) {
         while (__atomic_load_n(&pool->executors[i].vm, __ATOMIC_RELAXED) == NULL)
             backoff_spin(&rounds);
     }
@@ -267,7 +277,9 @@ nil_t pool_destroy(pool_p pool) {
     mutex_unlock(&pool->mutex);
 
     n = pool->executors_count;
-    for (i = 0; i < n; i++) {
+
+    // Join worker threads (executor[1..n-1]), not main thread
+    for (i = 1; i < n; i++) {
         if (thread_join(pool->executors[i].handle) != 0)
             printf("Pool destroy: failed to join thread %lld\n", i);
     }
@@ -278,7 +290,11 @@ nil_t pool_destroy(pool_p pool) {
     mpmc_destroy(pool->task_queue);
     mpmc_destroy(pool->result_queue);
 
-    heap_unmap(pool, sizeof(struct pool_t) + sizeof(executor_t) * pool->executors_count);
+    // Destroy main thread's VM (executor[0]) last - after all heap operations
+    vm_destroy(pool->executors[0].vm);
+
+    // Use mmap_free directly since heap is already destroyed
+    mmap_free(pool, sizeof(struct pool_t) + sizeof(executor_t) * pool->executors_count);
 }
 
 pool_p pool_get(nil_t) { return runtime_get()->pool; }

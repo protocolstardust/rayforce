@@ -32,11 +32,19 @@
 #include "string.h"
 #include "aggr.h"
 #include "cc.h"
+#include <pthread.h>
 
-__thread vm_p __VM = NULL;
+// Thread-local VM storage using POSIX TLS
+static pthread_key_t vm_key;
+static pthread_once_t vm_key_once = PTHREAD_ONCE_INIT;
+
+static nil_t vm_key_create(nil_t) { pthread_key_create(&vm_key, NULL); }
 
 vm_p vm_create(i64_t id, struct pool_t *pool) {
     vm_p vm;
+
+    // Ensure TLS key is created (once per process)
+    pthread_once(&vm_key_once, vm_key_create);
 
     // Use raw mmap for VM allocation (can't use heap before VM exists)
     vm = (vm_p)mmap_alloc(sizeof(struct vm_t));
@@ -51,8 +59,8 @@ vm_p vm_create(i64_t id, struct pool_t *pool) {
     memset(vm->ps, 0, sizeof(obj_p) * VM_STACK_SIZE);
     memset(vm->rs, 0, sizeof(ctx_t) * VM_STACK_SIZE);
 
-    // Set VM first so heap_create can use it
-    __VM = vm;
+    // Set VM for this thread so heap_create can use it
+    pthread_setspecific(vm_key, vm);
 
     // Create heap for this VM
     vm->heap = heap_create(id);
@@ -70,17 +78,16 @@ nil_t vm_destroy(vm_p vm) {
     heap_destroy(vm->heap);
     vm->heap = NULL;
 
+    // Clear TLS
+    pthread_setspecific(vm_key, NULL);
+
     // Then destroy VM
     mmap_free(vm, sizeof(struct vm_t));
 }
 
-nil_t vm_set(vm_p vm) { __VM = vm; }
+nil_t vm_set(vm_p vm) { pthread_setspecific(vm_key, vm); }
 
-vm_p vm_current(nil_t) {
-    if (__VM == NULL)
-        vm_create(0, NULL);
-    return __VM;
-}
+vm_p vm_current(nil_t) { return (vm_p)pthread_getspecific(vm_key); }
 
 // ============================================================================
 // Environment Management
@@ -529,10 +536,6 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
     i64_t len, i;
     obj_p car, *val, *args, x, y, z, res;
     lambda_p lambda;
-
-    // Ensure VM is initialized (lazy init on first eval)
-    vm_current();
-
     switch (obj->type) {
         case TYPE_LIST:
             if (obj->len == 0)
