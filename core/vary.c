@@ -79,11 +79,11 @@ obj_p ray_apply(obj_p *x, i64_t n) {
                 return ray_err(ERR_ARITY);
 
             for (i = 0; i < n; i++)
-                stack_push(clone_obj(x[i]));
+                vm_stack_push(clone_obj(x[i]));
 
             res = call(f, n);
             for (i = 0; i < n; i++)
-                drop_obj(stack_pop());
+                drop_obj(vm_stack_pop());
             return res;
         default:
             return ray_err(ERR_TYPE);

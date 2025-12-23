@@ -58,7 +58,7 @@ obj_p lambda_call(obj_p f, obj_p *x, i64_t n) {
     } else {
         res = call(f, n);
         for (i = 0; i < n; i++)
-            drop_obj(stack_pop());
+            drop_obj(vm_stack_pop());
 
         return res;
     }

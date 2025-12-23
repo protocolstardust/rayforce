@@ -429,7 +429,7 @@ obj_p map_vary_fn(vary_f fn, i64_t attrs, obj_p *x, i64_t n) {
         return ray_err(ERR_LEN);
 
     for (j = 0; j < n; j++)
-        stack_push(at_idx(x[j], 0));
+        vm_stack_push(at_idx(x[j], 0));
 
     v = fn(x + n, n);
 
@@ -442,13 +442,13 @@ obj_p map_vary_fn(vary_f fn, i64_t attrs, obj_p *x, i64_t n) {
 
     for (i = 1; i < l; i++) {
         for (j = 0; j < n; j++)
-            stack_push(at_idx(x[j], i));
+            vm_stack_push(at_idx(x[j], i));
 
         v = (attrs & FN_ATOMIC) ? map_vary_fn(fn, attrs, x + n, n) : fn(x + n, n);
 
         // cleanup stack
         for (j = 0; j < n; j++)
-            drop_obj(stack_pop());
+            drop_obj(vm_stack_pop());
 
         if (IS_ERR(v)) {
             res->len = i;
@@ -472,12 +472,12 @@ obj_p map_lambda_range(obj_p f, obj_p *lst, i64_t n, i64_t start, i64_t end) {
         return NULL_OBJ;
 
     for (j = 0; j < n; j++)
-        stack_push(at_idx(lst[j], start));
+        vm_stack_push(at_idx(lst[j], start));
 
     v = (f->attrs & FN_ATOMIC) ? map_lambda(f, lst, n) : call(f, n);
 
     for (j = 0; j < n; j++)
-        drop_obj(stack_pop());
+        drop_obj(vm_stack_pop());
 
     if (IS_ERR(v))
         return v;
@@ -487,12 +487,12 @@ obj_p map_lambda_range(obj_p f, obj_p *lst, i64_t n, i64_t start, i64_t end) {
 
     for (i = 1; i < l; i++) {
         for (j = 0; j < n; j++)
-            stack_push(at_idx(lst[j], start + i));
+            vm_stack_push(at_idx(lst[j], start + i));
 
         v = (f->attrs & FN_ATOMIC) ? map_lambda(f, lst, n) : call(f, n);
 
         for (j = 0; j < n; j++)
-            drop_obj(stack_pop());
+            drop_obj(vm_stack_pop());
 
         if (IS_ERR(v)) {
             res->len = i;
@@ -514,12 +514,12 @@ obj_p map_lambda(obj_p f, obj_p *x, i64_t n) {
         return NULL_OBJ;
 
     for (j = 0; j < n; j++)
-        stack_push(at_idx(x[j], 0));
+        vm_stack_push(at_idx(x[j], 0));
 
     v = (f->attrs & FN_ATOMIC) ? map_lambda(f, x, n) : call(f, n);
 
     for (j = 0; j < n; j++)
-        drop_obj(stack_pop());
+        drop_obj(vm_stack_pop());
 
     if (IS_ERR(v))
         return v;
@@ -529,12 +529,12 @@ obj_p map_lambda(obj_p f, obj_p *x, i64_t n) {
 
     for (i = 1; i < l; i++) {
         for (j = 0; j < n; j++)
-            stack_push(at_idx(x[j], i));
+            vm_stack_push(at_idx(x[j], i));
 
         v = (f->attrs & FN_ATOMIC) ? map_lambda(f, x, n) : call(f, n);
 
         for (j = 0; j < n; j++)
-            drop_obj(stack_pop());
+            drop_obj(vm_stack_pop());
 
         if (IS_ERR(v)) {
             res->len = i;
@@ -690,11 +690,11 @@ obj_p ray_map_left(obj_p *x, i64_t n) {
 
             if (!IS_VECTOR(x[0])) {
                 for (i = 0; i < n; i++)
-                    stack_push(clone_obj(x[i]));
+                    vm_stack_push(clone_obj(x[i]));
 
                 res = call(f, n);
                 for (i = 0; i < n; i++)
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
                 return res;
             }
 
@@ -703,17 +703,17 @@ obj_p ray_map_left(obj_p *x, i64_t n) {
                 return vector(x[0]->type, 0);
 
             // first item to get type of res
-            stack_push(at_idx(x[0], 0));
+            vm_stack_push(at_idx(x[0], 0));
 
             for (j = 1; j < n; j++) {
                 b = x + j;
                 v = clone_obj(*b);
-                stack_push(v);
+                vm_stack_push(v);
             }
 
             v = call(f, n);
             for (i = 0; i < n; i++)
-                drop_obj(stack_pop());
+                drop_obj(vm_stack_pop());
 
             if (IS_ERR(v))
                 return v;
@@ -723,16 +723,16 @@ obj_p ray_map_left(obj_p *x, i64_t n) {
             ins_obj(&res, 0, v);
 
             for (i = 1; i < l; i++) {
-                stack_push(at_idx(x[0], i));
+                vm_stack_push(at_idx(x[0], i));
                 for (j = 1; j < n; j++) {
                     b = x + j;
                     v = clone_obj(*b);
-                    stack_push(v);
+                    vm_stack_push(v);
                 }
 
                 v = call(f, n);
                 for (j = 0; j < n; j++)
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
 
                 if (IS_ERR(v)) {
                     res->len = i;
@@ -777,11 +777,11 @@ obj_p ray_map_right(obj_p *x, i64_t n) {
 
             if (!IS_VECTOR(x[n - 1])) {
                 for (i = 0; i < n; i++)
-                    stack_push(clone_obj(x[i]));
+                    vm_stack_push(clone_obj(x[i]));
 
                 res = call(f, n);
                 for (i = 0; i < n; i++)
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
                 return res;
             }
 
@@ -793,13 +793,13 @@ obj_p ray_map_right(obj_p *x, i64_t n) {
             for (j = 0; j < n - 1; j++) {
                 b = x + j;
                 v = clone_obj(*b);
-                stack_push(v);
+                vm_stack_push(v);
             }
-            stack_push(at_idx(x[n - 1], 0));
+            vm_stack_push(at_idx(x[n - 1], 0));
 
             v = call(f, n);
             for (i = 0; i < n; i++)
-                drop_obj(stack_pop());
+                drop_obj(vm_stack_pop());
 
             if (IS_ERR(v))
                 return v;
@@ -812,13 +812,13 @@ obj_p ray_map_right(obj_p *x, i64_t n) {
                 for (j = 0; j < n - 1; j++) {
                     b = x + j;
                     v = clone_obj(*b);
-                    stack_push(v);
+                    vm_stack_push(v);
                 }
-                stack_push(at_idx(x[n - 1], i));
+                vm_stack_push(at_idx(x[n - 1], i));
 
                 v = call(f, n);
                 for (j = 0; j < n; j++)
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
 
                 if (IS_ERR(v)) {
                     res->len = i;
@@ -956,26 +956,26 @@ obj_p ray_fold(obj_p *x, i64_t n) {
                 return ray_err(ERR_LEN);
 
             for (i = 0; i < n; i++)
-                stack_push(at_idx(x[i], 0));
+                vm_stack_push(at_idx(x[i], 0));
 
             v = vary_call(f, x, n);
 
             // cleanup stack
             for (i = 0; i < n; i++)
-                drop_obj(stack_pop());
+                drop_obj(vm_stack_pop());
 
             if (IS_ERR(v))
                 return v;
 
             for (i = 1; i < l; i++) {
                 for (j = 0; j < n; j++)
-                    stack_push(at_idx(x[j], i));
+                    vm_stack_push(at_idx(x[j], i));
 
                 v = vary_call(f, x, n);
 
                 // cleanup stack
                 for (j = 0; j < n; j++)
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
 
                 if (IS_ERR(v))
                     return v;
@@ -998,14 +998,14 @@ obj_p ray_fold(obj_p *x, i64_t n) {
                 v = at_idx(x[0], 0);
 
                 for (i = 1; i < l; i++) {
-                    stack_push(clone_obj(v));
+                    vm_stack_push(clone_obj(v));
                     x2 = at_idx(x[0], i);
-                    stack_push(x2);
+                    vm_stack_push(x2);
 
                     v = call(f, 2);
 
-                    drop_obj(stack_pop());
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
+                    drop_obj(vm_stack_pop());
 
                     if (IS_ERR(v))
                         return v;
@@ -1020,14 +1020,14 @@ obj_p ray_fold(obj_p *x, i64_t n) {
                 v = at_idx(x[0], 0);
 
                 for (i = 1; i < l; i++) {
-                    stack_push(clone_obj(v));
+                    vm_stack_push(clone_obj(v));
                     x2 = at_idx(x[1], i);
-                    stack_push(x2);
+                    vm_stack_push(x2);
 
                     v = call(f, 2);
 
-                    drop_obj(stack_pop());
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
+                    drop_obj(vm_stack_pop());
 
                     if (IS_ERR(v))
                         return v;
@@ -1069,20 +1069,20 @@ obj_p ray_fold_left(obj_p *x, i64_t n) {
             for (i = 0; i < l; i++) {
                 // Push current element from the leftmost argument first
                 x1 = at_idx(x[0], i);
-                stack_push(x1);
+                vm_stack_push(x1);
                 // Push result of previous iteration as second argument
                 x2 = clone_obj(v);
-                stack_push(x2);
+                vm_stack_push(x2);
                 // Push all other arguments in between
                 for (j = 1; j < n - 1; j++) {
-                    stack_push(clone_obj(x[j]));
+                    vm_stack_push(clone_obj(x[j]));
                 }
 
                 v = call(f, n);
 
                 // Cleanup stack
                 for (j = 0; j < n; j++) {
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
                 }
 
                 if (IS_ERR(v))
@@ -1104,20 +1104,20 @@ obj_p ray_fold_left(obj_p *x, i64_t n) {
             for (i = 0; i < l; i++) {
                 // Push current element from the leftmost argument first
                 x1 = at_idx(x[0], i);
-                stack_push(x1);
+                vm_stack_push(x1);
                 // Push result of previous iteration as second argument
                 x2 = clone_obj(v);
-                stack_push(x2);
+                vm_stack_push(x2);
                 // Push all other arguments in between
                 for (j = 1; j < n - 1; j++) {
-                    stack_push(clone_obj(x[j]));
+                    vm_stack_push(clone_obj(x[j]));
                 }
 
                 v = call(f, n);
 
                 // Cleanup stack
                 for (j = 0; j < n; j++) {
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
                 }
 
                 if (IS_ERR(v))
@@ -1182,21 +1182,21 @@ obj_p ray_fold_right(obj_p *x, i64_t n) {
                 // Push all arguments except the last one (which we iterate over)
                 for (j = 0; j < n - 1; j++) {
                     if (j == 0) {
-                        stack_push(v);  // Push accumulator
+                        vm_stack_push(v);  // Push accumulator
                     } else {
                         x1 = at_idx(x[j], i);
-                        stack_push(x1);
+                        vm_stack_push(x1);
                     }
                 }
                 // Push current element from the last argument
                 x1 = at_idx(x[n - 1], i);
-                stack_push(x1);
+                vm_stack_push(x1);
 
                 v = call(f, n);
 
                 // Cleanup stack
                 for (j = 0; j < n; j++) {
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
                 }
 
                 if (IS_ERR(v))
@@ -1366,13 +1366,13 @@ obj_p ray_scan(obj_p *x, i64_t n) {
                 return ray_err(ERR_LEN);
 
             for (i = 0; i < n; i++)
-                stack_push(at_idx(x[i], 0));
+                vm_stack_push(at_idx(x[i], 0));
 
             v = vary_call(f, x, n);
 
             // cleanup stack
             for (i = 0; i < n; i++)
-                drop_obj(stack_pop());
+                drop_obj(vm_stack_pop());
 
             if (IS_ERR(v))
                 return v;
@@ -1382,13 +1382,13 @@ obj_p ray_scan(obj_p *x, i64_t n) {
 
             for (i = 1; i < l; i++) {
                 for (j = 0; j < n; j++)
-                    stack_push(at_idx(x[j], i));
+                    vm_stack_push(at_idx(x[j], i));
 
                 v = vary_call(f, x, n);
 
                 // cleanup stack
                 for (j = 0; j < n; j++)
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
 
                 if (IS_ERR(v)) {
                     res->len = i;
@@ -1420,14 +1420,14 @@ obj_p ray_scan(obj_p *x, i64_t n) {
                 ins_obj(&res, 0, v);
 
                 for (i = 1; i < l; i++) {
-                    stack_push(clone_obj(v));
+                    vm_stack_push(clone_obj(v));
                     x2 = at_idx(x[0], i);
-                    stack_push(x2);
+                    vm_stack_push(x2);
 
                     v = call(f, 2);
 
-                    drop_obj(stack_pop());
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
+                    drop_obj(vm_stack_pop());
 
                     if (IS_ERR(v)) {
                         res->len = i;
@@ -1451,14 +1451,14 @@ obj_p ray_scan(obj_p *x, i64_t n) {
                 ins_obj(&res, 0, v);
 
                 for (i = 1; i < l; i++) {
-                    stack_push(clone_obj(v));
+                    vm_stack_push(clone_obj(v));
                     x2 = at_idx(x[1], i);
-                    stack_push(x2);
+                    vm_stack_push(x2);
 
                     v = call(f, 2);
 
-                    drop_obj(stack_pop());
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
+                    drop_obj(vm_stack_pop());
 
                     if (IS_ERR(v)) {
                         res->len = i;
@@ -1543,20 +1543,20 @@ obj_p ray_scan_left(obj_p *x, i64_t n) {
             for (i = 0; i < l; i++) {
                 // Push current element from the leftmost argument first
                 x1 = at_idx(x[0], i);
-                stack_push(x1);
+                vm_stack_push(x1);
                 // Push result of previous iteration as second argument
                 x2 = clone_obj(v);
-                stack_push(x2);
+                vm_stack_push(x2);
                 // Push all other arguments in between
                 for (j = 1; j < n - 1; j++) {
-                    stack_push(clone_obj(x[j]));
+                    vm_stack_push(clone_obj(x[j]));
                 }
 
                 v = call(f, n);
 
                 // Cleanup stack
                 for (j = 0; j < n; j++) {
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
                 }
 
                 if (IS_ERR(v)) {
@@ -1640,20 +1640,20 @@ obj_p ray_scan_right(obj_p *x, i64_t n) {
             for (i = 0; i < l; i++) {
                 // Push current element from the rightmost argument
                 x1 = at_idx(x[n - 1], i);
-                stack_push(x1);
+                vm_stack_push(x1);
                 // Push result of previous iteration
                 x2 = clone_obj(v);
-                stack_push(x2);
+                vm_stack_push(x2);
                 // Push all other arguments in between
                 for (j = 0; j < n - 1; j++) {
-                    stack_push(clone_obj(x[j]));
+                    vm_stack_push(clone_obj(x[j]));
                 }
 
                 v = call(f, n);
 
                 // Cleanup stack
                 for (j = 0; j < n; j++) {
-                    drop_obj(stack_pop());
+                    drop_obj(vm_stack_pop());
                 }
 
                 if (IS_ERR(v)) {

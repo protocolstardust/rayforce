@@ -1417,11 +1417,12 @@ i64_t timeit_fmt_into(obj_p *dst, i64_t indent, i64_t *index, timeit_t *timeit) 
 }
 
 obj_p timeit_fmt(nil_t) {
-    timeit_t *timeit = &VM->timeit;
+    timeit_t *timeit = VM->timeit;
     i64_t index = 0;
     obj_p dst = NULL_OBJ;
 
-    timeit_fmt_into(&dst, 0, &index, timeit);
+    if (timeit)
+        timeit_fmt_into(&dst, 0, &index, timeit);
 
     return dst;
 }

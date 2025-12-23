@@ -63,22 +63,25 @@ typedef struct ctx_t {
     i64_t ip;   // instruction pointer
 } ctx_t;
 
-// Virtual machine state
+// Virtual machine state - layout optimized for cache efficiency
 typedef struct vm_t {
-    obj_p fn;                                              // current function pointer
-    obj_p env;                                             // current environment frame
-    obj_p nfo;                                             // current source nfo for error reporting
-    obj_p trace;                                           // error stack trace
-    i64_t id;                                              // VM id
-    i64_t fp;                                              // frame pointer
-    i64_t sp;                                              // program stack pointer
-    i64_t rp;                                              // return stack pointer
-    heap_p heap;                                           // heap pointer
-    struct pool_t *pool;                                   // pool pointer
-    timeit_t timeit;                                       // Timeit spans
-    obj_p ps[VM_STACK_SIZE] __attribute__((aligned(32)));  // program stack
-    ctx_t rs[VM_STACK_SIZE] __attribute__((aligned(32)));  // return stack
-} __attribute__((aligned(32))) * vm_p;
+    // === First cache line (64 bytes) - VERY HOT ===
+    i64_t sp;             // stack pointer (hottest)
+    i64_t fp;             // frame pointer
+    i64_t rp;             // return stack pointer
+    obj_p fn;             // current function
+    obj_p env;            // current environment
+    heap_p heap;          // heap pointer
+    i64_t id;             // VM id
+    struct pool_t *pool;  // pool pointer
+    // === Stacks - HOT ===
+    obj_p ps[VM_STACK_SIZE] __attribute__((aligned(64)));  // program stack
+    ctx_t rs[VM_STACK_SIZE] __attribute__((aligned(64)));  // return stack
+    // === COLD section ===
+    obj_p nfo;         // error source info
+    obj_p trace;       // error stack trace
+    timeit_t *timeit;  // timeit (lazy allocated)
+} __attribute__((aligned(64))) * vm_p;
 
 // Thread-local VM pointer
 extern __thread vm_p __VM;
@@ -126,11 +129,5 @@ nil_t error_add_loc(obj_p err, i64_t id, ctx_t *ctx);
 
 // Thread utilities
 b8_t ray_is_main_thread(nil_t);
-
-// Macros for stack operations (for compatibility with existing code)
-#define stack_push(val) vm_stack_push(val)
-#define stack_pop() vm_stack_pop()
-#define stack_peek(n) vm_stack_peek(n)
-#define stack_enough(n) vm_stack_enough(n)
 
 #endif  // EVAL_H

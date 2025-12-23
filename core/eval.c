@@ -41,16 +41,18 @@ vm_p vm_create(i64_t id, struct pool_t *pool) {
 
     // Use raw mmap for VM allocation (can't use heap before VM exists)
     vm = (vm_p)mmap_alloc(sizeof(struct vm_t));
-    vm->id = id;
+    // Hot fields first
     vm->sp = 0;
     vm->fp = 0;
     vm->rp = 0;
     vm->fn = NULL_OBJ;
     vm->env = NULL_OBJ;
-    vm->nfo = NULL_OBJ;
+    vm->id = id;
     vm->pool = pool;
-    vm->timeit.active = B8_FALSE;
+    // Cold fields
+    vm->nfo = NULL_OBJ;
     vm->trace = NULL_OBJ;
+    vm->timeit = NULL;  // Lazy allocated when timing enabled
     memset(vm->ps, 0, sizeof(obj_p) * VM_STACK_SIZE);
     memset(vm->rs, 0, sizeof(ctx_t) * VM_STACK_SIZE);
 
@@ -69,7 +71,13 @@ nil_t vm_destroy(vm_p vm) {
         drop_obj(vm->ps[--vm->sp]);
     }
 
-    // Destroy heap first
+    // Free timeit if allocated
+    if (vm->timeit) {
+        heap_free(vm->timeit);
+        vm->timeit = NULL;
+    }
+
+    // Destroy heap
     heap_destroy(vm->heap);
     vm->heap = NULL;
 
@@ -320,7 +328,7 @@ __attribute__((hot)) obj_p vm_eval(obj_p fn) {
     ctx_t *rs;
     i64_t ip = 0;
     i64_t n;
-    obj_p x, y, r, *l;
+    obj_p x, y, r, *l, res, *val;
 
     // Setup VM for this function
     vm->fn = fn;
@@ -386,16 +394,14 @@ OP_JMP:
 
 OP_DEREF:
     x = pop();
-    {
-        obj_p *val = resolve(x->i64);
-        if (val == NULL) {
-            r = ray_err(ERR_EVAL);
-            drop_obj(x);
-            bc_error_add_loc(r, vm->fn, ip);
-            return r;
-        }
-        y = clone_obj(*val);
+    val = resolve(x->i64);
+    if (val == NULL) {
+        r = ray_err(ERR_EVAL);
+        drop_obj(x);
+        bc_error_add_loc(r, vm->fn, ip);
+        return r;
     }
+    y = clone_obj(*val);
     drop_obj(x);
     push(y);
     next();
@@ -418,35 +424,31 @@ OP_CALF2:
     r = pop();  // function (pushed last)
     y = pop();  // second argument
     x = pop();  // first argument
-    {
-        obj_p res = binary_call(r, x, y);
-        drop_obj(x);
-        drop_obj(y);
-        drop_obj(r);
-        if (IS_ERR(res)) {
-            bc_error_add_loc(res, vm->fn, ip);
-            return res;
-        }
-        push(res);
+    res = binary_call(r, x, y);
+    drop_obj(x);
+    drop_obj(y);
+    drop_obj(r);
+    if (IS_ERR(res)) {
+        bc_error_add_loc(res, vm->fn, ip);
+        return res;
     }
+    push(res);
     next();
 
 OP_CALF0:
     n = bc[ip++];  // arity
     r = pop();     // function
     l = top(n);
-    {
-        obj_p res = vary_call(r, l, n);
-        for (i64_t i = 0; i < n; ++i)
-            drop_obj(l[i]);
-        vm->sp -= n;
-        drop_obj(r);
-        if (IS_ERR(res)) {
-            bc_error_add_loc(res, vm->fn, ip);
-            return res;
-        }
-        push(res);
+    res = vary_call(r, l, n);
+    for (i64_t i = 0; i < n; ++i)
+        drop_obj(l[i]);
+    vm->sp -= n;
+    drop_obj(r);
+    if (IS_ERR(res)) {
+        bc_error_add_loc(res, vm->fn, ip);
+        return res;
     }
+    push(res);
     next();
 
 OP_CALFN:
@@ -512,17 +514,15 @@ OP_CALFD:
             }
             y = pop();
             r = pop();
-            {
-                obj_p res = binary_call(x, r, y);
-                drop_obj(r);
-                drop_obj(y);
-                drop_obj(x);
-                if (IS_ERR(res)) {
-                    bc_error_add_loc(res, vm->fn, ip);
-                    return res;
-                }
-                push(res);
+            res = binary_call(x, r, y);
+            drop_obj(r);
+            drop_obj(y);
+            drop_obj(x);
+            if (IS_ERR(res)) {
+                bc_error_add_loc(res, vm->fn, ip);
+                return res;
             }
+            push(res);
             break;
         case TYPE_VARY:
             l = top(n);
@@ -688,7 +688,7 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                     if (car->attrs & FN_SPECIAL_FORM)
                         res = ((vary_f)car->i64)(args, len);
                     else {
-                        if (!stack_enough(len))
+                        if (!vm_stack_enough(len))
                             return unwrap(ray_err(ERR_STACK), (i64_t)obj);
 
                         for (i = 0; i < len; i++) {
@@ -706,13 +706,13 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                                 x = y;
                             }
 
-                            stack_push(x);
+                            vm_stack_push(x);
                         }
 
-                        res = vary_call(car, stack_peek(len - 1), len);
+                        res = vary_call(car, vm_stack_peek(len - 1), len);
 
                         for (i = 0; i < len; i++)
-                            drop_obj(stack_pop());
+                            drop_obj(vm_stack_pop());
                     }
                     return (car->i64 == (i64_t)ray_do) ? res : unwrap(res, (i64_t)obj);
 
@@ -721,17 +721,17 @@ __attribute__((hot)) obj_p eval(obj_p obj) {
                     if (len != lambda->args->len)
                         return unwrap(ray_err(ERR_ARITY), (i64_t)obj);
 
-                    if (!stack_enough(len))
+                    if (!vm_stack_enough(len))
                         return unwrap(ray_err(ERR_STACK), (i64_t)obj);
 
                     for (i = 0; i < len; i++) {
                         x = eval(args[i]);
                         if (IS_ERR(x))
                             return x;
-                        stack_push(x);
+                        vm_stack_push(x);
                     }
 
-                    return unwrap(lambda_call(car, stack_peek(len - 1), len), (i64_t)obj);
+                    return unwrap(lambda_call(car, vm_stack_peek(len - 1), len), (i64_t)obj);
 
                 case -TYPE_SYMBOL:
                     val = resolve(car->i64);
@@ -866,10 +866,10 @@ obj_p try_obj(obj_p obj, obj_p ctch) {
                     return ray_err(ERR_ARITY);
                 }
                 // Push error message as string for catch handler
-                stack_push(str_fmt(-1, "%s", ray_err_msg(res)));
+                vm_stack_push(str_fmt(-1, "%s", ray_err_msg(res)));
                 drop_obj(res);
                 res = call(fn, 1);
-                drop_obj(stack_pop());
+                drop_obj(vm_stack_pop());
                 return res;
 
             case -TYPE_SYMBOL:

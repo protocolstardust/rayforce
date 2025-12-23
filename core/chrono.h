@@ -74,7 +74,7 @@ typedef struct {
 } timeit_t;
 
 nil_t timeit_activate(b8_t active);
-nil_t timeit_reset();
+nil_t timeit_reset(nil_t);
 nil_t timeit_span_start(lit_p name);
 nil_t timeit_span_end(lit_p name);
 nil_t timeit_tick(lit_p msg);

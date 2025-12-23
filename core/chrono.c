@@ -79,21 +79,32 @@ f64_t ray_clock_elapsed_ms(ray_clock_t *start, ray_clock_t *end) {
 
 #endif
 
+// Lazy allocate timeit structure
+static timeit_t *timeit_get_or_create(nil_t) {
+    vm_p vm = VM;
+    if (vm->timeit == NULL) {
+        vm->timeit = (timeit_t *)heap_alloc(sizeof(timeit_t));
+        vm->timeit->active = B8_FALSE;
+        vm->timeit->n = 0;
+    }
+    return vm->timeit;
+}
+
 nil_t timeit_activate(b8_t active) {
-    timeit_t *timeit = &VM->timeit;
+    timeit_t *timeit = timeit_get_or_create();
     timeit->active = active;
     timeit->n = 0;
 }
 
-nil_t timeit_reset() {
-    timeit_t *timeit = &VM->timeit;
-    if (timeit->active)
+nil_t timeit_reset(nil_t) {
+    timeit_t *timeit = VM->timeit;
+    if (timeit && timeit->active)
         timeit->n = 0;
 }
 
 nil_t timeit_span_start(lit_p name) {
-    timeit_t *timeit = &VM->timeit;
-    if (timeit->n < TIMEIT_SPANS_MAX) {
+    timeit_t *timeit = VM->timeit;
+    if (timeit && timeit->active && timeit->n < TIMEIT_SPANS_MAX) {
         timeit->spans[timeit->n].type = TIMEIT_SPAN_START;
         timeit->spans[timeit->n].msg = name;
         ray_clock_get_time(&timeit->spans[timeit->n].clock);
@@ -102,8 +113,8 @@ nil_t timeit_span_start(lit_p name) {
 }
 
 nil_t timeit_span_end(lit_p name) {
-    timeit_t *timeit = &VM->timeit;
-    if (timeit->n < TIMEIT_SPANS_MAX) {
+    timeit_t *timeit = VM->timeit;
+    if (timeit && timeit->active && timeit->n < TIMEIT_SPANS_MAX) {
         timeit->spans[timeit->n].type = TIMEIT_SPAN_END;
         timeit->spans[timeit->n].msg = name;
         ray_clock_get_time(&timeit->spans[timeit->n].clock);
@@ -112,8 +123,8 @@ nil_t timeit_span_end(lit_p name) {
 }
 
 nil_t timeit_tick(lit_p msg) {
-    timeit_t *timeit = &VM->timeit;
-    if (timeit->n < TIMEIT_SPANS_MAX) {
+    timeit_t *timeit = VM->timeit;
+    if (timeit && timeit->active && timeit->n < TIMEIT_SPANS_MAX) {
         timeit->spans[timeit->n].type = TIMEIT_SPAN_TICK;
         timeit->spans[timeit->n].msg = msg;
         ray_clock_get_time(&timeit->spans[timeit->n].clock);
@@ -122,10 +133,10 @@ nil_t timeit_tick(lit_p msg) {
 }
 
 nil_t timeit_print(nil_t) {
-    timeit_t *timeit = &VM->timeit;
+    timeit_t *timeit = VM->timeit;
     obj_p fmt;
 
-    if (!timeit->active)
+    if (!timeit || !timeit->active)
         return;
 
     fmt = timeit_fmt();
@@ -310,9 +321,9 @@ i64_t timer_next_timeout(timers_p timers) {
         timer = timer_pop(timers);
 
         // Execute the callback associated with the timer
-        stack_push(i64(now));
+        vm_stack_push(i64(now));
         res = call(timer->clb, 1);
-        drop_obj(stack_pop());
+        drop_obj(vm_stack_pop());
 
         if (IS_ERR(res))
             io_write(1, MSG_TYPE_RESP, res);

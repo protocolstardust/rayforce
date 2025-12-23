@@ -196,17 +196,17 @@ nil_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t len) {
     i64_t clbnm;
     obj_p v, f, *clbfn;
 
-    stack_push(NULL_OBJ);  // null env
+    vm_stack_push(NULL_OBJ);  // null env
     clbnm = symbols_intern(sym, len);
     clbfn = resolve(clbnm);
-    stack_pop();  // null env
+    vm_stack_pop();  // null env
 
     // Call the callback if it's a lambda
     if (clbfn != NULL && (*clbfn)->type == TYPE_LAMBDA) {
         poll_set_usr_fd(selector->id);
-        stack_push(i64(selector->id));
+        vm_stack_push(i64(selector->id));
         v = call(*clbfn, 1);
-        drop_obj(stack_pop());
+        drop_obj(vm_stack_pop());
         poll_set_usr_fd(0);
         if (IS_ERR(v)) {
             f = obj_fmt(v, B8_FALSE);
