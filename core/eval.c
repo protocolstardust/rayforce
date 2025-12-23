@@ -32,6 +32,8 @@
 #include "string.h"
 #include "aggr.h"
 
+__thread vm_p __VM = NULL;
+
 __thread interpreter_p __INTERPRETER = NULL;
 
 nil_t error_add_loc(obj_p err, i64_t id, ctx_p ctx) {
@@ -491,7 +493,8 @@ obj_p eval_str_w_attr(lit_p str, i64_t len, obj_p nfo) {
         return parsed;
     }
 
-    res = EVAL_WITH_CTX(eval(parsed), nfo);
+    // res = EVAL_WITH_CTX(eval(parsed), nfo);
+    res = eval(parsed);
     drop_obj(parsed);
 
     timeit_span_end("top-level");
@@ -659,3 +662,10 @@ obj_p ray_exit(obj_p *x, i64_t n) {
 }
 
 b8_t ray_is_main_thread(nil_t) { return heap_get()->id == 0; }
+
+inline __attribute__((always_inline)) obj_p unwrap(obj_p obj, i64_t id) {
+    // if (IS_ERR(obj))
+    //     error_add_loc(obj, id, ctx_get());
+
+    return obj;
+}

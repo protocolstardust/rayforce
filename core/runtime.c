@@ -121,7 +121,6 @@ runtime_p runtime_create(i32_t argc, str_p argv[]) {
     symbols_p symbols;
 
     symbols = symbols_create();
-    heap_create(0);
 
     __RUNTIME = (runtime_p)heap_mmap(sizeof(struct runtime_t));
     __RUNTIME->symbols = symbols;
@@ -131,8 +130,6 @@ runtime_p runtime_create(i32_t argc, str_p argv[]) {
     __RUNTIME->query_ctx = NULL;
     __RUNTIME->pool = NULL;
     __RUNTIME->dynlibs = I64(0);
-
-    interpreter_create(0);
 
     if (argc) {
         __RUNTIME->args = parse_cmdline(argc, argv);
@@ -235,7 +232,6 @@ nil_t runtime_destroy(nil_t) {
         dynlib_close(dl);
     }
     drop_obj(__RUNTIME->dynlibs);
-    interpreter_destroy();
     if (__RUNTIME->pool)
         pool_destroy(__RUNTIME->pool);
     heap_unmap(__RUNTIME, sizeof(struct runtime_t));

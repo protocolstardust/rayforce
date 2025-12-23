@@ -33,46 +33,55 @@
 #include "util.h"
 #include "heap.h"
 
-#define EVAL_STACK_SIZE 1024
+#define VM_STACK_SIZE 1024
 
-#define EVAL_WITH_CTX(x, n)                              \
-    ({                                                   \
-        obj_p $f, $r;                                    \
-        ctx_p $c;                                        \
-        i64_t $s;                                        \
-        $s = __INTERPRETER->sp;                          \
-        stack_push(NULL_OBJ);                            \
-        $f = lambda(NULL_OBJ, NULL_OBJ, n);              \
-        $c = ctx_push($f);                               \
-        $c->sp = $s;                                     \
-        $r = (setjmp($c->jmp) == 0) ? (x) : stack_pop(); \
-        drop_obj($f);                                    \
-        while (__INTERPRETER->sp > $s)                   \
-            drop_obj(stack_pop());                       \
-        ctx_pop();                                       \
-        $r;                                              \
-    })
+typedef enum op_type_t {
+    OP_RET = 0,
+    OP_PUSHC,
+    OP_DUP,
+    OP_POP,
+    OP_JMPZ,
+    OP_JMP,
+    OP_DEREF,
+    OP_CALF1,
+    OP_CALF2,
+    OP_CALF0,
+    OP_CALFN,
+    OP_CALFS,
+    OP_CALFD,
+} op_type_t;
+
+struct pool_t;
 
 typedef struct ctx_t {
-    i64_t sp;      // Stack pointer.
-    obj_p lambda;  // Lambda being evaluated.
-    jmp_buf jmp;   // Jump buffer.
-} *ctx_p;
+    obj_p fn;   // (self) function pointer
+    obj_p env;  // current environment frame
+    i64_t fp;   // frame pointer
+    i64_t ip;   // instruction pointer
+} ctx_t;
 
-typedef struct interpreter_t {
-    i64_t id;         // Interpreter id.
-    i64_t sp;         // Stack pointer.
-    obj_p *stack;     // Stack.
-    i64_t cp;         // Context pointer.
-    ctx_p ctxstack;   // Stack of contexts.
-    timeit_t timeit;  // Timeit spans.
-} *interpreter_p;
+typedef struct vm_t {
+    obj_p fn;                                              // (self) function pointer
+    obj_p env;                                             // current environment frame
+    i64_t id;                                              // VM id
+    i64_t fp;                                              // frame pointer
+    i64_t sp;                                              // program stack pointer
+    i64_t rp;                                              // return stack pointer
+    heap_p heap;                                           // heap pointer
+    struct pool_t *pool;                                   // pool pointer
+    obj_p ps[VM_STACK_SIZE] __attribute__((aligned(32)));  // program stack
+    ctx_t rs[VM_STACK_SIZE] __attribute__((aligned(32)));  // return stack
+} __attribute__((aligned(32))) * vm_p;
 
-extern __thread interpreter_p __INTERPRETER;
+// timeit_t timeit;                                       // Timeit spans.
 
-interpreter_p interpreter_create(i64_t id);
-nil_t interpreter_destroy(nil_t);
-interpreter_p interpreter_current(nil_t);
+extern __thread vm_p __VM;
+
+vm_p vm_create(i64_t id);
+nil_t vm_destroy(vm_p vm);
+nil_t vm_set(vm_p vm);
+vm_p vm_current(nil_t);
+
 obj_p call(obj_p obj, i64_t arity);
 obj_p *resolve(i64_t sym);
 obj_p amend(obj_p sym, obj_p val);
@@ -83,55 +92,17 @@ obj_p ray_parse_str(i64_t fd, obj_p str, obj_p file);
 obj_p ray_eval_str(obj_p str, obj_p file);
 obj_p ray_raise(obj_p obj);
 obj_p ray_return(obj_p *x, i64_t n);
-obj_p interpreter_env_get(nil_t);
-nil_t error_add_loc(obj_p err, i64_t id, ctx_p ctx);
+nil_t error_add_loc(obj_p err, i64_t id, ctx_t *ctx);
+
 // TODO: replace with correct functions
-nil_t interpreter_env_set(interpreter_p interpreter, obj_p env);
-nil_t interpreter_env_unset(interpreter_p interpreter);
+obj_p vm_env_get(nil_t);
+nil_t vm_env_set(vm_p vm, obj_p env);
+nil_t vm_env_unset(vm_p vm);
 
-inline __attribute__((always_inline)) nil_t stack_push(obj_p val) { __INTERPRETER->stack[__INTERPRETER->sp++] = val; }
-
-inline __attribute__((always_inline)) obj_p stack_pop(nil_t) { return __INTERPRETER->stack[--__INTERPRETER->sp]; }
-
-inline __attribute__((always_inline)) obj_p *stack_peek(i64_t n) {
-    return &__INTERPRETER->stack[__INTERPRETER->sp - n - 1];
-}
-
-inline __attribute__((always_inline)) obj_p stack_at(i64_t n) {
-    return __INTERPRETER->stack[__INTERPRETER->sp - n - 1];
-}
-
-inline __attribute__((always_inline)) ctx_p ctx_push(obj_p lambda) {
-    ctx_p ctx = &__INTERPRETER->ctxstack[__INTERPRETER->cp++];
-    ctx->lambda = lambda;
-    return ctx;
-}
-
-inline __attribute__((always_inline)) ctx_p ctx_pop(nil_t) { return &__INTERPRETER->ctxstack[--__INTERPRETER->cp]; }
-
-inline __attribute__((always_inline)) ctx_p ctx_get(nil_t) { return &__INTERPRETER->ctxstack[__INTERPRETER->cp - 1]; }
-
-inline __attribute__((always_inline)) ctx_p ctx_top(obj_p info) {
-    ctx_p ctx;
-    i64_t sp;
-
-    sp = __INTERPRETER->sp;
-    stack_push(NULL_OBJ);
-    ctx = ctx_get();
-    AS_LAMBDA(ctx->lambda)->nfo = info;
-    ctx->sp = sp;
-
-    return ctx;
-}
-
-inline __attribute__((always_inline)) obj_p unwrap(obj_p obj, i64_t id) {
-    if (IS_ERR(obj))
-        error_add_loc(obj, id, ctx_get());
-
-    return obj;
-}
-
-inline __attribute__((always_inline)) b8_t stack_enough(i64_t n) { return __INTERPRETER->sp + n < EVAL_STACK_SIZE; }
+inline __attribute__((always_inline)) nil_t vm_stack_push(obj_p val) { __VM->ps[__VM->sp++] = val; }
+inline __attribute__((always_inline)) obj_p vm_stack_pop(nil_t) { return __VM->ps[--__VM->sp]; }
+inline __attribute__((always_inline)) obj_p vm_stack_at(i64_t n) { return __VM->ps[__VM->sp - n - 1]; }
+inline __attribute__((always_inline)) obj_p *vm_stack_peek(i64_t n) { return &__VM->ps[__VM->sp - n - 1]; }
 
 obj_p ray_exit(obj_p *x, i64_t n);
 b8_t ray_is_main_thread(nil_t);
