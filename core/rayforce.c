@@ -24,6 +24,7 @@
 #include "rayforce.h"
 #include <stdio.h>
 #include "error.h"
+#include "eval.h"
 #include "format.h"
 #include "heap.h"
 #include "items.h"
@@ -42,9 +43,6 @@
 #include "cmp.h"
 
 RAYASSERT(sizeof(struct obj_t) == 16, rayforce_h)
-
-// Synchronization flag (use atomics on rc operations).
-__thread i64_t __RC_SYNC = 0;
 
 i32_t ray_init(nil_t) {
     runtime_p runtime;
@@ -2800,8 +2798,8 @@ obj_p cast_obj(i8_t type, obj_p obj) {
 obj_p __attribute__((hot)) clone_obj(obj_p obj) {
     DEBUG_ASSERT(is_valid(obj), "invalid object type: %d", obj->type);
 
-    if (!__RC_SYNC)
-        (obj)->rc += 1;
+    if (LIKELY(!VM->rc_sync))
+        obj->rc++;
     else
         __atomic_fetch_add(&obj->rc, 1, __ATOMIC_RELAXED);
 
@@ -2818,9 +2816,9 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
     if (obj == NULL_OBJ)
         return;
 
-    if (!__RC_SYNC) {
-        (obj)->rc -= 1;
-        rc = (obj)->rc;
+    if (LIKELY(!VM->rc_sync)) {
+        obj->rc--;
+        rc = obj->rc;
     } else
         rc = __atomic_sub_fetch(&obj->rc, 1, __ATOMIC_RELAXED);
 
@@ -2981,12 +2979,12 @@ obj_p cow_obj(obj_p obj) {
     we can just check for rc == 1 and if it is the case, we can just return the
     object
     */
-    if (!__RC_SYNC)
-        rc = (obj)->rc;
+    if (LIKELY(!VM->rc_sync))
+        rc = obj->rc;
     else
         rc = __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
 
-    // we only owns the reference, so we can freely modify it
+    // we only own the reference, so we can freely modify it
     if (rc == 1)
         return obj;
 
@@ -2995,20 +2993,15 @@ obj_p cow_obj(obj_p obj) {
 }
 
 u32_t rc_obj(obj_p obj) {
-    u32_t rc;
-
-    if (!__RC_SYNC)
-        rc = (obj)->rc;
-    else
-        rc = __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
-
-    return rc;
+    if (LIKELY(!VM->rc_sync))
+        return obj->rc;
+    return __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
 }
 
 str_p type_name(i8_t type) { return str_from_symbol(env_get_typename_by_type(&runtime_get()->env, type)); }
 
 obj_p parse_str(lit_p str) { return parse(str, strlen(str), NULL_OBJ); }
 
-b8_t rc_sync_get() { return __RC_SYNC; }
+b8_t rc_sync_get() { return VM->rc_sync; }
 
-nil_t rc_sync_set(b8_t on) { __RC_SYNC = on; }
+nil_t rc_sync_set(b8_t on) { VM->rc_sync = on; }

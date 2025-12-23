@@ -24,10 +24,8 @@
 #include "cc.h"
 #include "eval.h"
 #include "ops.h"
-#include "heap.h"
 #include "error.h"
 #include "symbols.h"
-#include "runtime.h"
 #include "format.h"
 #include "cond.h"
 #include "vary.h"
@@ -56,11 +54,11 @@ span_t bc_dbg_get(obj_p dbg, i64_t ip) {
 }
 
 // clang-format off
-#define OP(ctx, op)   (AS_U8((ctx)->bc)[(ctx)->ip++] = (u8_t)(op))
-#define CC(ctx, ct)   ({ OP(ctx, OP_PUSHC); OP(ctx, (ctx)->consts->len); push_obj(&(ctx)->consts, (ct)); })
-#define CA(ctx, nn)   ({ OP(ctx, OP_DUP); OP(ctx, (nn)); })
-#define CE(f)        { if ((f) == -1) return -1; }
-#define SELF_SYM     (symbols_intern("self", 4))
+#define OP(ctx, op) (AS_U8((ctx)->bc)[(ctx)->ip++] = (u8_t)(op))
+#define CC(ctx, ct) ({ OP(ctx, OP_PUSHC); OP(ctx, (ctx)->consts->len); push_obj(&(ctx)->consts, (ct)); })
+#define CA(ctx, nn) ({ OP(ctx, OP_DUP); OP(ctx, (nn)); })
+#define CE(f)       { if ((f) == -1) return -1; }
+#define SELF_SYM    (symbols_intern("self", 4))
 // Record debug info: map bytecode offset to span from AST node
 #define DBG(ctx, expr) do { \
     span_t _span = nfo_get((ctx)->nfo, (i64_t)(expr)); \

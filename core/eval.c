@@ -52,7 +52,8 @@ vm_p vm_create(i64_t id, struct pool_t *pool) {
     // Cold fields
     vm->nfo = NULL_OBJ;
     vm->trace = NULL_OBJ;
-    vm->timeit = NULL;  // Lazy allocated when timing enabled
+    vm->timeit = NULL;       // Lazy allocated when timing enabled
+    vm->rc_sync = B8_FALSE;  // Single-threaded by default
     memset(vm->ps, 0, sizeof(obj_p) * VM_STACK_SIZE);
     memset(vm->rs, 0, sizeof(ctx_t) * VM_STACK_SIZE);
 
@@ -601,158 +602,186 @@ obj_p call(obj_p fn, i64_t arity) {
 // Recursive Tree-Walking Evaluator
 // ============================================================================
 
-__attribute__((hot)) obj_p eval(obj_p obj) {
-    i64_t len, i;
-    obj_p car, *val, *args, x, y, z, res;
-    lambda_p lambda;
-    switch (obj->type) {
-        case TYPE_LIST:
-            if (obj->len == 0)
-                return NULL_OBJ;
+// Collect lazy evaluation results (MAPGROUP/MAPFILTER)
+static inline obj_p collect_lazy(obj_p x) {
+    obj_p y;
+    if (x->type == TYPE_MAPGROUP) {
+        y = aggr_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
+        drop_obj(x);
+        return y;
+    }
+    if (x->type == TYPE_MAPFILTER) {
+        y = filter_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
+        drop_obj(x);
+        return y;
+    }
+    return x;
+}
 
-            args = AS_LIST(obj);
-            car = args[0];
-            len = obj->len - 1;
-            args++;
+// Evaluate and collect (unless aggregation function)
+static inline obj_p eval_arg(obj_p arg, b8_t is_aggr) {
+    obj_p x = eval(arg);
+    if (IS_ERR(x))
+        return x;
+    return is_aggr ? x : collect_lazy(x);
+}
 
-        call:
-            switch (car->type) {
-                case TYPE_UNARY:
-                    if (len != 1)
-                        return unwrap(ray_err(ERR_ARITY), (i64_t)obj);
-                    if (car->attrs & FN_SPECIAL_FORM)
-                        res = ((unary_f)car->i64)(args[0]);
-                    else {
-                        x = eval(args[0]);
-                        if (IS_ERR(x))
-                            return x;
+// Evaluate unary function call
+static obj_p eval_unary(obj_p fn, obj_p *args, i64_t id) {
+    obj_p x, res;
 
-                        if (!(car->attrs & FN_AGGR) && x->type == TYPE_MAPGROUP) {
-                            y = aggr_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
-                            drop_obj(x);
-                            x = y;
-                        } else if (!(car->attrs & FN_AGGR) && x->type == TYPE_MAPFILTER) {
-                            y = filter_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
-                            drop_obj(x);
-                            x = y;
-                        }
+    if (fn->attrs & FN_SPECIAL_FORM)
+        return ((unary_f)fn->i64)(args[0]);
 
-                        res = unary_call(car, x);
-                        drop_obj(x);
-                    }
-                    return unwrap(res, (i64_t)obj);
+    x = eval_arg(args[0], fn->attrs & FN_AGGR);
+    if (IS_ERR(x))
+        return x;
 
-                case TYPE_BINARY:
-                    if (len != 2)
-                        return unwrap(ray_err(ERR_ARITY), (i64_t)obj);
-                    if (car->attrs & FN_SPECIAL_FORM)
-                        res = ((binary_f)car->i64)(args[0], args[1]);
-                    else {
-                        x = eval(args[0]);
-                        if (IS_ERR(x))
-                            return x;
+    res = unary_call(fn, x);
+    drop_obj(x);
+    return unwrap(res, id);
+}
 
-                        if (!(car->attrs & FN_AGGR) && x->type == TYPE_MAPGROUP) {
-                            y = aggr_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
-                            drop_obj(x);
-                            x = y;
-                        } else if (!(car->attrs & FN_AGGR) && x->type == TYPE_MAPFILTER) {
-                            y = filter_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
-                            drop_obj(x);
-                            x = y;
-                        }
+// Evaluate binary function call
+static obj_p eval_binary(obj_p fn, obj_p *args, i64_t id) {
+    obj_p x, y, res;
+    b8_t is_aggr = fn->attrs & FN_AGGR;
 
-                        y = eval(args[1]);
-                        if (IS_ERR(y)) {
-                            drop_obj(x);
-                            return y;
-                        }
+    if (fn->attrs & FN_SPECIAL_FORM)
+        return ((binary_f)fn->i64)(args[0], args[1]);
 
-                        if (!(car->attrs & FN_AGGR) && y->type == TYPE_MAPGROUP) {
-                            z = aggr_collect(AS_LIST(y)[0], AS_LIST(y)[1]);
-                            drop_obj(y);
-                            y = z;
-                        } else if (!(car->attrs & FN_AGGR) && y->type == TYPE_MAPFILTER) {
-                            z = filter_collect(AS_LIST(y)[0], AS_LIST(y)[1]);
-                            drop_obj(y);
-                            y = z;
-                        }
+    x = eval_arg(args[0], is_aggr);
+    if (IS_ERR(x))
+        return x;
 
-                        res = binary_call(car, x, y);
-                        drop_obj(x);
-                        drop_obj(y);
-                    }
-                    return unwrap(res, (i64_t)obj);
+    y = eval_arg(args[1], is_aggr);
+    if (IS_ERR(y)) {
+        drop_obj(x);
+        return y;
+    }
 
-                case TYPE_VARY:
-                    if (car->attrs & FN_SPECIAL_FORM)
-                        res = ((vary_f)car->i64)(args, len);
-                    else {
-                        if (!vm_stack_enough(len))
-                            return unwrap(ray_err(ERR_STACK), (i64_t)obj);
+    res = binary_call(fn, x, y);
+    drop_obj(x);
+    drop_obj(y);
+    return unwrap(res, id);
+}
 
-                        for (i = 0; i < len; i++) {
-                            x = eval(args[i]);
-                            if (IS_ERR(x))
-                                return x;
+// Evaluate variadic function call
+static obj_p eval_vary(obj_p fn, obj_p *args, i64_t len, i64_t id) {
+    obj_p x, res;
+    i64_t i;
+    b8_t is_aggr = fn->attrs & FN_AGGR;
 
-                            if (!(car->attrs & FN_AGGR) && x->type == TYPE_MAPGROUP) {
-                                y = aggr_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
-                                drop_obj(x);
-                                x = y;
-                            } else if (!(car->attrs & FN_AGGR) && x->type == TYPE_MAPFILTER) {
-                                y = filter_collect(AS_LIST(x)[0], AS_LIST(x)[1]);
-                                drop_obj(x);
-                                x = y;
-                            }
+    if (fn->attrs & FN_SPECIAL_FORM) {
+        res = ((vary_f)fn->i64)(args, len);
+        return (fn->i64 == (i64_t)ray_do) ? res : unwrap(res, id);
+    }
 
-                            vm_stack_push(x);
-                        }
+    if (!vm_stack_enough(len))
+        return unwrap(ray_err(ERR_STACK), id);
 
-                        res = vary_call(car, vm_stack_peek(len - 1), len);
+    for (i = 0; i < len; i++) {
+        x = eval_arg(args[i], is_aggr);
+        if (IS_ERR(x))
+            return x;
+        vm_stack_push(x);
+    }
 
-                        for (i = 0; i < len; i++)
-                            drop_obj(vm_stack_pop());
-                    }
-                    return (car->i64 == (i64_t)ray_do) ? res : unwrap(res, (i64_t)obj);
+    res = vary_call(fn, vm_stack_peek(len - 1), len);
 
-                case TYPE_LAMBDA:
-                    lambda = AS_LAMBDA(car);
-                    if (len != lambda->args->len)
-                        return unwrap(ray_err(ERR_ARITY), (i64_t)obj);
+    for (i = 0; i < len; i++)
+        drop_obj(vm_stack_pop());
 
-                    if (!vm_stack_enough(len))
-                        return unwrap(ray_err(ERR_STACK), (i64_t)obj);
+    return (fn->i64 == (i64_t)ray_do) ? res : unwrap(res, id);
+}
 
-                    for (i = 0; i < len; i++) {
-                        x = eval(args[i]);
-                        if (IS_ERR(x))
-                            return x;
-                        vm_stack_push(x);
-                    }
+// Evaluate lambda function call
+static obj_p eval_lambda(obj_p fn, obj_p *args, i64_t len, i64_t id) {
+    obj_p x;
+    i64_t i;
+    lambda_p lam = AS_LAMBDA(fn);
 
-                    return unwrap(lambda_call(car, vm_stack_peek(len - 1), len), (i64_t)obj);
+    if (len != lam->args->len)
+        return unwrap(ray_err(ERR_ARITY), id);
 
-                case -TYPE_SYMBOL:
-                    val = resolve(car->i64);
-                    if (val == NULL)
-                        return unwrap(ray_err(ERR_EVAL), (i64_t)obj);
-                    car = *val;
-                    goto call;
+    if (!vm_stack_enough(len))
+        return unwrap(ray_err(ERR_STACK), id);
 
-                default:
-                    return unwrap(ray_err(ERR_EVAL), (i64_t)args[-1]);
-            }
+    for (i = 0; i < len; i++) {
+        x = eval(args[i]);
+        if (IS_ERR(x))
+            return x;
+        vm_stack_push(x);
+    }
+
+    return unwrap(lambda_call(fn, vm_stack_peek(len - 1), len), id);
+}
+
+// Evaluate symbol lookup
+static inline obj_p eval_sym(obj_p sym) {
+    obj_p *val;
+
+    if (sym->attrs & ATTR_QUOTED)
+        return symboli64(sym->i64);
+
+    val = resolve(sym->i64);
+    if (val == NULL)
+        return unwrap(ray_err(ERR_EVAL), (i64_t)sym);
+
+    return clone_obj(*val);
+}
+
+// Evaluate list (function call)
+static obj_p eval_list(obj_p obj) {
+    obj_p car, *val, *args;
+    i64_t len, id;
+
+    if (obj->len == 0)
+        return NULL_OBJ;
+
+    args = AS_LIST(obj);
+    car = args[0];
+    len = obj->len - 1;
+    args++;
+    id = (i64_t)obj;
+
+dispatch:
+    switch (car->type) {
+        case TYPE_UNARY:
+            if (len != 1)
+                return unwrap(ray_err(ERR_ARITY), id);
+            return eval_unary(car, args, id);
+
+        case TYPE_BINARY:
+            if (len != 2)
+                return unwrap(ray_err(ERR_ARITY), id);
+            return eval_binary(car, args, id);
+
+        case TYPE_VARY:
+            return eval_vary(car, args, len, id);
+
+        case TYPE_LAMBDA:
+            return eval_lambda(car, args, len, id);
 
         case -TYPE_SYMBOL:
-            if (obj->attrs & ATTR_QUOTED)
-                return symboli64(obj->i64);
-
-            val = resolve(obj->i64);
+            val = resolve(car->i64);
             if (val == NULL)
-                return unwrap(ray_err(ERR_EVAL), (i64_t)obj);
-            return clone_obj(*val);
+                return unwrap(ray_err(ERR_EVAL), id);
+            car = *val;
+            goto dispatch;
 
+        default:
+            return unwrap(ray_err(ERR_EVAL), id);
+    }
+}
+
+// Main eval dispatcher
+__attribute__((hot)) obj_p eval(obj_p obj) {
+    switch (obj->type) {
+        case TYPE_LIST:
+            return eval_list(obj);
+        case -TYPE_SYMBOL:
+            return eval_sym(obj);
         default:
             return clone_obj(obj);
     }
@@ -906,4 +935,4 @@ obj_p ray_exit(obj_p *x, i64_t n) {
     return NULL_OBJ;
 }
 
-b8_t ray_is_main_thread(nil_t) { return heap_get()->id == 0; }
+b8_t ray_is_main_thread(nil_t) { return VM->id == 0; }

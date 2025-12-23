@@ -171,10 +171,9 @@ raw_p executor_run(raw_p arg) {
     obj_p res;
     vm_p vm;
 
-    rc_sync_set(B8_TRUE);
-
     // Create VM (which also creates heap) with pool pointer
     vm = vm_create(executor->id, executor->pool);
+    vm->rc_sync = B8_TRUE;  // Enable atomic RC for worker threads
 
     __atomic_store_n(&executor->heap, vm->heap, __ATOMIC_RELAXED);
     __atomic_store_n(&executor->vm, vm, __ATOMIC_RELAXED);
@@ -486,7 +485,7 @@ i64_t pool_chunk_aligned(i64_t total_len, i64_t num_workers, i64_t elem_size) {
     return pages_per_chunk * elems_per_page;
 }
 
-nil_t pool_map(i64_t total_len, pool_map_fn fn, void* ctx) {
+nil_t pool_map(i64_t total_len, pool_map_fn fn, void *ctx) {
     pool_p pool;
     i64_t i, n, chunk;
     obj_p v;

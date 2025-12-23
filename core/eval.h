@@ -81,6 +81,7 @@ typedef struct vm_t {
     obj_p nfo;         // error source info
     obj_p trace;       // error stack trace
     timeit_t *timeit;  // timeit (lazy allocated)
+    b8_t rc_sync;      // use atomic RC (multi-threaded mode)
 } __attribute__((aligned(64))) * vm_p;
 
 // Thread-local VM pointer
