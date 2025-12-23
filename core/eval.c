@@ -54,8 +54,6 @@ vm_p vm_create(i64_t id, struct pool_t *pool) {
     vm->trace = NULL_OBJ;
     vm->timeit = NULL;       // Lazy allocated when timing enabled
     vm->rc_sync = B8_FALSE;  // Single-threaded by default
-    memset(vm->ps, 0, sizeof(obj_p) * VM_STACK_SIZE);
-    memset(vm->rs, 0, sizeof(ctx_t) * VM_STACK_SIZE);
 
     // Set VM for this thread so heap_create can use it
     __VM = vm;
@@ -68,9 +66,8 @@ vm_p vm_create(i64_t id, struct pool_t *pool) {
 
 nil_t vm_destroy(vm_p vm) {
     // Clear any remaining items on the stack
-    while (vm->sp > 0) {
+    while (vm->sp > 0)
         drop_obj(vm->ps[--vm->sp]);
-    }
 
     // Free timeit if allocated
     if (vm->timeit) {
