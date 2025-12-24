@@ -146,7 +146,9 @@ repl_p repl_create(poll_p poll, b8_t silent) {
     } else {
         repl->term = NULL;
     }
-    {
+
+    // Only register stdin if it's a TTY (epoll doesn't work on regular files/pipes)
+    if (isatty(STDIN_FILENO)) {
         struct poll_registry_t registry = ZERO_INIT_STRUCT;
         registry.fd = STDIN_FILENO;
         registry.type = SELECTOR_TYPE_STDIN;
@@ -160,10 +162,13 @@ repl_p repl_create(poll_p poll, b8_t silent) {
 
         repl->id = poll_register(poll, &registry);
 
-        if (repl->id == NULL_I64) {
+        if (repl->id == -1) {
             repl_destroy(repl);
             return NULL;
         }
+    } else {
+        // stdin is not a TTY, skip registration (non-interactive mode)
+        repl->id = 0;
     }
 #endif
 

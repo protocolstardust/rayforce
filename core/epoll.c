@@ -151,7 +151,9 @@ i64_t poll_register(poll_p poll, poll_registry_p registry) {
     ev.data.ptr = selector;
 
     if (epoll_ctl(poll->fd, EPOLL_CTL_ADD, selector->fd, &ev) == -1) {
-        perror("epoll_ctl: add");
+        LOG_ERROR("epoll_ctl: add failed for fd %lld, errno %d", selector->fd, errno);
+        freelist_pop(poll->selectors, id - SELECTOR_ID_OFFSET);
+        heap_free(selector);
         return -1;
     }
 
