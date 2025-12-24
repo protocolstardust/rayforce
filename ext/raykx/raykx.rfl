@@ -3,4 +3,5 @@
 (set .kx.hclose (loadfn "ext/raykx/libraykx.so" "raykx_hclose" 1))
 (set .kx.send (loadfn "ext/raykx/libraykx.so" "raykx_send" 2))
 
-(set h (.kx.hopen "proxtab.ax.ath:6650"))
+;; (set h (.kx.hopen "proxtab.ax.ath:6650"))
+(set h (.kx.hopen "127.0.0.1:5101"))

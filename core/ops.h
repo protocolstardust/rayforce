@@ -208,7 +208,6 @@ i64_t ops_rank(obj_p *x, i64_t n);
 b8_t ops_eq_idx(obj_p a, i64_t ai, obj_p b, i64_t bi);
 obj_p index_find_i64(i64_t x[], i64_t xl, i64_t y[], i64_t yl);
 obj_p ops_where(b8_t *mask, i64_t n);
-obj_p sys_error(lit_p code);
 
 // Binary ops/coersions
 static inline u8_t b8_to_b8(b8_t x) { return x; }

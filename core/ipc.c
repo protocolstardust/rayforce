@@ -29,6 +29,7 @@
 #include "util.h"
 #include "log.h"
 #include "heap.h"
+#include "error.h"
 
 // Windows uses IOCP implementation in iocp.c for IPC handling
 // This file provides the Unix (epoll/kqueue) implementation

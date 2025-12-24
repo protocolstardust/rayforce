@@ -130,8 +130,9 @@ dynlib_p dynlib_open(obj_p path) {
     LOG_TRACE("dynlib: opening %s", AS_C8(path));
     handle = dlopen(AS_C8(path), RTLD_NOW | RTLD_GLOBAL);
     if (handle == NULL) {
-        LOG_ERROR("dynlib: failed to open %s: %s", AS_C8(path), dlerror());
-        return NULL;
+        lit_p err = dlerror();
+        LOG_ERROR("dynlib: failed to open %s: %s", AS_C8(path), err ? err : "unknown error");
+        return (dynlib_p)ray_err(ERR_SYS);
     }
 
     dl = (dynlib_p)heap_mmap(sizeof(struct dynlib_t));
@@ -157,14 +158,16 @@ obj_p dynlib_loadfn(obj_p path, obj_p func, i64_t nargs) {
     obj_p fn;
 
     dl = dynlib_open(path);
-    if (dl == NULL)
-        return ray_err(ERR_SYS);
+    if (IS_ERR((obj_p)dl))
+        return (obj_p)dl;
 
     handle = dl->handle;
 
     dsym = dlsym(handle, AS_C8(func));
-    if (dsym == NULL)
+    if (dsym == NULL) {
+        LOG_ERROR("dynlib: symbol not found %s: %s", AS_C8(func), dlerror());
         return ray_err(ERR_SYS);
+    }
 
     switch (nargs) {
         case 1:

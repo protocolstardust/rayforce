@@ -269,6 +269,3 @@ obj_p ops_where(b8_t *mask, i64_t len) {
     return res;
 }
 
-obj_p sys_error(lit_p code) {
-    return ray_err(code);
-}

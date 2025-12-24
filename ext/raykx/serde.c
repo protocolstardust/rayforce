@@ -91,9 +91,9 @@ i64_t raykx_size_obj(obj_p obj) {
         case TYPE_DICT:
             return ISIZEOF(i8_t) + raykx_size_obj(AS_LIST(obj)[0]) + raykx_size_obj(AS_LIST(obj)[1]);
         case TYPE_ERR:
-            l = AS_ERROR(obj)->msg->len;
+            l = strlen(ray_err_msg(obj));
             // If there isn't a null terminator on the original message add an extra byte to add one
-            if (l == 0 || AS_C8(AS_ERROR(obj)->msg)[l - 1] != '\0')
+            if (l == 0 || ray_err_msg(obj)[l - 1] != '\0')
                 l++;
             return ISIZEOF(i8_t) + l;
         case TYPE_NULL:
@@ -292,17 +292,17 @@ i64_t raykx_ser_obj(u8_t *buf, obj_p obj) {
             b += raykx_ser_obj(b, AS_LIST(obj)[1]);
             return ISIZEOF(i8_t) + (b - buf);
         case TYPE_ERR:
-            l = AS_ERROR(obj)->msg->len;
+            l = strlen(ray_err_msg(obj));
             if (l == 0) {
                 buf[0] = 0;
                 return ISIZEOF(i8_t) + 1;
             }
 
-            memcpy(buf, AS_C8(AS_ERROR(obj)->msg), l);
+            memcpy(buf, ray_err_msg(obj), l);
             buf += l;
 
-            // Add an null terminator if there isn't one there already
-            if (AS_C8(AS_ERROR(obj)->msg)[l - 1] != '\0') {
+            // Add a null terminator if there isn't one there already
+            if (ray_err_msg(obj)[l - 1] != '\0') {
                 buf[0] = '\0';
                 l++;
                 buf++;
@@ -544,7 +544,7 @@ obj_p raykx_des_obj(u8_t *buf, i64_t *len) {
             }
             return obj;
         case -128:  // ERROR
-            return error_str(ERR_IO, (lit_p)buf);
+            return ray_err((lit_p)buf);
         default:
             return NULL_OBJ;
     }

@@ -45,6 +45,7 @@
 #include "poll.h"
 #include "string.h"
 #include "log.h"
+#include "error.h"
 
 option_t repl_on_data(poll_p poll, selector_p selector, raw_p data) {
     UNUSED(poll);

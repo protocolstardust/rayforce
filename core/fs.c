@@ -30,6 +30,7 @@
 #include "fs.h"
 #include "string.h"
 #include "ops.h"  // for NULL_OBJ
+#include "error.h"
 
 #if defined(OS_WINDOWS)
 

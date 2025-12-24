@@ -29,6 +29,7 @@
 #include "poll.h"
 #include "heap.h"
 #include "log.h"
+#include "error.h"
 
 __thread i32_t __EVENT_FD;  // eventfd to notify epoll loop of shutdown
 

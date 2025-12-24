@@ -9,8 +9,12 @@
 #include "rayforce.h"
 #include "nfo.h"
 
-// Error creation - msg stored directly in i64 (max 7 chars + null)
-obj_p ray_err(lit_p msg);
+// Error attrs flags
+#define ERR_ATTR_SHORT 0     // Message stored in i64 (max 7 chars)
+#define ERR_ATTR_EXTENDED 1  // Message stored in raw[] (variable length)
+
+// System error - captures errno/GetLastError and creates extended error
+obj_p sys_error(lit_p code);
 
 // Error access
 lit_p ray_err_msg(obj_p err);
