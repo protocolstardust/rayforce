@@ -60,11 +60,12 @@ typedef option_t (*poll_rdwr_fn)(struct poll_t *, struct selector_t *);         
 typedef option_t (*poll_data_fn)(struct poll_t *, struct selector_t *, raw_p);  // Data callback
 typedef nil_t (*poll_evts_fn)(struct poll_t *, struct selector_t *);            // Event callbacks
 
-// Buffer structure
+// Buffer structure (32-byte aligned for cache efficiency)
 typedef struct poll_buffer_t {
     struct poll_buffer_t *next;
     i64_t size;
     i64_t offset;
+    i64_t _padding;  // align to 32 bytes
     u8_t data[];
 } *poll_buffer_p;
 

@@ -415,15 +415,14 @@ option_t poll_block_on(poll_p poll, selector_p selector) {
 
     LOG_TRACE("Blocking on selector id: %lld, fd: %lld", selector->id, selector->fd);
 
-    // Setup select
-    FD_ZERO(&readfds);
-    FD_SET(selector->fd, &readfds);
-    timeout.tv_sec = 0;
-    // timeout.tv_usec = 30000000;  // 30 seconds
-    timeout.tv_usec = 3000000;
-
     // Perform the read operation
     while (selector->rx.buf != NULL) {
+        // Setup select (must be done each iteration as select modifies these)
+        FD_ZERO(&readfds);
+        FD_SET(selector->fd, &readfds);
+        timeout.tv_sec = 3;
+        timeout.tv_usec = 0;
+
         // Wait for the file descriptor to become readable
         ret = select(selector->fd + 1, &readfds, NULL, NULL, &timeout);
         if (ret == -1) {

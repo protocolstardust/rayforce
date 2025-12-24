@@ -39,7 +39,7 @@
 // Common poll functions - not needed for WASM (wasm.c provides stubs)
 #if !defined(OS_WASM)
 
-RAYASSERT(sizeof(struct poll_buffer_t) == 24, poll_h)
+RAYASSERT(sizeof(struct poll_buffer_t) == 32, poll_h)
 
 selector_p poll_get_selector(poll_p poll, i64_t id) {
     i64_t idx;
@@ -75,7 +75,7 @@ nil_t poll_buf_destroy(poll_buffer_p buf) { heap_free(buf); }
 i64_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
     UNUSED(poll);
 
-    LOG_TRACE("Requesting buffer of %d", size);
+    LOG_TRACE("Requesting buffer of %lld", size);
     if (selector->rx.buf == NULL) {
         selector->rx.buf = heap_alloc(ISIZEOF(struct poll_buffer_t) + size);
     } else {
@@ -97,7 +97,7 @@ i64_t poll_rx_buf_extend(poll_p poll, selector_p selector, i64_t size) {
 
     new_size = selector->rx.buf->offset + size;
 
-    LOG_TRACE("Extending buffer from %d to %d", selector->rx.buf->size, new_size);
+    LOG_TRACE("Extending buffer from %lld to %lld", selector->rx.buf->size, new_size);
     selector->rx.buf = heap_realloc(selector->rx.buf, ISIZEOF(struct poll_buffer_t) + new_size);
     LOG_TRACE("New buffer: %p", selector->rx.buf);
     if (selector->rx.buf == NULL)
