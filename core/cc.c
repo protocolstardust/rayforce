@@ -107,7 +107,7 @@ span_t bc_dbg_get(obj_p dbg, i64_t ip) {
 } while(0)
 // clang-format on
 
-// Find symbol in env_names, return offset or -1 if not found
+// Find symbol in env_names (args), return offset or -1 if not found
 static i64_t cc_find_env(cc_ctx_t *cc, i64_t sym) {
     i64_t i, n;
     i64_t *names;
@@ -123,13 +123,6 @@ static i64_t cc_find_env(cc_ctx_t *cc, i64_t sym) {
             return i;
     }
     return -1;
-}
-
-// Add symbol to env_names, return its offset
-static i64_t cc_add_env(cc_ctx_t *cc, i64_t sym) {
-    i64_t offset = cc->env_names->len;
-    push_raw(&cc->env_names, &sym);
-    return offset;
 }
 
 static i64_t cc_expr(cc_ctx_t *cc, obj_p e);
@@ -444,13 +437,9 @@ obj_p cc_compile(obj_p lambda) {
     fn->consts = cc.consts;
     fn->dbg = cc.dbg;
 
-    // Initialize env as DICT with env_names as keys (for resolve() at runtime)
-    // Values will be populated at call time with args + let-bound locals
-    if (cc.env_names->len > 0) {
-        fn->env = dict(cc.env_names, LIST(cc.env_names->len));
-    } else {
-        drop_obj(cc.env_names);
-    }
+    // Don't pre-create env dict - let runtime handle it via amend()
+    // env_names was just for compile-time offset lookups (args)
+    drop_obj(cc.env_names);
 
     // Cleanup
     drop_obj(cc.args);

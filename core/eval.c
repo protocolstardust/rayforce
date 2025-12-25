@@ -107,45 +107,34 @@ nil_t vm_env_unset(vm_p vm) {
 // - offset >= nargs: return env->values pointer
 static obj_p *resolve_in_env(obj_p fn, i64_t sym, i64_t fp_offset) {
     obj_p env;
-    i64_t i, n, nargs;
+    i64_t i, n;
     vm_p vm = VM;
 
     if (fn == NULL_OBJ)
         return NULL;
 
-    env = AS_LAMBDA(fn)->env;
-    nargs = AS_LAMBDA(fn)->args != NULL_OBJ ? AS_LAMBDA(fn)->args->len : 0;
-
-    // Search in env->keys (contains both args and locals)
-    if (env != NULL_OBJ && env->type == TYPE_DICT) {
-        n = AS_LIST(env)[0]->len;
-        for (i = 0; i < n; i++) {
-            if (AS_SYMBOL(AS_LIST(env)[0])[i] == sym) {
-                if (i < nargs) {
-                    // Arg: on stack at fp + offset
-                    return &vm->ps[fp_offset + i];
-                } else {
-                    // Local: in env->values[i - nargs]
-                    // But values list may be sized for full env (including args)
-                    // So just use index i directly if values has all slots
-                    obj_p values = AS_LIST(env)[1];
-                    i64_t local_idx = i - nargs;
-                    if (local_idx < values->len) {
-                        return &AS_LIST(values)[local_idx];
-                    }
-                }
-                return NULL;  // Found in env but value not available
-            }
-        }
-    }
-
-    // Fallback: check args vector directly (for lambdas not yet compiled with new scheme)
+    // First check args (always on stack at fp + offset)
     if (AS_LAMBDA(fn)->args != NULL_OBJ) {
         n = AS_LAMBDA(fn)->args->len;
         i64_t *args = AS_SYMBOL(AS_LAMBDA(fn)->args);
         for (i = 0; i < n; i++) {
             if (args[i] == sym)
                 return &vm->ps[fp_offset + i];
+        }
+    }
+
+    // Then check let-bound locals in env
+    env = AS_LAMBDA(fn)->env;
+    if (env != NULL_OBJ && env->type == TYPE_DICT) {
+        n = AS_LIST(env)[0]->len;
+        for (i = 0; i < n; i++) {
+            if (AS_SYMBOL(AS_LIST(env)[0])[i] == sym) {
+                obj_p values = AS_LIST(env)[1];
+                if (i < values->len) {
+                    return &AS_LIST(values)[i];
+                }
+                return NULL;  // Found in env but value not available
+            }
         }
     }
 
