@@ -455,6 +455,13 @@ callf:
             return r;
         }
     }
+    // Check for stack overflow
+    if (UNLIKELY(vm->rp >= VM_STACK_SIZE)) {
+        drop_obj(x);
+        r = ray_err(ERR_STACK);
+        bc_error_add_loc(r, vm->fn, ip - 1);
+        return r;
+    }
     // Save current context
     rs = &vm->rs[vm->rp++];
     rs->ip = ip;
@@ -470,7 +477,12 @@ callf:
     next();
 
 OP_CALLS:
-    // Self-recursive call
+    // Self-recursive call - check for stack overflow
+    if (UNLIKELY(vm->rp >= VM_STACK_SIZE)) {
+        r = ray_err(ERR_STACK);
+        bc_error_add_loc(r, vm->fn, ip - 1);
+        return r;
+    }
     rs = &vm->rs[vm->rp++];
     rs->ip = ip;
     rs->fp = vm->fp;
