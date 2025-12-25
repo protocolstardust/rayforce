@@ -32,6 +32,7 @@
 #include "string.h"
 #include "aggr.h"
 #include "cc.h"
+#include "env.h"
 
 // Thread-local VM pointer
 __thread vm_p __VM = NULL;
@@ -149,12 +150,6 @@ obj_p *resolve(i64_t sym) {
     vm_p vm = VM;
 
     fn = vm->fn;
-
-    // Check for self reference
-    extern i64_t symbols_intern(lit_p, i64_t);
-    static i64_t SYMBOL_SELF = 0;
-    if (SYMBOL_SELF == 0)
-        SYMBOL_SELF = symbols_intern("self", 4);
 
     if (sym == SYMBOL_SELF)
         return &vm->fn;
@@ -794,6 +789,10 @@ static obj_p eval_lambda(obj_p fn, obj_p *args, i64_t len, i64_t id) {
 
     for (i = 0; i < len; i++) {
         x = eval(args[i]);
+        if (IS_ERR(x))
+            return x;
+        // Materialize lazy values (MAPGROUP/MAPFILTER) for lambda arguments
+        x = collect_lazy(x);
         if (IS_ERR(x))
             return x;
         vm_stack_push(x);

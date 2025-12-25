@@ -85,7 +85,6 @@ span_t bc_dbg_get(obj_p dbg, i64_t ip) {
 // clang-format off
 #define OP(ctx, op) (AS_U8((ctx)->bc)[(ctx)->ip++] = (u8_t)(op))
 #define CE(f)       { if ((f) == -1) return -1; }
-#define SELF_SYM    (symbols_intern("self", 4))
 
 // Load constant from consts pool by offset (no name, pure value)
 #define LOADCONST(ctx, val) ({ OP(ctx, OP_LOADCONST); OP(ctx, (ctx)->consts->len); push_obj(&(ctx)->consts, (val)); })
@@ -266,7 +265,7 @@ static i64_t cc_call(cc_ctx_t *cc, obj_p expr, obj_p *lst, i64_t n) {
             break;
 
         case -TYPE_SYMBOL:
-            if (car->i64 == SELF_SYM) {
+            if (car->i64 == SYMBOL_SELF) {
                 // Self-recursive call
                 OP(cc, OP_CALLS);
             } else {
