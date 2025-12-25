@@ -145,6 +145,8 @@ nil_t dump_stack(nil_t);
 #define __BASE_i32_t i32_t
 #define __BASE_date_t i32_t
 #define __BASE_time_t i32_t
+#define __BASE_adate_t i32_t
+#define __BASE_atime_t i32_t
 #define __BASE_timestamp_t i64_t
 #define __BASE_i64_t i64_t
 #define __BASE_f64_t f64_t

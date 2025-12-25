@@ -37,10 +37,10 @@
 #define __UNOP_FOLD(x, lt, ot, op, ln, of, iv)                  \
     ({                                                          \
         __BASE_##lt##_t *__restrict__ $lhs = __AS_##lt(x) + of; \
-        __BASE_##lt##_t $out = iv;                              \
+        __BASE_##ot##_t $out = iv;                              \
         for (i64_t $i = 0; $i < ln; $i++)                       \
             $out = op($out, $lhs[$i]);                          \
-        ot(lt##_to_##ot($out));                                 \
+        ot($out);                                               \
     })
 
 #define __UNOP_MAP(x, lt, ot, op, ln, of, ov)           \
