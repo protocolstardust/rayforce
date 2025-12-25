@@ -101,10 +101,61 @@ nil_t vm_env_unset(vm_p vm) {
 // Symbol Resolution
 // ============================================================================
 
+// Helper: resolve symbol in a lambda's env (unified args + locals)
+// Returns pointer to value slot, or NULL if not found
+// - offset < nargs: return stack pointer at fp_offset + offset
+// - offset >= nargs: return env->values pointer
+static obj_p *resolve_in_env(obj_p fn, i64_t sym, i64_t fp_offset) {
+    obj_p env;
+    i64_t i, n, nargs;
+    vm_p vm = VM;
+
+    if (fn == NULL_OBJ)
+        return NULL;
+
+    env = AS_LAMBDA(fn)->env;
+    nargs = AS_LAMBDA(fn)->args != NULL_OBJ ? AS_LAMBDA(fn)->args->len : 0;
+
+    // Search in env->keys (contains both args and locals)
+    if (env != NULL_OBJ && env->type == TYPE_DICT) {
+        n = AS_LIST(env)[0]->len;
+        for (i = 0; i < n; i++) {
+            if (AS_SYMBOL(AS_LIST(env)[0])[i] == sym) {
+                if (i < nargs) {
+                    // Arg: on stack at fp + offset
+                    return &vm->ps[fp_offset + i];
+                } else {
+                    // Local: in env->values[i - nargs]
+                    // But values list may be sized for full env (including args)
+                    // So just use index i directly if values has all slots
+                    obj_p values = AS_LIST(env)[1];
+                    i64_t local_idx = i - nargs;
+                    if (local_idx < values->len) {
+                        return &AS_LIST(values)[local_idx];
+                    }
+                }
+                return NULL;  // Found in env but value not available
+            }
+        }
+    }
+
+    // Fallback: check args vector directly (for lambdas not yet compiled with new scheme)
+    if (AS_LAMBDA(fn)->args != NULL_OBJ) {
+        n = AS_LAMBDA(fn)->args->len;
+        i64_t *args = AS_SYMBOL(AS_LAMBDA(fn)->args);
+        for (i = 0; i < n; i++) {
+            if (args[i] == sym)
+                return &vm->ps[fp_offset + i];
+        }
+    }
+
+    return NULL;
+}
+
 obj_p *resolve(i64_t sym) {
-    i64_t j, *args;
-    obj_p fn, env;
-    i64_t i, l, n, frame;
+    i64_t j, frame;
+    obj_p fn, env, *result;
+    i64_t i, n;
     vm_p vm = VM;
 
     fn = vm->fn;
@@ -118,53 +169,17 @@ obj_p *resolve(i64_t sym) {
     if (sym == SYMBOL_SELF)
         return &vm->fn;
 
-    // Search in current function arguments (on stack) - fast path for bytecode
-    if (fn != NULL_OBJ && AS_LAMBDA(fn)->args != NULL_OBJ) {
-        l = AS_LAMBDA(fn)->args->len;
-        args = AS_SYMBOL(AS_LAMBDA(fn)->args);
-        for (i = 0; i < l; i++) {
-            if (args[i] == sym)
-                return &vm->ps[vm->fp + i];
-        }
-    }
+    // Search in current lambda's env (args + let-bound locals)
+    result = resolve_in_env(fn, sym, vm->fp);
+    if (result != NULL)
+        return result;
 
-    // Search in current lambda's env (let-bound locals)
-    if (fn != NULL_OBJ) {
-        env = AS_LAMBDA(fn)->env;
-        if (env != NULL_OBJ && env->type == TYPE_DICT) {
-            n = AS_LIST(env)[0]->len;
-            for (i = n; i > 0; i--) {
-                if (AS_SYMBOL(AS_LIST(env)[0])[i - 1] == sym)
-                    return &AS_LIST(AS_LIST(env)[1])[i - 1];
-            }
-        }
-    }
-
-    // Walk up return stack - check each parent lambda's args and env
+    // Walk up return stack - check each parent lambda's env
     for (frame = vm->rp; frame > 0; frame--) {
         fn = vm->rs[frame - 1].fn;
-        if (fn == NULL_OBJ)
-            continue;
-
-        // Check parent's args (using parent's fp)
-        if (AS_LAMBDA(fn)->args != NULL_OBJ) {
-            l = AS_LAMBDA(fn)->args->len;
-            args = AS_SYMBOL(AS_LAMBDA(fn)->args);
-            for (i = 0; i < l; i++) {
-                if (args[i] == sym)
-                    return &vm->ps[vm->rs[frame - 1].fp + i];
-            }
-        }
-
-        // Check parent's env (let-bound locals)
-        env = AS_LAMBDA(fn)->env;
-        if (env != NULL_OBJ && env->type == TYPE_DICT) {
-            n = AS_LIST(env)[0]->len;
-            for (i = n; i > 0; i--) {
-                if (AS_SYMBOL(AS_LIST(env)[0])[i - 1] == sym)
-                    return &AS_LIST(AS_LIST(env)[1])[i - 1];
-            }
-        }
+        result = resolve_in_env(fn, sym, vm->rs[frame - 1].fp);
+        if (result != NULL)
+            return result;
     }
 
     // Search in vm->env (for query table mounting)
@@ -379,9 +394,23 @@ __attribute__((hot)) obj_p vm_eval(obj_p fn) {
     bc = AS_U8(AS_LAMBDA(fn)->bc);
     consts = AS_LIST(AS_LAMBDA(fn)->consts);
 
-    // Computed goto dispatch table
-    static const void *OPS[] = {&&OP_RET,   &&OP_PUSHC, &&OP_DUP,   &&OP_POP,   &&OP_JMPZ,  &&OP_JMP,  &&OP_DEREF,
-                                &&OP_CALF1, &&OP_CALF2, &&OP_CALF0, &&OP_CALFN, &&OP_CALFS, &&OP_CALFD};
+    // Computed goto dispatch table - must match op_type_t order
+    static const void *OPS[] = {
+        &&OP_RET,        // 0: Control flow
+        &&OP_JMP,        // 1
+        &&OP_JMPF,       // 2
+        &&OP_LOADCONST,  // 3: Data operations
+        &&OP_LOADENV,    // 4
+        &&OP_STOREENV,   // 5
+        &&OP_POP,        // 6
+        &&OP_RESOLVE,    // 7: Symbol resolution
+        &&OP_CALL1,      // 8: Function calls
+        &&OP_CALL2,      // 9
+        &&OP_CALLN,      // 10
+        &&OP_CALLF,      // 11
+        &&OP_CALLS,      // 12
+        &&OP_CALLD,      // 13
+    };
 
 #define next() goto *OPS[bc[ip++]]
 #define push(v) (vm->ps[vm->sp++] = (v))
@@ -416,21 +445,12 @@ OP_RET:
     // Top-level return
     return pop();
 
-OP_PUSHC:
-    push(clone_obj(consts[bc[ip++]]));
-    next();
-
-OP_DUP:
+OP_JMP:
     n = bc[ip++];
-    x = vm->ps[vm->fp + n];
-    push(clone_obj(x));
+    ip += n;
     next();
 
-OP_POP:
-    drop_obj(pop());
-    next();
-
-OP_JMPZ:
+OP_JMPF:
     n = bc[ip++];
     x = pop();
     if (!ops_as_b8(x))
@@ -438,12 +458,15 @@ OP_JMPZ:
     drop_obj(x);
     next();
 
-OP_JMP:
-    n = bc[ip++];
-    ip += n;
+OP_LOADCONST:
+    push(clone_obj(consts[bc[ip++]]));
     next();
 
-OP_DEREF:
+OP_POP:
+    drop_obj(pop());
+    next();
+
+OP_RESOLVE:
     x = pop();
     val = resolve(x->i64);
     if (val == NULL) {
@@ -457,8 +480,8 @@ OP_DEREF:
     push(y);
     next();
 
-OP_CALF1:
-    // Function is on stack (pushed last by PUSHC)
+OP_CALL1:
+    // Function is on stack (pushed last by LOADCONST)
     y = pop();  // function (pushed last)
     x = pop();  // argument
     r = unary_call(y, x);
@@ -471,7 +494,7 @@ OP_CALF1:
     push(r);
     next();
 
-OP_CALF2:
+OP_CALL2:
     r = pop();  // function (pushed last)
     y = pop();  // second argument
     x = pop();  // first argument
@@ -486,7 +509,7 @@ OP_CALF2:
     push(res);
     next();
 
-OP_CALF0:
+OP_CALLN:
     n = bc[ip++];  // arity
     r = pop();     // function
     l = top(n);
@@ -502,7 +525,7 @@ OP_CALF0:
     push(res);
     next();
 
-OP_CALFN:
+OP_CALLF:
     x = pop();  // lambda function
     if (x->type != TYPE_LAMBDA) {
         drop_obj(x);
@@ -510,7 +533,7 @@ OP_CALFN:
         bc_error_add_loc(r, vm->fn, ip - 1);
         return r;
     }
-callfn:
+callf:
     // Compile if not already compiled
     if (AS_LAMBDA(x)->bc == NULL_OBJ) {
         r = cc_compile(x);
@@ -534,7 +557,7 @@ callfn:
     drop_obj(x);  // Safe because it's on the constants pool
     next();
 
-OP_CALFS:
+OP_CALLS:
     // Self-recursive call
     rs = &vm->rs[vm->rp++];
     rs->ip = ip;
@@ -544,7 +567,7 @@ OP_CALFS:
     ip = 0;
     next();
 
-OP_CALFD:
+OP_CALLD:
     n = bc[ip++];  // arity
     x = pop();     // function (dynamically resolved)
     switch (x->type) {
@@ -598,12 +621,79 @@ OP_CALFD:
             push(r);
             break;
         case TYPE_LAMBDA:
-            goto callfn;
+            goto callf;
         default:
             drop_obj(x);
             r = ray_err(ERR_TYPE);
             bc_error_add_loc(r, vm->fn, ip - 1);
             return r;
+    }
+    next();
+
+OP_LOADENV:
+    // Load from env by offset
+    // - offset < nargs: load from stack (args passed on stack)
+    // - offset >= nargs: load from lambda->env values (let-bound locals)
+    n = bc[ip++];
+    {
+        i64_t nargs = AS_LAMBDA(vm->fn)->args->len;
+        if (n < nargs) {
+            // Args are on stack at fp+offset
+            x = vm->ps[vm->fp + n];
+            push(clone_obj(x));
+        } else {
+            // Let-bound locals in env values
+            obj_p env = AS_LAMBDA(vm->fn)->env;
+            if (env != NULL_OBJ && env->type == TYPE_DICT) {
+                i64_t local_idx = n - nargs;
+                obj_p values = AS_LIST(env)[1];
+                if (local_idx < values->len) {
+                    push(clone_obj(AS_LIST(values)[local_idx]));
+                } else {
+                    // Local not yet defined - push null
+                    push(clone_obj(NULL_OBJ));
+                }
+            } else {
+                push(clone_obj(NULL_OBJ));
+            }
+        }
+    }
+    next();
+
+OP_STOREENV:
+    // Store to env by offset (for let bindings)
+    // Value is on stack top, store to env->values[offset - nargs]
+    n = bc[ip++];
+    {
+        i64_t nargs = AS_LAMBDA(vm->fn)->args->len;
+        obj_p env = AS_LAMBDA(vm->fn)->env;
+        x = pop();  // value to store
+
+        if (n < nargs) {
+            // Storing to arg slot - update stack
+            drop_obj(vm->ps[vm->fp + n]);
+            vm->ps[vm->fp + n] = x;
+        } else if (env != NULL_OBJ && env->type == TYPE_DICT) {
+            // Store to let-bound local
+            i64_t local_idx = n - nargs;
+            obj_p values = AS_LIST(env)[1];
+
+            // Extend values list if needed
+            while (values->len <= local_idx) {
+                obj_p null_val = NULL_OBJ;
+                push_obj(&AS_LIST(env)[1], clone_obj(null_val));
+                values = AS_LIST(env)[1];
+            }
+
+            // Store value
+            drop_obj(AS_LIST(values)[local_idx]);
+            AS_LIST(values)[local_idx] = x;
+        } else {
+            // No env, just drop the value
+            drop_obj(x);
+        }
+        // Push the value back (let returns the value)
+        push(clone_obj(n < nargs ? vm->ps[vm->fp + n] : AS_LIST(AS_LIST(env)[1])[n - nargs]));
     }
     next();
 

@@ -28,13 +28,17 @@
 
 typedef struct lambda_f {
     obj_p name;    // name of lambda
-    obj_p args;    // vector of arguments names
+    obj_p args;    // vector of arguments names (SYMBOL vector)
     obj_p body;    // body of lambda (AST, for debugging/introspection)
     obj_p nfo;     // nfo from parse phase (maps AST node -> span)
     obj_p bc;      // bytecode (U8 vector)
-    obj_p consts;  // constants pool (LIST)
+    obj_p consts;  // constants pool (LIST) - pure values, no names, accessed by offset
     obj_p dbg;     // debug info (maps bytecode offset -> span)
-    obj_p env;     // local environment dict (symbols -> values) for resolve()
+    obj_p env;     // local environment DICT (symbols -> values):
+                   //   - At compile time: access by offset via OP_LOADENV/OP_STOREENV
+                   //   - At runtime: resolvable by name via resolve()
+                   //   - Contains: args (at start) + let-bound locals
+                   //   - Structure: (names: SYMBOL[], values: LIST) as DICT
 } *lambda_p;
 
 #define AS_LAMBDA(o) ((lambda_p)(AS_C8(o)))

@@ -32,15 +32,18 @@
 
 // Compiler context
 typedef struct cc_ctx_t {
-    i64_t ip;       // instruction pointer
-    obj_p bc;       // bytecode buffer (U8 vector)
-    obj_p args;     // arguments (SYMBOL vector)
-    obj_p locals;   // local variables (LIST)
-    obj_p consts;   // constants pool (LIST)
-    obj_p dbg;      // debug info: maps bytecode offset -> span (I64 pairs)
-    obj_p nfo;      // source nfo from parser (for span lookups)
-    i64_t lp;       // locals pointer
-    obj_p cur_expr; // current expression being compiled (for error reporting)
+    i64_t ip;         // instruction pointer
+    obj_p bc;         // bytecode buffer (U8 vector)
+    obj_p args;       // arguments (SYMBOL vector) - legacy, for arity checking
+    obj_p locals;     // local variables (LIST) - unused, kept for compatibility
+    obj_p consts;     // constants pool (LIST) - pure values, no names
+    obj_p dbg;        // debug info: maps bytecode offset -> span (I64 pairs)
+    obj_p nfo;        // source nfo from parser (for span lookups)
+    i64_t lp;         // locals pointer - unused
+    obj_p cur_expr;   // current expression being compiled (for error reporting)
+    obj_p env_names;  // env layout: SYMBOL vector mapping offset -> name
+                      // at runtime: index i -> symbol name for resolve()
+                      // args occupy slots 0..nargs-1, let-bindings follow
 } cc_ctx_t;
 
 // Look up span for a bytecode offset

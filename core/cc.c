@@ -84,10 +84,18 @@ span_t bc_dbg_get(obj_p dbg, i64_t ip) {
 
 // clang-format off
 #define OP(ctx, op) (AS_U8((ctx)->bc)[(ctx)->ip++] = (u8_t)(op))
-#define CC(ctx, ct) ({ OP(ctx, OP_PUSHC); OP(ctx, (ctx)->consts->len); push_obj(&(ctx)->consts, (ct)); })
-#define CA(ctx, nn) ({ OP(ctx, OP_DUP); OP(ctx, (nn)); })
 #define CE(f)       { if ((f) == -1) return -1; }
 #define SELF_SYM    (symbols_intern("self", 4))
+
+// Load constant from consts pool by offset (no name, pure value)
+#define LOADCONST(ctx, val) ({ OP(ctx, OP_LOADCONST); OP(ctx, (ctx)->consts->len); push_obj(&(ctx)->consts, (val)); })
+
+// Load from env by offset (args + let-bound locals, resolvable by name)
+#define LOADENV(ctx, offset) ({ OP(ctx, OP_LOADENV); OP(ctx, (offset)); })
+
+// Store to env by offset (for let bindings)
+#define STOREENV(ctx, offset) ({ OP(ctx, OP_STOREENV); OP(ctx, (offset)); })
+
 // Record debug info: map bytecode offset to span from AST node
 #define DBG(ctx, expr) do { \
     span_t _span = nfo_get((ctx)->nfo, (i64_t)(expr)); \
@@ -98,6 +106,31 @@ span_t bc_dbg_get(obj_p dbg, i64_t ip) {
     } \
 } while(0)
 // clang-format on
+
+// Find symbol in env_names, return offset or -1 if not found
+static i64_t cc_find_env(cc_ctx_t *cc, i64_t sym) {
+    i64_t i, n;
+    i64_t *names;
+
+    if (cc->env_names == NULL_OBJ)
+        return -1;
+
+    n = cc->env_names->len;
+    names = AS_SYMBOL(cc->env_names);
+
+    for (i = 0; i < n; i++) {
+        if (names[i] == sym)
+            return i;
+    }
+    return -1;
+}
+
+// Add symbol to env_names, return its offset
+static i64_t cc_add_env(cc_ctx_t *cc, i64_t sym) {
+    i64_t offset = cc->env_names->len;
+    push_raw(&cc->env_names, &sym);
+    return offset;
+}
 
 static i64_t cc_expr(cc_ctx_t *cc, obj_p e);
 
@@ -112,34 +145,34 @@ static i64_t cc_cond(cc_ctx_t *cc, obj_p *lst, i64_t n) {
     i64_t j1, j2;
 
     if (n < 2 || n > 3) {
-        CC(cc, NULL_OBJ);
+        LOADCONST(cc, NULL_OBJ);
         return 0;
     }
 
     // compile condition
     CE(cc_expr(cc, lst[0]));
 
-    // jmpz to else branch
-    OP(cc, OP_JMPZ);
+    // jump if false to else branch
+    OP(cc, OP_JMPF);
     j1 = cc->ip;
     OP(cc, 0);
 
     // compile then branch
     CE(cc_expr(cc, lst[1]));
 
-    // jmp over else branch
+    // jump over else branch
     OP(cc, OP_JMP);
     j2 = cc->ip;
     OP(cc, 0);
 
-    // patch jmpz offset
+    // patch jmpf offset
     AS_U8(cc->bc)[j1] = (u8_t)(cc->ip - j1 - 1);
 
     // compile else branch (or null)
     if (n == 3) {
         CE(cc_expr(cc, lst[2]));
     } else {
-        CC(cc, NULL_OBJ);
+        LOADCONST(cc, NULL_OBJ);
     }
 
     // patch jmp offset
@@ -151,7 +184,7 @@ static i64_t cc_cond(cc_ctx_t *cc, obj_p *lst, i64_t n) {
 // Compile expression as a constant (no dereferencing of symbols)
 // Used for special form arguments that shouldn't be evaluated
 static i64_t cc_const(cc_ctx_t *cc, obj_p e) {
-    CC(cc, clone_obj(e));
+    LOADCONST(cc, clone_obj(e));
     return 0;
 }
 
@@ -185,8 +218,8 @@ static i64_t cc_call(cc_ctx_t *cc, obj_p expr, obj_p *lst, i64_t n) {
         CE(cc_const(cc, lst[0]));
         // Record debug info and emit call
         DBG(cc, expr);
-        CC(cc, clone_obj(car));
-        OP(cc, OP_CALF1);
+        LOADCONST(cc, clone_obj(car));
+        OP(cc, OP_CALL1);
         return 0;
     }
 
@@ -199,8 +232,8 @@ static i64_t cc_call(cc_ctx_t *cc, obj_p expr, obj_p *lst, i64_t n) {
         CE(cc_const(cc, lst[1]));
         // Record debug info and emit call
         DBG(cc, expr);
-        CC(cc, clone_obj(car));
-        OP(cc, OP_CALF2);
+        LOADCONST(cc, clone_obj(car));
+        OP(cc, OP_CALL2);
         return 0;
     }
 
@@ -217,36 +250,36 @@ static i64_t cc_call(cc_ctx_t *cc, obj_p expr, obj_p *lst, i64_t n) {
         case TYPE_UNARY:
             if (n != 1)
                 return -1;
-            CC(cc, clone_obj(car));
-            OP(cc, OP_CALF1);
+            LOADCONST(cc, clone_obj(car));
+            OP(cc, OP_CALL1);
             break;
 
         case TYPE_BINARY:
             if (n != 2)
                 return -1;
-            CC(cc, clone_obj(car));
-            OP(cc, OP_CALF2);
+            LOADCONST(cc, clone_obj(car));
+            OP(cc, OP_CALL2);
             break;
 
         case TYPE_VARY:
-            CC(cc, clone_obj(car));
-            OP(cc, OP_CALF0);
+            LOADCONST(cc, clone_obj(car));
+            OP(cc, OP_CALLN);
             OP(cc, n);
             break;
 
         case TYPE_LAMBDA:
-            CC(cc, clone_obj(car));
-            OP(cc, OP_CALFN);
+            LOADCONST(cc, clone_obj(car));
+            OP(cc, OP_CALLF);
             break;
 
         case -TYPE_SYMBOL:
             if (car->i64 == SELF_SYM) {
                 // Self-recursive call
-                OP(cc, OP_CALFS);
+                OP(cc, OP_CALLS);
             } else {
                 // Dynamic call - need to resolve symbol at runtime
                 CE(cc_expr(cc, car));
-                OP(cc, OP_CALFD);
+                OP(cc, OP_CALLD);
                 OP(cc, n);
             }
             break;
@@ -254,7 +287,7 @@ static i64_t cc_call(cc_ctx_t *cc, obj_p expr, obj_p *lst, i64_t n) {
         default:
             // For other types, try to evaluate at runtime
             CE(cc_expr(cc, car));
-            OP(cc, OP_CALFD);
+            OP(cc, OP_CALLD);
             OP(cc, n);
             break;
     }
@@ -268,36 +301,36 @@ static i64_t cc_expr(cc_ctx_t *cc, obj_p e) {
 
     switch (e->type) {
         case -TYPE_SYMBOL:
-            // Quoted symbols are treated as literal constants (no dereference)
+            // Quoted symbols are treated as literal constants (no resolve)
             if (e->attrs & ATTR_QUOTED) {
-                CC(cc, clone_obj(e));
+                LOADCONST(cc, clone_obj(e));
                 return 0;
             }
-            // Check if it's a function argument
-            i = find_raw(cc->args, &e->i64);
-            if (i == NULL_I64 || i >= cc->args->len) {
-                // Not a local - push symbol and dereference
-                DBG(cc, e);  // Record debug info for symbol resolution errors
-                CC(cc, clone_obj(e));
-                OP(cc, OP_DEREF);
+            // Check if it's in env (args + let-bound locals)
+            i = cc_find_env(cc, e->i64);
+            if (i >= 0) {
+                // Found in env - load by offset (compile-time known, runtime resolvable)
+                LOADENV(cc, i);
             } else {
-                // Local argument - duplicate from stack
-                CA(cc, i);
+                // Not in env - dynamic resolution via resolve()
+                DBG(cc, e);  // Record debug info for symbol resolution errors
+                LOADCONST(cc, clone_obj(e));
+                OP(cc, OP_RESOLVE);
             }
             return 0;
 
         case TYPE_LIST:
             if (e->len == 0) {
                 // Empty list - push null
-                CC(cc, NULL_OBJ);
+                LOADCONST(cc, NULL_OBJ);
                 return 0;
             }
             // Function call - pass expression for debug info
             return cc_call(cc, e, AS_LIST(e), e->len);
 
         default:
-            // Constant - push to constants pool
-            CC(cc, clone_obj(e));
+            // Constant - load from constants pool
+            LOADCONST(cc, clone_obj(e));
             return 0;
     }
 }
@@ -320,7 +353,7 @@ static i64_t cc_body(cc_ctx_t *cc, obj_p *lst, i64_t n) {
 // Compile a lambda function
 static obj_p cc_fn(cc_ctx_t *cc, obj_p *lst, i64_t n) {
     if (n == 0) {
-        CC(cc, NULL_OBJ);
+        LOADCONST(cc, NULL_OBJ);
         goto end;
     }
 
@@ -357,8 +390,18 @@ obj_p cc_compile(obj_p lambda) {
         .dbg = I64(0),   // Debug info: pairs of (bytecode offset, span.id)
         .nfo = fn->nfo,  // Source nfo from parser
         .lp = 0,
-        .cur_expr = NULL_OBJ,  // Current expression being compiled
+        .cur_expr = NULL_OBJ,    // Current expression being compiled
+        .env_names = SYMBOL(0),  // Env layout: symbol names by offset
     };
+
+    // Initialize env_names with function arguments (slots 0..nargs-1)
+    if (fn->args != NULL_OBJ) {
+        i64_t i, n = fn->args->len;
+        for (i = 0; i < n; i++) {
+            i64_t sym = AS_SYMBOL(fn->args)[i];
+            push_raw(&cc.env_names, &sym);
+        }
+    }
 
     // Prepare body expressions
     if (body == NULL_OBJ) {
@@ -392,6 +435,7 @@ obj_p cc_compile(obj_p lambda) {
         drop_obj(cc.locals);
         drop_obj(cc.consts);
         drop_obj(cc.dbg);
+        drop_obj(cc.env_names);
         return result;
     }
 
@@ -399,6 +443,14 @@ obj_p cc_compile(obj_p lambda) {
     fn->bc = cc.bc;
     fn->consts = cc.consts;
     fn->dbg = cc.dbg;
+
+    // Initialize env as DICT with env_names as keys (for resolve() at runtime)
+    // Values will be populated at call time with args + let-bound locals
+    if (cc.env_names->len > 0) {
+        fn->env = dict(cc.env_names, LIST(cc.env_names->len));
+    } else {
+        drop_obj(cc.env_names);
+    }
 
     // Cleanup
     drop_obj(cc.args);
@@ -430,46 +482,53 @@ nil_t cc_dump(obj_p lambda) {
     for (i = 0; i < n; ++i) {
         printf("%3lld: ", i);
         switch (bc[i]) {
+            // Control flow
             case OP_RET:
                 printf("RET\n");
-                break;
-            case OP_PUSHC:
-                fmt = obj_fmt(consts[bc[++i]], B8_FALSE);
-                printf("PUSHC %lld (%.*s)\n", (i64_t)bc[i], (i32_t)fmt->len, AS_C8(fmt));
-                drop_obj(fmt);
-                break;
-            case OP_DUP:
-                printf("DUP %d\n", bc[++i]);
-                break;
-            case OP_POP:
-                printf("POP\n");
-                break;
-            case OP_JMPZ:
-                printf("JMPZ +%d\n", bc[++i]);
                 break;
             case OP_JMP:
                 printf("JMP +%d\n", bc[++i]);
                 break;
-            case OP_DEREF:
-                printf("DEREF\n");
+            case OP_JMPF:
+                printf("JMPF +%d\n", bc[++i]);
                 break;
-            case OP_CALF1:
-                printf("CALF1\n");
+            // Data operations
+            case OP_LOADCONST:
+                fmt = obj_fmt(consts[bc[++i]], B8_FALSE);
+                printf("LOADCONST %lld (%.*s)\n", (i64_t)bc[i], (i32_t)fmt->len, AS_C8(fmt));
+                drop_obj(fmt);
                 break;
-            case OP_CALF2:
-                printf("CALF2\n");
+            case OP_LOADENV:
+                printf("LOADENV %d\n", bc[++i]);
                 break;
-            case OP_CALF0:
-                printf("CALF0 %d\n", bc[++i]);
+            case OP_STOREENV:
+                printf("STOREENV %d\n", bc[++i]);
                 break;
-            case OP_CALFN:
-                printf("CALFN\n");
+            case OP_POP:
+                printf("POP\n");
                 break;
-            case OP_CALFS:
-                printf("CALFS\n");
+            // Symbol resolution
+            case OP_RESOLVE:
+                printf("RESOLVE\n");
                 break;
-            case OP_CALFD:
-                printf("CALFD %d\n", bc[++i]);
+            // Function calls
+            case OP_CALL1:
+                printf("CALL1\n");
+                break;
+            case OP_CALL2:
+                printf("CALL2\n");
+                break;
+            case OP_CALLN:
+                printf("CALLN %d\n", bc[++i]);
+                break;
+            case OP_CALLF:
+                printf("CALLF\n");
+                break;
+            case OP_CALLS:
+                printf("CALLS\n");
+                break;
+            case OP_CALLD:
+                printf("CALLD %d\n", bc[++i]);
                 break;
             default:
                 printf("??? %d\n", bc[i]);

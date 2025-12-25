@@ -34,21 +34,29 @@
 
 #define VM_STACK_SIZE 1024
 
-// Bytecode opcodes
+// Bytecode opcodes - grouped by category
 typedef enum op_type_t {
+    // === Control Flow ===
     OP_RET = 0,  // Return from function
-    OP_PUSHC,    // Push constant
-    OP_DUP,      // Duplicate stack value at offset
-    OP_POP,      // Pop and discard
-    OP_JMPZ,     // Jump if zero/false
-    OP_JMP,      // Unconditional jump
-    OP_DEREF,    // Dereference symbol
-    OP_CALF1,    // Call unary function
-    OP_CALF2,    // Call binary function
-    OP_CALF0,    // Call variadic function
-    OP_CALFN,    // Call lambda function
-    OP_CALFS,    // Call self (recursive)
-    OP_CALFD,    // Call dynamic (resolved at runtime)
+    OP_JMP,      // Unconditional jump (operand: offset)
+    OP_JMPF,     // Jump if false/zero (operand: offset)
+
+    // === Data Operations ===
+    OP_LOADCONST,  // Load constant by offset from consts pool (no name)
+    OP_LOADENV,    // Load from env by offset (args + locals, resolvable by name)
+    OP_STOREENV,   // Store to env by offset (for let bindings)
+    OP_POP,        // Pop and discard top of stack
+
+    // === Symbol Resolution ===
+    OP_RESOLVE,  // Resolve symbol dynamically (globals, parent scopes)
+
+    // === Function Calls ===
+    OP_CALL1,  // Call unary function (1 arg on stack, then fn)
+    OP_CALL2,  // Call binary function (2 args on stack, then fn)
+    OP_CALLN,  // Call variadic function (operand: arity)
+    OP_CALLF,  // Call lambda function
+    OP_CALLS,  // Call self (recursive tail call)
+    OP_CALLD,  // Call dynamic - runtime dispatch (operand: arity)
 } op_type_t;
 
 // Forward declarations
