@@ -63,25 +63,27 @@ typedef enum op_type_t {
 struct pool_t;
 struct heap_t;
 
-// Return stack frame
+// Return stack frame - compact for cache efficiency (16 bytes)
 typedef struct ctx_t {
-    obj_p fn;   // function pointer
-    obj_p env;  // local environment (for closures, future use)
-    i64_t fp;   // frame pointer
-    i64_t ip;   // instruction pointer
+    obj_p fn;  // function pointer (lambda->env has the environment)
+    i32_t fp;  // frame pointer (max VM_STACK_SIZE = 1024)
+    i32_t ip;  // instruction pointer (max bytecode ~64KB)
 } ctx_t;
 
 // Virtual machine state - layout optimized for cache efficiency
 typedef struct vm_t {
     // === First cache line (64 bytes) - VERY HOT ===
-    i64_t sp;             // stack pointer (hottest)
-    i64_t fp;             // frame pointer
-    i64_t rp;             // return stack pointer
-    obj_p fn;             // current function
-    obj_p env;            // current environment
+    // Registers (16 bytes) - compact i32 for cache efficiency
+    i32_t sp;  // stack pointer (max VM_STACK_SIZE = 1024)
+    i32_t fp;  // frame pointer
+    i32_t rp;  // return stack pointer
+    i32_t id;  // VM id (thread index)
+    // Pointers (32 bytes)
+    obj_p fn;             // current function (fn->env has local variables)
+    obj_p env;            // query/dynamic env (table column mounting, NOT for lambda locals)
     heap_p heap;          // heap pointer
-    i64_t id;             // VM id
     struct pool_t *pool;  // pool pointer
+    // === 48 bytes total - fits in first cache line with room to spare ===
     // === Stacks - HOT ===
     obj_p ps[VM_STACK_SIZE] __attribute__((aligned(64)));  // program stack
     ctx_t rs[VM_STACK_SIZE] __attribute__((aligned(64)));  // return stack
@@ -96,7 +98,7 @@ typedef struct vm_t {
 extern __thread vm_p __VM;
 
 // VM lifecycle
-vm_p vm_create(i64_t id, struct pool_t *pool);
+vm_p vm_create(i32_t id, struct pool_t *pool);
 nil_t vm_destroy(vm_p vm);
 
 // Fast access to current VM - macro for zero overhead

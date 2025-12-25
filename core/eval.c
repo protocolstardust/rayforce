@@ -36,7 +36,7 @@
 // Thread-local VM pointer
 __thread vm_p __VM = NULL;
 
-vm_p vm_create(i64_t id, struct pool_t *pool) {
+vm_p vm_create(i32_t id, struct pool_t *pool) {
     vm_p vm;
 
     // Use raw mmap for VM allocation (can't use heap before VM exists)
@@ -734,7 +734,6 @@ obj_p call(obj_p fn, i64_t arity) {
     // ip = -1 marks this as an external call (OP_RET will return to vm_eval top level)
     vm->rs[vm->rp].fn = saved_fn;
     vm->rs[vm->rp].fp = saved_fp;
-    vm->rs[vm->rp].env = saved_env;
     vm->rs[vm->rp].ip = -1;  // External call marker
     vm->rp++;
 
