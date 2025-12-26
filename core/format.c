@@ -671,6 +671,13 @@ static i64_t error_ctx_fmt_into_new(obj_p *dst, obj_p err) {
             }
             break;
         }
+        case EC_ARITY: {
+            err_counts_t c = ctx->counts;
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s expected %s%d%s argument%s, got %s%d%s\n",
+                              GRAY, RESET, CYAN, c.need, RESET, c.need == 1 ? "" : "s",
+                              YELLOW, c.have, RESET);
+            break;
+        }
         case EC_LENGTH: {
             err_counts_t c = ctx->counts;
             n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s need %s%d%s, have %s%d%s\n",

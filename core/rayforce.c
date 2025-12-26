@@ -42,7 +42,7 @@
 #include "timestamp.h"
 #include "cmp.h"
 
-RAYASSERT(sizeof(struct obj_t) == 16, rayforce_h)
+RAY_ASSERT(sizeof(struct obj_t) == 16, "obj_t must be 16 bytes");
 
 i32_t ray_init(nil_t) {
     runtime_p runtime;

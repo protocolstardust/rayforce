@@ -38,7 +38,7 @@ typedef struct ipc_header_t {
     i64_t size;    // size of the payload (in bytes)
 } ipc_header_t;
 
-RAYASSERT(sizeof(ipc_header_t) == 16, ipc_header_t)
+RAY_ASSERT(sizeof(ipc_header_t) == 16, "ipc_header_t must be 16 bytes");
 
 obj_p de_raw(u8_t *buf, i64_t *len);
 i64_t ser_raw(u8_t *buf, obj_p obj);

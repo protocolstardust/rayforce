@@ -40,7 +40,7 @@ typedef struct __attribute__((aligned(16))) {
     raw_p value;
 } option_t;
 
-RAYASSERT(sizeof(option_t) == 16, option_h)
+RAY_ASSERT(sizeof(option_t) == 16, "option_t must be 16 bytes");
 
 // Create a Some variant with a value
 static inline __attribute__((always_inline, const)) option_t option_some(raw_p val) {

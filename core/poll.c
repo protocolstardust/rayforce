@@ -39,7 +39,7 @@
 // Common poll functions - not needed for WASM (wasm.c provides stubs)
 #if !defined(OS_WASM)
 
-RAYASSERT(sizeof(struct poll_buffer_t) == 32, poll_h)
+RAY_ASSERT(sizeof(struct poll_buffer_t) == 32, "poll_buffer_t must be 32 bytes");
 
 selector_p poll_get_selector(poll_p poll, i64_t id) {
     i64_t idx;

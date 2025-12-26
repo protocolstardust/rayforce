@@ -30,7 +30,7 @@
 #include "parse.h"
 #include "temporal.h"
 
-RAYASSERT(sizeof(struct timestamp_t) == 16, timestamp_h)
+RAY_ASSERT(sizeof(struct timestamp_t) == 16, "timestamp_t must be 16 bytes");
 
 timespan_t timespan_from_nanos(i64_t nanos) {
     i64_t secs = nanos / 1000000000;

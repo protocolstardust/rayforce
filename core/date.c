@@ -29,7 +29,7 @@
 #include "timestamp.h"
 #include "parse.h"
 
-RAYASSERT(sizeof(struct datestruct_t) == 16, date_h)
+RAY_ASSERT(sizeof(struct datestruct_t) == 16, "datestruct_t must be 16 bytes");
 
 datestruct_t date_from_i32(i32_t offset) {
     u8_t leap;

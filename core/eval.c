@@ -499,7 +499,7 @@ OP_CALLD:
         case TYPE_UNARY:
             if (UNLIKELY(n != 1)) {
                 drop_obj(x);
-                r = err_length(1, n);
+                r = err_arity(1, n);
                 bc_error_add_loc(r, vm->fn, ip - 1);
                 return r;
             }
@@ -516,7 +516,7 @@ OP_CALLD:
         case TYPE_BINARY:
             if (UNLIKELY(n != 2)) {
                 drop_obj(x);
-                r = err_length(2, n);
+                r = err_arity(2, n);
                 bc_error_add_loc(r, vm->fn, ip - 1);
                 return r;
             }
@@ -968,7 +968,7 @@ obj_p try_obj(obj_p obj, obj_p ctch) {
             call_catch:
                 if (AS_LAMBDA(fn)->args->len != 1) {
                     drop_obj(res);
-                    return err_length(1, AS_LAMBDA(fn)->args->len);
+                    return err_arity(1, AS_LAMBDA(fn)->args->len);
                 }
                 // Push error message as string for catch handler
                 vm_stack_push(str_fmt(-1, "%s", ray_err_msg(res)));

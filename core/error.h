@@ -8,6 +8,7 @@
 
 #include "rayforce.h"
 #include "nfo.h"
+#include "util.h"
 
 // ============================================================================
 // Error Codes - Minimal set inspired by kdb+
@@ -15,7 +16,8 @@
 typedef enum {
     EC_OK = 0,  // No error
     EC_TYPE,    // 'type   - type mismatch
-    EC_LENGTH,  // 'length - length or arity mismatch
+    EC_ARITY,   // 'arity  - wrong number of arguments
+    EC_LENGTH,  // 'length - list length mismatch
     EC_DOMAIN,  // 'domain - value out of range
     EC_INDEX,   // 'index  - index out of bounds
     EC_VALUE,   // 'value  - undefined symbol
@@ -55,20 +57,21 @@ typedef union {
     i32_t errnum;         // EC_OS: errno
 } err_ctx_t;
 
+RAY_ASSERT(sizeof(err_ctx_t) == sizeof(i64_t), "err_ctx_t must fit in obj->i64");
+
 // ============================================================================
 // Error Creation API
 // ============================================================================
 
 obj_p err_new(err_code_t code);
 obj_p err_type(i8_t expected, i8_t actual, i64_t field);  // field=0 for none
-obj_p err_length(i32_t need, i32_t have);
+obj_p err_arity(i32_t need, i32_t have);                  // function arguments
+obj_p err_length(i32_t need, i32_t have);                 // list lengths
 obj_p err_index(i32_t idx, i32_t len);
 obj_p err_value(i64_t sym);
 obj_p err_limit(i32_t limit);
 obj_p err_os(nil_t);
 obj_p err_user(lit_p msg);
-
-#define err_arity(n, h) err_length(n, h)
 
 // ============================================================================
 // Error Decoding API

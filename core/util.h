@@ -31,11 +31,8 @@
 #include "rayforce.h"
 #include "format.h"
 
-// A compile time assertion check
-#define RAYASSERT(predicate, file) _IMPL_CASSERT_LINE(predicate, __LINE__, file)
-#define _IMPL_PASTE(a, b) a##b
-#define _IMPL_CASSERT_LINE(predicate, line, file) \
-    typedef char _IMPL_PASTE(assertion_failed_##file##_, line)[2 * !!(predicate) - 1];
+// Compile-time assertion (C11)
+#define RAY_ASSERT(cond, msg) _Static_assert(cond, msg)
 
 #define UNUSED(x) (nil_t)(x)
 

@@ -35,7 +35,7 @@
 #include "eval.h"
 
 #ifndef __EMSCRIPTEN__
-RAYASSERT(sizeof(struct block_t) == (2 * sizeof(struct obj_t)), heap_h);
+RAY_ASSERT(sizeof(struct block_t) == (2 * sizeof(struct obj_t)), "block_t must be 2x obj_t");
 #endif
 
 #define BLOCKSIZE(s) (sizeof(struct obj_t) + (s))

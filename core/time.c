@@ -26,7 +26,7 @@
 #include "error.h"
 #include "timestamp.h"
 
-RAYASSERT(sizeof(struct timestruct_t) == 16, time_h)
+RAY_ASSERT(sizeof(struct timestruct_t) == 16, "timestruct_t must be 16 bytes");
 
 timestruct_t time_from_i32(i32_t offset) {
     b8_t sign;
