@@ -550,7 +550,7 @@ OP_CALLD:
         default: {
             i8_t got = x->type;
             drop_obj(x);
-            r = err_type(0, got & 0xFF, 0);  // not callable
+            r = err_type(TYPE_LAMBDA, got, 0);  // not callable
             bc_error_add_loc(r, vm->fn, ip - 1);
             return r;
         }
@@ -844,7 +844,7 @@ dispatch:
             goto dispatch;
 
         default:
-            return unwrap(err_type(0, car->type & 0xFF, 0), id);
+            return unwrap(err_type(TYPE_LAMBDA, car->type, 0), id);  // not callable
     }
 }
 

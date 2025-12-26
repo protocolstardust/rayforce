@@ -43,12 +43,12 @@ obj_p ray_cast_obj(obj_p x, obj_p y) {
     i8_t type;
 
     if (x->type != -TYPE_SYMBOL)
-        return err_new(EC_TYPE);
+        return err_type(-TYPE_SYMBOL, x->type, 0);
 
     type = env_get_type_by_type_name(&runtime_get()->env, x->i64);
 
     if (type == TYPE_ERR)
-        return err_new(EC_TYPE);
+        return err_value(x->i64);  // unknown type name
 
     // Convert atom type to vector type for parallel cast when source is vector
     if (IS_VECTOR(y) && type < 0) {
@@ -133,7 +133,7 @@ obj_p __til(obj_p x, obj_p filter) {
 
 obj_p ray_til(obj_p x) {
     if (x->type != -TYPE_I64)
-        return err_new(EC_TYPE);
+        return err_type(-TYPE_I64, x->type, 0);
 
     if (x->i64 < 0)
         return err_index(-1, 0);
@@ -203,8 +203,10 @@ obj_p ray_reverse(obj_p x) {
 }
 
 obj_p ray_dict(obj_p x, obj_p y) {
-    if (!IS_VECTOR(x) || !IS_VECTOR(y))
-        return err_new(EC_TYPE);
+    if (!IS_VECTOR(x))
+        return err_type(TYPE_LIST, x->type, 0);
+    if (!IS_VECTOR(y))
+        return err_type(TYPE_LIST, y->type, 0);
 
     if (ops_count(x) != ops_count(y))
         return err_new(EC_LENGTH);
@@ -218,11 +220,11 @@ obj_p ray_table(obj_p x, obj_p y) {
     obj_p lst, c, l = NULL_OBJ;
 
     if (x->type != TYPE_SYMBOL)
-        return err_new(EC_TYPE);
+        return err_type(TYPE_SYMBOL, x->type, 0);
 
     if (y->type != TYPE_LIST) {
         if (x->len != 1)
-            return err_new(EC_LENGTH);
+            return err_length(1, x->len);
 
         l = LIST(1);
         AS_LIST(l)[0] = clone_obj(y);

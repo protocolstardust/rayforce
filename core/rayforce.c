@@ -252,7 +252,7 @@ obj_p vector(i8_t type, i64_t len) {
     vec = (obj_p)heap_alloc(sizeof(struct obj_t) + data_size);
 
     if (vec == NULL)
-        return err_new(EC_LIMIT);
+        return err_limit(data_size);
 
     vec->mmod = MMOD_INTERNAL;
     vec->order = 0;  // Initialize order field to avoid uninitialized bytes
@@ -1941,7 +1941,7 @@ obj_p remove_idx(obj_p* obj, i64_t idx) {
             memmove(AS_LIST(*obj) + idx, AS_LIST(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(obj_p));
             return resize_obj(obj, (*obj)->len - 1);
         default:
-            return err_type(0, (*obj)->type & 0xFF, 0);
+            return err_type(TYPE_LIST, (*obj)->type, 0);
     }
 }
 

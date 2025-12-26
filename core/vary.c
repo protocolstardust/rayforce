@@ -66,17 +66,17 @@ obj_p ray_apply(obj_p *x, i64_t n) {
     switch (f->type) {
         case TYPE_UNARY:
             if (n != 1)
-                return err_new(EC_LENGTH);
+                return err_length(1, n);
             return unary_call(f, x[0]);
         case TYPE_BINARY:
             if (n != 2)
-                return err_new(EC_LENGTH);
+                return err_length(2, n);
             return binary_call(f, x[0], x[1]);
         case TYPE_VARY:
             return vary_call(f, x, n);
         case TYPE_LAMBDA:
             if (n != AS_LAMBDA(f)->args->len)
-                return err_new(EC_LENGTH);
+                return err_length(AS_LAMBDA(f)->args->len, n);
 
             for (i = 0; i < n; i++)
                 vm_stack_push(clone_obj(x[i]));
@@ -86,7 +86,7 @@ obj_p ray_apply(obj_p *x, i64_t n) {
                 drop_obj(vm_stack_pop());
             return res;
         default:
-            return err_new(EC_TYPE);
+            return err_type(TYPE_LAMBDA, f->type, 0);
     }
 }
 
