@@ -52,8 +52,8 @@ test_result_t test_lang_basic() {
     TEST_ASSERT_EQ("1.000000123555555555555555555555555e-00", "1.00");
     TEST_ASSERT_EQ("(as 'f64 \" 1.000000123555555555555555555555555e+01\")", "10.00");
     TEST_ASSERT_EQ("-1000123555555555555555555555555", "-1.000124e+30");
-    TEST_ASSERT_ER("33000h", "range");
-    TEST_ASSERT_ER("-10001230000i", "range");
+    TEST_ASSERT_ER("33000h", "domain");
+    TEST_ASSERT_ER("-10001230000i", "domain");
     TEST_ASSERT_EQ("\"\"", "\"\"");
     TEST_ASSERT_EQ("'asd", "'asd");
     TEST_ASSERT_EQ("'", "0Ns");
@@ -3142,13 +3142,13 @@ test_result_t test_lang_update() {
     TEST_ASSERT_ER(
         "(set t (table [a b c] (list [1] [10] [x])))"
         "(insert t (dict [a b d] (list 2 20 'w)))",
-        "nfound");
+        "value");
 
     // Test 37: Upsert error - column not found in table
     TEST_ASSERT_ER(
         "(set t (table [ID Name Value] (list [1] [alice] [10.0])))"
         "(upsert t 1 (dict [ID Unknown Value] (list 2 'x 20.0)))",
-        "nfound");
+        "value");
 
     // ========== UPDATE WITH FLOAT MULTIPLICATION TESTS ==========
     // (regression tests for type mismatch bug when multiplying I64 by F64 in update)
@@ -4322,10 +4322,10 @@ test_result_t test_lang_joins() {
         "1");
 
     // error: left-join wrong type
-    TEST_ASSERT_ER("(left-join 123 (table [a] (list [1])) (table [a] (list [1])))", "arg");
+    TEST_ASSERT_ER("(left-join 123 (table [a] (list [1])) (table [a] (list [1])))", "type");
 
     // error: inner-join wrong type
-    TEST_ASSERT_ER("(inner-join [a] [1 2 3] (table [a] (list [1])))", "arg");
+    TEST_ASSERT_ER("(inner-join [a] [1 2 3] (table [a] (list [1])))", "type");
 
     // error: asof-join wrong arity
     TEST_ASSERT_ER("(asof-join [a b])", "arity");

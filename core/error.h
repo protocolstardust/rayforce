@@ -105,6 +105,14 @@ obj_p ray_err(lit_p msg);      // parse string → error
 lit_p ray_err_msg(obj_p err);  // error → string name
 
 // ============================================================================
+// Error Info (for IPC serialization)
+// ============================================================================
+
+// Returns a dict with all error information:
+// {code: `type; expected: `i64; actual: `c8; field: `from; trace: [...]}
+obj_p err_info(obj_p err);
+
+// ============================================================================
 // Helpers
 // ============================================================================
 

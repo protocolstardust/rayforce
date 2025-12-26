@@ -301,7 +301,7 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
     obj_p idx, v, ajkl, ajkr, keys, lvals, rvals, res;
 
     if (n != 3)
-        return err_new(EC_LENGTH);
+        return err_arity(3, n);
 
     if (x[0]->type != TYPE_SYMBOL)
         return err_new(EC_TYPE);
