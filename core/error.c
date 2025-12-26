@@ -6,9 +6,7 @@
 #include "error.h"
 #include "heap.h"
 #include "string.h"
-#include "def.h"
 #include "util.h"
-#include "symbols.h"
 #include "eval.h"
 
 // ============================================================================
@@ -139,7 +137,7 @@ obj_p err_domain(nil_t) { return err_alloc(EC_DOMAIN); }
 
 obj_p err_nyi(i8_t type) {
     obj_p err = err_alloc(EC_NYI);
-    err_ctx_t *ctx = (err_ctx_t *)&err->i64;
+    err_ctx_t* ctx = (err_ctx_t*)&err->i64;
     ctx->types.actual = type;
     return err;
 }
@@ -222,7 +220,7 @@ obj_p err_info(obj_p err) {
             AS_LIST(vals)[1] = symbol(s, strlen(s));
             s = type_name(t.actual);
             AS_LIST(vals)[2] = symbol(s, strlen(s));
-            if (t.field) {
+            if (n == 4) {
                 ins_sym(&keys, 3, "field");
                 AS_LIST(vals)[3] = symboli64(t.field);
             }
@@ -278,7 +276,7 @@ obj_p err_info(obj_p err) {
             ins_sym(&keys, 0, "code");
             s = err_name(code);
             AS_LIST(vals)[0] = symbol(s, strlen(s));
-            if (sym_id) {
+            if (n == 2) {
                 ins_sym(&keys, 1, "name");
                 AS_LIST(vals)[1] = symboli64(sym_id);
             }
@@ -292,7 +290,7 @@ obj_p err_info(obj_p err) {
             ins_sym(&keys, 0, "code");
             s = err_name(code);
             AS_LIST(vals)[0] = symbol(s, strlen(s));
-            if (e) {
+            if (n == 2) {
                 ins_sym(&keys, 1, "message");
                 AS_LIST(vals)[1] = vn_c8("%s", strerror(e));
             }
@@ -306,7 +304,7 @@ obj_p err_info(obj_p err) {
             ins_sym(&keys, 0, "code");
             s = err_name(code);
             AS_LIST(vals)[0] = symbol(s, strlen(s));
-            if (msg && msg[0]) {
+            if (n == 2) {
                 ins_sym(&keys, 1, "message");
                 AS_LIST(vals)[1] = vn_c8("%s", msg);
             }
@@ -320,7 +318,7 @@ obj_p err_info(obj_p err) {
             ins_sym(&keys, 0, "code");
             s = err_name(code);
             AS_LIST(vals)[0] = symbol(s, strlen(s));
-            if (c.have) {
+            if (n == 2) {
                 ins_sym(&keys, 1, "limit");
                 AS_LIST(vals)[1] = i32(c.have);
             }
