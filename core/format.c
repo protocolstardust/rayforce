@@ -690,8 +690,8 @@ static i64_t error_ctx_fmt_into_new(obj_p *dst, obj_p err) {
         }
         case EC_INDEX: {
             err_bounds_t b = ctx->bounds;
-            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s index %s%d%s not in [0, %s%d%s)\n", GRAY, RESET, YELLOW,
-                              b.idx, RESET, CYAN, b.len, RESET);
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s index %s%d%s not in [%s0 %d%s]\n", GRAY, RESET, YELLOW,
+                              b.idx, RESET, CYAN, b.len > 0 ? b.len - 1 : 0, RESET);
             break;
         }
         case EC_VALUE: {
