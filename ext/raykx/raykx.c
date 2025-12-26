@@ -83,7 +83,7 @@ option_t raykx_listener_accept(poll_p poll, selector_p selector) {
         if (id == -1) {
             LOG_ERROR("Failed to register new connection in poll registry");
             heap_free(ctx);
-            return option_error(ray_err(ERR_IO));
+            return option_error(err_os());
         }
 
         LOG_INFO("New connection registered successfully");
@@ -103,16 +103,16 @@ obj_p raykx_listen(obj_p x) {
     struct poll_registry_t registry = ZERO_INIT_STRUCT;
 
     if (x->type != -TYPE_I64)
-        return ray_err(ERR_TYPE);
+        return err_new(EC_TYPE);
 
     port = x->i64;
 
     if (poll == NULL)
-        return ray_err(ERR_IO);
+        return err_os();
 
     fd = sock_listen(port);
     if (fd == -1)
-        return ray_err(ERR_IO);
+        return err_os();
 
     registry.fd = fd;
     registry.type = SELECTOR_TYPE_SOCKET;
@@ -144,7 +144,7 @@ obj_p raykx_hopen(obj_p addr) {
 
     // Parse address string into sock_addr_t
     if (sock_addr_from_str(AS_C8(addr), addr->len, &sock_addr) == -1) {
-        return ray_err(ERR_IO);
+        return err_os();
     }
 
     // Open socket connection
@@ -152,15 +152,15 @@ obj_p raykx_hopen(obj_p addr) {
     LOG_DEBUG("Connection opened on fd %lld", fd);
 
     if (fd == -1)
-        return ray_err(ERR_IO);
+        return err_os();
 
     // Send handshake
     if (sock_send(fd, handshake, 2) == -1)
-        return ray_err(ERR_IO);
+        return err_os();
 
     // Receive handshake response
     if (sock_recv(fd, handshake, 1) == -1)
-        return ray_err(ERR_IO);
+        return err_os();
 
     LOG_DEBUG("Handshake response: %d", handshake[0]);
 
@@ -196,7 +196,7 @@ obj_p raykx_hopen(obj_p addr) {
 
 obj_p raykx_hclose(obj_p fd) {
     if (fd->type != -TYPE_I64)
-        return ray_err(ERR_TYPE);
+        return err_new(EC_TYPE);
 
     poll_deregister(runtime_get()->poll, fd->i64);
 
@@ -268,7 +268,7 @@ static option_t raykx_read_header(poll_p poll, selector_p selector) {
 static option_t raykx_decompress(const u8_t* compressed, i64_t compressed_size, u8_t** decompressed,
                                  i64_t* decompressed_size) {
     if (compressed_size < (i64_t)sizeof(u32_t))
-        return option_error(ray_err(ERR_IO));
+        return option_error(err_os());
 
     i64_t i = 0;
     i64_t n = 0;
@@ -282,12 +282,12 @@ static option_t raykx_decompress(const u8_t* compressed, i64_t compressed_size, 
     i64_t len = (i64_t)(*header_size - sizeof(struct raykx_header_t));
 
     if (len == 0)
-        return option_error(ray_err(ERR_IO));
+        return option_error(err_os());
 
     u32_t buffer[256] = {0};
     u8_t* result = (u8_t*)heap_alloc(len);
     if (result == NULL)
-        return option_error(ray_err(ERR_OOM));
+        return option_error(err_new(EC_LIMIT));
 
     while (s < len) {
         if (i == 0) {
@@ -508,7 +508,7 @@ obj_p raykx_send(obj_p fd, obj_p msg) {
     selector = poll_get_selector(poll, id);
     if (selector == NULL) {
         LOG_ERROR("Invalid selector for fd %lld", id);
-        return ray_err(ERR_IO);
+        return err_os();
     }
 
     ctx = (raykx_ctx_p)selector->data;
@@ -517,7 +517,7 @@ obj_p raykx_send(obj_p fd, obj_p msg) {
     if (selector->rx.buf == NULL) {
         if (poll_rx_buf_request(poll, selector, ISIZEOF(struct raykx_header_t)) == -1) {
             LOG_ERROR("Failed to initialize receive buffer");
-            return ray_err(ERR_IO);
+            return err_os();
         }
     }
 

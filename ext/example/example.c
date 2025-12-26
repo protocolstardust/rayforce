@@ -23,13 +23,17 @@
 
 #include <stdio.h>
 #include "../../core/rayforce.h"
+#include "../../core/error.h"
 
 obj_p myfn(obj_p a, obj_p b) {
     if (is_null(a) || is_null(b))
         return null(0);
 
-    if (a->type != -TYPE_I64 || b->type != -TYPE_I64)
-        return ray_error(ERR_TYPE, "Expected two i64 arguments, found: '%s, '%s", type_name(a->type), type_name(b->type));
+    if (a->type != -TYPE_I64)
+        return err_type(-TYPE_I64, a->type, 0);
+
+    if (b->type != -TYPE_I64)
+        return err_type(-TYPE_I64, b->type, 0);
 
     return i64(a->i64 + b->i64);
 }
