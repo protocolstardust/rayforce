@@ -648,13 +648,65 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, str_p msg, i32_t msg_len, b8_t
     return n;
 }
 
+// Format a single context entry
+static i64_t error_ctx_fmt_into(obj_p *dst, err_ctx_t *ctx) {
+    i64_t n = 0;
+    i64_t expected, actual;
+    str_p name;
+
+    switch (ctx->type) {
+        case CTX_EXPECTED:
+            expected = (ctx->val >> 8) & 0xFF;
+            actual = ctx->val & 0xFF;
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "expected %s%s%s, got %s%s%s",
+                              CYAN, type_name((i8_t)expected), RESET,
+                              YELLOW, type_name((i8_t)actual), RESET);
+            break;
+        case CTX_ARGUMENT:
+            name = str_from_symbol(ctx->val);
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "in argument %s'%s'%s", GREEN, name, RESET);
+            break;
+        case CTX_FIELD:
+            name = str_from_symbol(ctx->val);
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "in field %s'%s'%s", GREEN, name, RESET);
+            break;
+        case CTX_FUNCTION:
+            name = str_from_symbol(ctx->val);
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "in %s%s%s", GREEN, name, RESET);
+            break;
+        case CTX_INDEX:
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "at index %s%lld%s", YELLOW, ctx->val, RESET);
+            break;
+        case CTX_KEY:
+            name = str_from_symbol(ctx->val);
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "for key %s'%s'%s", GREEN, name, RESET);
+            break;
+        case CTX_VALUE:
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "value: %s%lld%s", YELLOW, ctx->val, RESET);
+            break;
+        case CTX_GOT:
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "got %s%s%s", YELLOW, type_name((i8_t)ctx->val), RESET);
+            break;
+        case CTX_NEED:
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "need %s%lld%s", CYAN, ctx->val, RESET);
+            break;
+        case CTX_HAVE:
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "have %s%lld%s", YELLOW, ctx->val, RESET);
+            break;
+        default:
+            break;
+    }
+    return n;
+}
+
 i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
-    i64_t n;
+    i64_t n, ctx_count, i;
     i32_t msg_len;
-    u16_t i, l, m;
+    u16_t j, l, m;
     lit_p err_code;
     obj_p locs;
     vm_p vm;
+    err_ctx_t *ctx;
 
     UNUSED(limit);
 
@@ -670,6 +722,19 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
     n = str_fmt_into(dst, MAX_ERROR_LEN, "\n  %s×%s %sError%s: %s%s%s\n", TOMATO, RESET, TOMATO, RESET, YELLOW, err_code,
                      RESET);
 
+    // Format context entries if this is a context error
+    ctx_count = ray_err_ctx_count(obj);
+    if (ctx_count > 0) {
+        for (i = 0; i < ctx_count; i++) {
+            ctx = ray_err_ctx(obj, i);
+            if (ctx) {
+                n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s ", GRAY, RESET);
+                n += error_ctx_fmt_into(dst, ctx);
+                n += str_fmt_into(dst, MAX_ERROR_LEN, "\n");
+            }
+        }
+    }
+
     // Format with locations if available
     if (locs != NULL_OBJ) {
         n += str_fmt_into(dst, MAX_ERROR_LEN, "\n");
@@ -677,11 +742,11 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
         l = locs->len;
         m = l > ERR_STACK_MAX_HEIGHT ? ERR_STACK_MAX_HEIGHT : l;
 
-        for (i = 0; i < m; i++) {
-            n += error_frame_fmt_into(dst, AS_LIST(locs)[i], (str_p)err_code, msg_len, i == 0);
+        for (j = 0; j < m; j++) {
+            n += error_frame_fmt_into(dst, AS_LIST(locs)[j], (str_p)err_code, msg_len, j == 0);
             msg_len = 0;  // Only show message on first frame
             // Add spacing between frames (except after last)
-            if (i < m - 1)
+            if (j < m - 1)
                 n += str_fmt_into(dst, MAX_ERROR_LEN, "\n");
         }
 

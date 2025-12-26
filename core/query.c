@@ -34,6 +34,7 @@
 #include "filter.h"
 #include "chrono.h"
 #include "runtime.h"
+#include "symbols.h"
 
 obj_p remap_filter(obj_p tab, obj_p index) { return filter_map(tab, index); }
 
@@ -210,7 +211,7 @@ obj_p select_fetch_table(obj_p obj, query_ctx_p ctx) {
     prm = at_sym(obj, "from", 4);
 
     if (is_null(prm))
-        return ray_err(ERR_ARG);
+        return ray_err_ctx1(EC_ARG, CTX_FIELD, symbols_intern("from", 4));
 
     val = eval(prm);
     drop_obj(prm);
@@ -219,8 +220,10 @@ obj_p select_fetch_table(obj_p obj, query_ctx_p ctx) {
         return val;
 
     if (val->type != TYPE_TABLE) {
+        i8_t actual_type = val->type;
         drop_obj(val);
-        return ray_err(ERR_TYPE);
+        return ray_err_ctx2(EC_TYPE, CTX_FIELD, symbols_intern("from", 4), CTX_EXPECTED,
+                            ((i64_t)TYPE_TABLE << 8) | (actual_type & 0xFF));
     }
 
     ctx->tablen = AS_LIST(val)[0]->len;
