@@ -400,6 +400,8 @@ test_entry_t tests[] = {
     {"test_parted_count_i16", test_parted_count_i16},
     {"test_parted_count_i32", test_parted_count_i32},
     {"test_parted_count_time", test_parted_count_time},
+    // Parted distinct tests
+    {"test_parted_distinct_i64", test_parted_distinct_i64},
 };
 // ---
 

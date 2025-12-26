@@ -1698,3 +1698,19 @@ test_result_t test_parted_count_time() {
     parted_cleanup();
     PASS();
 }
+
+// ============================================================================
+// Parted Distinct Tests
+// ============================================================================
+
+test_result_t test_parted_distinct_i64() {
+    parted_cleanup();
+    // Size column has values: day + (til 100) % 10
+    // For each day (0-4), Size = day + [0,1,2,3,4,5,6,7,8,9,0,1,...]
+    // So distinct Size values are: 0-9, 1-10, 2-11, 3-12, 4-13
+    // Union of all = 0-13 = 14 distinct values
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(count (distinct (at t 'Size)))", "14");
+    parted_cleanup();
+    PASS();
+}
+

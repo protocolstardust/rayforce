@@ -872,6 +872,29 @@ obj_p ray_distinct(obj_p x) {
             res = index_distinct_i64(AS_I64(ENUM_VAL(x)), l);
             res = enumerate(ray_key(x), res);
             return res;
+        case TYPE_MAPLIST: {
+            // MAPLIST has key (mmaped symbol file) and value (byte offsets)
+            // Get distinct indices, then expand to actual values
+            obj_p val = MAPLIST_VAL(x);
+            obj_p key = MAPLIST_KEY(x);
+            i64_t sl = key->len;
+            l = val->len;
+            obj_p distinct_idx = index_distinct_i64(AS_I64(val), l);
+            i64_t dl = distinct_idx->len;
+            res = LIST(dl);
+            for (i64_t i = 0; i < dl; i++) {
+                i64_t offset = AS_I64(distinct_idx)[i];
+                u8_t *buf = AS_U8(key) + offset;
+                i64_t size = sl;
+                AS_LIST(res)[i] = de_raw(buf, &size);
+            }
+            drop_obj(distinct_idx);
+            return res;
+        }
+        case TYPE_MAPCOMMON:
+            // MAPCOMMON structure: AS_LIST(x)[0] = unique values, AS_LIST(x)[1] = counts
+            // The values are already distinct, just return them
+            return clone_obj(AS_LIST(x)[0]);
         case TYPE_PARTEDENUM: {
             // For parted enum, get the domain (unique symbols) from the first partition
             // All partitions share the same domain, so we just need to load it once
@@ -886,6 +909,151 @@ obj_p ray_distinct(obj_p x) {
             if (IS_ERR(domain))
                 return domain;
             return domain;
+        }
+        case TYPE_PARTEDB8:
+        case TYPE_PARTEDU8: {
+            // Collect all partitions into one vector, then distinct
+            obj_p combined = NULL_OBJ;
+            for (i64_t i = 0; i < x->len; i++) {
+                obj_p part = AS_LIST(x)[i];
+                if (combined == NULL_OBJ)
+                    combined = clone_obj(part);
+                else {
+                    obj_p tmp = ray_concat(combined, part);
+                    drop_obj(combined);
+                    combined = tmp;
+                }
+            }
+            if (combined == NULL_OBJ)
+                return U8(0);
+            res = index_distinct_i8((i8_t *)AS_U8(combined), combined->len);
+            res->type = x->type - TYPE_PARTEDLIST;
+            drop_obj(combined);
+            return res;
+        }
+        case TYPE_PARTEDI16: {
+            obj_p combined = NULL_OBJ;
+            for (i64_t i = 0; i < x->len; i++) {
+                obj_p part = AS_LIST(x)[i];
+                if (combined == NULL_OBJ)
+                    combined = clone_obj(part);
+                else {
+                    obj_p tmp = ray_concat(combined, part);
+                    drop_obj(combined);
+                    combined = tmp;
+                }
+            }
+            if (combined == NULL_OBJ)
+                return I16(0);
+            res = index_distinct_i16(AS_I16(combined), combined->len);
+            res->type = TYPE_I16;
+            drop_obj(combined);
+            return res;
+        }
+        case TYPE_PARTEDI32:
+        case TYPE_PARTEDDATE:
+        case TYPE_PARTEDTIME: {
+            obj_p combined = NULL_OBJ;
+            for (i64_t i = 0; i < x->len; i++) {
+                obj_p part = AS_LIST(x)[i];
+                if (combined == NULL_OBJ)
+                    combined = clone_obj(part);
+                else {
+                    obj_p tmp = ray_concat(combined, part);
+                    drop_obj(combined);
+                    combined = tmp;
+                }
+            }
+            if (combined == NULL_OBJ)
+                return I32(0);
+            res = index_distinct_i32(AS_I32(combined), combined->len);
+            res->type = x->type - TYPE_PARTEDLIST;
+            drop_obj(combined);
+            return res;
+        }
+        case TYPE_PARTEDI64:
+        case TYPE_PARTEDTIMESTAMP: {
+            obj_p combined = NULL_OBJ;
+            for (i64_t i = 0; i < x->len; i++) {
+                obj_p part = AS_LIST(x)[i];
+                if (combined == NULL_OBJ)
+                    combined = clone_obj(part);
+                else {
+                    obj_p tmp = ray_concat(combined, part);
+                    drop_obj(combined);
+                    combined = tmp;
+                }
+            }
+            if (combined == NULL_OBJ)
+                return I64(0);
+            res = index_distinct_i64(AS_I64(combined), combined->len);
+            res->type = x->type - TYPE_PARTEDLIST;
+            drop_obj(combined);
+            return res;
+        }
+        case TYPE_PARTEDGUID: {
+            obj_p combined = NULL_OBJ;
+            for (i64_t i = 0; i < x->len; i++) {
+                obj_p part = AS_LIST(x)[i];
+                if (combined == NULL_OBJ)
+                    combined = clone_obj(part);
+                else {
+                    obj_p tmp = ray_concat(combined, part);
+                    drop_obj(combined);
+                    combined = tmp;
+                }
+            }
+            if (combined == NULL_OBJ)
+                return GUID(0);
+            res = index_distinct_guid(AS_GUID(combined), combined->len);
+            drop_obj(combined);
+            return res;
+        }
+        case TYPE_PARTEDLIST: {
+            // Check if partitions are MAPLIST (enumerated symbols)
+            if (x->len > 0 && AS_LIST(x)[0]->type == TYPE_MAPLIST) {
+                // For parted MAPLIST, expand each partition's values and then distinct
+                // Each partition may have its own key/symbol file
+                obj_p expanded = NULL_OBJ;
+                for (i64_t i = 0; i < x->len; i++) {
+                    obj_p part = AS_LIST(x)[i];
+                    obj_p part_values = ray_value(part);
+                    if (IS_ERR(part_values)) {
+                        if (expanded != NULL_OBJ) drop_obj(expanded);
+                        return part_values;
+                    }
+                    if (expanded == NULL_OBJ)
+                        expanded = part_values;
+                    else {
+                        obj_p tmp = ray_concat(expanded, part_values);
+                        drop_obj(expanded);
+                        drop_obj(part_values);
+                        expanded = tmp;
+                    }
+                }
+                if (expanded == NULL_OBJ)
+                    return LIST(0);
+                res = ray_distinct(expanded);
+                drop_obj(expanded);
+                return res;
+            }
+            // For regular partedlist, concatenate and distinct
+            obj_p combined = NULL_OBJ;
+            for (i64_t i = 0; i < x->len; i++) {
+                obj_p part = AS_LIST(x)[i];
+                if (combined == NULL_OBJ)
+                    combined = clone_obj(part);
+                else {
+                    obj_p tmp = ray_concat(combined, part);
+                    drop_obj(combined);
+                    combined = tmp;
+                }
+            }
+            if (combined == NULL_OBJ)
+                return LIST(0);
+            res = index_distinct_obj(AS_LIST(combined), combined->len);
+            drop_obj(combined);
+            return res;
         }
         case TYPE_LIST:
             l = ops_count(x);
