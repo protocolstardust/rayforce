@@ -169,9 +169,30 @@ repl_p repl_create(poll_p poll, b8_t silent) {
             repl_destroy(repl);
             return NULL;
         }
+    } else if (silent) {
+        // Piped input in silent mode - read and eval synchronously
+        c8_t buf[TERM_BUF_SIZE];
+        i64_t len;
+        obj_p str, res, fmt;
+
+        while ((len = read(STDIN_FILENO, buf, TERM_BUF_SIZE - 1)) > 0) {
+            buf[len] = '\0';
+            str = string_from_str(buf, len);
+            res = ray_eval_str_line(str, repl->name, 0);
+            drop_obj(str);
+
+            if (IS_ERR(res)) {
+                fmt = obj_fmt(res, B8_TRUE);
+                printf("%.*s\n", (i32_t)fmt->len, AS_C8(fmt));
+                drop_obj(fmt);
+            }
+            drop_obj(res);
+        }
+
+        repl_destroy(repl);
+        return NULL;
     } else {
-        // stdin is not a TTY, no point in creating a REPL
-        // Clean up and return NULL to avoid memory leak
+        // stdin is not a TTY and not silent mode - no interactive REPL possible
         repl_destroy(repl);
         return NULL;
     }
