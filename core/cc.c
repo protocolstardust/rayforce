@@ -131,6 +131,21 @@ static b8_t is_cond_fn(obj_p car) {
     return car->type == TYPE_VARY && (vary_f)car->i64 == ray_cond;
 }
 
+// Check if vary function is a special form that needs unevaluated arguments
+// Excludes control-flow forms (if, and, or) which need special compilation
+// Note: try is TYPE_BINARY, handled by is_binary_special_form
+static b8_t is_vary_special_form(obj_p fn) {
+    extern obj_p ray_cond(obj_p *, i64_t);
+    extern obj_p ray_and(obj_p *, i64_t);
+    extern obj_p ray_or(obj_p *, i64_t);
+    extern obj_p ray_do(obj_p *, i64_t);
+    if (fn->type != TYPE_VARY || !(fn->attrs & FN_SPECIAL_FORM))
+        return B8_FALSE;
+    // Exclude control-flow forms and do (which evaluates args normally)
+    vary_f f = (vary_f)fn->i64;
+    return f != ray_cond && f != ray_and && f != ray_or && f != ray_do;
+}
+
 // Compile if/cond expression
 static i64_t cc_cond(cc_ctx_t *cc, obj_p *lst, i64_t n) {
     i64_t j1, j2;
@@ -200,6 +215,19 @@ static i64_t cc_call(cc_ctx_t *cc, obj_p expr, obj_p *lst, i64_t n) {
     // Handle special form 'cond'/'if'
     if (is_cond_fn(car)) {
         return cc_cond(cc, lst, n);
+    }
+
+    // Handle vary special forms that need unevaluated arguments (e.g. timeit)
+    if (is_vary_special_form(car)) {
+        // Push all arguments as constants (no evaluation)
+        for (i = 0; i < n; ++i) {
+            CE(cc_const(cc, lst[i]));
+        }
+        DBG(cc, expr);
+        LOADCONST(cc, clone_obj(car));
+        OP(cc, OP_CALLN);
+        OP(cc, n);
+        return 0;
     }
 
     // Handle unary special forms (quote)
