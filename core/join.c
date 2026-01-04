@@ -156,7 +156,8 @@ static obj_p __left_join_inner(obj_p ltab, obj_p rtab, obj_p ksyms, obj_p kcols,
 }
 
 obj_p ray_left_join(obj_p *x, i64_t n) {
-    obj_p k1, k2, idx, res;
+    obj_p k1, k2, idx, res, ltab, rtab;
+    obj_p *val1 = NULL, *val2 = NULL;
 
     if (n != 3)
         return err_arity(3, n);
@@ -164,22 +165,50 @@ obj_p ray_left_join(obj_p *x, i64_t n) {
     if (x[0]->type != TYPE_SYMBOL)
         return err_type(TYPE_SYMBOL, x[0]->type, 0);
 
-    if (x[1]->type != TYPE_TABLE)
+    if (x[1]->type == -TYPE_SYMBOL) {
+        val1 = resolve(x[1]->i64);
+        if (val1 == NULL)
+            return err_value(0);
+        ltab = cow_obj(*val1);
+    } else if (x[1]->type == TYPE_TABLE) {
+        val1 = NULL;
+        ltab = cow_obj(x[1]);
+    } else {
         return err_type(TYPE_TABLE, x[1]->type, 0);
+    }
 
-    if (x[2]->type != TYPE_TABLE)
+    if (x[2]->type == -TYPE_SYMBOL) {
+        val2 = resolve(x[2]->i64);
+        if (val2 == NULL) {
+            drop_obj(ltab);
+            return err_value(0);
+        }
+        rtab = cow_obj(*val2);
+    } else if (x[2]->type == TYPE_TABLE) {
+        val2 = NULL;
+        rtab = cow_obj(x[2]);
+    } else {
+        drop_obj(ltab);
         return err_type(TYPE_TABLE, x[2]->type, 0);
+    }
 
-    if (ops_count(x[1]) == 0 || ops_count(x[2]) == 0)
-        return clone_obj(x[1]);
+    if (ops_count(ltab) == 0 || ops_count(rtab) == 0) {
+        drop_obj(rtab);
+        return ltab;
+    }
 
-    k1 = ray_at(x[1], x[0]);
-    if (IS_ERR(k1))
+    k1 = ray_at(ltab, x[0]);
+    if (IS_ERR(k1)) {
+        drop_obj(ltab);
+        drop_obj(rtab);
         return k1;
+    }
 
-    k2 = ray_at(x[2], x[0]);
+    k2 = ray_at(rtab, x[0]);
     if (IS_ERR(k2)) {
         drop_obj(k1);
+        drop_obj(ltab);
+        drop_obj(rtab);
         return k2;
     }
 
@@ -188,18 +217,23 @@ obj_p ray_left_join(obj_p *x, i64_t n) {
 
     if (IS_ERR(idx)) {
         drop_obj(k1);
+        drop_obj(ltab);
+        drop_obj(rtab);
         return idx;
     }
 
-    res = __left_join_inner(x[1], x[2], x[0], k1, idx);
+    res = __left_join_inner(ltab, rtab, x[0], k1, idx);
     drop_obj(idx);
     drop_obj(k1);
+    drop_obj(ltab);
+    drop_obj(rtab);
     return res;
 }
 
 obj_p ray_inner_join(obj_p *x, i64_t n) {
     i64_t i, j, l;
-    obj_p k1, k2, c1, c2, un, col, cols, vals, idx;
+    obj_p k1, k2, c1, c2, un, col, cols, vals, idx, ltab, rtab;
+    obj_p *val1 = NULL, *val2 = NULL;
 
     if (n != 3)
         return err_arity(3, n);
@@ -207,22 +241,50 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
     if (x[0]->type != TYPE_SYMBOL)
         return err_type(TYPE_SYMBOL, x[0]->type, 0);
 
-    if (x[1]->type != TYPE_TABLE)
+    if (x[1]->type == -TYPE_SYMBOL) {
+        val1 = resolve(x[1]->i64);
+        if (val1 == NULL)
+            return err_value(0);
+        ltab = cow_obj(*val1);
+    } else if (x[1]->type == TYPE_TABLE) {
+        val1 = NULL;
+        ltab = cow_obj(x[1]);
+    } else {
         return err_type(TYPE_TABLE, x[1]->type, 0);
+    }
 
-    if (x[2]->type != TYPE_TABLE)
+    if (x[2]->type == -TYPE_SYMBOL) {
+        val2 = resolve(x[2]->i64);
+        if (val2 == NULL) {
+            drop_obj(ltab);
+            return err_value(0);
+        }
+        rtab = cow_obj(*val2);
+    } else if (x[2]->type == TYPE_TABLE) {
+        val2 = NULL;
+        rtab = cow_obj(x[2]);
+    } else {
+        drop_obj(ltab);
         return err_type(TYPE_TABLE, x[2]->type, 0);
+    }
 
-    if (ops_count(x[1]) == 0 || ops_count(x[2]) == 0)
-        return clone_obj(x[1]);
+    if (ops_count(ltab) == 0 || ops_count(rtab) == 0) {
+        drop_obj(rtab);
+        return ltab;
+    }
 
-    k1 = ray_at(x[1], x[0]);
-    if (IS_ERR(k1))
+    k1 = ray_at(ltab, x[0]);
+    if (IS_ERR(k1)) {
+        drop_obj(ltab);
+        drop_obj(rtab);
         return k1;
+    }
 
-    k2 = ray_at(x[2], x[0]);
+    k2 = ray_at(rtab, x[0]);
     if (IS_ERR(k2)) {
         drop_obj(k1);
+        drop_obj(ltab);
+        drop_obj(rtab);
         return k2;
     }
 
@@ -230,12 +292,19 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
     drop_obj(k1);
     drop_obj(k2);
 
-    if (IS_ERR(idx))
+    if (IS_ERR(idx)) {
+        drop_obj(ltab);
+        drop_obj(rtab);
         return idx;
+    }
 
-    un = ray_union(AS_LIST(x[1])[0], AS_LIST(x[2])[0]);
-    if (IS_ERR(un))
+    un = ray_union(AS_LIST(ltab)[0], AS_LIST(rtab)[0]);
+    if (IS_ERR(un)) {
+        drop_obj(idx);
+        drop_obj(ltab);
+        drop_obj(rtab);
         return un;
+    }
 
     // exclude columns that we are joining on
     cols = ray_except(un, x[0]);
@@ -243,12 +312,16 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
 
     if (IS_ERR(cols)) {
         drop_obj(idx);
+        drop_obj(ltab);
+        drop_obj(rtab);
         return cols;
     }
 
     if (cols->len == 0) {
         drop_obj(idx);
         drop_obj(cols);
+        drop_obj(ltab);
+        drop_obj(rtab);
         return err_length(0, 0);
     }
 
@@ -266,16 +339,16 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
         c1 = NULL_OBJ;
         c2 = NULL_OBJ;
 
-        for (j = 0; j < (i64_t)AS_LIST(x[1])[0]->len; j++) {
-            if (AS_SYMBOL(AS_LIST(x[1])[0])[j] == AS_SYMBOL(cols)[i]) {
-                c1 = AS_LIST(AS_LIST(x[1])[1])[j];
+        for (j = 0; j < (i64_t)AS_LIST(ltab)[0]->len; j++) {
+            if (AS_SYMBOL(AS_LIST(ltab)[0])[j] == AS_SYMBOL(cols)[i]) {
+                c1 = AS_LIST(AS_LIST(ltab)[1])[j];
                 break;
             }
         }
 
-        for (j = 0; j < (i64_t)AS_LIST(x[2])[0]->len; j++) {
-            if (AS_SYMBOL(AS_LIST(x[2])[0])[j] == AS_SYMBOL(cols)[i]) {
-                c2 = AS_LIST(AS_LIST(x[2])[1])[j];
+        for (j = 0; j < (i64_t)AS_LIST(rtab)[0]->len; j++) {
+            if (AS_SYMBOL(AS_LIST(rtab)[0])[j] == AS_SYMBOL(cols)[i]) {
+                c2 = AS_LIST(AS_LIST(rtab)[1])[j];
                 break;
             }
         }
@@ -285,6 +358,8 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
             drop_obj(cols);
             drop_obj(idx);
             drop_obj(vals);
+            drop_obj(ltab);
+            drop_obj(rtab);
             return col;
         }
 
@@ -293,12 +368,15 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
 
     // cleanup and assemble result table
     drop_obj(idx);
+    drop_obj(ltab);
+    drop_obj(rtab);
 
     return table(cols, vals);
 }
 
 obj_p ray_asof_join(obj_p *x, i64_t n) {
-    obj_p idx, v, ajkl, ajkr, keys, lvals, rvals, res;
+    obj_p idx, v, ajkl, ajkr, keys, lvals, rvals, res, ltab, rtab;
+    obj_p *val1 = NULL, *val2 = NULL;
 
     if (n != 3)
         return err_arity(3, n);
@@ -306,20 +384,43 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
     if (x[0]->type != TYPE_SYMBOL)
         return err_type(TYPE_SYMBOL, x[0]->type, 0);
 
-    if (x[1]->type != TYPE_TABLE)
+    if (x[1]->type == -TYPE_SYMBOL) {
+        val1 = resolve(x[1]->i64);
+        if (val1 == NULL)
+            return err_value(0);
+        ltab = cow_obj(*val1);
+    } else if (x[1]->type == TYPE_TABLE) {
+        val1 = NULL;
+        ltab = cow_obj(x[1]);
+    } else {
         return err_type(TYPE_TABLE, x[1]->type, 0);
+    }
 
-    if (x[2]->type != TYPE_TABLE)
+    if (x[2]->type == -TYPE_SYMBOL) {
+        val2 = resolve(x[2]->i64);
+        if (val2 == NULL) {
+            drop_obj(ltab);
+            return err_value(0);
+        }
+        rtab = cow_obj(*val2);
+    } else if (x[2]->type == TYPE_TABLE) {
+        val2 = NULL;
+        rtab = cow_obj(x[2]);
+    } else {
+        drop_obj(ltab);
         return err_type(TYPE_TABLE, x[2]->type, 0);
+    }
 
     v = ray_last(x[0]);
-    ajkl = ray_at(x[1], v);
-    ajkr = ray_at(x[2], v);
+    ajkl = ray_at(ltab, v);
+    ajkr = ray_at(rtab, v);
     drop_obj(v);
 
     if (is_null(ajkl) || is_null(ajkr)) {
         drop_obj(ajkl);
         drop_obj(ajkr);
+        drop_obj(ltab);
+        drop_obj(rtab);
         return err_value(0);
     }
 
@@ -328,13 +429,15 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
         i8_t actual = ajkr->type;
         drop_obj(ajkl);
         drop_obj(ajkr);
+        drop_obj(ltab);
+        drop_obj(rtab);
         return err_type(expected, actual, 0);
     }
 
     keys = cow_obj(x[0]);
     keys = remove_idx(&keys, keys->len - 1);
-    lvals = at_obj(x[1], keys);
-    rvals = at_obj(x[2], keys);
+    lvals = at_obj(ltab, keys);
+    rvals = at_obj(rtab, keys);
 
     idx = index_asof_join_obj(lvals, ajkl, rvals, ajkr);
 
@@ -344,18 +447,21 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
     drop_obj(ajkl);
     drop_obj(ajkr);
 
-    keys = at_obj(x[1], x[0]);
+    keys = at_obj(ltab, x[0]);
 
-    res = __left_join_inner(x[1], x[2], x[0], keys, idx);
+    res = __left_join_inner(ltab, rtab, x[0], keys, idx);
     drop_obj(idx);
     drop_obj(keys);
+    drop_obj(ltab);
+    drop_obj(rtab);
     return res;
 }
 
 static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
     i64_t i, l;
     obj_p k, v, wjkl, wjkr, keys, lvals, rvals, idx;
-    obj_p agrvals, resyms, recols, jtab, rtab;
+    obj_p agrvals, resyms, recols, jtab, rtab, ltab, rtab_arg;
+    obj_p *val1 = NULL, *val2 = NULL;
 
     if (n != 5)
         return err_arity(5, n);
@@ -366,27 +472,54 @@ static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
     if (x[1]->type != TYPE_LIST)
         return err_type(TYPE_LIST, x[1]->type, 0);
 
-    if (x[2]->type != TYPE_TABLE)
+    if (x[2]->type == -TYPE_SYMBOL) {
+        val1 = resolve(x[2]->i64);
+        if (val1 == NULL)
+            return err_value(0);
+        ltab = cow_obj(*val1);
+    } else if (x[2]->type == TYPE_TABLE) {
+        val1 = NULL;
+        ltab = cow_obj(x[2]);
+    } else {
         return err_type(TYPE_TABLE, x[2]->type, 0);
+    }
 
-    if (x[3]->type != TYPE_TABLE)
+    if (x[3]->type == -TYPE_SYMBOL) {
+        val2 = resolve(x[3]->i64);
+        if (val2 == NULL) {
+            drop_obj(ltab);
+            return err_value(0);
+        }
+        rtab_arg = cow_obj(*val2);
+    } else if (x[3]->type == TYPE_TABLE) {
+        val2 = NULL;
+        rtab_arg = cow_obj(x[3]);
+    } else {
+        drop_obj(ltab);
         return err_type(TYPE_TABLE, x[3]->type, 0);
+    }
 
     if (x[4]->type != TYPE_DICT)
         return err_type(TYPE_DICT, x[4]->type, 0);
 
-    jtab = ray_xasc(x[3], x[0]);
-    if (IS_ERR(jtab))
+    jtab = ray_xasc(rtab_arg, x[0]);
+    if (IS_ERR(jtab)) {
+        drop_obj(ltab);
+        drop_obj(rtab_arg);
         return jtab;
+    }
 
     v = ray_last(x[0]);
-    wjkl = ray_at(x[2], v);
+    wjkl = ray_at(ltab, v);
     wjkr = ray_at(jtab, v);
     drop_obj(v);
 
     if (is_null(wjkl) || is_null(wjkr)) {
         drop_obj(wjkl);
         drop_obj(wjkr);
+        drop_obj(ltab);
+        drop_obj(rtab_arg);
+        drop_obj(jtab);
         return err_value(0);
     }
 
@@ -395,15 +528,18 @@ static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
         i8_t actual = wjkr->type;
         drop_obj(wjkl);
         drop_obj(wjkr);
+        drop_obj(ltab);
+        drop_obj(rtab_arg);
+        drop_obj(jtab);
         return err_type(expected, actual, 0);
     }
 
     keys = cow_obj(x[0]);
     keys = remove_idx(&keys, keys->len - 1);
-    lvals = at_obj(x[2], keys);
+    lvals = at_obj(ltab, keys);
     rvals = at_obj(jtab, keys);
 
-    idx = index_window_join_obj(lvals, wjkl, rvals, wjkr, x[1], x[2], jtab, tp);
+    idx = index_window_join_obj(lvals, wjkl, rvals, wjkr, x[1], ltab, jtab, tp);
 
     drop_obj(keys);
     drop_obj(lvals);
@@ -431,6 +567,8 @@ static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
             drop_obj(rtab);
             drop_obj(jtab);
             drop_obj(idx);
+            drop_obj(ltab);
+            drop_obj(rtab_arg);
             return v;
         }
 
@@ -461,6 +599,8 @@ static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
             drop_obj(rtab);
             drop_obj(jtab);
             drop_obj(idx);
+            drop_obj(ltab);
+            drop_obj(rtab_arg);
             return v;
         }
 
@@ -472,11 +612,13 @@ static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
     drop_obj(rtab);
     drop_obj(jtab);
 
-    resyms = ray_concat(AS_LIST(x[2])[0], AS_LIST(x[4])[0]);
-    recols = ray_concat(AS_LIST(x[2])[1], agrvals);
+    resyms = ray_concat(AS_LIST(ltab)[0], AS_LIST(x[4])[0]);
+    recols = ray_concat(AS_LIST(ltab)[1], agrvals);
 
     drop_obj(agrvals);
     drop_obj(idx);
+    drop_obj(ltab);
+    drop_obj(rtab_arg);
 
     return table(resyms, recols);
 }
