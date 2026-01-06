@@ -31,9 +31,9 @@
 #define MAX_BLOCK_ORDER 25  // 2^25 = 32MB
 #define MAX_POOL_ORDER 38   // 2^38 = 256GB
 
-// Small object cache (slab) for sizes 32, 64, 128, 256 bytes
-#define SLAB_CACHE_SIZE 32
-#define SLAB_ORDERS 4  // orders 5, 6, 7, 8
+// Small object cache (slab) for sizes 32, 64, 128, 256, 512 bytes
+#define SLAB_CACHE_SIZE 64
+#define SLAB_ORDERS 5  // orders 5, 6, 7, 8, 9
 
 // Memory modes
 #define MMOD_INTERNAL 0xff
