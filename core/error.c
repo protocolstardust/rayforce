@@ -62,57 +62,82 @@ static inline obj_p err_alloc(err_code_t code) {
 
 obj_p err_raw(err_code_t code) { return err_alloc(code); }
 
-obj_p err_type(i8_t expected, i8_t actual, i64_t field) {
+// Helper to pack i32 into v1-v4
+static inline void ctx_set_i32(err_ctx_t* ctx, i32_t val) {
+    ctx->v1 = (i8_t)(val & 0xFF);
+    ctx->v2 = (i8_t)((val >> 8) & 0xFF);
+    ctx->v3 = (i8_t)((val >> 16) & 0xFF);
+    ctx->v4 = (i8_t)((val >> 24) & 0xFF);
+}
+
+obj_p err_type(i8_t expected, i8_t actual, u8_t arg, u8_t field) {
     obj_p err = err_alloc(EC_TYPE);
     err_ctx_t* ctx = (err_ctx_t*)&err->i64;
-    ctx->types.expected = expected;
-    ctx->types.actual = actual;
-    ctx->types.field = (i32_t)field;
+    ctx->arg = arg;
+    ctx->field = field;
+    ctx->v1 = expected;
+    ctx->v2 = actual;
     return err;
 }
 
-obj_p err_arity(i32_t need, i32_t have) {
+obj_p err_arity(i8_t need, i8_t have, u8_t arg) {
     obj_p err = err_alloc(EC_ARITY);
     err_ctx_t* ctx = (err_ctx_t*)&err->i64;
-    ctx->counts.need = need;
-    ctx->counts.have = have;
+    ctx->arg = arg;
+    ctx->v1 = need;
+    ctx->v2 = have;
     return err;
 }
 
-obj_p err_length(i32_t need, i32_t have) {
+obj_p err_length(i8_t need, i8_t have, u8_t arg, u8_t arg2, u8_t field, u8_t field2) {
     obj_p err = err_alloc(EC_LENGTH);
     err_ctx_t* ctx = (err_ctx_t*)&err->i64;
-    ctx->counts.need = need;
-    ctx->counts.have = have;
+    ctx->arg = arg;
+    ctx->arg2 = arg2;
+    ctx->field = field;
+    ctx->field2 = field2;
+    ctx->v1 = need;
+    ctx->v2 = have;
     return err;
 }
 
-obj_p err_index(i32_t idx, i32_t len) {
+obj_p err_index(i8_t idx, i8_t len, u8_t arg, u8_t field) {
     obj_p err = err_alloc(EC_INDEX);
     err_ctx_t* ctx = (err_ctx_t*)&err->i64;
-    ctx->bounds.idx = idx;
-    ctx->bounds.len = len;
+    ctx->arg = arg;
+    ctx->field = field;
+    ctx->v1 = idx;
+    ctx->v2 = len;
+    return err;
+}
+
+obj_p err_domain(u8_t arg, u8_t field) {
+    obj_p err = err_alloc(EC_DOMAIN);
+    err_ctx_t* ctx = (err_ctx_t*)&err->i64;
+    ctx->arg = arg;
+    ctx->field = field;
     return err;
 }
 
 obj_p err_value(i64_t sym) {
     obj_p err = err_alloc(EC_VALUE);
     err_ctx_t* ctx = (err_ctx_t*)&err->i64;
-    ctx->symbol = sym;
+    ctx_set_i32(ctx, (i32_t)sym);
     return err;
 }
 
 obj_p err_limit(i32_t limit) {
     obj_p err = err_alloc(EC_LIMIT);
     err_ctx_t* ctx = (err_ctx_t*)&err->i64;
-    ctx->counts.have = limit;
+    ctx->v1 = (i8_t)(limit & 0xFF);
+    ctx->v2 = (i8_t)((limit >> 8) & 0xFF);
     return err;
 }
 
 obj_p err_os(nil_t) {
     obj_p err = err_alloc(EC_OS);
     err_ctx_t* ctx = (err_ctx_t*)&err->i64;
-    ctx->errnum = get_errno();
+    ctx_set_i32(ctx, get_errno());
     return err;
 }
 
@@ -132,13 +157,10 @@ obj_p err_user(lit_p msg) {
     return obj;
 }
 
-// Simple errors (no context)
-obj_p err_domain(nil_t) { return err_alloc(EC_DOMAIN); }
-
 obj_p err_nyi(i8_t type) {
     obj_p err = err_alloc(EC_NYI);
     err_ctx_t* ctx = (err_ctx_t*)&err->i64;
-    ctx->types.actual = type;
+    ctx->v1 = type;
     return err;
 }
 
@@ -192,6 +214,36 @@ lit_p ray_err_msg(obj_p err) {
 // Error Info (for IPC serialization)
 // ============================================================================
 
+// Helper to count non-zero positional fields
+static inline i64_t ctx_pos_count(err_ctx_t* ctx) {
+    i64_t n = 0;
+    if (ctx->arg) n++;
+    if (ctx->arg2) n++;
+    if (ctx->field) n++;
+    if (ctx->field2) n++;
+    return n;
+}
+
+// Helper to add positional context to keys/vals
+static inline void ctx_add_pos(err_ctx_t* ctx, obj_p* keys, obj_p* vals, i64_t* idx) {
+    if (ctx->arg) {
+        ins_sym(keys, *idx, "arg");
+        AS_LIST(*vals)[(*idx)++] = i32(ctx->arg);
+    }
+    if (ctx->arg2) {
+        ins_sym(keys, *idx, "arg2");
+        AS_LIST(*vals)[(*idx)++] = i32(ctx->arg2);
+    }
+    if (ctx->field) {
+        ins_sym(keys, *idx, "field");
+        AS_LIST(*vals)[(*idx)++] = i32(ctx->field);
+    }
+    if (ctx->field2) {
+        ins_sym(keys, *idx, "field2");
+        AS_LIST(*vals)[(*idx)++] = i32(ctx->field2);
+    }
+}
+
 obj_p err_info(obj_p err) {
     if (err == NULL_OBJ || err->type != TYPE_ERR)
         return NULL_OBJ;
@@ -203,12 +255,12 @@ obj_p err_info(obj_p err) {
     lit_p s;
 
     obj_p keys, vals;
-    i64_t n = 1;
+    i64_t n, idx;
+    i64_t pos_n = ctx_pos_count(ctx);
 
     switch (code) {
         case EC_TYPE: {
-            err_types_t t = ctx->types;
-            n = t.field ? 4 : 3;
+            n = 3 + pos_n;  // code, expected, got, [positions...]
             keys = SYMBOL(n);
             vals = LIST(n);
             ins_sym(&keys, 0, "code");
@@ -216,19 +268,26 @@ obj_p err_info(obj_p err) {
             ins_sym(&keys, 2, "got");
             s = err_name(code);
             AS_LIST(vals)[0] = symbol(s, strlen(s));
-            s = type_name(t.expected);
-            AS_LIST(vals)[1] = symbol(s, strlen(s));
-            s = type_name(t.actual);
-            AS_LIST(vals)[2] = symbol(s, strlen(s));
-            if (n == 4) {
-                ins_sym(&keys, 3, "field");
-                AS_LIST(vals)[3] = symboli64(t.field);
+            // Handle type classes
+            switch ((u8_t)ctx->v1) {
+                case TCLASS_NUMERIC:    s = "numeric"; break;
+                case TCLASS_INTEGER:    s = "integer"; break;
+                case TCLASS_FLOAT:      s = "float"; break;
+                case TCLASS_TEMPORAL:   s = "temporal"; break;
+                case TCLASS_COLLECTION: s = "collection"; break;
+                case TCLASS_CALLABLE:   s = "callable"; break;
+                case TCLASS_ANY:        s = "any"; break;
+                default:                s = type_name(ctx->v1); break;
             }
+            AS_LIST(vals)[1] = symbol(s, strlen(s));
+            s = type_name(ctx->v2);
+            AS_LIST(vals)[2] = symbol(s, strlen(s));
+            idx = 3;
+            ctx_add_pos(ctx, &keys, &vals, &idx);
             break;
         }
         case EC_ARITY: {
-            err_counts_t c = ctx->counts;
-            n = 3;
+            n = 3 + pos_n;
             keys = SYMBOL(n);
             vals = LIST(n);
             ins_sym(&keys, 0, "code");
@@ -236,13 +295,14 @@ obj_p err_info(obj_p err) {
             ins_sym(&keys, 2, "got");
             s = err_name(code);
             AS_LIST(vals)[0] = symbol(s, strlen(s));
-            AS_LIST(vals)[1] = i32(c.need);
-            AS_LIST(vals)[2] = i32(c.have);
+            AS_LIST(vals)[1] = i32(ctx->v1);
+            AS_LIST(vals)[2] = i32(ctx->v2);
+            idx = 3;
+            ctx_add_pos(ctx, &keys, &vals, &idx);
             break;
         }
         case EC_LENGTH: {
-            err_counts_t c = ctx->counts;
-            n = 3;
+            n = 3 + pos_n;
             keys = SYMBOL(n);
             vals = LIST(n);
             ins_sym(&keys, 0, "code");
@@ -250,13 +310,14 @@ obj_p err_info(obj_p err) {
             ins_sym(&keys, 2, "have");
             s = err_name(code);
             AS_LIST(vals)[0] = symbol(s, strlen(s));
-            AS_LIST(vals)[1] = i32(c.need);
-            AS_LIST(vals)[2] = i32(c.have);
+            AS_LIST(vals)[1] = i32(ctx->v1);
+            AS_LIST(vals)[2] = i32(ctx->v2);
+            idx = 3;
+            ctx_add_pos(ctx, &keys, &vals, &idx);
             break;
         }
         case EC_INDEX: {
-            err_bounds_t b = ctx->bounds;
-            n = 3;
+            n = 3 + pos_n;
             keys = SYMBOL(n);
             vals = LIST(n);
             ins_sym(&keys, 0, "code");
@@ -264,12 +325,25 @@ obj_p err_info(obj_p err) {
             ins_sym(&keys, 2, "bound");
             s = err_name(code);
             AS_LIST(vals)[0] = symbol(s, strlen(s));
-            AS_LIST(vals)[1] = i32(b.idx);
-            AS_LIST(vals)[2] = i32(b.len);
+            AS_LIST(vals)[1] = i32(ctx->v1);
+            AS_LIST(vals)[2] = i32(ctx->v2);
+            idx = 3;
+            ctx_add_pos(ctx, &keys, &vals, &idx);
+            break;
+        }
+        case EC_DOMAIN: {
+            n = 1 + pos_n;
+            keys = SYMBOL(n);
+            vals = LIST(n);
+            ins_sym(&keys, 0, "code");
+            s = err_name(code);
+            AS_LIST(vals)[0] = symbol(s, strlen(s));
+            idx = 1;
+            ctx_add_pos(ctx, &keys, &vals, &idx);
             break;
         }
         case EC_VALUE: {
-            i64_t sym_id = ctx->symbol;
+            i32_t sym_id = err_get_symbol(err);
             n = sym_id ? 2 : 1;
             keys = SYMBOL(n);
             vals = LIST(n);
@@ -283,7 +357,7 @@ obj_p err_info(obj_p err) {
             break;
         }
         case EC_OS: {
-            i32_t e = ctx->errnum;
+            i32_t e = err_get_errno(err);
             n = e ? 2 : 1;
             keys = SYMBOL(n);
             vals = LIST(n);
@@ -311,8 +385,8 @@ obj_p err_info(obj_p err) {
             break;
         }
         case EC_LIMIT: {
-            err_counts_t c = ctx->counts;
-            n = c.have ? 2 : 1;
+            i16_t limit = (i16_t)(((u8_t)ctx->v1) | ((u8_t)ctx->v2 << 8));
+            n = limit ? 2 : 1;
             keys = SYMBOL(n);
             vals = LIST(n);
             ins_sym(&keys, 0, "code");
@@ -320,8 +394,20 @@ obj_p err_info(obj_p err) {
             AS_LIST(vals)[0] = symbol(s, strlen(s));
             if (n == 2) {
                 ins_sym(&keys, 1, "limit");
-                AS_LIST(vals)[1] = i32(c.have);
+                AS_LIST(vals)[1] = i32(limit);
             }
+            break;
+        }
+        case EC_NYI: {
+            n = 2;
+            keys = SYMBOL(n);
+            vals = LIST(n);
+            ins_sym(&keys, 0, "code");
+            ins_sym(&keys, 1, "type");
+            s = err_name(code);
+            AS_LIST(vals)[0] = symbol(s, strlen(s));
+            s = type_name(ctx->v1);
+            AS_LIST(vals)[1] = symbol(s, strlen(s));
             break;
         }
         default: {

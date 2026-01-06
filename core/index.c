@@ -31,7 +31,6 @@
 #include "unary.h"
 #include "string.h"
 #include "pool.h"
-#include "symbols.h"
 #include "def.h"
 
 const i64_t MAX_RANGE = 1 << 20;
@@ -207,7 +206,7 @@ obj_p index_hash_obj_partial(obj_p obj, i64_t out[], i64_t filter[], i64_t len, 
                 }
             break;
         default:
-            PANIC("hash list: unsupported type: %d", obj->type);
+            PANIC("type: %d", obj->type);
     }
 
     return NULL_OBJ;
@@ -2115,7 +2114,7 @@ obj_p index_group(obj_p val, obj_p filter) {
             return index_group_build(INDEX_TYPE_PARTEDCOMMON, g, clone_obj(val), i64(NULL_I64), NULL_OBJ,
                                      clone_obj(filter), NULL_OBJ);
         default:
-            return err_type(0, 0, 0);
+            return err_type(0, 0, 0, 0);
     }
 }
 
@@ -2301,7 +2300,7 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
     pool_p pool;
 
     if (ops_count(obj) == 0)
-        return err_type(0, 0, 0);
+        return err_type(0, 0, 0, 0);
 
     if (ops_count(obj) == 1)
         return index_group(AS_LIST(obj)[0], filter);
@@ -2727,7 +2726,7 @@ static obj_p __asof_ids_partial(__index_list_ctx_t *ctx, obj_p lxcol, obj_p rxco
             }
             break;
         default:
-            return err_type(0, 0, 0);
+            return err_type(0, 0, 0, 0);
     }
 
     return NULL_OBJ;
@@ -2743,7 +2742,7 @@ obj_p index_asof_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol) {
     // asof-join requires at least 2 keys: grouping key(s) + temporal asof key
     // Single-key asof-join is not supported (needs time component)
     if (lcols->len == 0)
-        return err_type(TYPE_TIMESTAMP, TYPE_SYMBOL, symbols_intern("keys", 4));
+        return err_length(2, 1, 1, 0, 0, 0);  // arg 1 = keys
 
     ll = ops_count(AS_LIST(lcols)[0]);
     rl = ops_count(AS_LIST(rcols)[0]);

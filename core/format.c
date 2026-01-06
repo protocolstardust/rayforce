@@ -59,7 +59,7 @@ const lit_p unicode_glyphs[] = {"│", "─", "┌", "┐", "└", "┘", "├",
                                 "❯", "∶", "‾", "•", "╭", "╰", "╮", "╯", "┆", "…", "█"};
 obj_p ray_set_fpr(obj_p x) {
     if (x->type != -TYPE_I64)
-        return err_type(0, 0, 0);
+        return err_type(0, 0, 0, 0);
 
     if (x->i64 < 0)
         F64_PRECISION = DEFAULT_F64_PRECISION;
@@ -662,40 +662,56 @@ static i64_t error_ctx_fmt_into_new(obj_p *dst, obj_p err) {
     str_p name;
     lit_p msg;
 
+    // Print positional context if present
+    if (ctx->arg || ctx->field) {
+        if (ctx->arg && ctx->field)
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s arg %s%d%s, field %s%d%s\n", GRAY, RESET, 
+                              CYAN, ctx->arg, RESET, GREEN, ctx->field, RESET);
+        else if (ctx->arg2)
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s args %s%d%s and %s%d%s\n", GRAY, RESET,
+                              CYAN, ctx->arg, RESET, CYAN, ctx->arg2, RESET);
+        else if (ctx->arg)
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s arg %s%d%s\n", GRAY, RESET, CYAN, ctx->arg, RESET);
+        else
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s field %s%d%s\n", GRAY, RESET, GREEN, ctx->field, RESET);
+    }
+
     switch (code) {
         case EC_TYPE: {
-            err_types_t t = ctx->types;
-            if (t.field) {
-                str_p fname = str_from_symbol(t.field);
-                n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s in field '%s%s%s'\n", GRAY, RESET, GREEN, fname,
-                                  RESET);
-            }
-            if (t.expected != 0 || t.actual != 0) {
+            if (ctx->v1 != 0 || ctx->v2 != 0) {
+                lit_p expected_name;
+                switch ((u8_t)ctx->v1) {
+                    case TCLASS_NUMERIC:    expected_name = "numeric"; break;
+                    case TCLASS_INTEGER:    expected_name = "integer"; break;
+                    case TCLASS_FLOAT:      expected_name = "float"; break;
+                    case TCLASS_TEMPORAL:   expected_name = "temporal"; break;
+                    case TCLASS_COLLECTION: expected_name = "collection"; break;
+                    case TCLASS_CALLABLE:   expected_name = "callable"; break;
+                    case TCLASS_ANY:        expected_name = "any"; break;
+                    default:                expected_name = type_name(ctx->v1); break;
+                }
                 n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s expected %s%s%s, got %s%s%s\n", GRAY, RESET, CYAN,
-                                  type_name(t.expected), RESET, YELLOW, type_name(t.actual), RESET);
+                                  expected_name, RESET, YELLOW, type_name(ctx->v2), RESET);
             }
             break;
         }
         case EC_ARITY: {
-            err_counts_t c = ctx->counts;
             n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s expected %s%d%s argument%s, got %s%d%s\n", GRAY, RESET,
-                              CYAN, c.need, RESET, c.need == 1 ? "" : "s", YELLOW, c.have, RESET);
+                              CYAN, ctx->v1, RESET, ctx->v1 == 1 ? "" : "s", YELLOW, ctx->v2, RESET);
             break;
         }
         case EC_LENGTH: {
-            err_counts_t c = ctx->counts;
-            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s need %s%d%s, have %s%d%s\n", GRAY, RESET, CYAN, c.need,
-                              RESET, YELLOW, c.have, RESET);
+            n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s need %s%d%s, have %s%d%s\n", GRAY, RESET, CYAN, ctx->v1,
+                              RESET, YELLOW, ctx->v2, RESET);
             break;
         }
         case EC_INDEX: {
-            err_bounds_t b = ctx->bounds;
             n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s index %s%d%s not in [%s0 %d%s]\n", GRAY, RESET, YELLOW,
-                              b.idx, RESET, CYAN, b.len > 0 ? b.len - 1 : 0, RESET);
+                              ctx->v1, RESET, CYAN, ctx->v2 > 0 ? ctx->v2 - 1 : 0, RESET);
             break;
         }
         case EC_VALUE: {
-            i64_t sym = ctx->symbol;
+            i32_t sym = err_get_symbol(err);
             if (sym) {
                 name = str_from_symbol(sym);
                 if (name && name[0]) {
@@ -706,7 +722,7 @@ static i64_t error_ctx_fmt_into_new(obj_p *dst, obj_p err) {
             break;
         }
         case EC_OS: {
-            i32_t e = ctx->errnum;
+            i32_t e = err_get_errno(err);
             if (e) {
                 n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s %s%s%s\n", GRAY, RESET, YELLOW, strerror(e), RESET);
             }
@@ -720,19 +736,22 @@ static i64_t error_ctx_fmt_into_new(obj_p *dst, obj_p err) {
             break;
         }
         case EC_LIMIT: {
-            err_counts_t c = ctx->counts;
-            if (c.have > 0) {
-                n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s limit %s%d%s exceeded\n", GRAY, RESET, YELLOW, c.have,
+            i16_t limit = (i16_t)(((u8_t)ctx->v1) | ((u8_t)ctx->v2 << 8));
+            if (limit > 0) {
+                n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s limit %s%d%s exceeded\n", GRAY, RESET, YELLOW, limit,
                                   RESET);
             }
             break;
         }
         case EC_NYI: {
-            err_types_t t = ctx->types;
-            if (t.actual != 0) {
+            if (ctx->v1 != 0) {
                 n += str_fmt_into(dst, MAX_ERROR_LEN, "    %s├─%s for type %s%s%s\n", GRAY, RESET, YELLOW,
-                                  type_name(t.actual), RESET);
+                                  type_name(ctx->v1), RESET);
             }
+            break;
+        }
+        case EC_DOMAIN: {
+            // Position already printed above
             break;
         }
         default:

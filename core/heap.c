@@ -33,6 +33,7 @@
 #include "os.h"
 #include "log.h"
 #include "eval.h"
+#include "error.h"
 
 #ifndef __EMSCRIPTEN__
 RAY_ASSERT(sizeof(struct block_t) == (2 * sizeof(struct obj_t)), "block_t must be 2x obj_t");
@@ -161,13 +162,13 @@ block_p heap_add_pool(i64_t size) {
         fd = fs_fopen(filename, ATTR_RDWR | ATTR_CREAT);
 
         if (fd == -1) {
-            perror("can't create mmap backed file");
+            perror("mmap:create");
             return NULL;
         }
 
         // Set initial file size if the file
         if (fs_file_extend(fd, size) == -1) {
-            perror("can't truncate mmap backed file");
+            perror("mmap:trunc");
             fs_fclose(fd);
             return NULL;
         }
@@ -176,7 +177,7 @@ block_p heap_add_pool(i64_t size) {
 
         if (block == NULL) {
             fs_fclose(fd);
-            perror("can't mmap file");
+            perror("mmap:map");
             return NULL;
         }
 
@@ -349,10 +350,7 @@ __attribute__((hot)) nil_t heap_free(raw_p ptr) {
     // backed should only be 0 or 1, order should be >= MIN_BLOCK_ORDER for heap blocks
     if (block->backed != B8_FALSE && block->backed != B8_TRUE) {
         obj_p obj = (obj_p)ptr;
-        fprintf(stderr, "heap_free: corrupted block header (backed=%d, order=%d) at ptr=%p, type=%d\n", block->backed,
-                block->order, ptr, obj->type);
-        fprintf(stderr, "  This usually indicates a buffer overflow or use-after-free bug.\n");
-        assert(0 && "heap_free: corrupted block header");
+        PANIC("block: b=%d o=%d p=%p t=%d", block->backed, block->order, ptr, obj->type);
     }
 
     // Return block to the system and close file if it is file-backed

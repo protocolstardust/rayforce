@@ -487,7 +487,7 @@ obj_p push_obj(obj_p* obj, obj_p val) {
             {
                 i8_t got = val->type;
                 drop_obj(val);
-                return err_type((*obj)->type, got, 0);
+                return err_type((*obj)->type, got, 0, 0);
             }
     }
 }
@@ -570,7 +570,7 @@ obj_p append_list(obj_p* obj, obj_p vals) {
                 return res;
             }
 
-            return err_type((*obj)->type, vals->type, 0);
+            return err_type((*obj)->type, vals->type, 0, 0);
     }
 }
 
@@ -734,7 +734,7 @@ obj_p ins_obj(obj_p* obj, i64_t idx, obj_p val) {
             ret = ins_raw(obj, idx, &val);
             break;
         default:
-            PANIC("ins_obj: invalid type: '%s", type_name((*obj)->type));
+            PANIC("type: %d", (*obj)->type);
     }
 
     return ret;
@@ -1165,7 +1165,7 @@ obj_p at_ids(obj_p obj, i64_t ids[], i64_t len) {
             if (v->type != TYPE_SYMBOL) {
                 i8_t got = v->type;
                 drop_obj(v);
-                return err_type(TYPE_SYMBOL, got, 0);
+                return err_type(TYPE_SYMBOL, got, 0, 0);
             }
 
             res = SYMBOL(len);
@@ -1272,7 +1272,7 @@ obj_p at_ids(obj_p obj, i64_t ids[], i64_t len) {
             if (v->type != TYPE_SYMBOL) {
                 i8_t got = v->type;
                 drop_obj(v);
-                return err_type(TYPE_SYMBOL, got, 0);
+                return err_type(TYPE_SYMBOL, got, 0, 0);
             }
 
             res = SYMBOL(len);
@@ -1356,7 +1356,7 @@ obj_p at_obj(obj_p obj, obj_p idx) {
             l = ops_count(obj);
             for (i = 0; i < n; i++)
                 if (ids[i] < 0 || ids[i] >= (i64_t)l)
-                    return err_index(ids[i], l);
+                    return err_index(ids[i], l, 0, 0);
             return at_ids(obj, AS_I64(idx), idx->len);
         case MTYPE2(TYPE_TABLE, TYPE_SYMBOL):
             l = ops_count(idx);
@@ -1376,7 +1376,7 @@ obj_p at_obj(obj_p obj, obj_p idx) {
                 return (j == NULL_I64) ? null(AS_LIST(obj)[1]->type) : at_idx(AS_LIST(obj)[1], j);
             }
 
-            return err_type(obj->type, idx->type, 0);
+            return err_type(obj->type, idx->type, 0, 0);
     }
 }
 
@@ -1393,7 +1393,7 @@ obj_p at_sym(obj_p obj, lit_p str, i64_t n) {
 obj_p set_idx(obj_p* obj, i64_t idx, obj_p val) {
     if (idx < 0 || idx >= (i64_t)(*obj)->len) {
         drop_obj(val);
-        return err_index(idx, (*obj)->len);
+        return err_index(idx, (*obj)->len, 0, 0);
     }
 
     switch (MTYPE2((*obj)->type, val->type)) {
@@ -1560,7 +1560,7 @@ obj_p set_ids(obj_p* obj, i64_t ids[], i64_t len, obj_p vals) {
                 return *obj;
             }
 
-            return err_type((*obj)->type, vals->type, 0);
+            return err_type((*obj)->type, vals->type, 0, 0);
     }
 }
 
@@ -1609,7 +1609,7 @@ obj_p __expand(obj_p obj, i64_t len) {
             if (ops_count(obj) != len) {
                 i64_t got = ops_count(obj);
                 drop_obj(obj);
-                return err_length(len, got);
+                return err_length(len, got, 0, 0, 0, 0);
             }
 
             return obj;
@@ -1715,7 +1715,7 @@ obj_p find_obj_ids(obj_p obj, obj_p val) {
 
             return ids;
         default:
-            return err_type(obj->type, val->type, 0);
+            return err_type(obj->type, val->type, 0, 0);
     }
 }
 
@@ -1758,7 +1758,7 @@ obj_p set_dict_obj(obj_p* obj, obj_p idx, obj_p val) {
 
             return res;
         default:
-            return err_type(TYPE_SYMBOL, idx->type, 0);
+            return err_type(TYPE_SYMBOL, idx->type, 0, 0);
     }
 
     return *obj;
@@ -1780,7 +1780,7 @@ obj_p set_obj(obj_p* obj, obj_p idx, obj_p val) {
         case MTYPE2(TYPE_GUID, -TYPE_I64):
             if (idx->i64 < 0 || idx->i64 >= (i64_t)(*obj)->len) {
                 drop_obj(val);
-                return err_index(idx->i64, (*obj)->len);
+                return err_index(idx->i64, (*obj)->len, 0, 0);
             }
             return set_idx(obj, idx->i64, val);
         case MTYPE2(TYPE_I64, TYPE_I64):
@@ -1793,7 +1793,7 @@ obj_p set_obj(obj_p* obj, obj_p idx, obj_p val) {
             if (IS_VECTOR(val) && idx->len != val->len) {
                 i64_t have = val->len;
                 drop_obj(val);
-                return err_length(idx->len, have);
+                return err_length(idx->len, have, 0, 0, 0, 0);
             }
             ids = AS_I64(idx);
             n = idx->len;
@@ -1801,7 +1801,7 @@ obj_p set_obj(obj_p* obj, obj_p idx, obj_p val) {
             for (i = 0; i < n; i++) {
                 if (ids[i] < 0 || ids[i] >= (i64_t)l) {
                     drop_obj(val);
-                    return err_index(ids[i], l);
+                    return err_index(ids[i], l, 0, 0);
                 }
             }
             return set_ids(obj, ids, n, val);
@@ -1817,7 +1817,7 @@ obj_p set_obj(obj_p* obj, obj_p idx, obj_p val) {
 
                 res = push_obj(&AS_LIST(*obj)[1], val);
                 if (IS_ERR(res))
-                    PANIC("set_obj: inconsistent update");
+                    PANIC("inconsistent");
 
                 return *obj;
             }
@@ -1829,14 +1829,14 @@ obj_p set_obj(obj_p* obj, obj_p idx, obj_p val) {
             if (val->type != TYPE_LIST) {
                 i8_t got = val->type;
                 drop_obj(val);
-                return err_type(TYPE_LIST, got, 0);
+                return err_type(TYPE_LIST, got, 0, 0);
             }
 
             l = ops_count(idx);
             if (l != ops_count(val)) {
                 i64_t have = ops_count(val);
                 drop_obj(val);
-                return err_length(l, have);
+                return err_length(l, have, 0, 0, 0, 0);
             }
 
             n = ops_count(*obj);
@@ -1905,7 +1905,7 @@ obj_p pop_obj(obj_p* obj) {
         case TYPE_LIST:
             return AS_LIST(*obj)[--(*obj)->len];
         default:
-            PANIC("pop_obj: invalid type: %d", (*obj)->type);
+            PANIC("type: %d", (*obj)->type);
     }
 }
 
@@ -1941,7 +1941,7 @@ obj_p remove_idx(obj_p* obj, i64_t idx) {
             memmove(AS_LIST(*obj) + idx, AS_LIST(*obj) + idx + 1, ((*obj)->len - idx - 1) * sizeof(obj_p));
             return resize_obj(obj, (*obj)->len - 1);
         default:
-            return err_type(TYPE_LIST, (*obj)->type, 0);
+            return err_type(TYPE_LIST, (*obj)->type, 0, 0);
     }
 }
 
@@ -2013,7 +2013,7 @@ obj_p remove_ids(obj_p* obj, i64_t ids[], i64_t len) {
             return resize_obj(obj, (*obj)->len - len);
 
         default:
-            PANIC("remove_ids: invalid type: %d", (*obj)->type);
+            PANIC("type: %d", (*obj)->type);
     }
 }
 
@@ -2082,7 +2082,7 @@ obj_p remove_obj(obj_p* obj, obj_p idx) {
                 return *obj;
             }
 
-            return err_type((*obj)->type, idx->type, 0);
+            return err_type((*obj)->type, idx->type, 0, 0);
     }
 }
 
@@ -2794,7 +2794,7 @@ obj_p cast_obj(i8_t type, obj_p obj) {
                 return res;
             }
 
-            return err_type(type, obj->type, 0);
+            return err_type(type, obj->type, 0, 0);
     }
 
     return res;
