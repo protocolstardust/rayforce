@@ -180,20 +180,8 @@ raw_p executor_run(raw_p arg) {
     __atomic_store_n(&executor->vm, vm, __ATOMIC_RELAXED);
 
     for (;;) {
-        // Adaptive spin-wait: spin briefly before sleeping (reduces wake latency)
-        i64_t spin_rounds = 0;
-        while (spin_rounds < 1000) {
-            if (__atomic_load_n(&executor->pool->tasks_count, __ATOMIC_ACQUIRE) > 0)
-                break;
-            if (__atomic_load_n(&executor->pool->state, __ATOMIC_ACQUIRE) == RUN_STATE_STOPPED)
-                break;
-            backoff_spin(&spin_rounds);
-        }
-
         mutex_lock(&executor->pool->mutex);
-        // Re-check after acquiring lock
-        if (executor->pool->tasks_count == 0 && executor->pool->state == RUN_STATE_RUNNING)
-            cond_wait(&executor->pool->run, &executor->pool->mutex);
+        cond_wait(&executor->pool->run, &executor->pool->mutex);
 
         if (executor->pool->state == RUN_STATE_STOPPED) {
             mutex_unlock(&executor->pool->mutex);
