@@ -31,6 +31,7 @@
 #include "unary.h"
 #include "string.h"
 #include "pool.h"
+#include "symbols.h"
 #include "def.h"
 
 const i64_t MAX_RANGE = 1 << 20;
@@ -2495,7 +2496,7 @@ obj_p index_inner_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
         for (i = 0; i < ll; i++) {
             if (AS_I64(find_res)[i] != NULL_I64) {
                 AS_I64(lids)[j] = i;                    // index in left table
-                AS_I64(rids)[j] = AS_I64(find_res)[i]; // index in right table
+                AS_I64(rids)[j] = AS_I64(find_res)[i];  // index in right table
                 j++;
             }
         }
@@ -2738,6 +2739,11 @@ obj_p index_asof_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol) {
     i64_t idx;
     __index_list_ctx_t ctx;
     pool_p pool;
+
+    // asof-join requires at least 2 keys: grouping key(s) + temporal asof key
+    // Single-key asof-join is not supported (needs time component)
+    if (lcols->len == 0)
+        return err_type(TYPE_TIMESTAMP, TYPE_SYMBOL, symbols_intern("keys", 4));
 
     ll = ops_count(AS_LIST(lcols)[0]);
     rl = ops_count(AS_LIST(rcols)[0]);

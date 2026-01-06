@@ -344,6 +344,9 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
     drop_obj(ajkl);
     drop_obj(ajkr);
 
+    if (IS_ERR(idx))
+        return idx;
+
     keys = at_obj(x[1], x[0]);
 
     res = __left_join_inner(x[1], x[2], x[0], keys, idx);
