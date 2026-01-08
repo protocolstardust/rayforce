@@ -269,7 +269,8 @@ static obj_p aggr_map_other(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     group_len = index_group_len(index);
     out_len = group_count;
 
-    n = pool_split_by(pool, group_len, group_count);
+    // Memory-aware split: considers groups × type_size per thread
+    n = pool_split_by_mem(pool, group_len, group_count, size_of_type(outype));
 
     if (n == 1) {
         argv[0] = (raw_p)group_len;
@@ -303,7 +304,8 @@ static obj_p aggr_map_parted(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     group_len = val->len;
     out_len = 1;
 
-    n = pool_split_by(pool, group_len, group_count);
+    // For parted, out_len=1 per thread, so memory is minimal
+    n = pool_split_by_mem(pool, group_len, out_len, size_of_type(outype));
 
     if (n == 1) {
         argv[0] = (raw_p)group_len;
@@ -1882,7 +1884,8 @@ static obj_p aggr_map_avg_other(obj_p val, obj_p index) {
     group_len = index_group_len(index);
     out_len = group_count;
 
-    n = pool_split_by(pool, group_len, group_count);
+    // avg needs F64 + I64 per group (sum and count)
+    n = pool_split_by_mem(pool, group_len, group_count, sizeof(f64_t) + sizeof(i64_t));
 
     if (n == 1) {
         argv[0] = (raw_p)group_len;
@@ -1920,7 +1923,8 @@ static obj_p aggr_map_avg_parted(obj_p val, obj_p index) {
     group_len = val->len;
     out_len = 1;
 
-    n = pool_split_by(pool, group_len, group_count);
+    // For parted, out_len=1, minimal memory
+    n = pool_split_by_mem(pool, group_len, out_len, sizeof(f64_t) + sizeof(i64_t));
 
     if (n == 1) {
         argv[0] = (raw_p)group_len;
@@ -2734,7 +2738,8 @@ static obj_p aggr_map_dev_other(obj_p val, obj_p index) {
     group_len = index_group_len(index);
     out_len = group_count;
 
-    n = pool_split_by(pool, group_len, group_count);
+    // dev needs F64 (sum) + F64 (sum_sq) + I64 (count) per group
+    n = pool_split_by_mem(pool, group_len, group_count, 2 * sizeof(f64_t) + sizeof(i64_t));
 
     if (n == 1) {
         argv[0] = (raw_p)group_len;
@@ -2772,7 +2777,8 @@ static obj_p aggr_map_dev_parted(obj_p val, obj_p index) {
     group_len = val->len;
     out_len = 1;
 
-    n = pool_split_by(pool, group_len, group_count);
+    // For parted, out_len=1, minimal memory
+    n = pool_split_by_mem(pool, group_len, out_len, 2 * sizeof(f64_t) + sizeof(i64_t));
 
     if (n == 1) {
         argv[0] = (raw_p)group_len;

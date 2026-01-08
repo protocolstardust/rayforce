@@ -34,7 +34,7 @@
 
 #define DEFAULT_MPMC_SIZE 2048
 #define POOL_SPLIT_THRESHOLD (RAY_PAGE_SIZE * 4)
-#define GROUP_SPLIT_THRESHOLD 100000
+#define GROUP_MEMORY_BUDGET (64 * 1024 * 1024)  // 64MB total memory budget for parallel aggregation
 
 mpmc_p mpmc_create(i64_t size) {
     size = next_power_of_two_u64(size);
@@ -445,17 +445,42 @@ obj_p pool_run(pool_p pool) {
     return res;
 }
 
-i64_t pool_split_by(pool_p pool, i64_t input_len, i64_t groups_len) {
+// Memory-aware parallel split decision
+// Returns number of threads to use based on memory budget
+i64_t pool_split_by_mem(pool_p pool, i64_t input_len, i64_t groups_len, i64_t type_size) {
     if (pool == NULL || input_len < POOL_SPLIT_THRESHOLD)
         return 1;
-    else if (rc_sync_get())
+    if (rc_sync_get())
         return 1;
-    else if (input_len <= pool->executors_count)
+    if (input_len <= pool->executors_count)
         return 1;
-    else if (groups_len >= GROUP_SPLIT_THRESHOLD)
-        return 1;
-    else
-        return pool->executors_count;
+
+    i64_t threads = pool->executors_count;
+
+    // Memory per thread = groups × type_size
+    // Total memory = threads × groups × type_size
+    // We want: threads × groups × type_size <= GROUP_MEMORY_BUDGET
+    if (groups_len > 0 && type_size > 0) {
+        i64_t mem_per_thread = groups_len * type_size;
+
+        // If even single thread exceeds budget, still use 1 thread
+        if (mem_per_thread > GROUP_MEMORY_BUDGET)
+            return 1;
+
+        // Calculate max threads that fit in budget
+        i64_t max_threads = GROUP_MEMORY_BUDGET / mem_per_thread;
+        if (max_threads < 1)
+            max_threads = 1;
+        if (max_threads < threads)
+            threads = max_threads;
+    }
+
+    return threads;
+}
+
+// Legacy version - assumes 8 bytes per element (i64)
+i64_t pool_split_by(pool_p pool, i64_t input_len, i64_t groups_len) {
+    return pool_split_by_mem(pool, input_len, groups_len, sizeof(i64_t));
 }
 
 i64_t pool_get_executors_count(pool_p pool) {
