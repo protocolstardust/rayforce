@@ -2557,15 +2557,14 @@ obj_p radix_scatter_partial(i64_t len, i64_t offset, __scatter_ctx_t *ctx) {
 
 // Radix-partitioned grouping - eliminates sequential merge bottleneck
 obj_p index_group_list_radix(obj_p obj, obj_p filter, i64_t *hashes, i64_t len) {
-    i64_t i, p, partition_id, total_groups;
+    i64_t i, p, total_groups;
     i64_t *indices, *xo;
-    obj_p res, *values, poolres;
+    obj_p res, poolres;
     __index_list_ctx_t list_ctx;
     __radix_partition_ctx_t radix_ctx;
     pool_p pool;
     i64_t parts, chunk;
 
-    values = AS_LIST(obj);
     indices = is_null(filter) ? NULL : AS_I64(filter);
 
     pool = pool_get();
@@ -2733,12 +2732,10 @@ obj_p index_group_list_radix(obj_p obj, obj_p filter, i64_t *hashes, i64_t len) 
 }
 
 obj_p index_group_list(obj_p obj, obj_p filter) {
-    i64_t i, j, len, parts, chunk, last_chunk, groups;
-    i64_t g, v, *xo, *indices, *remap;
-    obj_p res, *values, ht, poolres;
+    i64_t i, len, parts;
+    i64_t g, v, *xo, *indices;
+    obj_p res, *values, ht;
     __index_list_ctx_t ctx;
-    __group_list_chunk_ctx_t chunk_ctxs[32];
-    i64_t offsets[32];
     pool_p pool;
 
     if (ops_count(obj) == 0)
@@ -2799,6 +2796,12 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
 
     // Old chunk-based approach (kept for reference)
     #if 0
+    i64_t j, chunk, last_chunk, groups;
+    i64_t *remap;
+    obj_p poolres;
+    __group_list_chunk_ctx_t chunk_ctxs[32];
+    i64_t offsets[32];
+    
     ctx = (__index_list_ctx_t){.lcols = obj, .rcols = obj, .hashes = hashes, .filter = indices};
 
     // Limit parts

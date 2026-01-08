@@ -296,11 +296,10 @@ static obj_p aggr_map_other(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
 
 static obj_p aggr_map_parted(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     pool_p pool = runtime_get()->pool;
-    i64_t i, l, n, group_count, group_len, out_len, chunk;
+    i64_t i, l, n, group_len, out_len, chunk;
     obj_p res;
     raw_p argv[6];
 
-    group_count = index_group_count(index);
     group_len = val->len;
     out_len = 1;
 
@@ -1915,11 +1914,10 @@ static obj_p aggr_map_avg_other(obj_p val, obj_p index) {
 
 static obj_p aggr_map_avg_parted(obj_p val, obj_p index) {
     pool_p pool = runtime_get()->pool;
-    i64_t i, l, n, group_count, group_len, out_len, chunk;
+    i64_t i, l, n, group_len, out_len, chunk;
     obj_p res, sc, f64obj, i64obj;
     raw_p argv[6];
 
-    group_count = index_group_count(index);
     group_len = val->len;
     out_len = 1;
 
@@ -2769,11 +2767,10 @@ static obj_p aggr_map_dev_other(obj_p val, obj_p index) {
 
 static obj_p aggr_map_dev_parted(obj_p val, obj_p index) {
     pool_p pool = runtime_get()->pool;
-    i64_t i, l, n, group_count, group_len, out_len, chunk;
+    i64_t i, l, n, group_len, out_len, chunk;
     obj_p res, sc;
     raw_p argv[6];
 
-    group_count = index_group_count(index);
     group_len = val->len;
     out_len = 1;
 
