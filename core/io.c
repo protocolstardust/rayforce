@@ -286,6 +286,14 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
             i64_from_str(start, end - start, &num_i64);
             AS_U8(out)[row] = (u8_t)num_i64;
             break;
+        case TYPE_I16:
+            if (start == NULL || end == NULL) {
+                AS_I16(out)[row] = NULL_I16;
+                break;
+            }
+            i64_from_str(start, end - start, &num_i64);
+            AS_I16(out)[row] = (i16_t)num_i64;
+            break;
         case TYPE_I32:
             if (start == NULL || end == NULL) {
                 AS_I32(out)[row] = NULL_I32;
