@@ -2332,16 +2332,24 @@ obj_p index_group_list_perfect(obj_p obj, obj_p filter) {
     }
 
     // Precompute multipliers for each column
+    // Use signed max to avoid overflow in scope.range (which is i64_t)
     for (i = 0, product = 1, scope = (index_scope_t){0, 0, 0}; i < l; i++) {
-        if (ULLONG_MAX / product < (u64_t)scopes[i].range) {
+        // Check for overflow - product must stay within signed i64 range
+        if (product > (u64_t)LLONG_MAX / (u64_t)scopes[i].range) {
             heap_free(scopes);
             return NULL_OBJ;  // Overflow would occur
         }
 
-        scope.max += (scopes[i].max - scopes[i].min) * product;
-
         multipliers[i] = product;
         product *= scopes[i].range;
+
+        // Also check that scope.max won't overflow
+        u64_t delta = (u64_t)(scopes[i].max - scopes[i].min) * (u64_t)multipliers[i];
+        if ((u64_t)scope.max > (u64_t)LLONG_MAX - delta) {
+            heap_free(scopes);
+            return NULL_OBJ;  // scope.max would overflow
+        }
+        scope.max += delta;
     }
 
     scope.range = scope.max + 1;
