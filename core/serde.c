@@ -106,7 +106,7 @@ i64_t size_obj(obj_p obj) {
         case -TYPE_F64:
             return ISIZEOF(i8_t) + ISIZEOF(f64_t);
         case -TYPE_SYMBOL:
-            return ISIZEOF(i8_t) + SYMBOL_STRLEN(obj->i64) + 1;
+            return ISIZEOF(i8_t) + symbol_strlen(obj->i64) + 1;
         case -TYPE_C8:
             return ISIZEOF(i8_t) + ISIZEOF(c8_t);
         case -TYPE_GUID:
@@ -132,7 +132,7 @@ i64_t size_obj(obj_p obj) {
             l = obj->len;
             size = ISIZEOF(i8_t) + 1 + ISIZEOF(i64_t);
             for (i = 0; i < l; i++)
-                size += SYMBOL_STRLEN(AS_SYMBOL(obj)[i]) + 1;
+                size += symbol_strlen(AS_SYMBOL(obj)[i]) + 1;
             return size;
         case TYPE_LIST:
             l = obj->len;
@@ -148,7 +148,7 @@ i64_t size_obj(obj_p obj) {
         case TYPE_UNARY:
         case TYPE_BINARY:
         case TYPE_VARY:
-            return ISIZEOF(i8_t) + SYMBOL_STRLEN(env_get_internal_id(obj)) + 1;
+            return ISIZEOF(i8_t) + symbol_strlen(env_get_internal_id(obj)) + 1;
         case TYPE_NULL:
             return ISIZEOF(i8_t);
         case TYPE_ERR: {

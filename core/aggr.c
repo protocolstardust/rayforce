@@ -439,11 +439,143 @@ obj_p aggr_first_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
 
 obj_p aggr_first(obj_p val, obj_p index) {
     i64_t i, j, n, l;
-    i64_t *xo, *xe;
+    i64_t *xo, *xe, *first_ids, *filter_ids;
     obj_p parts, res, ek, filter, sym;
 
     n = index_group_count(index);
 
+    // Fast path: if first indices are precomputed, use them directly
+    first_ids = index_group_first_ids(index);
+    filter_ids = index_group_filter_ids(index);
+    if (first_ids != NULL) {
+        switch (val->type) {
+            case TYPE_U8:
+            case TYPE_B8:
+            case TYPE_C8: {
+                u8_t *in = AS_U8(val);
+                res = U8(n);
+                u8_t *out = AS_U8(res);
+                if (filter_ids) {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[filter_ids[first_ids[i]]];
+                } else {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[first_ids[i]];
+                }
+                res->type = val->type;
+                return res;
+            }
+            case TYPE_I16: {
+                i16_t *in = AS_I16(val);
+                res = I16(n);
+                i16_t *out = AS_I16(res);
+                if (filter_ids) {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[filter_ids[first_ids[i]]];
+                } else {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[first_ids[i]];
+                }
+                res->type = val->type;
+                return res;
+            }
+            case TYPE_I32:
+            case TYPE_DATE:
+            case TYPE_TIME: {
+                i32_t *in = AS_I32(val);
+                res = I32(n);
+                i32_t *out = AS_I32(res);
+                if (filter_ids) {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[filter_ids[first_ids[i]]];
+                } else {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[first_ids[i]];
+                }
+                res->type = val->type;
+                return res;
+            }
+            case TYPE_I64:
+            case TYPE_SYMBOL:
+            case TYPE_TIMESTAMP: {
+                i64_t *in = AS_I64(val);
+                res = I64(n);
+                i64_t *out = AS_I64(res);
+                if (filter_ids) {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[filter_ids[first_ids[i]]];
+                } else {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[first_ids[i]];
+                }
+                res->type = val->type;
+                return res;
+            }
+            case TYPE_ENUM: {
+                i64_t *in = AS_I64(val);
+                res = I64(n);
+                i64_t *out = AS_I64(res);
+                if (filter_ids) {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[filter_ids[first_ids[i]]];
+                } else {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[first_ids[i]];
+                }
+                // Convert enum indices to symbol values
+                ek = ray_key(val);
+                sym = ray_get(ek);
+                drop_obj(ek);
+                if (IS_ERR(sym)) {
+                    drop_obj(res);
+                    return sym;
+                }
+                if (is_null(sym) || sym->type != TYPE_SYMBOL) {
+                    drop_obj(sym);
+                    drop_obj(res);
+                    return err_type(0, 0, 0, 0);
+                }
+                xe = AS_SYMBOL(sym);
+                xo = AS_SYMBOL(res);
+                for (i = 0; i < n; i++)
+                    xo[i] = xe[xo[i]];
+                drop_obj(sym);
+                res->type = TYPE_SYMBOL;
+                return res;
+            }
+            case TYPE_F64: {
+                f64_t *in = AS_F64(val);
+                res = F64(n);
+                f64_t *out = AS_F64(res);
+                if (filter_ids) {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[filter_ids[first_ids[i]]];
+                } else {
+                    for (i = 0; i < n; i++)
+                        out[i] = in[first_ids[i]];
+                }
+                return res;
+            }
+            case TYPE_GUID: {
+                guid_t *in = AS_GUID(val);
+                res = GUID(n);
+                guid_t *out = AS_GUID(res);
+                if (filter_ids) {
+                    for (i = 0; i < n; i++)
+                        memcpy(out[i], in[filter_ids[first_ids[i]]], sizeof(guid_t));
+                } else {
+                    for (i = 0; i < n; i++)
+                        memcpy(out[i], in[first_ids[i]], sizeof(guid_t));
+                }
+                return res;
+            }
+            default:
+                // Fall through to slow path for other types
+                break;
+        }
+    }
+
+    // Slow path: iterate through all rows
     switch (val->type) {
         case TYPE_U8:
         case TYPE_B8:

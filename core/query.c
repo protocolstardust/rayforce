@@ -39,8 +39,8 @@
 obj_p remap_filter(obj_p tab, obj_p index) { return filter_map(tab, index); }
 
 obj_p remap_group(obj_p *gvals, obj_p cols, obj_p gkeys, obj_p gcols, query_ctx_p ctx) {
-    i64_t i, l;
-    obj_p index, v, lst, res;
+    i64_t i, l, n, *first_ids, *filter_ids;
+    obj_p index, v, lst, res, src_col;
 
     switch (gkeys->type) {
         case -TYPE_SYMBOL:
@@ -53,7 +53,31 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p gkeys, obj_p gcols, query_ctx_
             ctx->group_index = clone_obj(index);
 
             res = group_map(ctx->table, index);
-            v = (gcols == NULL_OBJ) ? aggr_first(cols, index) : aggr_first(gcols, index);
+
+            // Fast path: use precomputed first indices if available
+            first_ids = index_group_first_ids(index);
+            filter_ids = index_group_filter_ids(index);
+            n = index_group_count(index);
+            src_col = (gcols == NULL_OBJ) ? cols : gcols;
+
+            if (first_ids != NULL) {
+                // Direct indexing using first_ids
+                if (filter_ids != NULL) {
+                    // Need to apply filter first - create temp indices array
+                    obj_p temp_ids = I64(n);
+                    i64_t *ti = AS_I64(temp_ids);
+                    for (i = 0; i < n; i++)
+                        ti[i] = filter_ids[first_ids[i]];
+                    v = at_ids(src_col, ti, n);
+                    drop_obj(temp_ids);
+                } else {
+                    v = at_ids(src_col, first_ids, n);
+                }
+            } else {
+                // Fallback to aggr_first
+                v = aggr_first(src_col, index);
+            }
+
             if (IS_ERR(v)) {
                 drop_obj(index);
                 drop_obj(res);
@@ -63,7 +87,7 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p gkeys, obj_p gcols, query_ctx_
             *gvals = v;
             drop_obj(index);
 
-            timeit_tick("apply 'first' on group columns");
+            timeit_tick("extract group columns");
 
             return res;
         case TYPE_SYMBOL:
@@ -78,23 +102,63 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p gkeys, obj_p gcols, query_ctx_
             l = cols->len;
             lst = LIST(l);
 
-            for (i = 0; i < l; i++) {
-                v = aggr_first(AS_LIST(cols)[i], index);
+            // Fast path: use precomputed first indices if available
+            first_ids = index_group_first_ids(index);
+            filter_ids = index_group_filter_ids(index);
+            n = index_group_count(index);
 
-                if (IS_ERR(v)) {
-                    lst->len = i;
-                    drop_obj(res);
-                    drop_obj(index);
-                    return v;
+            if (first_ids != NULL) {
+                // Direct indexing using first_ids
+                obj_p actual_ids;
+                if (filter_ids != NULL) {
+                    // Need to apply filter - create temp indices array once
+                    actual_ids = I64(n);
+                    i64_t *ti = AS_I64(actual_ids);
+                    for (i = 0; i < n; i++)
+                        ti[i] = filter_ids[first_ids[i]];
+                } else {
+                    actual_ids = NULL_OBJ;
                 }
 
-                AS_LIST(lst)[i] = v;
+                for (i = 0; i < l; i++) {
+                    if (filter_ids != NULL) {
+                        v = at_ids(AS_LIST(cols)[i], AS_I64(actual_ids), n);
+                    } else {
+                        v = at_ids(AS_LIST(cols)[i], first_ids, n);
+                    }
+
+                    if (IS_ERR(v)) {
+                        lst->len = i;
+                        drop_obj(res);
+                        drop_obj(index);
+                        if (!is_null(actual_ids)) drop_obj(actual_ids);
+                        return v;
+                    }
+
+                    AS_LIST(lst)[i] = v;
+                }
+
+                if (!is_null(actual_ids)) drop_obj(actual_ids);
+            } else {
+                // Fallback to aggr_first
+                for (i = 0; i < l; i++) {
+                    v = aggr_first(AS_LIST(cols)[i], index);
+
+                    if (IS_ERR(v)) {
+                        lst->len = i;
+                        drop_obj(res);
+                        drop_obj(index);
+                        return v;
+                    }
+
+                    AS_LIST(lst)[i] = v;
+                }
             }
 
             *gvals = lst;
             drop_obj(index);
 
-            timeit_tick("apply 'first' on group columns");
+            timeit_tick("extract group columns");
 
             return res;
         default:

@@ -1621,6 +1621,13 @@ i64_t index_group_shift(obj_p index) { return AS_LIST(index)[3]->i64; }
 
 obj_p index_group_meta(obj_p index) { return AS_LIST(index)[6]; }
 
+i64_t *index_group_first_ids(obj_p index) {
+    obj_p meta = AS_LIST(index)[6];
+    if (is_null(meta) || meta->type != TYPE_I64)
+        return NULL;
+    return AS_I64(meta);
+}
+
 static obj_p index_group_build(index_type_t tp, i64_t groups_count, obj_p group_ids, obj_p index_min, obj_p source,
                                obj_p filter, obj_p meta) {
     return vn_list(7, i64(tp), i64(groups_count), group_ids, index_min, source, filter, meta);
@@ -1907,6 +1914,12 @@ obj_p index_group_i64_unscoped(obj_p obj, obj_p filter) {
     return index_group_build(INDEX_TYPE_IDS, g, vals, i64(NULL_I64), NULL_OBJ, clone_obj(filter), NULL_OBJ);
 }
 
+obj_p fill_null_i64(i64_t *arr, i64_t len, i64_t offset) {
+    for (i64_t i = offset; i < offset + len; i++)
+        arr[i] = NULL_I64;
+    return NULL_OBJ;
+}
+
 obj_p index_group_i64_scoped_partial(i64_t input[], i64_t filter[], i64_t group_ids[], i64_t len, i64_t offset,
                                      i64_t min, i64_t out[]) {
     i64_t i, l;
@@ -1926,8 +1939,8 @@ obj_p index_group_i64_scoped_partial(i64_t input[], i64_t filter[], i64_t group_
 
 obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope) {
     i64_t i, n, len, groups, chunks, base_chunk;
-    i64_t *hk, *hv, *values, *indices;
-    obj_p keys, vals, v;
+    i64_t *hk, *hv, *hf, *values, *indices;
+    obj_p keys, vals, firsts, v;
     pool_p pool;
 
     values = AS_I64(obj);
@@ -1938,28 +1951,60 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
     if (scope.range <= len) {
         keys = I64(scope.range);
         hk = AS_I64(keys);
-        for (i = 0; i < scope.range; i++)
-            hk[i] = NULL_I64;
+        // Initialize keys array in parallel
+        pool = pool_get();
+        chunks = pool_split_by(pool, scope.range, 0);
+        if (chunks == 1) {
+            for (i = 0; i < scope.range; i++)
+                hk[i] = NULL_I64;
+        } else {
+            base_chunk = pool_chunk_aligned(scope.range, chunks, sizeof(i64_t));
+            pool_prepare(pool);
+            for (i = 0; i < chunks - 1; i++)
+                pool_add_task(pool, (raw_p)fill_null_i64, 3, hk, base_chunk, i * base_chunk);
+            pool_add_task(pool, (raw_p)fill_null_i64, 3, hk, scope.range - (chunks - 1) * base_chunk,
+                          (chunks - 1) * base_chunk);
+            v = pool_run(pool);
+            drop_obj(v);
+        }
+
+        // Pre-allocate firsts array (we'll resize if needed, but usually groups < scope.range)
+        firsts = I64(len);  // Worst case: every row is a new group
+        hf = AS_I64(firsts);
+
         if (indices) {
             for (i = 0, groups = 0; i < len; i++) {
                 n = values[indices[i]] - scope.min;
-                if (hk[n] == NULL_I64)
-                    hk[n] = groups++;
+                if (hk[n] == NULL_I64) {
+                    hk[n] = groups;
+                    hf[groups] = i;  // Track first row index directly by group ID
+                    groups++;
+                }
             }
         } else {
             for (i = 0, groups = 0; i < len; i++) {
                 n = values[i] - scope.min;
-                if (hk[n] == NULL_I64)
-                    hk[n] = groups++;
+                if (hk[n] == NULL_I64) {
+                    hk[n] = groups;
+                    hf[groups] = i;  // Track first row index directly by group ID
+                    groups++;
+                }
             }
         }
-        //  do not compute group indices as they can be obtained from the keys
+
+        // Resize firsts to actual number of groups
+        resize_obj(&firsts, groups);
+        hf = AS_I64(firsts);
+
+        // For small scope.range, use SHIFT (no group_ids array needed)
+        // For large scope.range, use IDS (better cache locality in aggregation)
         if (scope.range <= INDEX_SCOPE_LIMIT) {
             timeit_tick("index group scoped perfect simple");
             return index_group_build(INDEX_TYPE_SHIFT, groups, keys, i64(scope.min), clone_obj(obj), clone_obj(filter),
-                                     NULL_OBJ);
+                                     firsts);
         }
 
+        // Build group_ids array for better aggregation performance
         vals = I64(len);
         hv = AS_I64(vals);
         pool = pool_get();
@@ -1979,7 +2024,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
         }
         drop_obj(keys);
         timeit_tick("index group scoped perfect");
-        return index_group_build(INDEX_TYPE_IDS, groups, vals, i64(NULL_I64), NULL_OBJ, clone_obj(filter), NULL_OBJ);
+        return index_group_build(INDEX_TYPE_IDS, groups, vals, i64(NULL_I64), NULL_OBJ, clone_obj(filter), firsts);
     }
     return index_group_i64_unscoped(obj, filter);
 }
@@ -2118,15 +2163,98 @@ obj_p index_group(obj_p val, obj_p filter) {
     }
 }
 
+// Context for parallel combined key computation
+typedef struct __perfect_hash_ctx_t {
+    obj_p *values;
+    i64_t *indices;
+    i64_t *out;
+    index_scope_t *scopes;
+    i64_t *multipliers;
+    i64_t ncols;
+} __perfect_hash_ctx_t;
+
+obj_p index_group_list_perfect_partial(i64_t len, i64_t offset, __perfect_hash_ctx_t *ctx) {
+    i64_t j, c, ncols;
+    i64_t *out, *indices, *multipliers;
+    obj_p *values, col;
+    index_scope_t *scopes;
+
+    out = ctx->out;
+    indices = ctx->indices;
+    values = ctx->values;
+    scopes = ctx->scopes;
+    multipliers = ctx->multipliers;
+    ncols = ctx->ncols;
+
+    // Process all columns in a single pass for better cache efficiency
+    if (indices) {
+        for (j = offset; j < offset + len; j++) {
+            i64_t key = 0;
+            i64_t row = indices[j];
+            for (c = 0; c < ncols; c++) {
+                col = values[c];
+                switch (col->type) {
+                    case TYPE_B8:
+                    case TYPE_U8:
+                    case TYPE_C8:
+                        key += (AS_U8(col)[row] - scopes[c].min) * multipliers[c];
+                        break;
+                    case TYPE_I64:
+                    case TYPE_SYMBOL:
+                    case TYPE_TIMESTAMP:
+                        key += (AS_I64(col)[row] - scopes[c].min) * multipliers[c];
+                        break;
+                    case TYPE_ENUM:
+                        key += (AS_I64(ENUM_VAL(col))[row] - scopes[c].min) * multipliers[c];
+                        break;
+                    default:
+                        break;
+                }
+            }
+            out[j] = key;
+        }
+    } else {
+        for (j = offset; j < offset + len; j++) {
+            i64_t key = 0;
+            for (c = 0; c < ncols; c++) {
+                col = values[c];
+                switch (col->type) {
+                    case TYPE_B8:
+                    case TYPE_U8:
+                    case TYPE_C8:
+                        key += (AS_U8(col)[j] - scopes[c].min) * multipliers[c];
+                        break;
+                    case TYPE_I64:
+                    case TYPE_SYMBOL:
+                    case TYPE_TIMESTAMP:
+                        key += (AS_I64(col)[j] - scopes[c].min) * multipliers[c];
+                        break;
+                    case TYPE_ENUM:
+                        key += (AS_I64(ENUM_VAL(col))[j] - scopes[c].min) * multipliers[c];
+                        break;
+                    default:
+                        break;
+                }
+            }
+            out[j] = key;
+        }
+    }
+
+    return NULL_OBJ;
+}
+
 obj_p index_group_list_perfect(obj_p obj, obj_p filter) {
-    u8_t *xb;
-    u64_t i, j, l, len, product;
-    i64_t *xi, *xo, *indices;
-    obj_p ht, col, res, *values;
+    u64_t i, l, len, product;
+    i64_t *xo, *indices;
+    obj_p ht, res, *values, v;
     index_scope_t *scopes, scope;
+    pool_p pool;
+    i64_t chunks, base_chunk;
+    __perfect_hash_ctx_t ctx;
 
     l = obj->len;
     i64_t multipliers[l];
+    UNUSED(v);  // May be unused in single-threaded path
 
     if (l == 0)
         return NULL_OBJ;
@@ -2170,7 +2298,6 @@ obj_p index_group_list_perfect(obj_p obj, obj_p filter) {
                 scopes[i] = index_scope_i64(AS_I64(values[i]), indices, len);
                 break;
             default:
-                // because we already checked the types, this should never happen
                 __builtin_unreachable();
         }
     }
@@ -2192,59 +2319,31 @@ obj_p index_group_list_perfect(obj_p obj, obj_p filter) {
 
     ht = I64(len);
     xo = AS_I64(ht);
-    memset(xo, 0, len * sizeof(i64_t));
 
-    for (i = 0; i < l; i++) {
-        col = values[i];
-        switch (col->type) {
-            case TYPE_B8:
-            case TYPE_U8:
-            case TYPE_C8:
-                xb = AS_U8(col);
-                if (indices) {
-                    for (j = 0; j < len; j++)
-                        xo[j] += (xb[indices[j]] - scopes[i].min) * multipliers[i];
-                } else {
-                    for (j = 0; j < len; j++)
-                        xo[j] += (xb[j] - scopes[i].min) * multipliers[i];
-                }
-                break;
-            case TYPE_I64:
-            case TYPE_SYMBOL:
-            case TYPE_TIMESTAMP:
-                xi = AS_I64(col);
-                if (indices) {
-                    for (j = 0; j < len; j++)
-                        xo[j] += (xi[indices[j]] - scopes[i].min) * multipliers[i];
-                } else {
-                    for (j = 0; j < len; j++)
-                        xo[j] += (xi[j] - scopes[i].min) * multipliers[i];
-                }
-                break;
-            case TYPE_ENUM:
-                xi = AS_I64(ENUM_VAL(col));
-                if (indices) {
-                    for (j = 0; j < len; j++)
-                        xo[j] += (xi[indices[j]] - scopes[i].min) * multipliers[i];
-                } else {
-                    for (j = 0; j < len; j++)
-                        xo[j] += (xi[j] - scopes[i].min) * multipliers[i];
-                }
-                break;
-            case TYPE_F64:
-                xi = (i64_t *)AS_F64(col);
-                if (indices) {
-                    for (j = 0; j < len; j++)
-                        xo[j] += (xi[indices[j]] - scopes[i].min) * multipliers[i];
-                } else {
-                    for (j = 0; j < len; j++)
-                        xo[j] += (xi[j] - scopes[i].min) * multipliers[i];
-                }
-                break;
-            default:
-                // because we already checked the types, this should never happen
-                __builtin_unreachable();
-        }
+    // Parallel combined key computation - single pass over all columns
+    ctx = (__perfect_hash_ctx_t){
+        .values = values,
+        .indices = indices,
+        .out = xo,
+        .scopes = scopes,
+        .multipliers = multipliers,
+        .ncols = l
+    };
+
+    pool = pool_get();
+    chunks = pool_split_by(pool, len, 0);
+    base_chunk = pool_chunk_aligned(len, chunks, sizeof(i64_t));
+
+    if (chunks == 1) {
+        index_group_list_perfect_partial(len, 0, &ctx);
+    } else {
+        pool_prepare(pool);
+        for (i = 0; i < (u64_t)(chunks - 1); i++)
+            pool_add_task(pool, (raw_p)index_group_list_perfect_partial, 3, base_chunk, i * base_chunk, &ctx);
+        pool_add_task(pool, (raw_p)index_group_list_perfect_partial, 3, len - (chunks - 1) * base_chunk,
+                      (chunks - 1) * base_chunk, &ctx);
+        v = pool_run(pool);
+        drop_obj(v);
     }
 
     heap_free(scopes);

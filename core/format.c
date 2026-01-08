@@ -1101,7 +1101,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
     // Calculate each column maximum width
     for (i = 0; i < table_width; i++) {
         // First check the column name
-        l = SYMBOL_STRLEN(header[i]);
+        l = symbol_strlen(header[i]);
 
         // Get the actual column and its type name length
         column = AS_LIST(columns)[i];
@@ -1196,7 +1196,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, i64_t full, obj_p obj) {
     n += glyph_fmt_into(dst, GLYPH_VLINE);
     for (i = 0; i < table_width; i++) {
         p = str_from_symbol(header[i]);
-        i64_t name_len = SYMBOL_STRLEN(header[i]);
+        i64_t name_len = symbol_strlen(header[i]);
         i64_t col_width = AS_I64(column_widths)[i];
         i64_t left_pad = (col_width - name_len) / 2;
         i64_t right_pad = col_width - name_len - left_pad;
