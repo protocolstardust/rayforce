@@ -162,7 +162,7 @@ obj_p index_hash_obj_partial(obj_p obj, i64_t out[], i64_t filter[], i64_t len, 
                     out[i] = hash_index_u64(u64v[filter[i]], out[i]);
             } else {
                 // Use best available SIMD (AVX2/NEON) or scalar fallback
-                hash_index_i64_batch(out + offset, u64v + offset, len);
+                hash_index_i64_batch((u64_t *)(out + offset), (const u64_t *)(u64v + offset), len);
             }
             break;
         case TYPE_F64:
@@ -2444,19 +2444,19 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
     indices = is_null(filter) ? NULL : AS_I64(filter);
     len = indices ? filter->len : values[0]->len;
 
-    res = I64(len);
-    xo = AS_I64(res);
-
-    __index_list_precalc_hash(obj, (i64_t *)xo, obj->len, len, indices, B8_FALSE);
-    timeit_tick("group index precalc hash");
-
-    ctx = (__index_list_ctx_t){.lcols = obj, .rcols = obj, .hashes = (i64_t *)xo, .filter = indices};
-
     pool = pool_get();
     parts = pool_split_by(pool, len, 0);
 
-    // Single-threaded path
+    res = I64(len);
+    xo = AS_I64(res);
+
+    // Single-threaded path - can reuse xo for hashes (overwritten sequentially)
     if (parts == 1) {
+        __index_list_precalc_hash(obj, (i64_t *)xo, obj->len, len, indices, B8_FALSE);
+        timeit_tick("group index precalc hash");
+
+        ctx = (__index_list_ctx_t){.lcols = obj, .rcols = obj, .hashes = (i64_t *)xo, .filter = indices};
+
         ht = ht_oa_create(len, TYPE_I64);
 
         // distribute bins
@@ -2473,6 +2473,13 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
 
         return index_group_build(INDEX_TYPE_IDS, g, res, i64(NULL_I64), NULL_OBJ, clone_obj(filter), NULL_OBJ);
     }
+
+    // Multi-threaded path - need separate array for hashes (preserved during parallel writes)
+    i64_t *hashes = (i64_t *)heap_alloc(len * sizeof(i64_t));
+    __index_list_precalc_hash(obj, hashes, obj->len, len, indices, B8_FALSE);
+    timeit_tick("group index precalc hash");
+
+    ctx = (__index_list_ctx_t){.lcols = obj, .rcols = obj, .hashes = hashes, .filter = indices};
 
     // Limit parts
     if (parts > 32)
@@ -2546,6 +2553,7 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
     }
 
     drop_obj(ht);
+    heap_free(hashes);  // Free the separate hashes array
 
     timeit_tick("group index list");
 
