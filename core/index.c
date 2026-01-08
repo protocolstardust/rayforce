@@ -2426,6 +2426,152 @@ obj_p index_group_list_chunk_local(i64_t len, i64_t offset, __group_list_chunk_c
     return NULL_OBJ;
 }
 
+// ============== RADIX PARTITIONED GROUPING ==============
+// Much faster for high-cardinality grouping (many unique groups)
+
+#define RADIX_BITS 8
+#define RADIX_PARTITIONS (1 << RADIX_BITS)
+#define RADIX_MASK (RADIX_PARTITIONS - 1)
+
+// Context for radix partition grouping
+typedef struct __radix_partition_ctx_t {
+    __index_list_ctx_t *list_ctx;
+    i64_t *hashes;
+    i64_t *partition_indices;  // Row indices sorted by partition
+    i64_t *partition_offsets;  // Start offset of each partition
+    i64_t *partition_counts;   // Count per partition
+    i64_t *group_ids;          // Output group IDs
+    i64_t *partition_groups;   // Group count per partition (for offset calculation)
+} __radix_partition_ctx_t;
+
+// Process a single partition - completely independent, no locks needed
+obj_p radix_group_partition(i64_t partition_id, __radix_partition_ctx_t *ctx) {
+    i64_t start = ctx->partition_offsets[partition_id];
+    i64_t count = ctx->partition_counts[partition_id];
+    i64_t i, v, groups = 0;
+    i64_t *indices = ctx->partition_indices;
+    i64_t *group_ids = ctx->group_ids;
+    __index_list_ctx_t *list_ctx = ctx->list_ctx;
+    obj_p ht;
+
+    if (count == 0) {
+        ctx->partition_groups[partition_id] = 0;
+        return NULL_OBJ;
+    }
+
+    // Create hash table sized for this partition
+    ht = ht_oa_create(count, TYPE_I64);
+
+    for (i = start; i < start + count; i++) {
+        i64_t row_idx = indices[i];
+        v = ht_oa_tab_insert_with(&ht, row_idx, groups, &__index_list_hash_get, &__index_list_cmp_row, list_ctx);
+        if (v == groups)
+            groups++;
+        group_ids[row_idx] = v;  // Store local group ID (will be remapped later)
+    }
+
+    drop_obj(ht);
+    ctx->partition_groups[partition_id] = groups;
+    return NULL_OBJ;
+}
+
+// Radix-partitioned grouping - eliminates sequential merge bottleneck
+obj_p index_group_list_radix(obj_p obj, obj_p filter, i64_t *hashes, i64_t len) {
+    i64_t i, p, partition_id, total_groups;
+    i64_t *indices, *xo;
+    obj_p res, *values, poolres;
+    __index_list_ctx_t list_ctx;
+    __radix_partition_ctx_t radix_ctx;
+    pool_p pool;
+    i64_t parts;
+
+    values = AS_LIST(obj);
+    indices = is_null(filter) ? NULL : AS_I64(filter);
+
+    // Allocate arrays
+    i64_t *partition_counts = (i64_t *)heap_alloc(RADIX_PARTITIONS * sizeof(i64_t));
+    i64_t *partition_offsets = (i64_t *)heap_alloc((RADIX_PARTITIONS + 1) * sizeof(i64_t));
+    i64_t *partition_groups = (i64_t *)heap_alloc(RADIX_PARTITIONS * sizeof(i64_t));
+    i64_t *partition_indices = (i64_t *)heap_alloc(len * sizeof(i64_t));
+
+    res = I64(len);
+    xo = AS_I64(res);
+
+    // Phase 1: Build histogram (count per partition)
+    memset(partition_counts, 0, RADIX_PARTITIONS * sizeof(i64_t));
+    for (i = 0; i < len; i++) {
+        partition_id = hashes[i] & RADIX_MASK;
+        partition_counts[partition_id]++;
+    }
+
+    // Phase 2: Compute prefix sums for offsets
+    partition_offsets[0] = 0;
+    for (p = 0; p < RADIX_PARTITIONS; p++) {
+        partition_offsets[p + 1] = partition_offsets[p] + partition_counts[p];
+    }
+
+    // Phase 3: Scatter row indices into partitions
+    // Reset counts to use as write cursors
+    i64_t *write_pos = (i64_t *)heap_alloc(RADIX_PARTITIONS * sizeof(i64_t));
+    memcpy(write_pos, partition_offsets, RADIX_PARTITIONS * sizeof(i64_t));
+
+    for (i = 0; i < len; i++) {
+        partition_id = hashes[i] & RADIX_MASK;
+        partition_indices[write_pos[partition_id]++] = i;
+    }
+    heap_free(write_pos);
+    timeit_tick("radix partition");
+
+    // Phase 4: Group each partition independently (fully parallel!)
+    list_ctx = (__index_list_ctx_t){.lcols = obj, .rcols = obj, .hashes = hashes, .filter = indices};
+
+    radix_ctx.list_ctx = &list_ctx;
+    radix_ctx.hashes = hashes;
+    radix_ctx.partition_indices = partition_indices;
+    radix_ctx.partition_offsets = partition_offsets;
+    radix_ctx.partition_counts = partition_counts;
+    radix_ctx.group_ids = xo;
+    radix_ctx.partition_groups = partition_groups;
+
+    pool = pool_get();
+    parts = pool_get_executors_count(pool);
+    if (parts > RADIX_PARTITIONS)
+        parts = RADIX_PARTITIONS;
+
+    pool_prepare(pool);
+    for (p = 0; p < RADIX_PARTITIONS; p++) {
+        pool_add_task(pool, (raw_p)radix_group_partition, 2, p, &radix_ctx);
+    }
+    poolres = pool_run(pool);
+    drop_obj(poolres);
+    timeit_tick("radix group partitions");
+
+    // Phase 5: Compute global group IDs by adding partition offsets
+    // First compute the offset for each partition
+    i64_t *group_offsets = partition_offsets;  // Reuse array
+    group_offsets[0] = 0;
+    for (p = 0; p < RADIX_PARTITIONS; p++) {
+        group_offsets[p + 1] = group_offsets[p] + partition_groups[p];
+    }
+    total_groups = group_offsets[RADIX_PARTITIONS];
+
+    // Remap local group IDs to global IDs
+    for (i = 0; i < len; i++) {
+        partition_id = hashes[i] & RADIX_MASK;
+        xo[i] += group_offsets[partition_id];
+    }
+    timeit_tick("radix remap");
+
+    // Cleanup
+    heap_free(partition_counts);
+    heap_free(partition_offsets);
+    heap_free(partition_groups);
+    heap_free(partition_indices);
+    heap_free(hashes);
+
+    return index_group_build(INDEX_TYPE_IDS, total_groups, res, i64(NULL_I64), NULL_OBJ, clone_obj(filter), NULL_OBJ);
+}
+
 obj_p index_group_list(obj_p obj, obj_p filter) {
     i64_t i, j, len, parts, chunk, last_chunk, groups;
     i64_t g, v, *xo, *indices, *remap;
@@ -2482,11 +2628,17 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
         return index_group_build(INDEX_TYPE_IDS, g, res, i64(NULL_I64), NULL_OBJ, clone_obj(filter), NULL_OBJ);
     }
 
-    // Multi-threaded path - need separate array for hashes (preserved during parallel writes)
+    // Multi-threaded path - use radix partitioning for better parallelism
     i64_t *hashes = (i64_t *)heap_alloc(len * sizeof(i64_t));
     __index_list_precalc_hash(obj, hashes, obj->len, len, indices, B8_FALSE);
     timeit_tick("group index precalc hash");
 
+    // Use radix partitioning - eliminates sequential merge bottleneck
+    drop_obj(res);  // radix function creates its own
+    return index_group_list_radix(obj, filter, hashes, len);
+
+    // Old chunk-based approach (kept for reference)
+    #if 0
     ctx = (__index_list_ctx_t){.lcols = obj, .rcols = obj, .hashes = hashes, .filter = indices};
 
     // Limit parts
@@ -2533,10 +2685,12 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
         i64_t *ht_vals = AS_I64(AS_LIST(local_ht)[1]);
 
         // Create remap array for this chunk's local IDs -> global IDs
-        remap = (i64_t *)heap_alloc(chunk_ctxs[i].local_groups * sizeof(i64_t));
+        i64_t local_count = chunk_ctxs[i].local_groups;
+        i64_t found = 0;
+        remap = (i64_t *)heap_alloc(local_count * sizeof(i64_t));
 
-        // For each unique key in this chunk's hash table
-        for (j = 0; j < ht_len; j++) {
+        // For each unique key in this chunk's hash table (early exit when all found)
+        for (j = 0; j < ht_len && found < local_count; j++) {
             if (ht_keys[j] != NULL_I64) {
                 i64_t local_id = ht_vals[j];
                 i64_t row_idx = ht_keys[j];  // This stores the row index, not the key itself
@@ -2547,6 +2701,7 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
                     groups++;
 
                 remap[local_id] = v;
+                found++;
             }
         }
 
@@ -2562,10 +2717,10 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
 
     drop_obj(ht);
     heap_free(hashes);  // Free the separate hashes array
-
     timeit_tick("group index list");
 
     return index_group_build(INDEX_TYPE_IDS, groups, res, i64(NULL_I64), NULL_OBJ, clone_obj(filter), NULL_OBJ);
+    #endif  // Old chunk-based approach
 }
 
 obj_p index_left_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
