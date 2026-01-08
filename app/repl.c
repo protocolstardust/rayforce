@@ -166,7 +166,8 @@ repl_p repl_create(poll_p poll) {
             drop_obj(res);
         }
 
-        // Signal to exit immediately after piped input processing
+        // Print timing info and signal to exit
+        timeit_print();
         poll->code = has_error ? 1 : 0;
 
         repl_destroy(repl);

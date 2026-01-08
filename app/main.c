@@ -27,6 +27,7 @@
 #include "../core/sys.h"
 #include "../core/string.h"
 #include "../core/io.h"
+#include "../core/chrono.h"
 #include "repl.h"
 #if defined(OS_WINDOWS)
 #include <io.h>
@@ -88,6 +89,7 @@ i32_t main(i32_t argc, str_p argv[]) {
 
         // Oneshot mode: file without -i flag = execute and exit (like Python)
         if (!interactive) {
+            timeit_print();
             code = file_error ? 1 : 0;
             runtime_destroy();
             return code;
