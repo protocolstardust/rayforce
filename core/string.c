@@ -274,6 +274,7 @@ i64_t f64_from_str(lit_p str, i64_t len, f64_t *dst) {
     i32_t sign, frac_digits, exp_sign, exp;
     i64_t i, start, exp_start;
     f64_t int_part, frac_part, multiplier, divisor, val;
+    u64_t int_val;
 
     i = 0;
 
@@ -291,11 +292,29 @@ i64_t f64_from_str(lit_p str, i64_t len, f64_t *dst) {
         i++;
     }
 
-    // Integer part
-    int_part = 0;
+    // Integer part - use fast parsing for up to 15 digits (fits in f64 without precision loss)
+    int_val = 0;
     start = i;
-    while (i < len && IS_DIGIT(str[i])) {
-        int_part = int_part * 10 + (str[i++] - '0');
+    
+    // Fast path: parse 8 digits at a time (only for numbers that fit)
+    if (i + 8 <= len && is_8_digits((const u8_t *)(str + i))) {
+        int_val = parse_8_digits((const u8_t *)(str + i));
+        i += 8;
+        // Parse up to 7 more digits (total 15 for f64 precision)
+        while (i < len && IS_DIGIT(str[i]) && (i - start) < 15) {
+            int_val = int_val * 10 + (str[i++] - '0');
+        }
+        // If more digits remain, use f64 accumulation to handle overflow gracefully
+        int_part = (f64_t)int_val;
+        while (i < len && IS_DIGIT(str[i])) {
+            int_part = int_part * 10 + (str[i++] - '0');
+        }
+    } else {
+        // Scalar path - use f64 from start to handle any size
+        int_part = 0;
+        while (i < len && IS_DIGIT(str[i])) {
+            int_part = int_part * 10 + (str[i++] - '0');
+        }
     }
 
     // Fractional part

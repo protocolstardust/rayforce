@@ -61,10 +61,16 @@ static i64_t *grow_offsets(i64_t *offsets, i64_t *capacity, i64_t line_count) {
 // Returns number of lines, allocates line_offsets_out array
 // line_offsets[i] = byte offset where line i starts (line 0 is first data line after header)
 i64_t io_build_line_index(str_p buf, i64_t size, i64_t **line_offsets_out) {
-    i64_t capacity = 1024;  // Initial capacity
+    i64_t capacity;
     i64_t line_count = 0;
     i64_t *offsets;
     i64_t pos = 0;
+
+    // Estimate initial capacity based on average line length (~50 bytes typical for CSV)
+    // Add 10% buffer to reduce reallocations
+    capacity = (size / 40) + 1024;
+    if (capacity < 1024)
+        capacity = 1024;
 
     offsets = (i64_t *)heap_mmap(capacity * sizeof(i64_t));
     if (offsets == NULL)
@@ -79,8 +85,11 @@ i64_t io_build_line_index(str_p buf, i64_t size, i64_t **line_offsets_out) {
                                  '\n', '\n', '\n', '\n', '\n', '\n', '\n', '\n',
                                  '\n', '\n', '\n', '\n', '\n', '\n', '\n', '\n'};
 
-    // Process aligned chunks of 32 bytes
+    // Process chunks of 32 bytes with prefetch
     while (pos + 32 <= size) {
+        // Prefetch ahead for better cache utilization
+        __builtin_prefetch(buf + pos + 512, 0, 0);
+
         // Load 32 bytes (unaligned load is fine on modern CPUs)
         v32u8 chunk;
         memcpy(&chunk, buf + pos, 32);
@@ -530,6 +539,10 @@ obj_p parse_csv_range(i8_t types[], i64_t num_types, str_p buf, i64_t size, i64_
     obj_p res = NULL_OBJ;
 
     for (i = 0, prev = buf; i < lines; i++) {
+        // Prefetch next cache lines for better memory access patterns
+        if (i + 1 < lines)
+            __builtin_prefetch(prev + 256, 0, 1);
+
         line_end = (str_p)memchr(prev, '\n', buf + size - prev);
         if (line_end == NULL) {
             line_end = buf + size;  // Handle last line without newline
