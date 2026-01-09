@@ -1706,7 +1706,8 @@ typedef struct __group_chunk_ctx_t {
     i64_t *local_groups;  // per-chunk group count
     hash_f hash;
     cmp_f cmp;
-    obj_p *local_hts;  // per-chunk hash tables
+    obj_p *local_hts;   // per-chunk hash tables
+    i64_t chunk_size;   // size of each chunk (for computing chunk index)
 } __group_chunk_ctx_t;
 
 // Phase 1: Each chunk builds its own local hash table and assigns local group IDs
@@ -1756,8 +1757,9 @@ obj_p index_group_chunk_local(i64_t len, i64_t offset, __group_chunk_ctx_t *ctx)
         }
     }
 
-    ctx->local_groups[offset > 0 ? 1 : 0] = groups;  // Store in appropriate slot based on chunk
-    ctx->local_hts[offset > 0 ? 1 : 0] = ht;
+    i64_t chunk_idx = offset / ctx->chunk_size;
+    ctx->local_groups[chunk_idx] = groups;
+    ctx->local_hts[chunk_idx] = ht;
 
     return NULL_OBJ;
 }
@@ -1827,6 +1829,10 @@ i64_t index_group_distribute(i64_t keys[], i64_t filter[], i64_t out[], i64_t le
     if (parts > 32)
         parts = 32;
 
+    // Calculate chunk sizes
+    chunk = len / parts;
+    last_chunk = len - chunk * (parts - 1);
+
     // Setup context
     ctx.keys = keys;
     ctx.filter = filter;
@@ -1835,29 +1841,20 @@ i64_t index_group_distribute(i64_t keys[], i64_t filter[], i64_t out[], i64_t le
     ctx.hash = hash;
     ctx.cmp = cmp;
     ctx.local_hts = local_hts;
+    ctx.chunk_size = chunk;
 
     // Initialize
     for (i = 0; i < parts; i++) {
         local_groups[i] = 0;
         local_hts[i] = NULL_OBJ;
+        offsets[i] = i * chunk;
     }
-
-    // Calculate chunk sizes
-    chunk = len / parts;
-    last_chunk = len - chunk * (parts - 1);
 
     // Phase 1: Build local hash tables in parallel (each chunk gets its own)
     pool_prepare(pool);
-    for (i = 0; i < parts; i++) {
-        offsets[i] = i * chunk;
-        ctx.local_groups = local_groups + i;
-        ctx.local_hts = local_hts + i;
-
-        if (i < parts - 1)
-            pool_add_task(pool, (raw_p)index_group_chunk_local, 3, chunk, i * chunk, &ctx);
-        else
-            pool_add_task(pool, (raw_p)index_group_chunk_local, 3, last_chunk, i * chunk, &ctx);
-    }
+    for (i = 0; i < parts - 1; i++)
+        pool_add_task(pool, (raw_p)index_group_chunk_local, 3, chunk, i * chunk, &ctx);
+    pool_add_task(pool, (raw_p)index_group_chunk_local, 3, last_chunk, (parts - 1) * chunk, &ctx);
     res = pool_run(pool);
     drop_obj(res);
 
