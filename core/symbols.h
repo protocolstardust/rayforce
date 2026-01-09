@@ -35,6 +35,9 @@
 // Get string length from compact symbol ID (defined in symbols.c)
 i64_t symbol_strlen(i64_t compact_id);
 
+// Backward compatibility macro
+#define SYMBOL_STRLEN(id) symbol_strlen(id)
+
 typedef struct symbol_t {
     lit_p str;
     i64_t compact_id;   // Sequential ID (0, 1, 2, ...)

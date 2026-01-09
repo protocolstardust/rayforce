@@ -51,7 +51,7 @@ i64_t raykx_size_obj(obj_p obj) {
         case -TYPE_F64:
             return ISIZEOF(i8_t) + ISIZEOF(f64_t);
         case -TYPE_SYMBOL:
-            return ISIZEOF(i8_t) + SYMBOL_STRLEN(obj->i64) + 1;
+            return ISIZEOF(i8_t) + symbol_strlen(obj->i64) + 1;
         case -TYPE_C8:
             return ISIZEOF(i8_t) + ISIZEOF(c8_t);
         case -TYPE_GUID:
@@ -79,7 +79,7 @@ i64_t raykx_size_obj(obj_p obj) {
             l = obj->len;
             size = ISIZEOF(i8_t) + 1 + ISIZEOF(u32_t);
             for (i = 0; i < l; i++)
-                size += SYMBOL_STRLEN(AS_SYMBOL(obj)[i]) + 1;
+                size += symbol_strlen(AS_SYMBOL(obj)[i]) + 1;
             return size;
         case TYPE_LIST:
             l = obj->len;
@@ -227,7 +227,7 @@ i64_t raykx_ser_obj(u8_t *buf, obj_p obj) {
             return RAYKX_SER_ATOM(b, obj, f64);
         case -TYPE_SYMBOL:
             str = str_from_symbol(obj->i64);
-            l = SYMBOL_STRLEN(obj->i64) + 1;
+            l = symbol_strlen(obj->i64) + 1;
             memcpy(buf, str, l);
             return ISIZEOF(i8_t) + l;
         case -TYPE_GUID:
@@ -257,7 +257,7 @@ i64_t raykx_ser_obj(u8_t *buf, obj_p obj) {
             b = buf;
             for (i = 0, n = 0; i < obj->len; i++) {
                 str = str_from_symbol(AS_SYMBOL(obj)[i]);
-                n = SYMBOL_STRLEN(AS_SYMBOL(obj)[i]) + 1;
+                n = symbol_strlen(AS_SYMBOL(obj)[i]) + 1;
                 memcpy(b, str, n);
                 b += n;
             }
