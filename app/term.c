@@ -1370,8 +1370,9 @@ obj_p term_handle_return(term_p term) {
         term->multiline_len = total_len;
         term->multiline_buf[term->multiline_len] = '\0';
     } else {
-        // Buffer overflow - handle error and skip further processing
-        LOG_ERROR("Error: input too long for multiline buffer");
+        // Buffer overflow - reset and inform user
+        term->multiline_len = 0;
+        printf("\n%sError: input too long for multiline buffer%s\n", RED, RESET);
         return NULL_OBJ;
     }
 
@@ -1554,6 +1555,23 @@ nil_t term_handle_ctrl_u(term_p term) {
     term_prompt(term);
 }
 
+nil_t term_handle_ctrl_c(term_p term) {
+    // Reset multiline buffer
+    term->multiline_len = 0;
+    term->multiline_buf[0] = '\0';
+
+    // Reset current line buffer
+    term->buf_pos = 0;
+    term->buf_len = 0;
+    term->buf[0] = '\0';
+
+    // Reset history state
+    hist_reset_current(term->hist);
+
+    printf("^C\n");
+    term_prompt(term);
+}
+
 obj_p term_read(term_p term) {
     obj_p res = NULL;
 
@@ -1598,9 +1616,13 @@ obj_p term_read(term_p term) {
             term->input_len = 0;
             break;
         case KEYCODE_CTRL_U:
-        case KEYCODE_CTRL_C:
             autocp_reset_current(term);
             term_handle_ctrl_u(term);
+            term->input_len = 0;
+            break;
+        case KEYCODE_CTRL_C:
+            autocp_reset_current(term);
+            term_handle_ctrl_c(term);
             term->input_len = 0;
             break;
         case KEYCODE_CTRL_A:
