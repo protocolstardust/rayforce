@@ -40,6 +40,7 @@
 #include "order.h"
 #include "cmp.h"
 #include "iter.h"
+#include "temporal.h"
 
 obj_p vary_call(obj_p f, obj_p *x, i64_t n) {
     vary_f fn;
@@ -217,18 +218,49 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
             if (IS_ERR(dirs))
                 return dirs;
 
-            // Try to convert dirs to a parted column (one of numeric datatypes)
-            res = cast_obj(TYPE_DATE, dirs);
+            res = NULL_OBJ;
+            if (dirs->len > 0 && AS_LIST(dirs)[0]->type == TYPE_C8) {
+                obj_p d = AS_LIST(dirs)[0];
+                c8_t c = d->len ? AS_C8(d)[0] : 0;
+            
+                if (c >= '0' && c <= '9') {
+                    b8_t has_D = B8_FALSE;
+                    for (i64_t k = 0; k < d->len; k++) {
+                        if (AS_C8(d)[k] == 'D') {
+                            has_D = B8_TRUE;
+                            break;
+                        }
+                    }
+                    // timestamp type has D in the middle (2025.10.10D00:00:00.000000000)
+                    res = cast_obj(has_D ? TYPE_TIMESTAMP : TYPE_DATE, dirs);
+                } else {
+                    res = cast_obj(TYPE_SYMBOL, dirs);
+                }
+            }
 
             if (IS_ERR(res)) {
                 drop_obj(dirs);
                 return res;
             }
 
-            // TODO: Sort parted dirs in an ascending order
-            v = cast_obj(TYPE_I64, res);
-            ord = ray_iasc(v);
-            drop_obj(v);
+            switch (res->type) {
+                case TYPE_DATE:
+                case TYPE_TIME:
+                case TYPE_TIMESTAMP:
+                case TYPE_I64:
+                case TYPE_I32:
+                    v = cast_obj(TYPE_I64, res);
+                    ord = ray_iasc(v);
+                    drop_obj(v);
+                    break;
+                case TYPE_SYMBOL:
+                    ord = ray_iasc(res);
+                    break;
+                default:
+                    drop_obj(res);
+                    drop_obj(dirs);
+                    return err_type(0, 0, 0, 0);
+            }
 
             if (IS_ERR(ord)) {
                 drop_obj(res);
@@ -349,7 +381,20 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
                 drop_obj(path);
             }
 
-            sym = (gcol->type == TYPE_DATE) ? symbol("Date", 4) : symbol("Id", 2);
+            switch (gcol->type) {
+                case TYPE_DATE:
+                    sym = symbol("Date", 4);
+                    break;
+                case TYPE_TIMESTAMP:
+                    sym = symbol("Timestamp", 9);
+                    break;
+                case TYPE_SYMBOL:
+                    sym = symbol("Sym", 3);
+                    break;
+                default:
+                    sym = symbol("Id", 2);
+                    break;
+            }
             keys = ray_concat(sym, AS_LIST(t1)[0]);
 
             l = wide + 1;
@@ -361,7 +406,16 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
             virtcol->type = TYPE_MAPCOMMON;
             for (i = 0; i < l; i++) {
                 n = ops_count(AS_LIST(AS_LIST(fmaps)[0])[i]);
-                AS_DATE(AS_LIST(virtcol)[0])[i] = AS_DATE(gcol)[i];
+                switch (gcol->type) {
+                    case TYPE_TIMESTAMP:
+                    case TYPE_I64:
+                    case TYPE_SYMBOL:
+                        AS_I64(AS_LIST(virtcol)[0])[i] = AS_I64(gcol)[i];
+                        break;
+                    default:
+                        AS_I32(AS_LIST(virtcol)[0])[i] = AS_I32(gcol)[i];
+                        break;
+                }
                 AS_I64(AS_LIST(virtcol)[1])[i] = n;
             }
 

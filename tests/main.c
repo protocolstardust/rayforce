@@ -402,6 +402,40 @@ test_entry_t tests[] = {
     {"test_parted_count_time", test_parted_count_time},
     // Parted distinct tests
     {"test_parted_distinct_i64", test_parted_distinct_i64},
+    // Timestamp-partitioned table tests
+    {"test_parted_timestamp_load", test_parted_timestamp_load},
+    {"test_parted_timestamp_column_name", test_parted_timestamp_column_name},
+    {"test_parted_timestamp_select_where", test_parted_timestamp_select_where},
+    {"test_parted_timestamp_select_where_in", test_parted_timestamp_select_where_in},
+    {"test_parted_timestamp_group_by", test_parted_timestamp_group_by},
+    {"test_parted_timestamp_aggregate_count", test_parted_timestamp_aggregate_count},
+    {"test_parted_timestamp_aggregate_sum", test_parted_timestamp_aggregate_sum},
+    {"test_parted_timestamp_aggregate_avg", test_parted_timestamp_aggregate_avg},
+    {"test_parted_timestamp_aggregate_minmax", test_parted_timestamp_aggregate_minmax},
+    {"test_parted_timestamp_aggregate_first_last", test_parted_timestamp_aggregate_first_last},
+    {"test_parted_timestamp_global_count", test_parted_timestamp_global_count},
+    {"test_parted_timestamp_global_sum", test_parted_timestamp_global_sum},
+    {"test_parted_timestamp_filter_aggregate", test_parted_timestamp_filter_aggregate},
+    {"test_parted_timestamp_range_filter", test_parted_timestamp_range_filter},
+    {"test_parted_timestamp_access_column", test_parted_timestamp_access_column},
+    {"test_parted_timestamp_multiple_aggregates", test_parted_timestamp_multiple_aggregates},
+    // Date partition column tests
+    {"test_parted_date_column_name", test_parted_date_column_name},
+    {"test_parted_date_access_column", test_parted_date_access_column},
+    // Symbol-partitioned table tests
+    {"test_parted_symbol_partition_load", test_parted_symbol_partition_load},
+    {"test_parted_symbol_partition_column_name", test_parted_symbol_partition_column_name},
+    {"test_parted_symbol_partition_select_where", test_parted_symbol_partition_select_where},
+    {"test_parted_symbol_partition_select_where_in", test_parted_symbol_partition_select_where_in},
+    {"test_parted_symbol_partition_group_by", test_parted_symbol_partition_group_by},
+    {"test_parted_symbol_partition_aggregate_count", test_parted_symbol_partition_aggregate_count},
+    {"test_parted_symbol_partition_aggregate_sum", test_parted_symbol_partition_aggregate_sum},
+    {"test_parted_symbol_partition_aggregate_avg", test_parted_symbol_partition_aggregate_avg},
+    {"test_parted_symbol_partition_aggregate_minmax", test_parted_symbol_partition_aggregate_minmax},
+    {"test_parted_symbol_partition_global_count", test_parted_symbol_partition_global_count},
+    {"test_parted_symbol_partition_global_sum", test_parted_symbol_partition_global_sum},
+    {"test_parted_symbol_partition_filter_aggregate", test_parted_symbol_partition_filter_aggregate},
+    {"test_parted_symbol_partition_multiple_aggregates", test_parted_symbol_partition_multiple_aggregates},
 };
 // ---
 

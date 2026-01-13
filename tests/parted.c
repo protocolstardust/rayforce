@@ -1714,3 +1714,346 @@ test_result_t test_parted_distinct_i64() {
     PASS();
 }
 
+// ============================================================================
+// Timestamp-partitioned table tests
+// ============================================================================
+
+// Setup for timestamp-partitioned tables
+// 3 partitions (timestamps), 50 rows each
+// Columns: OrderId (i64), Price (f64)
+#define PARTED_TIMESTAMP_TEST_SETUP                                                          \
+    "(do "                                                                                   \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"                                          \
+    "  (set n 50)"                                                                           \
+    "  (set gen-partition "                                                                  \
+    "    (fn [idx]"                                                                          \
+    "      (let ts (+ 2024.01.01D09:30:00.000 (* idx 86400000000000)))"                       \
+    "      (let p (format \"%/%/a/\" dbpath ts))"                                            \
+    "      (let t (table [OrderId Price] "                                                   \
+    "        (list "                                                                         \
+    "          (+ (* idx 1000) (til n))"                                                     \
+    "          (/ (+ (* idx 100.0) (til n)) 100.0)"                                          \
+    "        )"                                                                              \
+    "      ))"                                                                               \
+    "      (set-splayed p t)"                                                                \
+    "    )"                                                                                  \
+    "  )"                                                                                    \
+    "  (map gen-partition (til 3))"                                                          \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"                               \
+    ")"
+
+test_result_t test_parted_timestamp_load() {
+    parted_cleanup();
+    // 3 partitions, 50 rows each = 150 rows
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(count t)", "150");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_column_name() {
+    parted_cleanup();
+    // Partition column should be named 'Timestamp' for timestamp-partitioned tables
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(first (key t))", "'Timestamp");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_select_where() {
+    parted_cleanup();
+    // Filter by specific timestamp
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP
+                   "(count (select {from: t where: (== Timestamp 2024.01.02D09:30:00.000)}))",
+                   "50");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_select_where_in() {
+    parted_cleanup();
+    // Filter by multiple timestamps using 'in'
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP
+                   "(count (select {from: t where: (in Timestamp [2024.01.01D09:30:00.000 "
+                   "2024.01.03D09:30:00.000])}))",
+                   "100");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_group_by() {
+    parted_cleanup();
+    // Group by Timestamp
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(count (select {from: t by: Timestamp c: (count OrderId)}))", "3");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_aggregate_count() {
+    parted_cleanup();
+    // Count per timestamp partition
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(at (select {from: t by: Timestamp c: (count OrderId)}) 'c)",
+                   "[50 50 50]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_aggregate_sum() {
+    parted_cleanup();
+    // Sum of OrderId per timestamp
+    // Partition 0: 0+1+...+49 = 1225
+    // Partition 1: 1000+1001+...+1049 = 51225
+    // Partition 2: 2000+2001+...+2049 = 101225
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(at (select {from: t by: Timestamp s: (sum OrderId)}) 's)",
+                   "[1225 51225 101225]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_aggregate_avg() {
+    parted_cleanup();
+    // Avg of Price per timestamp
+    // Partition 0: avg((0..49)/100) = 0.245
+    // Partition 1: avg((100..149)/100) = 1.245
+    // Partition 2: avg((200..249)/100) = 2.245
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(count (at (select {from: t by: Timestamp a: (avg Price)}) 'a))", "3");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_aggregate_minmax() {
+    parted_cleanup();
+    // Min/Max OrderId per timestamp
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(at (select {from: t by: Timestamp mn: (min OrderId)}) 'mn)",
+                   "[0 1000 2000]");
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(at (select {from: t by: Timestamp mx: (max OrderId)}) 'mx)",
+                   "[49 1049 2049]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_aggregate_first_last() {
+    parted_cleanup();
+    // First/Last OrderId per timestamp
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(at (select {from: t by: Timestamp f: (first OrderId)}) 'f)",
+                   "[0 1000 2000]");
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(at (select {from: t by: Timestamp l: (last OrderId)}) 'l)",
+                   "[49 1049 2049]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_global_count() {
+    parted_cleanup();
+    // Global count across all timestamp partitions
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(at (select {from: t c: (count OrderId)}) 'c)", "[150]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_global_sum() {
+    parted_cleanup();
+    // Global sum of OrderId
+    // Total = 1225 + 51225 + 101225 = 153675
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(at (select {from: t s: (sum OrderId)}) 's)", "[153675]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_filter_aggregate() {
+    parted_cleanup();
+    // Filter by timestamp then aggregate
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP
+                   "(at (select {from: t where: (== Timestamp 2024.01.02D09:30:00.000) s: (sum OrderId)}) 's)",
+                   "[51225]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_range_filter() {
+    parted_cleanup();
+    // Filter by timestamp range
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP
+                   "(count (select {from: t where: (>= Timestamp 2024.01.02D09:30:00.000)}))",
+                   "100");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_access_column() {
+    parted_cleanup();
+    // Access the Timestamp column values
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP "(first (at t 'Timestamp))", "2024.01.01D09:30:00.000000000");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_timestamp_multiple_aggregates() {
+    parted_cleanup();
+    // Multiple aggregates in one query
+    TEST_ASSERT_EQ(PARTED_TIMESTAMP_TEST_SETUP
+                   "(count (select {from: t by: Timestamp c: (count OrderId) s: (sum OrderId) mn: (min Price) mx: (max "
+                   "Price)}))",
+                   "3");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Date partition column name tests (verify Date columns are named correctly)
+// ============================================================================
+
+test_result_t test_parted_date_column_name() {
+    parted_cleanup();
+    // Partition column should be named 'Date' for date-partitioned tables
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(first (key t))", "'Date");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_date_access_column() {
+    parted_cleanup();
+    // Access the Date column values
+    TEST_ASSERT_EQ(PARTED_TEST_SETUP "(first (at t 'Date))", "2024.01.01");
+    parted_cleanup();
+    PASS();
+}
+
+// ============================================================================
+// Symbol-partitioned table tests
+// ============================================================================
+
+// Setup for symbol-partitioned tables
+// 3 partitions (AAPL, GOOG, MSFT), 20 rows each
+// Columns: Price (f64), Volume (i64)
+#define PARTED_SYMBOL_TEST_SETUP                                                             \
+    "(do "                                                                                   \
+    "  (set dbpath \"/tmp/rayforce_test_parted/\")"                                          \
+    "  (set n 20)"                                                                           \
+    "  (set syms (list \"AAPL\" \"GOOG\" \"MSFT\"))"                                          \
+    "  (set gen-partition "                                                                  \
+    "    (fn [idx]"                                                                          \
+    "      (let s (at syms idx))"                                                            \
+    "      (let p (format \"%/%/a/\" dbpath s))"                                             \
+    "      (let t (table [Price Volume] "                                                    \
+    "        (list "                                                                         \
+    "          (+ (* idx 100.0) (til n))"                                                    \
+    "          (+ (* idx 1000) (til n))"                                                     \
+    "        )"                                                                              \
+    "      ))"                                                                               \
+    "      (set-splayed p t)"                                                                \
+    "    )"                                                                                  \
+    "  )"                                                                                    \
+    "  (map gen-partition (til 3))"                                                          \
+    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"                               \
+    ")"
+
+test_result_t test_parted_symbol_partition_load() {
+    parted_cleanup();
+    // 3 partitions, 20 rows each = 60 rows
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(count t)", "60");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_column_name() {
+    parted_cleanup();
+    // Partition column should be named 'Sym' for symbol-partitioned tables
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(first (key t))", "'Sym");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_select_where() {
+    parted_cleanup();
+    // Filter by specific symbol
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(count (select {from: t where: (== Sym 'GOOG)}))", "20");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_select_where_in() {
+    parted_cleanup();
+    // Filter by multiple symbols using 'in'
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(count (select {from: t where: (in Sym ['AAPL 'MSFT])}))", "40");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_group_by() {
+    parted_cleanup();
+    // Group by Sym
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(count (select {from: t by: Sym c: (count Price)}))", "3");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_aggregate_count() {
+    parted_cleanup();
+    // Count per symbol partition
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(at (select {from: t by: Sym c: (count Price)}) 'c)", "[20 20 20]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_aggregate_sum() {
+    parted_cleanup();
+    // Sum of Volume per symbol
+    // Partition AAPL: 0+1+...+19 = 190
+    // Partition GOOG: 1000+1001+...+1019 = 20190
+    // Partition MSFT: 2000+2001+...+2019 = 40190
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(at (select {from: t by: Sym s: (sum Volume)}) 's)", "[190 20190 40190]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_aggregate_avg() {
+    parted_cleanup();
+    // Avg Price per symbol
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(count (at (select {from: t by: Sym a: (avg Price)}) 'a))", "3");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_aggregate_minmax() {
+    parted_cleanup();
+    // Min/Max Volume per symbol
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(at (select {from: t by: Sym mn: (min Volume)}) 'mn)", "[0 1000 2000]");
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(at (select {from: t by: Sym mx: (max Volume)}) 'mx)", "[19 1019 2019]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_global_count() {
+    parted_cleanup();
+    // Global count across all symbol partitions
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(at (select {from: t c: (count Volume)}) 'c)", "[60]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_global_sum() {
+    parted_cleanup();
+    // Global sum of Volume = 190 + 20190 + 40190 = 60570
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(at (select {from: t s: (sum Volume)}) 's)", "[60570]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_filter_aggregate() {
+    parted_cleanup();
+    // Filter by symbol then aggregate
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP "(at (select {from: t where: (== Sym 'GOOG) s: (sum Volume)}) 's)",
+                   "[20190]");
+    parted_cleanup();
+    PASS();
+}
+
+test_result_t test_parted_symbol_partition_multiple_aggregates() {
+    parted_cleanup();
+    // Multiple aggregates in one query
+    TEST_ASSERT_EQ(PARTED_SYMBOL_TEST_SETUP
+                   "(count (select {from: t by: Sym c: (count Price) s: (sum Volume) mn: (min Price) mx: (max Price)}))",
+                   "3");
+    parted_cleanup();
+    PASS();
+}
+
