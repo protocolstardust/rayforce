@@ -179,7 +179,7 @@ obj_p sys_set_fpr(i32_t argc, str_p argv[]) {
 
     i64_from_str(argv[0], strlen(argv[0]), &fpr);
     if (fpr < 0)
-        return err_type(0, 0, 0, 0);
+        return err_domain(1, 0);
 
     res = format_set_fpr(fpr);
     if (res != 0)
@@ -196,10 +196,7 @@ obj_p sys_set_display_width(i32_t argc, str_p argv[]) {
 
     i64_from_str(argv[0], strlen(argv[0]), &width);
     if (width < 0)
-        return err_type(0, 0, 0, 0);
-
-    if (width < 0)
-        return err_type(0, 0, 0, 0);
+        return err_domain(1, 0);
 
     res = format_set_display_width(width);
     if (res != 0)
@@ -216,7 +213,7 @@ obj_p sys_timeit(i32_t argc, str_p argv[]) {
 
     i64_from_str(argv[0], strlen(argv[0]), &res);
     if (res < 0)
-        return err_type(0, 0, 0, 0);
+        return err_domain(1, 0);
 
     timeit_activate(res != 0);
 
@@ -235,10 +232,7 @@ obj_p sys_listen(i32_t argc, str_p argv[]) {
     l = strlen(argv[0]);
     i64_from_str(argv[0], l, &res);
     if (res < 0)
-        return err_type(0, 0, 0, 0);
-
-    if (res < 0)
-        return err_type(0, 0, 0, 0);
+        return err_domain(1, 0);
 
     res = ipc_listen(runtime_get()->poll, res);
 
@@ -260,7 +254,7 @@ obj_p sys_exit(i32_t argc, str_p argv[]) {
         l = strlen(argv[0]);
         i64_from_str(argv[0], l, &code);
         if (code < 0)
-            return err_type(0, 0, 0, 0);
+            return err_domain(1, 0);
     }
 
     poll_exit(runtime_get()->poll, code);
@@ -366,7 +360,7 @@ obj_p ray_system(obj_p cmd) {
     obj_p c, res;
 
     if (cmd->type != TYPE_C8)
-        return err_type(0, 0, 0, 0);
+        return err_type(TYPE_C8, cmd->type, 1, 0);
 
     // Try internal command first
     res = ray_internal_command(cmd);

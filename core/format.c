@@ -59,7 +59,7 @@ const lit_p unicode_glyphs[] = {"│", "─", "┌", "┐", "└", "┘", "├",
                                 "❯", "∶", "‾", "•", "╭", "╰", "╮", "╯", "┆", "…", "█"};
 obj_p ray_set_fpr(obj_p x) {
     if (x->type != -TYPE_I64)
-        return err_type(0, 0, 0, 0);
+        return err_type(-TYPE_I64, x->type, 1, 0);
 
     if (x->i64 < 0)
         F64_PRECISION = DEFAULT_F64_PRECISION;

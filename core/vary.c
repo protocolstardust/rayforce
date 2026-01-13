@@ -149,13 +149,13 @@ obj_p ray_set_splayed(obj_p *x, i64_t n) {
             return ray_set(x[0], x[1]);
         case 3:
             if (x[0]->type != TYPE_C8)
-                return err_type(0, 0, 0, 0);
+                return err_type(TYPE_C8, x[0]->type, 1, 0);
 
             if (x[1]->type != TYPE_TABLE)
-                return err_type(0, 0, 0, 0);
+                return err_type(TYPE_TABLE, x[1]->type, 2, 0);
 
             if (x[0]->len < 2 || AS_C8(x[0])[x[0]->len - 1] != '/')
-                return err_type(0, 0, 0, 0);
+                return err_domain(1, 0);
 
             return io_set_table_splayed(x[0], x[1], x[2]);
         default:
@@ -256,10 +256,12 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
                 case TYPE_SYMBOL:
                     ord = ray_iasc(res);
                     break;
-                default:
+                default: {
+                    i8_t res_type = res->type;
                     drop_obj(res);
                     drop_obj(dirs);
-                    return err_type(0, 0, 0, 0);
+                    return err_type(TYPE_SYMBOL, res_type, 0, 0);
+                }
             }
 
             if (IS_ERR(ord)) {
@@ -281,7 +283,7 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
             if (l == 0) {
                 drop_obj(gcol);
                 drop_obj(res);
-                return err_type(0, 0, 0, 0);
+                return err_domain(1, 0);
             }
 
             // Load schema of the first partition
@@ -355,7 +357,7 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
                     drop_obj(t2);
                     drop_obj(path);
                     drop_obj(fmaps);
-                    return err_type(0, 0, 0, 0);
+                    return err_type(TYPE_SYMBOL, AS_LIST(t2)[0]->type, 2, 0);
                 }
 
                 drop_obj(eq);
@@ -363,13 +365,15 @@ obj_p ray_get_parted(obj_p *x, i64_t n) {
                 // Partitions must have the same column types
                 for (j = 0; j < wide; j++) {
                     if (AS_LIST(AS_LIST(t1)[1])[j]->type != AS_LIST(AS_LIST(t2)[1])[j]->type) {
+                        i8_t expected_type = AS_LIST(AS_LIST(t1)[1])[j]->type;
+                        i8_t actual_type = AS_LIST(AS_LIST(t2)[1])[j]->type;
                         drop_obj(gcol);
                         drop_obj(res);
                         drop_obj(t1);
                         drop_obj(t2);
                         drop_obj(path);
                         drop_obj(fmaps);
-                        return err_type(0, 0, 0, 0);
+                        return err_type(expected_type, actual_type, 2, 0);
                     }
                 }
 

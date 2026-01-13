@@ -342,7 +342,7 @@ obj_p ser_obj(obj_p obj) {
     ipc_header_t *header;
 
     if (size == 0)
-        return err_type(0, 0, 0, 0);
+        return err_domain(1, 0);
 
     buf = vector(TYPE_U8, ISIZEOF(struct ipc_header_t) + size);
     header = (ipc_header_t *)AS_U8(buf);
@@ -356,7 +356,7 @@ obj_p ser_obj(obj_p obj) {
 
     if (ser_raw(AS_U8(buf) + ISIZEOF(struct ipc_header_t), obj) == 0) {
         drop_obj(buf);
-        return err_type(0, 0, 0, 0);
+        return err_domain(1, 0);
     }
 
     return buf;
@@ -674,7 +674,7 @@ obj_p de_raw(u8_t *buf, i64_t *len) {
         }
 
         default:
-            return err_type(0, 0, 0, 0);
+            return err_type(TYPE_LIST, type, 0, 0);
     }
 }
 
@@ -697,7 +697,7 @@ obj_p de_obj(obj_p obj) {
         return err_domain(0, 0);
 
     if (header->version > RAYFORCE_VERSION)
-        return err_type(0, 0, 0, 0);
+        return err_domain(0, 0);
 
     // Check for reasonable size values
     if (header->size > 1000000000)  // 1GB max size
