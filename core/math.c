@@ -473,8 +473,12 @@ obj_p ray_add_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
         // Temporal atom-vector
         case MTYPE2(-TYPE_DATE, TYPE_I32):
             return __BINOP_A_V(x, y, i32, i32, date, date, ADDI32, len, offset, out);
+        case MTYPE2(TYPE_I32, -TYPE_DATE):
+            return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_DATE, TYPE_I64):
             return __BINOP_A_V(x, y, i32, i64, date, date, ADDI32, len, offset, out);
+        case MTYPE2(TYPE_I64, -TYPE_DATE):
+            return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_DATE, TYPE_TIME):
             return __BINOP_A_V(x, y, date, time, timestamp, timestamp, ADDI64, len, offset, out);
         case MTYPE2(TYPE_TIME, -TYPE_DATE):
@@ -482,10 +486,13 @@ obj_p ray_add_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
         case MTYPE2(-TYPE_TIME, TYPE_I32):
         case MTYPE2(-TYPE_TIME, TYPE_TIME):
             return __BINOP_A_V(x, y, i32, i32, time, time, ADDI32, len, offset, out);
+        case MTYPE2(TYPE_I32, -TYPE_TIME):
         case MTYPE2(TYPE_TIME, -TYPE_TIME):
             return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_TIME, TYPE_I64):
             return __BINOP_A_V(x, y, i32, i64, time, time, ADDI32, len, offset, out);
+        case MTYPE2(TYPE_I64, -TYPE_TIME):
+            return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_TIME, TYPE_DATE):
             return __BINOP_A_V(x, y, time, date, timestamp, timestamp, ADDI64, len, offset, out);
         case MTYPE2(TYPE_DATE, -TYPE_TIME):
@@ -494,10 +501,16 @@ obj_p ray_add_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_A_V(x, y, time, timestamp, timestamp, timestamp, ADDI64, len, offset, out);
         case MTYPE2(TYPE_TIMESTAMP, -TYPE_TIME):
             return ray_add_partial(y, x, len, offset, out);
+        case MTYPE2(TYPE_TIME, -TYPE_TIMESTAMP):
+            return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_TIMESTAMP, TYPE_I32):
             return __BINOP_A_V(x, y, i64, i32, timestamp, timestamp, ADDI64, len, offset, out);
+        case MTYPE2(TYPE_I32, -TYPE_TIMESTAMP):
+            return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_TIMESTAMP, TYPE_I64):
             return __BINOP_A_V(x, y, i64, i64, timestamp, timestamp, ADDI64, len, offset, out);
+        case MTYPE2(TYPE_I64, -TYPE_TIMESTAMP):
+            return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_TIMESTAMP, TYPE_TIME):
             return __BINOP_A_V(x, y, i64, time, timestamp, timestamp, ADDI64, len, offset, out);
 
@@ -1064,8 +1077,12 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
 
         case MTYPE2(-TYPE_TIME, TYPE_I32):
             return __BINOP_A_V(x, y, time, i32, time, time, MULI32, len, offset, out);
+        case MTYPE2(TYPE_I32, -TYPE_TIME):
+            return ray_mul_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_TIME, TYPE_I64):
             return __BINOP_A_V(x, y, time, i64, time, time, MULI32, len, offset, out);
+        case MTYPE2(TYPE_I64, -TYPE_TIME):
+            return ray_mul_partial(y, x, len, offset, out);
 
         case MTYPE2(-TYPE_U8, TYPE_U8):
             return __BINOP_A_V(x, y, u8, u8, u8, u8, MULU8, len, offset, out);

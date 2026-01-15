@@ -126,9 +126,10 @@ nil_t on_skip(str_p msg) { printf("%sSkipped%s (%s)\n", YELLOW, RESET, msg ? msg
         obj_p le = eval_str(lhs);                                                                                      \
         obj_p lns = obj_fmt(le, B8_TRUE);                                                                              \
         if (IS_ERR(le)) {                                                                                              \
+            printf("  Expression: %s => %s\n", lhs, AS_C8(lns));                                                       \
             drop_obj(lns);                                                                                             \
             drop_obj(le);                                                                                              \
-            SKIP("error in eval");                                                                                     \
+            FAIL("error in eval");                                                                                     \
         } else {                                                                                                       \
             obj_p re = eval_str(rhs);                                                                                  \
             obj_p rns = obj_fmt(re, B8_TRUE);                                                                          \
