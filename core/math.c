@@ -285,6 +285,10 @@ obj_p ray_add_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return f64(ADDF64(u8_to_f64(x->u8), y->f64));
         case MTYPE2(-TYPE_F64, -TYPE_U8):
             return ray_add_partial(y, x, len, offset, out);
+        case MTYPE2(-TYPE_U8, -TYPE_I16):
+            return i16(ADDI16(u8_to_i16(x->u8), y->i16));
+        case MTYPE2(-TYPE_I16, -TYPE_U8):
+            return ray_add_partial(y, x, len, offset, out);
 
         // Symmetric: i16 with larger types
         case MTYPE2(-TYPE_I16, -TYPE_I16):
@@ -442,6 +446,10 @@ obj_p ray_add_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_A_V(x, y, u8, f64, f64, f64, ADDF64, len, offset, out);
         case MTYPE2(TYPE_F64, -TYPE_U8):
             return ray_add_partial(y, x, len, offset, out);
+        case MTYPE2(-TYPE_U8, TYPE_I16):
+            return __BINOP_A_V(x, y, u8, i16, i16, i16, ADDI16, len, offset, out);
+        case MTYPE2(TYPE_I16, -TYPE_U8):
+            return ray_add_partial(y, x, len, offset, out);
 
         case MTYPE2(-TYPE_I16, TYPE_I16):
             return __BINOP_A_V(x, y, i16, i16, i16, i16, ADDI16, len, offset, out);
@@ -457,6 +465,10 @@ obj_p ray_add_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_I16, TYPE_F64):
             return __BINOP_A_V(x, y, i16, f64, f64, f64, ADDF64, len, offset, out);
+        case MTYPE2(-TYPE_I16, TYPE_U8):
+            return __BINOP_A_V(x, y, i16, u8, i16, i16, ADDI16, len, offset, out);
+        case MTYPE2(TYPE_U8, -TYPE_I16):
+            return ray_add_partial(y, x, len, offset, out);
 
         // Temporal atom-vector
         case MTYPE2(-TYPE_DATE, TYPE_I32):
@@ -565,6 +577,10 @@ obj_p ray_add_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
 
         case MTYPE2(TYPE_U8, TYPE_U8):
             return __BINOP_V_V(x, y, u8, u8, u8, u8, ADDU8, len, offset, out);
+        case MTYPE2(TYPE_U8, TYPE_I16):
+            return __BINOP_V_V(x, y, u8, i16, i16, i16, ADDI16, len, offset, out);
+        case MTYPE2(TYPE_I16, TYPE_U8):
+            return ray_add_partial(y, x, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I16):
             return __BINOP_V_V(x, y, i16, i16, i16, i16, ADDI16, len, offset, out);
 
@@ -778,8 +794,12 @@ obj_p ray_sub_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return i64(SUBI64(u8_to_i64(x->u8), y->i64));
         case MTYPE2(-TYPE_U8, -TYPE_F64):
             return f64(SUBF64(u8_to_f64(x->u8), y->f64));
+        case MTYPE2(-TYPE_U8, -TYPE_I16):
+            return i16(SUBI16(u8_to_i16(x->u8), y->i16));
         case MTYPE2(-TYPE_U8, TYPE_U8):
             return __BINOP_A_V(x, y, u8, u8, u8, u8, SUBU8, len, offset, out);
+        case MTYPE2(-TYPE_U8, TYPE_I16):
+            return __BINOP_A_V(x, y, u8, i16, i16, i16, SUBI16, len, offset, out);
         case MTYPE2(-TYPE_U8, TYPE_I32):
             return __BINOP_A_V(x, y, u8, i32, i32, i32, SUBI32, len, offset, out);
         case MTYPE2(-TYPE_U8, TYPE_I64):
@@ -794,8 +814,12 @@ obj_p ray_sub_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_A(x, y, u8, i64, i64, i64, SUBI64, len, offset, out);
         case MTYPE2(TYPE_U8, -TYPE_F64):
             return __BINOP_V_A(x, y, u8, f64, f64, f64, SUBF64, len, offset, out);
+        case MTYPE2(TYPE_U8, -TYPE_I16):
+            return __BINOP_V_A(x, y, u8, i16, i16, i16, SUBI16, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_U8):
             return __BINOP_V_V(x, y, u8, u8, u8, u8, SUBU8, len, offset, out);
+        case MTYPE2(TYPE_U8, TYPE_I16):
+            return __BINOP_V_V(x, y, u8, i16, i16, i16, SUBI16, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_I32):
             return __BINOP_V_V(x, y, u8, i32, i32, i32, SUBI32, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_I64):
@@ -811,8 +835,12 @@ obj_p ray_sub_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return i64(SUBI64(i16_to_i64(x->i16), y->i64));
         case MTYPE2(-TYPE_I16, -TYPE_F64):
             return f64(SUBF64(i16_to_f64(x->i16), y->f64));
+        case MTYPE2(-TYPE_I16, -TYPE_U8):
+            return i16(SUBI16(x->i16, u8_to_i16(y->u8)));
         case MTYPE2(-TYPE_I16, TYPE_I16):
             return __BINOP_A_V(x, y, i16, i16, i16, i16, SUBI16, len, offset, out);
+        case MTYPE2(-TYPE_I16, TYPE_U8):
+            return __BINOP_A_V(x, y, i16, u8, i16, i16, SUBI16, len, offset, out);
         case MTYPE2(-TYPE_I16, TYPE_I32):
             return __BINOP_A_V(x, y, i16, i32, i32, i32, SUBI32, len, offset, out);
         case MTYPE2(-TYPE_I16, TYPE_I64):
@@ -827,8 +855,12 @@ obj_p ray_sub_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_A(x, y, i16, i64, i64, i64, SUBI64, len, offset, out);
         case MTYPE2(TYPE_I16, -TYPE_F64):
             return __BINOP_V_A(x, y, i16, f64, f64, f64, SUBF64, len, offset, out);
+        case MTYPE2(TYPE_I16, -TYPE_U8):
+            return __BINOP_V_A(x, y, i16, u8, i16, i16, SUBI16, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I16):
             return __BINOP_V_V(x, y, i16, i16, i16, i16, SUBI16, len, offset, out);
+        case MTYPE2(TYPE_I16, TYPE_U8):
+            return __BINOP_V_V(x, y, i16, u8, i16, i16, SUBI16, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I32):
             return __BINOP_V_V(x, y, i16, i32, i32, i32, SUBI32, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I64):
@@ -936,6 +968,10 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
         case MTYPE2(-TYPE_U8, -TYPE_F64):
             return f64(MULF64(u8_to_f64(x->u8), y->f64));
         case MTYPE2(-TYPE_F64, -TYPE_U8):
+            return ray_mul_partial(y, x, len, offset, out);
+        case MTYPE2(-TYPE_U8, -TYPE_I16):
+            return i16(MULI16(u8_to_i16(x->u8), y->i16));
+        case MTYPE2(-TYPE_I16, -TYPE_U8):
             return ray_mul_partial(y, x, len, offset, out);
 
         // Symmetric: i16 with larger types
@@ -1047,6 +1083,10 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_A_V(x, y, u8, f64, f64, f64, MULF64, len, offset, out);
         case MTYPE2(TYPE_F64, -TYPE_U8):
             return ray_mul_partial(y, x, len, offset, out);
+        case MTYPE2(-TYPE_U8, TYPE_I16):
+            return __BINOP_A_V(x, y, u8, i16, i16, i16, MULI16, len, offset, out);
+        case MTYPE2(TYPE_I16, -TYPE_U8):
+            return ray_mul_partial(y, x, len, offset, out);
 
         case MTYPE2(-TYPE_I16, TYPE_I16):
             return __BINOP_A_V(x, y, i16, i16, i16, i16, MULI16, len, offset, out);
@@ -1062,6 +1102,10 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return ray_mul_partial(y, x, len, offset, out);
         case MTYPE2(-TYPE_I16, TYPE_F64):
             return __BINOP_A_V(x, y, i16, f64, f64, f64, MULF64, len, offset, out);
+        case MTYPE2(-TYPE_I16, TYPE_U8):
+            return __BINOP_A_V(x, y, i16, u8, i16, i16, MULI16, len, offset, out);
+        case MTYPE2(TYPE_U8, -TYPE_I16):
+            return ray_mul_partial(y, x, len, offset, out);
 
         // Vector-Vector symmetric
         case MTYPE2(TYPE_B8, TYPE_I64):
@@ -1123,6 +1167,10 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
 
         case MTYPE2(TYPE_U8, TYPE_U8):
             return __BINOP_V_V(x, y, u8, u8, u8, u8, MULU8, len, offset, out);
+        case MTYPE2(TYPE_U8, TYPE_I16):
+            return __BINOP_V_V(x, y, u8, i16, i16, i16, MULI16, len, offset, out);
+        case MTYPE2(TYPE_I16, TYPE_U8):
+            return ray_mul_partial(y, x, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I16):
             return __BINOP_V_V(x, y, i16, i16, i16, i16, MULI16, len, offset, out);
 
@@ -1244,8 +1292,12 @@ obj_p ray_div_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return i64(DIVI64(u8_to_i64(x->u8), y->i64));
         case MTYPE2(-TYPE_U8, -TYPE_F64):
             return f64(DIVF64(u8_to_f64(x->u8), y->f64));
+        case MTYPE2(-TYPE_U8, -TYPE_I16):
+            return i16(DIVI16(u8_to_i16(x->u8), y->i16));
         case MTYPE2(-TYPE_U8, TYPE_U8):
             return __BINOP_A_V(x, y, u8, u8, u8, u8, DIVU8, len, offset, out);
+        case MTYPE2(-TYPE_U8, TYPE_I16):
+            return __BINOP_A_V(x, y, u8, i16, i16, i16, DIVI16, len, offset, out);
         case MTYPE2(-TYPE_U8, TYPE_I32):
             return __BINOP_A_V(x, y, u8, i32, i32, i32, DIVI32, len, offset, out);
         case MTYPE2(-TYPE_U8, TYPE_I64):
@@ -1260,8 +1312,12 @@ obj_p ray_div_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_A(x, y, u8, i64, i64, i64, DIVI64, len, offset, out);
         case MTYPE2(TYPE_U8, -TYPE_F64):
             return __BINOP_V_A(x, y, u8, f64, f64, f64, DIVF64, len, offset, out);
+        case MTYPE2(TYPE_U8, -TYPE_I16):
+            return __BINOP_V_A(x, y, u8, i16, i16, i16, DIVI16, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_U8):
             return __BINOP_V_V(x, y, u8, u8, u8, u8, DIVU8, len, offset, out);
+        case MTYPE2(TYPE_U8, TYPE_I16):
+            return __BINOP_V_V(x, y, u8, i16, i16, i16, DIVI16, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_I32):
             return __BINOP_V_V(x, y, u8, i32, i32, i32, DIVI32, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_I64):
@@ -1277,8 +1333,12 @@ obj_p ray_div_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return i64(DIVI64(i16_to_i64(x->i16), y->i64));
         case MTYPE2(-TYPE_I16, -TYPE_F64):
             return f64(DIVF64(i16_to_f64(x->i16), y->f64));
+        case MTYPE2(-TYPE_I16, -TYPE_U8):
+            return i16(DIVI16(x->i16, u8_to_i16(y->u8)));
         case MTYPE2(-TYPE_I16, TYPE_I16):
             return __BINOP_A_V(x, y, i16, i16, i16, i16, DIVI16, len, offset, out);
+        case MTYPE2(-TYPE_I16, TYPE_U8):
+            return __BINOP_A_V(x, y, i16, u8, i16, i16, DIVI16, len, offset, out);
         case MTYPE2(-TYPE_I16, TYPE_I32):
             return __BINOP_A_V(x, y, i16, i32, i32, i32, DIVI32, len, offset, out);
         case MTYPE2(-TYPE_I16, TYPE_I64):
@@ -1293,8 +1353,12 @@ obj_p ray_div_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_A(x, y, i16, i64, i64, i64, DIVI64, len, offset, out);
         case MTYPE2(TYPE_I16, -TYPE_F64):
             return __BINOP_V_A(x, y, i16, f64, f64, f64, DIVF64, len, offset, out);
+        case MTYPE2(TYPE_I16, -TYPE_U8):
+            return __BINOP_V_A(x, y, i16, u8, i16, i16, DIVI16, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I16):
             return __BINOP_V_V(x, y, i16, i16, i16, i16, DIVI16, len, offset, out);
+        case MTYPE2(TYPE_I16, TYPE_U8):
+            return __BINOP_V_V(x, y, i16, u8, i16, i16, DIVI16, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I32):
             return __BINOP_V_V(x, y, i16, i32, i32, i32, DIVI32, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I64):
@@ -1545,8 +1609,12 @@ obj_p ray_mod_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return i32(MODI32(u8_to_i32(x->u8), y->i32));
         case MTYPE2(-TYPE_U8, -TYPE_I64):
             return i64(MODI64(u8_to_i64(x->u8), y->i64));
+        case MTYPE2(-TYPE_U8, -TYPE_I16):
+            return i16(MODI16(u8_to_i16(x->u8), y->i16));
         case MTYPE2(-TYPE_U8, TYPE_U8):
             return __BINOP_A_V(x, y, u8, u8, u8, u8, MODU8, len, offset, out);
+        case MTYPE2(-TYPE_U8, TYPE_I16):
+            return __BINOP_A_V(x, y, u8, i16, i16, i16, MODI16, len, offset, out);
         case MTYPE2(-TYPE_U8, TYPE_I32):
             return __BINOP_A_V(x, y, u8, i32, i32, i32, MODI32, len, offset, out);
         case MTYPE2(-TYPE_U8, TYPE_I64):
@@ -1557,8 +1625,12 @@ obj_p ray_mod_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_A(x, y, u8, i32, i32, i32, MODI32, len, offset, out);
         case MTYPE2(TYPE_U8, -TYPE_I64):
             return __BINOP_V_A(x, y, u8, i64, i64, i64, MODI64, len, offset, out);
+        case MTYPE2(TYPE_U8, -TYPE_I16):
+            return __BINOP_V_A(x, y, u8, i16, i16, i16, MODI16, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_U8):
             return __BINOP_V_V(x, y, u8, u8, u8, u8, MODU8, len, offset, out);
+        case MTYPE2(TYPE_U8, TYPE_I16):
+            return __BINOP_V_V(x, y, u8, i16, i16, i16, MODI16, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_I32):
             return __BINOP_V_V(x, y, u8, i32, i32, i32, MODI32, len, offset, out);
         case MTYPE2(TYPE_U8, TYPE_I64):
@@ -1570,8 +1642,12 @@ obj_p ray_mod_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return i32(MODI32(i16_to_i32(x->i16), y->i32));
         case MTYPE2(-TYPE_I16, -TYPE_I64):
             return i64(MODI64(i16_to_i64(x->i16), y->i64));
+        case MTYPE2(-TYPE_I16, -TYPE_U8):
+            return i16(MODI16(x->i16, u8_to_i16(y->u8)));
         case MTYPE2(-TYPE_I16, TYPE_I16):
             return __BINOP_A_V(x, y, i16, i16, i16, i16, MODI16, len, offset, out);
+        case MTYPE2(-TYPE_I16, TYPE_U8):
+            return __BINOP_A_V(x, y, i16, u8, i16, i16, MODI16, len, offset, out);
         case MTYPE2(-TYPE_I16, TYPE_I32):
             return __BINOP_A_V(x, y, i16, i32, i32, i32, MODI32, len, offset, out);
         case MTYPE2(-TYPE_I16, TYPE_I64):
@@ -1582,8 +1658,12 @@ obj_p ray_mod_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_A(x, y, i16, i32, i32, i32, MODI32, len, offset, out);
         case MTYPE2(TYPE_I16, -TYPE_I64):
             return __BINOP_V_A(x, y, i16, i64, i64, i64, MODI64, len, offset, out);
+        case MTYPE2(TYPE_I16, -TYPE_U8):
+            return __BINOP_V_A(x, y, i16, u8, i16, i16, MODI16, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I16):
             return __BINOP_V_V(x, y, i16, i16, i16, i16, MODI16, len, offset, out);
+        case MTYPE2(TYPE_I16, TYPE_U8):
+            return __BINOP_V_V(x, y, i16, u8, i16, i16, MODI16, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I32):
             return __BINOP_V_V(x, y, i16, i32, i32, i32, MODI32, len, offset, out);
         case MTYPE2(TYPE_I16, TYPE_I64):
