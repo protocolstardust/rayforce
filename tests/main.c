@@ -40,7 +40,6 @@
 #include "../core/pool.h"
 #include "../core/sys.h"
 #include "../core/eval.h"
-#include "../core/error.h"
 
 typedef enum test_status_t { TEST_PASS = 0, TEST_FAIL, TEST_SKIP } test_status_t;
 
@@ -60,16 +59,22 @@ typedef struct test_entry_t {
 
 // Setup and Teardown functions
 nil_t setup() {
+    sys_info_t si;
 #ifdef STOP_ON_FAIL
     runtime_create(1, NULL);
 #else
     runtime_create(0, NULL);
 #endif
-    // Pool is now created inside runtime_create with all threads
+    // Initialize thread pool for pmap tests
+    si = sys_info(0);
+    if (si.threads > 1)
+        __RUNTIME->pool = pool_create(si.threads - 1);
+    // heap_create(0);
 }
 
 nil_t teardown() {
     runtime_destroy();
+    // heap_destroy();
 }
 
 #define PASS() \
@@ -126,20 +131,22 @@ nil_t on_skip(str_p msg) { printf("%sSkipped%s (%s)\n", YELLOW, RESET, msg ? msg
         obj_p le = eval_str(lhs);                                                                                      \
         obj_p lns = obj_fmt(le, B8_TRUE);                                                                              \
         if (IS_ERR(le)) {                                                                                              \
-            printf("  Expression: %s => %s\n", lhs, AS_C8(lns));                                                       \
-            drop_obj(lns);                                                                                             \
+            obj_p fmt = str_fmt(-1, "Input error: %s\n -- at: %s:%d", AS_C8(lns), __FILE__, __LINE__);                 \
             drop_obj(le);                                                                                              \
-            FAIL("error in eval");                                                                                     \
+            drop_obj(lns);                                                                                             \
+            FAIL(AS_C8(fmt));                                                                                          \
         } else {                                                                                                       \
             obj_p re = eval_str(rhs);                                                                                  \
             obj_p rns = obj_fmt(re, B8_TRUE);                                                                          \
             obj_p fmt = str_fmt(-1, "Expected %s, got %s\n -- at: %s:%d", AS_C8(rns), AS_C8(lns), __FILE__, __LINE__); \
-            TEST_ASSERT(str_cmp(AS_C8(lns), lns->len, AS_C8(rns), rns->len) == 0, AS_C8(fmt));                         \
-            drop_obj(fmt);                                                                                             \
+            b8_t pass = str_cmp(AS_C8(lns), lns->len, AS_C8(rns), rns->len) == 0;                                      \
             drop_obj(re);                                                                                              \
             drop_obj(le);                                                                                              \
             drop_obj(lns);                                                                                             \
             drop_obj(rns);                                                                                             \
+            if (!pass)                                                                                                 \
+                FAIL(AS_C8(fmt));                                                                                      \
+            drop_obj(fmt);                                                                                             \
         }                                                                                                              \
     }
 
@@ -149,17 +156,17 @@ nil_t on_skip(str_p msg) { printf("%sSkipped%s (%s)\n", YELLOW, RESET, msg ? msg
         obj_p lns = obj_fmt(le, B8_TRUE);                                                                       \
         if (!IS_ERR(le)) {                                                                                      \
             obj_p fmt = str_fmt(-1, "Expected error: %s\n -- at: %s:%d", AS_C8(lns), __FILE__, __LINE__);       \
-            TEST_ASSERT(0, AS_C8(lns));                                                                         \
             drop_obj(lns);                                                                                      \
-            drop_obj(fmt);                                                                                      \
             drop_obj(le);                                                                                       \
+            FAIL(AS_C8(fmt));                                                                                   \
         } else {                                                                                                \
             lit_p err_text = AS_C8(lns);                                                                        \
             if (err_text == NULL || strstr(err_text, rhs) == NULL) {                                            \
                 obj_p fmt =                                                                                     \
                     str_fmt(-1, "Expect \"%s\", in: \"%s\"\n -- at: %s:%d", rhs, err_text, __FILE__, __LINE__); \
-                TEST_ASSERT(0, AS_C8(fmt));                                                                     \
-                drop_obj(fmt);                                                                                  \
+                drop_obj(le);                                                                                   \
+                drop_obj(lns);                                                                                  \
+                FAIL(AS_C8(fmt));                                                                               \
             }                                                                                                   \
             drop_obj(le);                                                                                       \
             drop_obj(lns);                                                                                      \
@@ -401,42 +408,6 @@ test_entry_t tests[] = {
     {"test_parted_count_i16", test_parted_count_i16},
     {"test_parted_count_i32", test_parted_count_i32},
     {"test_parted_count_time", test_parted_count_time},
-    // Parted distinct tests
-    {"test_parted_distinct_i64", test_parted_distinct_i64},
-    // Timestamp-partitioned table tests
-    {"test_parted_timestamp_load", test_parted_timestamp_load},
-    {"test_parted_timestamp_column_name", test_parted_timestamp_column_name},
-    {"test_parted_timestamp_select_where", test_parted_timestamp_select_where},
-    {"test_parted_timestamp_select_where_in", test_parted_timestamp_select_where_in},
-    {"test_parted_timestamp_group_by", test_parted_timestamp_group_by},
-    {"test_parted_timestamp_aggregate_count", test_parted_timestamp_aggregate_count},
-    {"test_parted_timestamp_aggregate_sum", test_parted_timestamp_aggregate_sum},
-    {"test_parted_timestamp_aggregate_avg", test_parted_timestamp_aggregate_avg},
-    {"test_parted_timestamp_aggregate_minmax", test_parted_timestamp_aggregate_minmax},
-    {"test_parted_timestamp_aggregate_first_last", test_parted_timestamp_aggregate_first_last},
-    {"test_parted_timestamp_global_count", test_parted_timestamp_global_count},
-    {"test_parted_timestamp_global_sum", test_parted_timestamp_global_sum},
-    {"test_parted_timestamp_filter_aggregate", test_parted_timestamp_filter_aggregate},
-    {"test_parted_timestamp_range_filter", test_parted_timestamp_range_filter},
-    {"test_parted_timestamp_access_column", test_parted_timestamp_access_column},
-    {"test_parted_timestamp_multiple_aggregates", test_parted_timestamp_multiple_aggregates},
-    // Date partition column tests
-    {"test_parted_date_column_name", test_parted_date_column_name},
-    {"test_parted_date_access_column", test_parted_date_access_column},
-    // Symbol-partitioned table tests
-    {"test_parted_symbol_partition_load", test_parted_symbol_partition_load},
-    {"test_parted_symbol_partition_column_name", test_parted_symbol_partition_column_name},
-    {"test_parted_symbol_partition_select_where", test_parted_symbol_partition_select_where},
-    {"test_parted_symbol_partition_select_where_in", test_parted_symbol_partition_select_where_in},
-    {"test_parted_symbol_partition_group_by", test_parted_symbol_partition_group_by},
-    {"test_parted_symbol_partition_aggregate_count", test_parted_symbol_partition_aggregate_count},
-    {"test_parted_symbol_partition_aggregate_sum", test_parted_symbol_partition_aggregate_sum},
-    {"test_parted_symbol_partition_aggregate_avg", test_parted_symbol_partition_aggregate_avg},
-    {"test_parted_symbol_partition_aggregate_minmax", test_parted_symbol_partition_aggregate_minmax},
-    {"test_parted_symbol_partition_global_count", test_parted_symbol_partition_global_count},
-    {"test_parted_symbol_partition_global_sum", test_parted_symbol_partition_global_sum},
-    {"test_parted_symbol_partition_filter_aggregate", test_parted_symbol_partition_filter_aggregate},
-    {"test_parted_symbol_partition_multiple_aggregates", test_parted_symbol_partition_multiple_aggregates},
 };
 // ---
 

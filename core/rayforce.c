@@ -2881,9 +2881,10 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
             for (i = 0; i < l; i++)
                 drop_obj(AS_LIST(obj)[i]);
 
-            if (IS_EXTERNAL_SIMPLE(obj))
-                mmap_free(obj, size_of(obj));
-            else
+            if (IS_EXTERNAL_SIMPLE(obj)) {
+                // Use fdmap to properly unmap file and close handle
+                drop_obj(runtime_fdmap_pop(runtime_get(), obj));
+            } else
                 heap_free(obj);
             return;
         case TYPE_MAPFD:
@@ -2892,8 +2893,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
             return;
         case TYPE_ENUM:
             if (IS_EXTERNAL_COMPOUND(obj)) {
-                runtime_fdmap_pop(runtime_get(), obj);
-                // mmap_free((str_p)obj - RAY_PAGE_SIZE, size_of(obj) + RAY_PAGE_SIZE);
+                drop_obj(runtime_fdmap_pop(runtime_get(), obj));
             } else {
                 drop_obj(AS_LIST(obj)[0]);
                 drop_obj(AS_LIST(obj)[1]);
@@ -2901,10 +2901,8 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
             }
             return;
         case TYPE_MAPLIST:
-            runtime_fdmap_pop(runtime_get(), MAPLIST_KEY(obj));
-            runtime_fdmap_pop(runtime_get(), obj);
-            // mmap_free(MAPLIST_KEY(obj), size_of(obj));
-            // mmap_free((str_p)obj - RAY_PAGE_SIZE, size_of(obj) + RAY_PAGE_SIZE);
+            drop_obj(runtime_fdmap_pop(runtime_get(), MAPLIST_KEY(obj)));
+            drop_obj(runtime_fdmap_pop(runtime_get(), obj));
             return;
         case TYPE_TABLE:
         case TYPE_DICT:
@@ -2927,11 +2925,11 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
             // Static singletons - never free
             return;
         default:
-            if (IS_EXTERNAL_SIMPLE(obj))
-                runtime_fdmap_pop(runtime_get(), obj);
-            else if (IS_EXTERNAL_COMPOUND(obj)) {
-                runtime_fdmap_pop(runtime_get(), MAPLIST_KEY(obj));
-                runtime_fdmap_pop(runtime_get(), obj);
+            if (IS_EXTERNAL_SIMPLE(obj)) {
+                drop_obj(runtime_fdmap_pop(runtime_get(), obj));
+            } else if (IS_EXTERNAL_COMPOUND(obj)) {
+                drop_obj(runtime_fdmap_pop(runtime_get(), MAPLIST_KEY(obj)));
+                drop_obj(runtime_fdmap_pop(runtime_get(), obj));
             } else
                 heap_free(obj);
 

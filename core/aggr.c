@@ -3094,15 +3094,13 @@ obj_p aggr_collect(obj_p val, obj_p index) {
         case TYPE_PARTEDGUID:
         case TYPE_PARTEDENUM:
         case TYPE_PARTEDLIST:
-            // For parted types with INDEX_TYPE_PARTEDCOMMON, each partition is a group
-            // Collect all values from matching partitions
+            // For parted types with INDEX_TYPE_PARTEDCOMMON
             drop_obj(res);
             filter = index_group_filter(index);
             res = LIST(n);
             if (filter == NULL_OBJ) {
-                // No filter - each partition is a group
-                for (i = 0; i < (i64_t)val->len; i++)
-                    AS_LIST(res)[i] = ray_value(AS_LIST(val)[i]);
+                // No filter - global aggregation: flatten all partitions into one list
+                AS_LIST(res)[0] = ray_value(val);
             } else {
                 // With filter - only include matching partitions
                 l = filter->len;

@@ -23,14 +23,24 @@
 
 // Parted table tests - create, load, and query parted data
 
-static nil_t parted_cleanup() { system("rm -rf /tmp/rayforce_test_parted"); }
+static nil_t parted_cleanup() {
+    // Release memory-mapped parted/splayed table references before deleting files
+    drop_obj(eval_str("(set t null)"));
+    drop_obj(eval_str("(set s null)"));
+    drop_obj(eval_str("(set p null)"));
+    drop_obj(eval_str("(set dbpath null)"));
+    drop_obj(eval_str("(set sympath null)"));
+    drop_obj(eval_str("(set gen-partition null)"));
+    drop_obj(eval_str("(set n null)"));
+    system("rm -rf rayforce_test_parted");
+}
 
 // Helper macro to create a parted table for testing
 // 5 partitions (days), 100 rows each
 // Columns: OrderId (i64), Price (f64), Size (i64)
 #define PARTED_TEST_SETUP                                         \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 100)"                                               \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -46,7 +56,7 @@ static nil_t parted_cleanup() { system("rm -rf /tmp/rayforce_test_parted"); }
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 5))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_load() {
@@ -150,7 +160,7 @@ test_result_t test_parted_aggregate_minmax() {
 // Columns: OrderId (i64), Price (f64), Size (i64), Time (time/i32)
 #define PARTED_TEST_SETUP_TIME                                    \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 100)"                                               \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -167,7 +177,7 @@ test_result_t test_parted_aggregate_minmax() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 5))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_aggregate_time() {
@@ -227,7 +237,7 @@ test_result_t test_parted_aggregate_time_sum() {
 // Columns: OrderId (i64), Price (f64), Size (i64), Qty (i16)
 #define PARTED_TEST_SETUP_I16                                     \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 100)"                                               \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -244,7 +254,7 @@ test_result_t test_parted_aggregate_time_sum() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 5))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_aggregate_i16() {
@@ -349,7 +359,7 @@ test_result_t test_parted_global_multiple() {
 
 #define PARTED_TEST_SETUP_TIMESTAMP                                                \
     "(do "                                                                         \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"                                \
+    "  (set dbpath \"rayforce_test_parted/\")"                                \
     "  (set n 100)"                                                                \
     "  (set gen-partition "                                                        \
     "    (fn [day]"                                                                \
@@ -364,7 +374,7 @@ test_result_t test_parted_global_multiple() {
     "    )"                                                                        \
     "  )"                                                                          \
     "  (map gen-partition (til 5))"                                                \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"                     \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"                     \
     ")"
 
 test_result_t test_parted_timestamp_aggregate() {
@@ -580,7 +590,7 @@ test_result_t test_parted_date_column() {
 
 #define PARTED_TEST_SETUP_MANY                                    \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 10)"                                                \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -595,7 +605,7 @@ test_result_t test_parted_date_column() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 30))"                              \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_many_partitions() {
@@ -614,7 +624,7 @@ test_result_t test_parted_many_partitions() {
 
 #define PARTED_TEST_SETUP_SMALL                                   \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 3)"                                                 \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -629,7 +639,7 @@ test_result_t test_parted_many_partitions() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 2))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_small_data() {
@@ -701,7 +711,7 @@ test_result_t test_parted_filter_data_sum() {
 
 #define PARTED_TEST_SETUP_SYMBOL                                  \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set sympath (format \"%/sym\" dbpath))"                   \
     "  (set n 50)"                                                \
     "  (set syms ['AAPL 'GOOG 'MSFT 'IBM 'AMZN])"                 \
@@ -719,7 +729,7 @@ test_result_t test_parted_filter_data_sum() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 5))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_symbol_load() {
@@ -761,7 +771,7 @@ test_result_t test_parted_symbol_filter() {
 
 #define PARTED_TEST_SETUP_GUID                                    \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 20)"                                                \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -777,7 +787,7 @@ test_result_t test_parted_symbol_filter() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 3))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_guid_load() {
@@ -812,7 +822,7 @@ test_result_t test_parted_guid_with_other_aggr() {
 
 #define PARTED_TEST_SETUP_U8                                      \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 10)"                                                \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -828,7 +838,7 @@ test_result_t test_parted_guid_with_other_aggr() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 4))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_u8_load() {
@@ -853,7 +863,7 @@ test_result_t test_parted_u8_count() {
 
 #define SPLAYED_TEST_SETUP                             \
     "(do "                                             \
-    "  (set p \"/tmp/rayforce_test_parted/splayed/\")" \
+    "  (set p \"rayforce_test_parted/splayed/\")" \
     "  (set t (table [Id Val Price] "                  \
     "    (list "                                       \
     "      (til 100)"                                  \
@@ -939,8 +949,8 @@ test_result_t test_splayed_avg() {
 
 #define SPLAYED_TEST_SETUP_SYMBOL                       \
     "(do "                                              \
-    "  (set p \"/tmp/rayforce_test_parted/splayed/\")"  \
-    "  (set sympath \"/tmp/rayforce_test_parted/sym\")" \
+    "  (set p \"rayforce_test_parted/splayed/\")"  \
+    "  (set sympath \"rayforce_test_parted/sym\")" \
     "  (set t (table [Id Symbol Price] "                \
     "    (list "                                        \
     "      (til 50)"                                    \
@@ -1079,7 +1089,7 @@ test_result_t test_parted_filter_date_or_price() {
 
 #define PARTED_TEST_SETUP_MULTI_TYPE                              \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 20)"                                                \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -1096,7 +1106,7 @@ test_result_t test_parted_filter_date_or_price() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 3))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_multi_type_load() {
@@ -1142,7 +1152,7 @@ test_result_t test_parted_multi_type_filter_aggr() {
 
 #define PARTED_TEST_SETUP_SINGLE                               \
     "(do "                                                     \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"            \
+    "  (set dbpath \"rayforce_test_parted/\")"            \
     "  (set p (format \"%/%/a/\" dbpath 2024.01.01))"          \
     "  (set t (table [Id Val] "                                \
     "    (list "                                               \
@@ -1151,7 +1161,7 @@ test_result_t test_parted_multi_type_filter_aggr() {
     "    )"                                                    \
     "  ))"                                                     \
     "  (set-splayed p t)"                                      \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))" \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))" \
     ")"
 
 test_result_t test_parted_single_day() {
@@ -1179,7 +1189,7 @@ test_result_t test_parted_single_day_filter() {
 
 #define PARTED_TEST_SETUP_BOOL                                    \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 20)"                                                \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -1195,7 +1205,7 @@ test_result_t test_parted_single_day_filter() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 3))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_bool_load() {
@@ -1227,7 +1237,7 @@ test_result_t test_parted_bool_count() {
 
 #define PARTED_TEST_SETUP_DATE_COL                                \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 10)"                                                \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -1243,7 +1253,7 @@ test_result_t test_parted_bool_count() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 3))"                               \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_date_col_load() {
@@ -1313,7 +1323,7 @@ test_result_t test_parted_filter_few_match() {
 
 #define PARTED_TEST_SETUP_LARGE                                   \
     "(do "                                                        \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"               \
+    "  (set dbpath \"rayforce_test_parted/\")"               \
     "  (set n 1000)"                                              \
     "  (set gen-partition "                                       \
     "    (fn [day]"                                               \
@@ -1328,7 +1338,7 @@ test_result_t test_parted_filter_few_match() {
     "    )"                                                       \
     "  )"                                                         \
     "  (map gen-partition (til 10))"                              \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"    \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"    \
     ")"
 
 test_result_t test_parted_large_data() {
@@ -1723,7 +1733,7 @@ test_result_t test_parted_distinct_i64() {
 // Columns: OrderId (i64), Price (f64)
 #define PARTED_TIMESTAMP_TEST_SETUP                                                          \
     "(do "                                                                                   \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"                                          \
+    "  (set dbpath \"rayforce_test_parted/\")"                                          \
     "  (set n 50)"                                                                           \
     "  (set gen-partition "                                                                  \
     "    (fn [idx]"                                                                          \
@@ -1739,7 +1749,7 @@ test_result_t test_parted_distinct_i64() {
     "    )"                                                                                  \
     "  )"                                                                                    \
     "  (map gen-partition (til 3))"                                                          \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"                               \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"                               \
     ")"
 
 test_result_t test_parted_timestamp_load() {
@@ -1926,7 +1936,7 @@ test_result_t test_parted_date_access_column() {
 // Columns: Price (f64), Volume (i64)
 #define PARTED_SYMBOL_TEST_SETUP                                                             \
     "(do "                                                                                   \
-    "  (set dbpath \"/tmp/rayforce_test_parted/\")"                                          \
+    "  (set dbpath \"rayforce_test_parted/\")"                                          \
     "  (set n 20)"                                                                           \
     "  (set syms (list \"AAPL\" \"GOOG\" \"MSFT\"))"                                          \
     "  (set gen-partition "                                                                  \
@@ -1943,7 +1953,7 @@ test_result_t test_parted_date_access_column() {
     "    )"                                                                                  \
     "  )"                                                                                    \
     "  (map gen-partition (til 3))"                                                          \
-    "  (set t (get-parted \"/tmp/rayforce_test_parted/\" 'a))"                               \
+    "  (set t (get-parted \"rayforce_test_parted/\" 'a))"                               \
     ")"
 
 test_result_t test_parted_symbol_partition_load() {

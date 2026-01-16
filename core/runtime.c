@@ -264,7 +264,10 @@ obj_p runtime_fdmap_pop(runtime_p runtime, obj_p assoc) {
     obj_p id, fdmap;
 
     id = i64((i64_t)assoc);
-    fdmap = remove_obj(&runtime->fdmaps, id);
+    // at_obj already clones for list values, so no need to clone again
+    fdmap = at_obj(runtime->fdmaps, id);
+    // Remove the entry (this drops the dict's reference to the original)
+    remove_obj(&runtime->fdmaps, id);
     drop_obj(id);
 
     return fdmap;
