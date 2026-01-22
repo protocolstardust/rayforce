@@ -2971,6 +2971,8 @@ obj_p copy_obj(obj_p obj) {
         case TYPE_C8:
         case TYPE_I16:
         case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
