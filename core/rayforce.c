@@ -29,7 +29,7 @@
 #include "heap.h"
 #include "items.h"
 #include "lambda.h"
-#include "mmap.h"
+#include "dynlib.h"
 #include "ops.h"
 #include "runtime.h"
 #include "serde.h"
@@ -349,6 +349,22 @@ obj_p anymap(obj_p sym, obj_p vec) {
     e->type = TYPE_MAPLIST;
 
     return e;
+}
+
+obj_p external(raw_p ptr, nil_t (*drop)(raw_p)) {
+    obj_p o;
+
+    o = (obj_p)heap_alloc(sizeof(struct obj_t) + sizeof(struct ext_t));
+    o->type = TYPE_EXT;
+    o->mmod = MMOD_INTERNAL;
+    o->rc = 1;
+    o->len = 0;
+    o->attrs = 0;
+    ext_p ext = (ext_p)AS_C8(o);
+    ext->ptr = ptr;
+    ext->drop = drop;
+
+    return o;
 }
 
 obj_p resize_obj(obj_p* obj, i64_t len) {
@@ -2846,6 +2862,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
 
     u32_t rc;
     i64_t i, l;
+    ext_p ext;
 
     // Never drop NULL_OBJ or ERR_OBJ (static global singletons)
     if (obj == NULL_OBJ || obj == ERR_OBJ)
@@ -2923,6 +2940,11 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
         case TYPE_NULL:
         case TYPE_ERR:
             // Static singletons - never free
+            return;
+        case TYPE_EXT:
+            ext = (ext_p)AS_C8(obj);
+            ext->drop(ext->ptr);
+            heap_free(obj);
             return;
         default:
             if (IS_EXTERNAL_SIMPLE(obj)) {

@@ -182,6 +182,7 @@ nil_t on_skip(str_p msg) { printf("%sSkipped%s (%s)\n", YELLOW, RESET, msg ? msg
 #include "lang.c"
 #include "serde.c"
 #include "parted.c"
+#include "ext.c"
 
 // Add tests here
 test_entry_t tests[] = {
@@ -408,6 +409,7 @@ test_entry_t tests[] = {
     {"test_parted_count_i16", test_parted_count_i16},
     {"test_parted_count_i32", test_parted_count_i32},
     {"test_parted_count_time", test_parted_count_time},
+    {"test_external", test_external},
 };
 // ---
 
@@ -423,7 +425,8 @@ i32_t main() {
 
     i32_t num_failed = num_tests - num_passed - num_skipped;
     if (num_failed > 0)
-        printf("%sPassed%s %d/%d tests (%d skipped, %d failed).\n", YELLOW, RESET, num_passed, num_tests, num_skipped, num_failed);
+        printf("%sPassed%s %d/%d tests (%d skipped, %d failed).\n", YELLOW, RESET, num_passed, num_tests, num_skipped,
+               num_failed);
     else if (num_skipped > 0)
         printf("%sAll tests passed!%s (%d skipped)\n", GREEN, RESET, num_skipped);
     else

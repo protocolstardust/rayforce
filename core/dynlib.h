@@ -26,6 +26,11 @@
 
 #include "rayforce.h"
 
+typedef struct ext_t {
+    raw_p ptr;
+    nil_t (*drop)(raw_p);
+} *ext_p;
+
 typedef struct dynlib_t {
     obj_p path;
     raw_p handle;
