@@ -263,4 +263,30 @@ option_t poll_block_on(poll_p poll, selector_p selector);
 nil_t poll_exit(poll_p poll, i64_t code);
 nil_t poll_set_usr_fd(i64_t fd);
 
+// ============================================================================
+// Poll Waker - cross-platform mechanism to wake poll from another thread
+// ============================================================================
+
+#define POLL_WAKER_MAGIC 0x57414B45  // "WAKE" in hex
+
+typedef void (*poll_waker_fn)(raw_p data);  // Callback when waker is triggered
+
+typedef struct poll_waker_t {
+    u32_t magic;  // POLL_WAKER_MAGIC to identify waker events
+    poll_p poll;
+    poll_waker_fn callback;
+    raw_p data;
+#if defined(OS_WINDOWS)
+    ULONG_PTR key;  // Completion key for IOCP
+#elif defined(OS_LINUX)
+    i32_t eventfd;  // eventfd descriptor
+#elif defined(OS_MACOS)
+    i32_t pipe[2];  // pipe descriptors [read, write]
+#endif
+} *poll_waker_p;
+
+poll_waker_p poll_waker_create(poll_p poll, poll_waker_fn callback, raw_p data);
+nil_t poll_waker_wake(poll_waker_p waker);
+nil_t poll_waker_destroy(poll_waker_p waker);
+
 #endif  // POLL_H

@@ -852,6 +852,17 @@ i64_t poll_run(poll_p poll) {
                 size = events[i].dwNumberOfBytesTransferred;
                 overlapped = events[i].lpOverlapped;
 
+                // Check if this is a waker event (by checking magic number)
+                {
+                    poll_waker_p waker = (poll_waker_p)key;
+                    if (waker != NULL && waker->magic == POLL_WAKER_MAGIC) {
+                        LOG_TRACE("Waker event received, calling callback");
+                        if (waker->callback != NULL)
+                            waker->callback(waker->data);
+                        continue;
+                    }
+                }
+
                 switch (key) {
                     case STDIN_WAKER_ID:
                         if (size == 0) {
@@ -1071,4 +1082,48 @@ obj_p ipc_send_async(poll_p poll, i64_t id, obj_p msg) {
         return err_os();
 
     return NULL_OBJ;
+}
+
+// ============================================================================
+// Poll Waker - Windows implementation using IOCP PostQueuedCompletionStatus
+// ============================================================================
+
+// Use a base key offset to avoid collision with other completion keys
+#define WAKER_KEY_BASE 0x57414B45000000ULL  // "WAKE" prefix shifted
+
+static volatile LONG __waker_key_counter = 0;
+
+poll_waker_p poll_waker_create(poll_p poll, poll_waker_fn callback, raw_p data) {
+    poll_waker_p waker;
+
+    LOG_DEBUG("Creating poll waker");
+
+    waker = (poll_waker_p)heap_alloc(sizeof(struct poll_waker_t));
+    waker->magic = POLL_WAKER_MAGIC;
+    waker->poll = poll;
+    waker->callback = callback;
+    waker->data = data;
+
+    // Generate unique completion key for this waker
+    LONG counter = InterlockedIncrement(&__waker_key_counter);
+    waker->key = WAKER_KEY_BASE | (ULONG_PTR)counter;
+
+    LOG_DEBUG("Poll waker created with key 0x%llx", (unsigned long long)waker->key);
+
+    return waker;
+}
+
+nil_t poll_waker_wake(poll_waker_p waker) {
+    LOG_TRACE("Waking poll via IOCP key 0x%llx", (unsigned long long)waker->key);
+
+    // Post a completion packet to wake the IOCP loop
+    // The key is the waker pointer cast to ULONG_PTR so we can identify it
+    if (!PostQueuedCompletionStatus((HANDLE)waker->poll->poll_fd, 0, (ULONG_PTR)waker, NULL)) {
+        LOG_ERROR("PostQueuedCompletionStatus failed: %lu", GetLastError());
+    }
+}
+
+nil_t poll_waker_destroy(poll_waker_p waker) {
+    LOG_DEBUG("Destroying poll waker");
+    heap_free(waker);
 }
