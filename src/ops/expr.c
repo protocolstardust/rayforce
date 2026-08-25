@@ -2373,6 +2373,18 @@ ray_t* exec_elementwise_unary(ray_graph_t* g, ray_op_t* op, ray_t* input) {
     if (!result || RAY_IS_ERR(result)) return result;
     result->len = len;
 
+    /* ISNULL: pre-zero the mask.  Only I64 and F64 inputs have dedicated
+     * kernels below; every other element type (SYM/STR/BOOL/U8, narrow
+     * ints, F32) falls through the typed dispatch without writing a byte,
+     * and the buffer would otherwise be returned uninitialized — observed
+     * as garbage WHERE masks on (nil? sym-col) over a file-domain splayed
+     * column, the one sym shape that bails out of the fused path and lands
+     * here.  Null positions for sentinel-nullable types are then set by the
+     * propagation pass at the end of this function; no-null types (SYM/STR/
+     * BOOL/U8) correctly stay all-false, matching ray_vec_is_null. */
+    if (op->opcode == OP_ISNULL)
+        memset(ray_data(result), 0, (size_t)len);
+
     /* Hoist in_type, out_type, and opcode dispatch entirely outside the
      * morsel loop so each inner loop is a tight, single-type kernel.
      * This allows autovectorisation and eliminates per-element branch predict slots. */
